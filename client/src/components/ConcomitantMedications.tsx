@@ -183,8 +183,12 @@ export default function ConcomitantMedications({
                       <CommandItem
                         key={medication}
                         value={medication}
-                        onSelect={() => handleSelectSuggestion(medication)}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSelectSuggestion(medication);
+                        }}
                         data-testid={`suggestion-${medication}`}
+                        className="cursor-pointer"
                       >
                         <span className="font-mono text-sm">{medication}</span>
                       </CommandItem>

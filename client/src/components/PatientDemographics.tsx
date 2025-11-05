@@ -4,10 +4,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type PatientDemographicsProps = {
-  age: number;
+  age: number | undefined;
   pregnancy: "yes" | "no" | "unknown";
   hlab5701: "positive" | "negative" | "unknown";
-  onAgeChange: (age: number) => void;
+  onAgeChange: (age: number | undefined) => void;
   onPregnancyChange: (value: "yes" | "no" | "unknown") => void;
   onHlab5701Change: (value: "positive" | "negative" | "unknown") => void;
 };
@@ -35,8 +35,12 @@ export default function PatientDemographics({
             type="number"
             min="0"
             max="120"
-            value={age}
-            onChange={(e) => onAgeChange(Number(e.target.value))}
+            value={age ?? ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              onAgeChange(value === "" ? undefined : Number(value));
+            }}
+            placeholder="Enter age"
             className="max-w-xs"
             data-testid="input-age"
           />

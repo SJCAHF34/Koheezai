@@ -15,7 +15,7 @@ import { type AssessmentResult } from "@shared/schema";
 export default function AssessmentForm() {
   const { toast } = useToast();
   
-  const [age, setAge] = useState(0);
+  const [age, setAge] = useState<number | undefined>(undefined);
   const [pregnancy, setPregnancy] = useState<"yes" | "no" | "unknown">("unknown");
   const [hlab5701, setHlab5701] = useState<"positive" | "negative" | "unknown">("unknown");
   const [treatmentStatus, setTreatmentStatus] = useState<"naive" | "experienced">("naive");
@@ -78,7 +78,7 @@ export default function AssessmentForm() {
       return;
     }
 
-    if (age === 0) {
+    if (!age || age === 0) {
       toast({
         title: "Missing Information",
         description: "Please enter patient age.",
