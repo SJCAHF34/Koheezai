@@ -1,18 +1,32 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+export const assessmentSchema = z.object({
+  age: z.number().min(0).max(120),
+  pregnancy: z.enum(["yes", "no", "unknown"]),
+  hlab5701: z.enum(["positive", "negative", "unknown"]),
+  treatmentStatus: z.enum(["naive", "experienced"]),
+  viralLoad: z.number().min(0).optional(),
+  cd4Count: z.number().min(0).optional(),
+  egfr: z.number().min(0).optional(),
+  hepaticFunction: z.enum(["normal", "mild", "moderate", "severe"]),
+  selectedDrugs: z.array(z.string()),
+  concomitantMeds: z.array(z.string()),
+  geneticResistanceNotes: z.string().optional(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+export type Assessment = z.infer<typeof assessmentSchema>;
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export type DrugInteraction = {
+  id: string;
+  drug1: string;
+  drug2: string;
+  severity: "critical" | "moderate" | "minor";
+  description: string;
+  recommendation: string;
+};
+
+export type AssessmentResult = {
+  interactions: DrugInteraction[];
+  clinicalSummary: string;
+  consultationQuestions: string[];
+};

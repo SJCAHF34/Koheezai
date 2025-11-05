@@ -1,0 +1,127 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { AlertTriangle, AlertCircle, Info } from "lucide-react";
+import { type DrugInteraction } from "@shared/schema";
+
+type AssessmentResultsProps = {
+  interactions: DrugInteraction[];
+  clinicalSummary: string;
+  consultationQuestions: string[];
+};
+
+export default function AssessmentResults({
+  interactions,
+  clinicalSummary,
+  consultationQuestions,
+}: AssessmentResultsProps) {
+  const getSeverityIcon = (severity: "critical" | "moderate" | "minor") => {
+    switch (severity) {
+      case "critical":
+        return <AlertTriangle className="w-5 h-5 text-destructive" />;
+      case "moderate":
+        return <AlertCircle className="w-5 h-5 text-orange-600" />;
+      case "minor":
+        return <Info className="w-5 h-5 text-blue-600" />;
+    }
+  };
+
+  const getSeverityBadge = (severity: "critical" | "moderate" | "minor") => {
+    switch (severity) {
+      case "critical":
+        return <Badge variant="destructive">Critical</Badge>;
+      case "moderate":
+        return <Badge className="bg-orange-600 hover:bg-orange-700">Moderate</Badge>;
+      case "minor":
+        return <Badge variant="secondary">Minor</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {interactions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">Drug-Drug Interactions</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {interactions.length} interaction{interactions.length !== 1 ? "s" : ""} identified
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {interactions.map((interaction) => (
+              <Card key={interaction.id} className="border-2">
+                <CardContent className="pt-6 space-y-3">
+                  <div className="flex items-start gap-3">
+                    {getSeverityIcon(interaction.severity)}
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-medium">
+                          {interaction.drug1}
+                        </span>
+                        <span className="text-muted-foreground">↔</span>
+                        <span className="font-mono font-medium">
+                          {interaction.drug2}
+                        </span>
+                        {getSeverityBadge(interaction.severity)}
+                      </div>
+                      <p className="text-sm">{interaction.description}</p>
+                      <div className="bg-muted p-3 rounded-md">
+                        <p className="text-sm font-medium mb-1">Recommendation:</p>
+                        <p className="text-sm text-muted-foreground">
+                          {interaction.recommendation}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Clinical Assessment Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="prose prose-sm max-w-none">
+            <p className="text-sm whitespace-pre-line">{clinicalSummary}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Pharmacist Consultation Questions</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Key questions to address during patient consultation
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {consultationQuestions.map((question, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 p-4 rounded-md border hover-elevate"
+                data-testid={`question-${index}`}
+              >
+                <Checkbox id={`question-${index}`} data-testid={`checkbox-question-${index}`} />
+                <Label
+                  htmlFor={`question-${index}`}
+                  className="font-normal cursor-pointer flex-1"
+                >
+                  <span className="font-medium text-muted-foreground mr-2">
+                    {index + 1}.
+                  </span>
+                  {question}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
