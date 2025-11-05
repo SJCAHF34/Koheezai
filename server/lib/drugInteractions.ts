@@ -817,38 +817,44 @@ function checkARVtoARVInteractions(hivDrugs: string[], startId: number): { inter
       const drug1 = hivDrugs[i];
       const drug2 = hivDrugs[j];
 
-      // Check for 3TC + FTC (redundant, same resistance profile)
+      // Check for 3TC + FTC duplicates (redundant, same resistance profile)
       const drug1Has3TC = containsComponent(drug1, "lamivudine") || containsComponent(drug1, "3tc");
       const drug2HasFTC = containsComponent(drug2, "emtricitabine") || containsComponent(drug2, "ftc");
       const drug2Has3TC = containsComponent(drug2, "lamivudine") || containsComponent(drug2, "3tc");
       const drug1HasFTC = containsComponent(drug1, "emtricitabine") || containsComponent(drug1, "ftc");
       
-      if ((drug1Has3TC && drug2HasFTC) || (drug2Has3TC && drug1HasFTC)) {
+      // Check for cross-duplicates (3TC in one, FTC in other) OR same duplicates (both have FTC or both have 3TC)
+      if ((drug1Has3TC && drug2HasFTC) || (drug2Has3TC && drug1HasFTC) || 
+          (drug1HasFTC && drug2HasFTC) || (drug1Has3TC && drug2Has3TC)) {
         interactions.push({
           id: String(idCounter++),
           drug1: drug1.replace(/_/g, " "),
           drug2: drug2.replace(/_/g, " "),
           severity: "critical",
-          description: "Lamivudine (3TC) and emtricitabine (FTC) are structurally similar and have identical resistance profiles. Using both provides no additional benefit and increases pill burden.",
-          recommendation: "Use only one: either 3TC or FTC. These drugs are interchangeable and should never be used together."
+          description: "Lamivudine (3TC) and emtricitabine (FTC) are structurally similar and have identical resistance profiles. Using both drugs or duplicate doses provides no additional benefit and increases pill burden.",
+          recommendation: "Use only one: either 3TC or FTC in a single dose. These drugs are interchangeable and should never be duplicated."
         });
       }
 
-      // Check for TDF + TAF (duplicate tenofovir formulations)
+      // Check for duplicate tenofovir (any formulation)
       if (containsComponent(drug1, "tenofovir") && containsComponent(drug2, "tenofovir")) {
         const hasTDF1 = containsComponent(drug1, "tdf") || containsComponent(drug1, "tenofovir df");
         const hasTAF1 = containsComponent(drug1, "taf") || containsComponent(drug1, "tenofovir af");
         const hasTDF2 = containsComponent(drug2, "tdf") || containsComponent(drug2, "tenofovir df");
         const hasTAF2 = containsComponent(drug2, "taf") || containsComponent(drug2, "tenofovir af");
         
-        if ((hasTDF1 && hasTAF2) || (hasTAF1 && hasTDF2)) {
+        // Check for different formulations (TDF+TAF) OR same formulation duplicates (both TAF or both TDF)
+        if ((hasTDF1 && hasTAF2) || (hasTAF1 && hasTDF2) || (hasTAF1 && hasTAF2) || (hasTDF1 && hasTDF2)) {
+          const isDifferentFormulations = (hasTDF1 && hasTAF2) || (hasTAF1 && hasTDF2);
           interactions.push({
             id: String(idCounter++),
             drug1: drug1.replace(/_/g, " "),
             drug2: drug2.replace(/_/g, " "),
             severity: "critical",
-            description: "Tenofovir DF (TDF) and tenofovir alafenamide (TAF) are different formulations of the same active drug. Concurrent use leads to excessive tenofovir exposure.",
-            recommendation: "Use only one tenofovir formulation. TAF preferred for renal/bone safety; TDF preferred for high-level tenofovir resistance."
+            description: isDifferentFormulations 
+              ? "Tenofovir DF (TDF) and tenofovir alafenamide (TAF) are different formulations of the same active drug. Concurrent use leads to excessive tenofovir exposure."
+              : "Duplicate tenofovir exposure detected. Both regimens contain the same tenofovir formulation, leading to excessive drug exposure.",
+            recommendation: "Use only one tenofovir-containing regimen. TAF preferred for renal/bone safety; TDF preferred for high-level tenofovir resistance."
           });
         }
       }

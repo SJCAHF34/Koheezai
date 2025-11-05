@@ -45,10 +45,17 @@ Preferred communication style: Simple, everyday language.
 **Drug Interaction Engine**: Comprehensive interaction checking logic in `server/lib/drugInteractions.ts` that evaluates:
 1. **ARV-to-Concomitant Interactions**: HIV medications against concomitant medications (boosted regimens + corticosteroids, INSTIs + metformin, PIs + statins, etc.)
 2. **ARV-to-ARV Interactions**: 
-   - **Duplicate Therapies**: 3TC + FTC (lamivudine + emtricitabine), TDF + TAF (duplicate tenofovir formulations)
+   - **Duplicate Therapies**: 
+     - 3TC + FTC cross-duplicates (lamivudine + emtricitabine)
+     - Same-agent duplicates (both drugs containing FTC, or both containing 3TC)
+     - TDF + TAF cross-duplicates (different tenofovir formulations)
+     - Same-formulation duplicates (both drugs containing TAF, or both containing TDF)
    - **Inappropriate Combinations**: Multiple NNRTIs, multiple PIs, multiple boosters
    - **Drug-Drug Interactions**: Efavirenz + Dolutegravir (dose adjustment needed), Atazanavir + Tenofovir (increases tenofovir levels)
-3. **Component Mapping System**: All combination products mapped to their active components to enable detection when combination products contain duplicate agents (e.g., Biktarvy contains FTC, so Biktarvy + Lamivudine triggers 3TC/FTC duplicate alert)
+3. **Component Mapping System**: All combination products mapped to their active components with normalized keys (underscores removed) to enable comprehensive duplicate detection. Examples:
+   - Biktarvy + Symtuza: Both contain FTC and TAF → triggers 2 CRITICAL alerts (duplicate FTC, duplicate TAF)
+   - Biktarvy + Lamivudine: Biktarvy contains FTC, Lamivudine is 3TC → triggers CRITICAL 3TC/FTC cross-duplicate alert
+   - Symfi Lo + Emtricitabine: Symfi Lo contains 3TC (underscore-normalized ID), Emtricitabine is FTC → triggers CRITICAL alert
 
 Each interaction includes severity level (critical/moderate/minor), description, and clinical recommendations based on FDA labels and DHHS HIV treatment guidelines.
 
