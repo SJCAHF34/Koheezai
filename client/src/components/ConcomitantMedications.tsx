@@ -22,6 +22,26 @@ export default function ConcomitantMedications({
   const [open, setOpen] = useState(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Validate and fix medications array on mount and when it changes
+  useEffect(() => {
+    // Check if any element is not a string or is an array
+    const hasInvalidElements = medications.some(
+      (med) => typeof med !== 'string' || Array.isArray(med)
+    );
+    
+    if (hasInvalidElements) {
+      console.warn('Invalid medications array detected, flattening and filtering:', medications);
+      // Flatten and ensure all elements are strings
+      const fixedMeds = medications
+        .flat(Infinity) // Flatten all nested arrays
+        .filter((med): med is string => typeof med === 'string' && med.length > 0);
+      
+      if (JSON.stringify(fixedMeds) !== JSON.stringify(medications)) {
+        onMedicationsChange(fixedMeds);
+      }
+    }
+  }, [medications, onMedicationsChange]);
+
   // Fetch medication suggestions from NIH RxTerms API
   useEffect(() => {
     // Clear previous timer
@@ -73,13 +93,21 @@ export default function ConcomitantMedications({
     const valueToAdd = medication || inputValue.trim();
     if (!valueToAdd) return;
     
+    // Ensure valueToAdd is a string (defensive check)
+    if (typeof valueToAdd !== 'string') {
+      console.error('Invalid medication value:', valueToAdd);
+      return;
+    }
+    
     // Parse comma-separated medications if no specific medication provided
     if (!medication && valueToAdd.includes(',')) {
       const meds = valueToAdd.split(',').map(m => m.trim()).filter(m => m);
       const newMeds = meds.filter(m => !medications.includes(m));
       
       if (newMeds.length > 0) {
-        onMedicationsChange([...medications, ...newMeds]);
+        // Ensure all meds are strings
+        const validMeds = newMeds.filter(m => typeof m === 'string' && m.length > 0);
+        onMedicationsChange([...medications, ...validMeds]);
         setInputValue("");
         setOpen(false);
       }

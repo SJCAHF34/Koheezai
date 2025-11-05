@@ -87,6 +87,9 @@ export default function AssessmentForm() {
       return;
     }
 
+    // Ensure concomitantMeds is a flat array of strings
+    const flattenedMeds = concomitantMeds.flat();
+
     assessmentMutation.mutate({
       age,
       pregnancy,
@@ -97,7 +100,7 @@ export default function AssessmentForm() {
       egfr,
       hepaticFunction,
       selectedDrugs,
-      concomitantMeds,
+      concomitantMeds: flattenedMeds,
       geneticResistanceNotes,
     });
   };
