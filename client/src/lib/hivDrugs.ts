@@ -182,6 +182,139 @@ export const hivDrugs: HIVDrug[] = [
     dosage: "927mg PO then SC q6mo",
     class: "Capsid Inhibitor"
   },
+  {
+    id: "biktarvy",
+    name: "Bictegravir/Emtricitabine/TAF",
+    brandName: "Biktarvy",
+    dosage: "50/200/25mg QD",
+    class: "Combination"
+  },
+  {
+    id: "triumeq",
+    name: "Dolutegravir/Abacavir/Lamivudine",
+    brandName: "Triumeq",
+    dosage: "50/600/300mg QD",
+    class: "Combination"
+  },
+  {
+    id: "genvoya",
+    name: "Elvitegravir/Cobicistat/FTC/TAF",
+    brandName: "Genvoya",
+    dosage: "150/150/200/10mg QD",
+    class: "Combination"
+  },
+  {
+    id: "symtuza",
+    name: "Darunavir/Cobicistat/FTC/TAF",
+    brandName: "Symtuza",
+    dosage: "800/150/200/10mg QD",
+    class: "Combination"
+  },
+  {
+    id: "descovy",
+    name: "Emtricitabine/Tenofovir AF",
+    brandName: "Descovy",
+    dosage: "200/25mg QD",
+    class: "Combination"
+  },
+  {
+    id: "truvada",
+    name: "Emtricitabine/Tenofovir DF",
+    brandName: "Truvada",
+    dosage: "200/300mg QD",
+    class: "Combination"
+  },
+  {
+    id: "combivir",
+    name: "Lamivudine/Zidovudine",
+    brandName: "Combivir",
+    dosage: "150/300mg BID",
+    class: "Combination"
+  },
+  {
+    id: "atripla",
+    name: "Efavirenz/Emtricitabine/TDF",
+    brandName: "Atripla",
+    dosage: "600/200/300mg QD",
+    class: "Combination"
+  },
+  {
+    id: "complera",
+    name: "Rilpivirine/Emtricitabine/TDF",
+    brandName: "Complera",
+    dosage: "25/200/300mg QD",
+    class: "Combination"
+  },
+  {
+    id: "odefsey",
+    name: "Rilpivirine/Emtricitabine/TAF",
+    brandName: "Odefsey",
+    dosage: "25/200/25mg QD",
+    class: "Combination"
+  },
+  {
+    id: "stribild",
+    name: "Elvitegravir/Cobicistat/FTC/TDF",
+    brandName: "Stribild",
+    dosage: "150/150/200/300mg QD",
+    class: "Combination"
+  },
+  {
+    id: "symfi",
+    name: "Efavirenz/Lamivudine/TDF",
+    brandName: "Symfi",
+    dosage: "600/300/300mg QD",
+    class: "Combination"
+  },
+  {
+    id: "delstrigo",
+    name: "Doravirine/Lamivudine/TDF",
+    brandName: "Delstrigo",
+    dosage: "100/300/300mg QD",
+    class: "Combination"
+  },
+  {
+    id: "dovato",
+    name: "Dolutegravir/Lamivudine",
+    brandName: "Dovato",
+    dosage: "50/300mg QD",
+    class: "Combination"
+  },
+  {
+    id: "juluca",
+    name: "Dolutegravir/Rilpivirine",
+    brandName: "Juluca",
+    dosage: "50/25mg QD",
+    class: "Combination"
+  },
+  {
+    id: "cabenuva",
+    name: "Cabotegravir/Rilpivirine",
+    brandName: "Cabenuva",
+    dosage: "400/600mg IM monthly or 600/900mg q2mo",
+    class: "Combination"
+  },
+  {
+    id: "cimduo",
+    name: "Lamivudine/Tenofovir DF",
+    brandName: "Cimduo",
+    dosage: "300/300mg QD",
+    class: "Combination"
+  },
+  {
+    id: "symfi_lo",
+    name: "Efavirenz/Lamivudine/TDF",
+    brandName: "Symfi Lo",
+    dosage: "400/300/300mg QD",
+    class: "Combination"
+  },
+  {
+    id: "temixys",
+    name: "Lamivudine/Tenofovir DF",
+    brandName: "Temixys",
+    dosage: "300/300mg QD",
+    class: "Combination"
+  },
 ];
 
 export const drugClasses = [
@@ -190,7 +323,8 @@ export const drugClasses = [
   "PI",
   "INSTI",
   "Entry Inhibitor",
-  "Capsid Inhibitor"
+  "Capsid Inhibitor",
+  "Combination"
 ] as const;
 
 export function getDrugsByClass(drugClass: string): HIVDrug[] {
