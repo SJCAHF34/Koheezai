@@ -24,8 +24,15 @@ Preferred communication style: Simple, everyday language.
 - Patient demographics (age, pregnancy status, HLA-B*5701 status)
 - Treatment regimen (antiretroviral medications organized by drug class)
 - Clinical parameters (viral load, CD4 count, eGFR, hepatic function)
-- Concomitant medications
+- Concomitant medications (with autocomplete search powered by NIH RxTerms API)
 - Genetic resistance notes
+
+**Medication Search**: The concomitant medications field features autocomplete functionality that queries the NIH RxTerms API (Clinical Tables Search Service) in real-time. As users type medication names, the system provides intelligent suggestions from the RxNorm drug terminology database with:
+- Debounced API calls (300ms) to optimize performance
+- Duplicate filtering (excludes already-added medications)
+- Keyboard navigation support
+- Manual comma-separated entry fallback
+- No API key required (completely free NIH service)
 
 **Layout System**: Responsive design with Tailwind CSS using a maximum content width of 7xl for optimal readability. Two-column layout on desktop for the assessment form, collapsing to single column on mobile. Consistent spacing using Tailwind units (4, 6, 8, 12, 16).
 
