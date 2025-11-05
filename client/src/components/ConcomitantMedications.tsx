@@ -17,8 +17,15 @@ export default function ConcomitantMedications({
   const [inputValue, setInputValue] = useState("");
 
   const addMedication = () => {
-    if (inputValue.trim() && !medications.includes(inputValue.trim())) {
-      onMedicationsChange([...medications, inputValue.trim()]);
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+    
+    // Parse comma-separated medications
+    const meds = trimmed.split(',').map(m => m.trim()).filter(m => m);
+    const newMeds = meds.filter(m => !medications.includes(m));
+    
+    if (newMeds.length > 0) {
+      onMedicationsChange([...medications, ...newMeds]);
       setInputValue("");
     }
   };
@@ -45,7 +52,7 @@ export default function ConcomitantMedications({
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Input
-            placeholder="Enter medication name..."
+            placeholder="Enter medication(s), comma-separated..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
