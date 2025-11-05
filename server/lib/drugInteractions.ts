@@ -748,26 +748,135 @@ export function checkDrugInteractions(
     }
   }
 
-  // Check for interactions between HIV drugs themselves (e.g., combination products with PI components)
+  // Check for interactions between HIV drugs themselves
+  const arvInteractions = checkARVtoARVInteractions(hivDrugs, idCounter);
+  interactions.push(...arvInteractions.interactions);
+  idCounter = arvInteractions.nextId;
+
+  return interactions;
+}
+
+// Helper function to check if drug name contains component
+function containsComponent(drugName: string, component: string): boolean {
+  const normalized = drugName.toLowerCase().replace(/_/g, " ");
+  return normalized.includes(component.toLowerCase());
+}
+
+// Check for interactions between ARVs in the regimen
+function checkARVtoARVInteractions(hivDrugs: string[], startId: number): { interactions: DrugInteraction[], nextId: number } {
+  const interactions: DrugInteraction[] = [];
+  let idCounter = startId;
+
+  // Check for duplicate therapies and inappropriate combinations
   for (let i = 0; i < hivDrugs.length; i++) {
     for (let j = i + 1; j < hivDrugs.length; j++) {
-      const drug1 = hivDrugs[i].toLowerCase().replace(/_/g, " ");
-      const drug2 = hivDrugs[j].toLowerCase().replace(/_/g, " ");
-      
-      // Check for potential double-boosting or redundant therapies
-      if ((drug1.includes("ritonavir") || drug1.includes("cobicistat")) && 
-          (drug2.includes("ritonavir") || drug2.includes("cobicistat"))) {
+      const drug1 = hivDrugs[i];
+      const drug2 = hivDrugs[j];
+
+      // Check for 3TC + FTC (redundant, same resistance profile)
+      if ((containsComponent(drug1, "lamivudine") || containsComponent(drug1, "3tc")) &&
+          (containsComponent(drug2, "emtricitabine") || containsComponent(drug2, "ftc"))) {
         interactions.push({
           id: String(idCounter++),
-          drug1: hivDrugs[i].replace(/_/g, " "),
-          drug2: hivDrugs[j].replace(/_/g, " "),
+          drug1: drug1.replace(/_/g, " "),
+          drug2: drug2.replace(/_/g, " "),
+          severity: "critical",
+          description: "Lamivudine (3TC) and emtricitabine (FTC) are structurally similar and have identical resistance profiles. Using both provides no additional benefit and increases pill burden.",
+          recommendation: "Use only one: either 3TC or FTC. These drugs are interchangeable and should never be used together."
+        });
+      }
+
+      // Check for TDF + TAF (duplicate tenofovir formulations)
+      if (containsComponent(drug1, "tenofovir") && containsComponent(drug2, "tenofovir")) {
+        const hasTDF1 = containsComponent(drug1, "tdf") || containsComponent(drug1, "tenofovir df");
+        const hasTAF1 = containsComponent(drug1, "taf") || containsComponent(drug1, "tenofovir af");
+        const hasTDF2 = containsComponent(drug2, "tdf") || containsComponent(drug2, "tenofovir df");
+        const hasTAF2 = containsComponent(drug2, "taf") || containsComponent(drug2, "tenofovir af");
+        
+        if ((hasTDF1 && hasTAF2) || (hasTAF1 && hasTDF2)) {
+          interactions.push({
+            id: String(idCounter++),
+            drug1: drug1.replace(/_/g, " "),
+            drug2: drug2.replace(/_/g, " "),
+            severity: "critical",
+            description: "Tenofovir DF (TDF) and tenofovir alafenamide (TAF) are different formulations of the same active drug. Concurrent use leads to excessive tenofovir exposure.",
+            recommendation: "Use only one tenofovir formulation. TAF preferred for renal/bone safety; TDF preferred for high-level tenofovir resistance."
+          });
+        }
+      }
+
+      // Check for multiple boosters (ritonavir + cobicistat)
+      if ((containsComponent(drug1, "ritonavir") || containsComponent(drug1, "norvir")) && 
+          containsComponent(drug2, "cobicistat")) {
+        interactions.push({
+          id: String(idCounter++),
+          drug1: drug1.replace(/_/g, " "),
+          drug2: drug2.replace(/_/g, " "),
           severity: "moderate",
-          description: "Concurrent use of multiple pharmacokinetic boosters is not recommended and may increase drug interaction risk.",
+          description: "Concurrent use of ritonavir and cobicistat (both pharmacokinetic boosters) is not recommended and may increase drug interaction risk.",
           recommendation: "Use only one boosting agent. Consult HIV specialist for appropriate regimen adjustment."
+        });
+      }
+
+      // Check for multiple NNRTIs (generally inappropriate)
+      const nnrtis = ["efavirenz", "rilpivirine", "doravirine", "etravirine", "nevirapine"];
+      const drug1HasNNRTI = nnrtis.some(nnrti => containsComponent(drug1, nnrti));
+      const drug2HasNNRTI = nnrtis.some(nnrti => containsComponent(drug2, nnrti));
+      
+      if (drug1HasNNRTI && drug2HasNNRTI) {
+        interactions.push({
+          id: String(idCounter++),
+          drug1: drug1.replace(/_/g, " "),
+          drug2: drug2.replace(/_/g, " "),
+          severity: "critical",
+          description: "Multiple NNRTIs in a single regimen is not recommended. This provides no additional antiviral benefit and increases toxicity risk.",
+          recommendation: "Use only one NNRTI. Standard regimens contain one NNRTI plus a 2-NRTI backbone, or an INSTI-based regimen."
+        });
+      }
+
+      // Check for multiple unboosted PIs (generally inappropriate)
+      const pis = ["atazanavir", "darunavir", "lopinavir"];
+      const drug1HasPI = pis.some(pi => containsComponent(drug1, pi));
+      const drug2HasPI = pis.some(pi => containsComponent(drug2, pi));
+      
+      if (drug1HasPI && drug2HasPI && 
+          !containsComponent(drug1, "lopinavir") && !containsComponent(drug2, "lopinavir")) {
+        interactions.push({
+          id: String(idCounter++),
+          drug1: drug1.replace(/_/g, " "),
+          drug2: drug2.replace(/_/g, " "),
+          severity: "critical",
+          description: "Multiple protease inhibitors in a single regimen is not standard practice and may lead to unpredictable drug levels and toxicity.",
+          recommendation: "Use only one PI (boosted with ritonavir or cobicistat). Consult HIV specialist for complex salvage regimens."
+        });
+      }
+
+      // Check for specific ARV-to-ARV interactions
+      // Atazanavir + Tenofovir (increases tenofovir levels)
+      if (containsComponent(drug1, "atazanavir") && containsComponent(drug2, "tenofovir")) {
+        interactions.push({
+          id: String(idCounter++),
+          drug1: drug1.replace(/_/g, " "),
+          drug2: drug2.replace(/_/g, " "),
+          severity: "moderate",
+          description: "Atazanavir increases tenofovir levels by 24-37%, potentially increasing renal and bone toxicity risk.",
+          recommendation: "Monitor renal function closely. Consider TAF formulation for reduced toxicity. Assess bone health in high-risk patients."
+        });
+      }
+
+      // Efavirenz + Dolutegravir (efavirenz reduces dolutegravir levels)
+      if (containsComponent(drug1, "efavirenz") && containsComponent(drug2, "dolutegravir")) {
+        interactions.push({
+          id: String(idCounter++),
+          drug1: drug1.replace(/_/g, " "),
+          drug2: drug2.replace(/_/g, " "),
+          severity: "moderate",
+          description: "Efavirenz reduces dolutegravir levels by ~50% through UGT1A1 induction, potentially leading to virologic failure.",
+          recommendation: "Increase dolutegravir dose to 50mg BID when used with efavirenz. Alternative: use different NNRTI or INSTI."
         });
       }
     }
   }
 
-  return interactions;
+  return { interactions, nextId: idCounter };
 }
