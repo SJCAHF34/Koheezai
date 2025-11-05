@@ -33,6 +33,8 @@ Preferred communication style: Simple, everyday language.
 - Keyboard navigation support
 - Manual comma-separated entry fallback
 - No API key required (completely free NIH service)
+- Multi-layered data validation to ensure medications are stored as flat string arrays
+- Defensive state management with auto-correction for data integrity
 
 **Layout System**: Responsive design with Tailwind CSS using a maximum content width of 7xl for optimal readability. Two-column layout on desktop for the assessment form, collapsing to single column on mobile. Consistent spacing using Tailwind units (4, 6, 8, 12, 16).
 
