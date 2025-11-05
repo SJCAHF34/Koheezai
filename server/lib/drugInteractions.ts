@@ -756,10 +756,50 @@ export function checkDrugInteractions(
   return interactions;
 }
 
-// Helper function to check if drug name contains component
-function containsComponent(drugName: string, component: string): boolean {
-  const normalized = drugName.toLowerCase().replace(/_/g, " ");
-  return normalized.includes(component.toLowerCase());
+// Combination product component mapping (keys normalized without underscores)
+const combinationProductComponents: Record<string, string[]> = {
+  "biktarvy": ["bictegravir", "emtricitabine", "ftc", "tenofovir af", "taf"],
+  "triumeq": ["dolutegravir", "abacavir", "lamivudine", "3tc"],
+  "genvoya": ["elvitegravir", "cobicistat", "emtricitabine", "ftc", "tenofovir af", "taf"],
+  "symtuza": ["darunavir", "cobicistat", "emtricitabine", "ftc", "tenofovir af", "taf"],
+  "descovy": ["emtricitabine", "ftc", "tenofovir af", "taf"],
+  "truvada": ["emtricitabine", "ftc", "tenofovir df", "tdf"],
+  "combivir": ["lamivudine", "3tc", "zidovudine"],
+  "atripla": ["efavirenz", "emtricitabine", "ftc", "tenofovir df", "tdf"],
+  "complera": ["rilpivirine", "emtricitabine", "ftc", "tenofovir df", "tdf"],
+  "odefsey": ["rilpivirine", "emtricitabine", "ftc", "tenofovir af", "taf"],
+  "stribild": ["elvitegravir", "cobicistat", "emtricitabine", "ftc", "tenofovir df", "tdf"],
+  "symfi": ["efavirenz", "lamivudine", "3tc", "tenofovir df", "tdf"],
+  "symfilo": ["efavirenz", "lamivudine", "3tc", "tenofovir df", "tdf"],
+  "delstrigo": ["doravirine", "lamivudine", "3tc", "tenofovir df", "tdf"],
+  "dovato": ["dolutegravir", "lamivudine", "3tc"],
+  "juluca": ["dolutegravir", "rilpivirine"],
+  "cabenuva": ["cabotegravir", "rilpivirine"],
+  "cimduo": ["lamivudine", "3tc", "tenofovir df", "tdf"],
+  "temixys": ["lamivudine", "3tc", "tenofovir df", "tdf"],
+  "lopinavirritonavir": ["lopinavir", "ritonavir"],
+  "kaletra": ["lopinavir", "ritonavir"],
+  "prezcobix": ["darunavir", "cobicistat"],
+  "evotaz": ["atazanavir", "cobicistat"],
+};
+
+// Helper function to check if drug contains component
+function containsComponent(drugId: string, component: string): boolean {
+  const normalizedDrugId = drugId.toLowerCase().replace(/_/g, " ").trim();
+  const normalizedComponent = component.toLowerCase().trim();
+  
+  // Check if the drug ID itself contains the component
+  if (normalizedDrugId.includes(normalizedComponent)) {
+    return true;
+  }
+  
+  // Check if it's a combination product with this component
+  const components = combinationProductComponents[drugId.toLowerCase().replace(/_/g, "")];
+  if (components) {
+    return components.some(comp => comp.toLowerCase() === normalizedComponent);
+  }
+  
+  return false;
 }
 
 // Check for interactions between ARVs in the regimen
@@ -774,8 +814,12 @@ function checkARVtoARVInteractions(hivDrugs: string[], startId: number): { inter
       const drug2 = hivDrugs[j];
 
       // Check for 3TC + FTC (redundant, same resistance profile)
-      if ((containsComponent(drug1, "lamivudine") || containsComponent(drug1, "3tc")) &&
-          (containsComponent(drug2, "emtricitabine") || containsComponent(drug2, "ftc"))) {
+      const drug1Has3TC = containsComponent(drug1, "lamivudine") || containsComponent(drug1, "3tc");
+      const drug2HasFTC = containsComponent(drug2, "emtricitabine") || containsComponent(drug2, "ftc");
+      const drug2Has3TC = containsComponent(drug2, "lamivudine") || containsComponent(drug2, "3tc");
+      const drug1HasFTC = containsComponent(drug1, "emtricitabine") || containsComponent(drug1, "ftc");
+      
+      if ((drug1Has3TC && drug2HasFTC) || (drug2Has3TC && drug1HasFTC)) {
         interactions.push({
           id: String(idCounter++),
           drug1: drug1.replace(/_/g, " "),
