@@ -42,7 +42,15 @@ Preferred communication style: Simple, everyday language.
 
 **Request Validation**: Zod schema validation on incoming assessment requests to ensure data integrity.
 
-**Drug Interaction Engine**: Custom interaction checking logic in `server/lib/drugInteractions.ts` that evaluates selected HIV medications against concomitant medications using pattern-matching rules. Each interaction includes severity level (critical/moderate/minor), description, and clinical recommendations.
+**Drug Interaction Engine**: Comprehensive interaction checking logic in `server/lib/drugInteractions.ts` that evaluates:
+1. **ARV-to-Concomitant Interactions**: HIV medications against concomitant medications (boosted regimens + corticosteroids, INSTIs + metformin, PIs + statins, etc.)
+2. **ARV-to-ARV Interactions**: 
+   - **Duplicate Therapies**: 3TC + FTC (lamivudine + emtricitabine), TDF + TAF (duplicate tenofovir formulations)
+   - **Inappropriate Combinations**: Multiple NNRTIs, multiple PIs, multiple boosters
+   - **Drug-Drug Interactions**: Efavirenz + Dolutegravir (dose adjustment needed), Atazanavir + Tenofovir (increases tenofovir levels)
+3. **Component Mapping System**: All combination products mapped to their active components to enable detection when combination products contain duplicate agents (e.g., Biktarvy contains FTC, so Biktarvy + Lamivudine triggers 3TC/FTC duplicate alert)
+
+Each interaction includes severity level (critical/moderate/minor), description, and clinical recommendations based on FDA labels and DHHS HIV treatment guidelines.
 
 **HIV Medication Database**: Comprehensive medication library (`client/src/lib/hivDrugs.ts`) organized by drug class (NRTI, NNRTI, INSTI, PI, etc.) with generic names, brand names, and standard dosing information.
 

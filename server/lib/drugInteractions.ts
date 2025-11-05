@@ -785,7 +785,7 @@ const combinationProductComponents: Record<string, string[]> = {
 
 // Helper function to check if drug contains component
 function containsComponent(drugId: string, component: string): boolean {
-  const normalizedDrugId = drugId.toLowerCase().replace(/_/g, " ").trim();
+  const normalizedDrugId = drugId.toLowerCase().replace(/_/g, "").trim();
   const normalizedComponent = component.toLowerCase().trim();
   
   // Check if the drug ID itself contains the component
@@ -794,9 +794,13 @@ function containsComponent(drugId: string, component: string): boolean {
   }
   
   // Check if it's a combination product with this component
-  const components = combinationProductComponents[drugId.toLowerCase().replace(/_/g, "")];
+  const components = combinationProductComponents[normalizedDrugId];
   if (components) {
-    return components.some(comp => comp.toLowerCase() === normalizedComponent);
+    // Check for exact match OR if component contains the search term (for "tenofovir" matching "tenofovir df")
+    return components.some(comp => {
+      const lowerComp = comp.toLowerCase();
+      return lowerComp === normalizedComponent || lowerComp.includes(normalizedComponent);
+    });
   }
   
   return false;
