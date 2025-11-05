@@ -1,15 +1,128 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { z } from "zod";
+import OpenAI from "openai";
+import { checkDrugInteractions } from "./lib/drugInteractions";
+import { hivDrugs } from "../client/src/lib/hivDrugs";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const assessmentRequestSchema = z.object({
+  age: z.number().min(0).max(120),
+  pregnancy: z.enum(["yes", "no", "unknown"]),
+  hlab5701: z.enum(["positive", "negative", "unknown"]),
+  treatmentStatus: z.enum(["naive", "experienced"]),
+  viralLoad: z.number().min(0).optional(),
+  cd4Count: z.number().min(0).optional(),
+  egfr: z.number().min(0).optional(),
+  hepaticFunction: z.enum(["normal", "mild", "moderate", "severe"]),
+  selectedDrugs: z.array(z.string()),
+  concomitantMeds: z.array(z.string()),
+  geneticResistanceNotes: z.string().optional(),
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  app.post("/api/assessment", async (req, res) => {
+    try {
+      const data = assessmentRequestSchema.parse(req.body);
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+      if (data.selectedDrugs.length === 0) {
+        return res.status(400).json({ error: "At least one HIV medication must be selected" });
+      }
+
+      const interactions = checkDrugInteractions(data.selectedDrugs, data.concomitantMeds);
+
+      const selectedDrugDetails = data.selectedDrugs.map(id => {
+        const drug = hivDrugs.find(d => d.id === id);
+        return drug ? `${drug.name} (${drug.brandName}) - ${drug.dosage}` : id;
+      }).join(", ");
+
+      const prompt = `You are an experienced clinical pharmacist specializing in HIV treatment. Generate a comprehensive clinical assessment based on the following patient information:
+
+**Patient Demographics:**
+- Age: ${data.age} years
+- Pregnancy Status: ${data.pregnancy}
+- HLA-B*5701: ${data.hlab5701}
+
+**Clinical Parameters:**
+- Treatment Status: ${data.treatmentStatus}
+- Viral Load: ${data.viralLoad ? `${data.viralLoad.toLocaleString()} copies/mL` : "Not documented"}
+- CD4 Count: ${data.cd4Count ? `${data.cd4Count} cells/mm³` : "Not documented"}
+- eGFR (Renal Function): ${data.egfr ? `${data.egfr} mL/min` : "Not documented"}
+- Hepatic Function: ${data.hepaticFunction}
+
+**Selected HIV Regimen:**
+${selectedDrugDetails}
+
+**Concomitant Medications:**
+${data.concomitantMeds.length > 0 ? data.concomitantMeds.join(", ") : "None reported"}
+
+**Genetic Resistance Notes:**
+${data.geneticResistanceNotes || "None documented"}
+
+**Drug-Drug Interactions Identified:**
+${interactions.length > 0 ? interactions.map(i => `${i.severity.toUpperCase()}: ${i.drug1} + ${i.drug2}`).join("; ") : "None identified"}
+
+Please provide:
+1. A clinical assessment summary (3-4 paragraphs) that addresses:
+   - Patient's HIV treatment context and appropriateness of selected regimen
+   - Key clinical considerations (HLA-B*5701, pregnancy, renal/hepatic function)
+   - Drug interaction concerns if present
+   - Dosing adjustments needed based on organ function
+   - Any contraindications or safety alerts
+
+2. A list of 7-10 specific consultation questions a pharmacist should ask this patient during counseling. Focus on:
+   - Medication history and adherence barriers
+   - Symptoms and adverse effects
+   - Understanding of treatment
+   - Social determinants affecting care
+   - Specific concerns related to their regimen or interactions
+
+Format your response as JSON:
+{
+  "clinicalSummary": "multi-paragraph assessment",
+  "consultationQuestions": ["question 1", "question 2", ...]
+}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert HIV pharmacist. Provide evidence-based, clinically appropriate assessments. Be thorough but concise. Always respond with valid JSON."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || "{}");
+
+      res.json({
+        interactions,
+        clinicalSummary: result.clinicalSummary || "Assessment could not be generated.",
+        consultationQuestions: result.consultationQuestions || [],
+      });
+    } catch (error) {
+      console.error("Assessment generation error:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+
+      res.status(500).json({ 
+        error: "Failed to generate assessment",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 
   const httpServer = createServer(app);
-
   return httpServer;
 }
