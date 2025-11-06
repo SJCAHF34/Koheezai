@@ -1,106 +1,62 @@
 # HIV Treatment Assessor
 
 ## Overview
-
-The HIV Treatment Assessor is a clinical decision support tool designed for pharmacists and healthcare providers to perform comprehensive HIV treatment assessments. The application evaluates drug-drug interactions, analyzes patient demographics and clinical parameters, and generates AI-powered consultation recommendations. It accepts patient data including antiretroviral medication regimens, concomitant medications, lab values, and genetic markers, then produces structured clinical assessments with interaction alerts and pharmacist consultation questions.
+The HIV Treatment Assessor is a clinical decision support tool for pharmacists and healthcare providers. It performs comprehensive HIV treatment assessments by evaluating drug-drug interactions, analyzing patient demographics and clinical parameters, and generating AI-powered consultation recommendations. The application processes patient data, including antiretroviral regimens, concomitant medications, lab values, and genetic markers, to produce structured clinical assessments with interaction alerts and pharmacist consultation questions.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
 ### Frontend Architecture
-
-**Framework**: React with TypeScript using Vite as the build tool
-
-**UI Component System**: Shadcn/ui component library built on Radix UI primitives, following the "New York" design style variant. The design system emphasizes a professional clinical interface with Material Design for Healthcare principles, optimized for information density and error-resistant interactions.
-
-**Routing**: Wouter for lightweight client-side routing, with a single-page application structure focused on the assessment form.
-
-**State Management**: React hooks for local component state management. TanStack Query (React Query) handles server state and API request caching.
-
-**Form Handling**: Controlled components using React state, with validation handled through Zod schemas. The assessment form captures:
-- Patient demographics (age, pregnancy status, HLA-B*5701 status)
-- Treatment regimen (antiretroviral medications organized by drug class)
-- Clinical parameters (viral load, CD4 count, eGFR, hepatic function)
-- Concomitant medications (with autocomplete search powered by NIH RxTerms API)
-- Genetic resistance notes
-
-**Medication Search**: The concomitant medications field features autocomplete functionality that queries the NIH RxTerms API (Clinical Tables Search Service) in real-time. As users type medication names, the system provides intelligent suggestions from the RxNorm drug terminology database with:
-- Debounced API calls (300ms) to optimize performance
-- Duplicate filtering (excludes already-added medications)
-- Keyboard navigation support
-- Manual comma-separated entry fallback
-- No API key required (completely free NIH service)
-- Multi-layered data validation to ensure medications are stored as flat string arrays
-- Defensive state management with auto-correction for data integrity
-
-**Layout System**: Responsive design with Tailwind CSS using a maximum content width of 7xl for optimal readability. Two-column layout on desktop for the assessment form, collapsing to single column on mobile. Consistent spacing using Tailwind units (4, 6, 8, 12, 16).
-
-**Typography**: Custom font stack featuring Inter/Roboto for primary text and JetBrains Mono for medication names and dosages, loaded via Google Fonts CDN.
+- **Framework**: React with TypeScript (Vite build tool).
+- **UI Component System**: Shadcn/ui (Radix UI primitives) with "New York" design style, focusing on a professional clinical interface.
+- **Routing**: Wouter for client-side routing in a single-page application.
+- **State Management**: React hooks for local state; TanStack Query for server state and caching.
+- **Form Handling**: Controlled components with Zod validation for patient demographics, treatment regimens, clinical parameters, concomitant medications, and genetic resistance notes.
+- **Medication Search**: Autocomplete for concomitant medications via NIH RxTerms API, with debouncing, duplicate filtering, and keyboard navigation.
+- **Layout System**: Responsive design using Tailwind CSS, with a two-column desktop layout collapsing to single column on mobile.
+- **Typography**: Custom font stack (Inter/Roboto, JetBrains Mono) via Google Fonts CDN.
 
 ### Backend Architecture
+- **Server Framework**: Express.js with Node.js and TypeScript.
+- **API Structure**: RESTful API with a primary endpoint `/api/assessment` (POST) for processing patient data and returning drug interaction alerts, clinical recommendations, AI-generated summaries, and consultation questions.
+- **Request Validation**: Zod schema validation for incoming assessment data.
 
-**Server Framework**: Express.js running on Node.js with TypeScript
+### Clinical Validation Modules
+- **Drug Interaction Engine**: Comprehensive engine with 100+ evidence-based rules for ARV-to-concomitant, ARV-to-ARV, and duplicate therapy interactions. Includes severity levels, descriptions, and clinical recommendations.
+- **Renal Function Validation**: eGFR-based safety checks for medications, including contraindications and dose adjustments for TDF/TAF-containing products and Biktarvy.
+- **Hepatic/Pregnancy/Genetic Validation**: Alerts for hepatic impairment (Child-Pugh staging), pregnancy contraindications (e.g., Efavirenz, Cobicistat), and HLA-B*5701 screening for Abacavir hypersensitivity.
+- **Clinical Recommendations Engine**: Evidence-based decision support for OI prophylaxis (PCP, MAC, Toxoplasmosis based on CD4 count), viral load assessment (undetectable, low-level viremia, virologic failure), and immunization recommendations (CDC/ACIP guidelines).
 
-**API Structure**: RESTful API with a single primary endpoint `/api/assessment` (POST) that accepts patient assessment data and returns:
-- Drug-drug interactions array
-- AI-generated clinical summary
-- Pharmacist consultation questions
-
-**Request Validation**: Zod schema validation on incoming assessment requests to ensure data integrity.
-
-**Drug Interaction Engine**: Comprehensive interaction checking logic in `server/lib/drugInteractions.ts` that evaluates:
-1. **ARV-to-Concomitant Interactions**: HIV medications against concomitant medications (boosted regimens + corticosteroids, INSTIs + metformin, PIs + statins, etc.)
-2. **ARV-to-ARV Interactions**: 
-   - **Duplicate Therapies**: 
-     - 3TC + FTC cross-duplicates (lamivudine + emtricitabine)
-     - Same-agent duplicates (both drugs containing FTC, or both containing 3TC)
-     - TDF + TAF cross-duplicates (different tenofovir formulations)
-     - Same-formulation duplicates (both drugs containing TAF, or both containing TDF)
-   - **Inappropriate Combinations**: Multiple NNRTIs, multiple PIs, multiple boosters
-   - **Drug-Drug Interactions**: Efavirenz + Dolutegravir (dose adjustment needed), Atazanavir + Tenofovir (increases tenofovir levels)
-3. **Component Mapping System**: All combination products mapped to their active components with normalized keys (underscores removed) to enable comprehensive duplicate detection. Examples:
-   - Biktarvy + Symtuza: Both contain FTC and TAF → triggers 2 CRITICAL alerts (duplicate FTC, duplicate TAF)
-   - Biktarvy + Lamivudine: Biktarvy contains FTC, Lamivudine is 3TC → triggers CRITICAL 3TC/FTC cross-duplicate alert
-   - Symfi Lo + Emtricitabine: Symfi Lo contains 3TC (underscore-normalized ID), Emtricitabine is FTC → triggers CRITICAL alert
-
-Each interaction includes severity level (critical/moderate/minor), description, and clinical recommendations based on FDA labels and DHHS HIV treatment guidelines.
-
-**HIV Medication Database**: Comprehensive medication library (`client/src/lib/hivDrugs.ts`) organized by drug class (NRTI, NNRTI, INSTI, PI, etc.) with generic names, brand names, and standard dosing information.
+### HIV Medication Database
+- Comprehensive library (`client/src/lib/hivDrugs.ts`) organized by drug class with generic names, brand names, and dosing information.
 
 ### Data Storage Solutions
+- **User Storage**: In-memory storage (`MemStorage` class) for user data (not persistent across restarts).
+- **Database Configuration**: Drizzle ORM configured for PostgreSQL with schema definitions, using Drizzle Kit for migrations. Prepared for Neon serverless database integration.
+- **Session Management**: Express session with PostgreSQL session store.
 
-**User Storage**: In-memory storage implementation (`MemStorage` class) for user data with a Map-based approach. The current implementation does not persist data between server restarts.
-
-**Database Configuration**: Drizzle ORM configured for PostgreSQL with schema definitions in `shared/schema.ts`. Database migrations are managed through Drizzle Kit. The application is prepared for PostgreSQL integration via Neon serverless database (evidenced by `@neondatabase/serverless` dependency), though data persistence is not currently implemented for assessment results.
-
-**Session Management**: Express session configuration with PostgreSQL session store (`connect-pg-simple`).
-
-### External Dependencies
-
-**OpenAI API**: The application integrates with OpenAI's API to generate clinical assessments. When a patient assessment is submitted, the system:
-1. Checks for drug-drug interactions using internal rules
-2. Sends patient data and interaction results to OpenAI for clinical summary generation
-3. Receives structured assessment recommendations including consultation questions
-
-The OpenAI integration requires an API key configured via the `OPENAI_API_KEY` environment variable.
-
-**Database**: PostgreSQL database (expected via `DATABASE_URL` environment variable) for data persistence, session storage, and user management. The application uses Neon serverless PostgreSQL for cloud database connectivity.
-
-**Third-Party UI Libraries**: 
-- Radix UI component primitives (accordion, dialog, popover, radio group, etc.)
-- Lucide React for iconography
-- date-fns for date manipulation
-- embla-carousel for carousel functionality
-- cmdk for command palette interfaces
-
-**Development Tools**:
-- Replit-specific plugins for development environment integration (cartographer, dev-banner, runtime error modal)
-- ESBuild for server-side bundling
-- TSX for TypeScript execution in development
+### Assessment Results Display
+- The `AssessmentResults` component displays comprehensive output, including:
+    - Drug-Drug Interactions (severity-coded alerts).
+    - Renal Function Alerts (eGFR-based warnings).
+    - Hepatic/Pregnancy/Genetic Alerts (category-tagged).
+    - Clinical Recommendations (priority-based cards for OI prophylaxis, viral load, immunizations, adherence).
+    - AI-generated Clinical Assessment Summary.
+    - Pharmacist Consultation Questions (checkbox-enabled list).
 
 ### Authentication and Authorization
+- Basic user management infrastructure exists, but full authentication is not yet implemented in the assessment workflow.
 
-The codebase includes basic user management infrastructure (User schema, storage interface with getUser, getUserByUsername, createUser methods), but authentication is not currently implemented in the assessment workflow. The application appears designed to be extended with user authentication in the future.
+## External Dependencies
+
+- **OpenAI API**: Used for generating AI-powered clinical summaries and consultation questions. Requires `OPENAI_API_KEY`.
+- **NIH RxTerms API (Clinical Tables Search Service)**: Provides autocomplete suggestions for concomitant medications. No API key required.
+- **PostgreSQL Database**: Expected via `DATABASE_URL` environment variable for data persistence, session storage, and user management. Utilizes Neon serverless PostgreSQL.
+- **Third-Party UI Libraries**:
+    - Radix UI (component primitives)
+    - Lucide React (iconography)
+    - date-fns (date manipulation)
+    - embla-carousel (carousel functionality)
+    - cmdk (command palette)
