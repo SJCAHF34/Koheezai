@@ -298,13 +298,568 @@ const interactionRules: InteractionRule[] = [
     description: "Ritonavir significantly increases triazolam levels through CYP3A4 inhibition, causing severe prolonged sedation.",
     recommendation: "CONTRAINDICATED per FDA labeling. Use alternative benzodiazepines not metabolized by CYP3A4 (lorazepam, temazepam, oxazepam)."
   },
+  
+  // CRITICAL - ALPRAZOLAM + PROTEASE INHIBITORS (DEADLY COMBINATIONS)
+  {
+    drug1Pattern: "ritonavir",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Ritonavir dramatically increases alprazolam levels through potent CYP3A4 inhibition (AUC increased >2.5-fold), causing profound sedation, respiratory depression, and risk of death.",
+    recommendation: "CONTRAINDICATED - potentially fatal combination. Use lorazepam, oxazepam, or temazepam (not CYP3A4 metabolized) as safer alternatives."
+  },
+  {
+    drug1Pattern: "lopinavir",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Lopinavir/ritonavir significantly increases alprazolam exposure through CYP3A4 inhibition, risking severe sedation and respiratory depression.",
+    recommendation: "CONTRAINDICATED. Switch to lorazepam or temazepam. Do not use alprazolam with any boosted protease inhibitor."
+  },
+  {
+    drug1Pattern: "darunavir",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Darunavir (when boosted with ritonavir or cobicistat) dramatically increases alprazolam levels through CYP3A4 inhibition, causing life-threatening sedation and respiratory depression.",
+    recommendation: "CONTRAINDICATED - risk of respiratory arrest and death. Use lorazepam or oxazepam instead."
+  },
+  {
+    drug1Pattern: "atazanavir",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Boosted atazanavir increases alprazolam levels significantly through CYP3A4 inhibition, risking severe sedation and respiratory compromise.",
+    recommendation: "AVOID combination. Use lorazepam or temazepam as safer anxiolytic alternatives."
+  },
+  {
+    drug1Pattern: "cobicistat",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Cobicistat is a potent CYP3A4 inhibitor that dramatically increases alprazolam levels, causing profound sedation and respiratory depression.",
+    recommendation: "CONTRAINDICATED per FDA labeling. Use lorazepam, oxazepam, or temazepam instead."
+  },
+  {
+    drug1Pattern: "symtuza",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Symtuza contains darunavir/cobicistat which dramatically increases alprazolam exposure through CYP3A4 inhibition. This combination can be FATAL due to respiratory depression.",
+    recommendation: "CONTRAINDICATED - potentially deadly combination. Immediately switch to lorazepam or temazepam. Patient must not take alprazolam with Symtuza."
+  },
+  {
+    drug1Pattern: "prezcobix",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Prezcobix (darunavir/cobicistat) dramatically increases alprazolam levels through CYP3A4 inhibition, risking fatal respiratory depression.",
+    recommendation: "CONTRAINDICATED. Use lorazepam or oxazepam. Do not prescribe alprazolam with any cobicistat-containing regimen."
+  },
+  {
+    drug1Pattern: "genvoya",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Genvoya contains cobicistat which significantly increases alprazolam levels through CYP3A4 inhibition, risking respiratory depression.",
+    recommendation: "CONTRAINDICATED. Switch to lorazepam or temazepam for anxiety management."
+  },
+  {
+    drug1Pattern: "stribild",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Stribild contains cobicistat which dramatically increases alprazolam exposure through CYP3A4 inhibition.",
+    recommendation: "CONTRAINDICATED. Use lorazepam or oxazepam instead."
+  },
+  {
+    drug1Pattern: "evotaz",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Evotaz (atazanavir/cobicistat) significantly increases alprazolam levels, risking respiratory depression.",
+    recommendation: "CONTRAINDICATED. Switch to lorazepam or temazepam."
+  },
+  {
+    drug1Pattern: "kaletra",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Kaletra (lopinavir/ritonavir) dramatically increases alprazolam exposure, risking fatal respiratory depression.",
+    recommendation: "CONTRAINDICATED. Use lorazepam or temazepam instead."
+  },
+  {
+    drug1Pattern: "prezista",
+    drug2Pattern: "alprazolam",
+    severity: "critical",
+    description: "Prezista (darunavir), when boosted, significantly increases alprazolam levels through CYP3A4 inhibition.",
+    recommendation: "AVOID combination. Use lorazepam or oxazepam for anxiety."
+  },
+  
+  // CRITICAL - Additional Benzodiazepines + PIs
+  {
+    drug1Pattern: "lopinavir",
+    drug2Pattern: "midazolam",
+    severity: "critical",
+    description: "Lopinavir/ritonavir increases oral midazolam levels by >25-fold through CYP3A4 inhibition, causing prolonged sedation and respiratory depression.",
+    recommendation: "Oral midazolam CONTRAINDICATED. For procedural sedation, use reduced IV doses with extended monitoring."
+  },
+  {
+    drug1Pattern: "darunavir",
+    drug2Pattern: "midazolam",
+    severity: "critical",
+    description: "Boosted darunavir dramatically increases midazolam levels through CYP3A4 inhibition, risking prolonged sedation.",
+    recommendation: "Oral midazolam CONTRAINDICATED. Use alternative sedatives or reduced IV doses for procedures."
+  },
+  {
+    drug1Pattern: "cobicistat",
+    drug2Pattern: "midazolam",
+    severity: "critical",
+    description: "Cobicistat significantly increases midazolam exposure through potent CYP3A4 inhibition, causing prolonged/profound sedation.",
+    recommendation: "Oral midazolam CONTRAINDICATED per FDA labeling. Use alternative sedatives."
+  },
+  {
+    drug1Pattern: "lopinavir",
+    drug2Pattern: "triazolam",
+    severity: "critical",
+    description: "Lopinavir/ritonavir dramatically increases triazolam levels through CYP3A4 inhibition, causing severe prolonged sedation.",
+    recommendation: "CONTRAINDICATED. Use lorazepam, temazepam, or oxazepam instead."
+  },
+  {
+    drug1Pattern: "darunavir",
+    drug2Pattern: "triazolam",
+    severity: "critical",
+    description: "Boosted darunavir significantly increases triazolam exposure through CYP3A4 inhibition, risking severe sedation.",
+    recommendation: "CONTRAINDICATED. Use non-CYP3A4 benzodiazepines (lorazepam, oxazepam, temazepam)."
+  },
+  {
+    drug1Pattern: "cobicistat",
+    drug2Pattern: "triazolam",
+    severity: "critical",
+    description: "Cobicistat dramatically increases triazolam levels through potent CYP3A4 inhibition, risking severe sedation.",
+    recommendation: "CONTRAINDICATED per FDA labeling. Use lorazepam or temazepam."
+  },
+  {
+    drug1Pattern: "symtuza",
+    drug2Pattern: "midazolam",
+    severity: "critical",
+    description: "Symtuza dramatically increases oral midazolam levels through cobicistat-mediated CYP3A4 inhibition.",
+    recommendation: "Oral midazolam CONTRAINDICATED. Use alternative sedatives."
+  },
+  {
+    drug1Pattern: "symtuza",
+    drug2Pattern: "triazolam",
+    severity: "critical",
+    description: "Symtuza significantly increases triazolam levels through CYP3A4 inhibition, causing prolonged sedation.",
+    recommendation: "CONTRAINDICATED. Use lorazepam or temazepam instead."
+  },
+  {
+    drug1Pattern: "clonazepam",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir may increase clonazepam levels through CYP3A4 inhibition, increasing sedation risk.",
+    recommendation: "Use with caution. Start with lower clonazepam doses and monitor for increased sedation. Consider lorazepam as alternative."
+  },
+  {
+    drug1Pattern: "diazepam",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir increases diazepam levels through CYP3A4 and CYP2C19 inhibition, prolonging sedative effects.",
+    recommendation: "Use with caution at reduced doses. Monitor for excessive sedation. Lorazepam or oxazepam are safer alternatives."
+  },
+  {
+    drug1Pattern: "clonazepam",
+    drug2Pattern: "cobicistat",
+    severity: "moderate",
+    description: "Cobicistat may increase clonazepam levels through CYP3A4 inhibition.",
+    recommendation: "Monitor for increased sedation. Consider lorazepam as safer alternative."
+  },
+  {
+    drug1Pattern: "diazepam",
+    drug2Pattern: "cobicistat",
+    severity: "moderate",
+    description: "Cobicistat increases diazepam exposure through CYP3A4 inhibition.",
+    recommendation: "Use reduced diazepam doses. Lorazepam or temazepam are safer alternatives."
+  },
+  
+  // CRITICAL - Opioids + PIs
   {
     drug1Pattern: "ritonavir",
     drug2Pattern: "fentanyl",
     severity: "critical",
-    description: "Ritonavir increases fentanyl levels, increasing risk of fatal respiratory depression. Effect may be prolonged.",
+    description: "Ritonavir increases fentanyl levels significantly through CYP3A4 inhibition, increasing risk of fatal respiratory depression. Effect may be prolonged.",
     recommendation: "Use with extreme caution. Monitor respiratory rate closely. Consider alternative analgesics. Reduce fentanyl dose and extend dosing interval."
   },
+  {
+    drug1Pattern: "lopinavir",
+    drug2Pattern: "fentanyl",
+    severity: "critical",
+    description: "Lopinavir/ritonavir increases fentanyl exposure through CYP3A4 inhibition, risking respiratory depression.",
+    recommendation: "Use with extreme caution. Monitor respiratory rate. Reduce fentanyl dose significantly. Consider alternative analgesics."
+  },
+  {
+    drug1Pattern: "darunavir",
+    drug2Pattern: "fentanyl",
+    severity: "critical",
+    description: "Boosted darunavir increases fentanyl levels through CYP3A4 inhibition, risking respiratory depression.",
+    recommendation: "Use with caution. Reduce fentanyl dose and monitor respiratory status closely."
+  },
+  {
+    drug1Pattern: "symtuza",
+    drug2Pattern: "fentanyl",
+    severity: "critical",
+    description: "Symtuza increases fentanyl exposure through CYP3A4 inhibition, significantly increasing risk of respiratory depression.",
+    recommendation: "Use with extreme caution. Monitor respiratory rate closely. Consider alternative analgesics or reduce fentanyl dose."
+  },
+  {
+    drug1Pattern: "cobicistat",
+    drug2Pattern: "fentanyl",
+    severity: "critical",
+    description: "Cobicistat increases fentanyl levels through potent CYP3A4 inhibition, risking fatal respiratory depression.",
+    recommendation: "Use with extreme caution. Reduce fentanyl dose and monitor respiratory function closely."
+  },
+  {
+    drug1Pattern: "oxycodone",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir increases oxycodone levels through CYP3A4 inhibition, increasing sedation and respiratory depression risk.",
+    recommendation: "Reduce oxycodone dose by 50% initially and monitor for excessive sedation and respiratory depression. Titrate carefully."
+  },
+  {
+    drug1Pattern: "hydrocodone",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir may increase hydrocodone levels through CYP3A4 inhibition, increasing opioid effects.",
+    recommendation: "Use lower hydrocodone doses and monitor for increased sedation and respiratory depression."
+  },
+  {
+    drug1Pattern: "oxycodone",
+    drug2Pattern: "cobicistat",
+    severity: "moderate",
+    description: "Cobicistat increases oxycodone exposure through CYP3A4 inhibition.",
+    recommendation: "Reduce oxycodone dose and monitor for excessive sedation."
+  },
+  {
+    drug1Pattern: "codeine",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir inhibits CYP2D6, reducing conversion of codeine to morphine (active form), potentially decreasing analgesic efficacy.",
+    recommendation: "Monitor pain control. May need alternative analgesic if codeine ineffective."
+  },
+  
+  // MODERATE - Psychiatric Medications + PIs
+  {
+    drug1Pattern: "quetiapine",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir dramatically increases quetiapine levels through CYP3A4 inhibition, causing excessive sedation, orthostatic hypotension, and QT prolongation risk.",
+    recommendation: "AVOID combination or reduce quetiapine dose significantly (reduce to 1/6th of usual dose). Monitor for excessive sedation and cardiovascular effects."
+  },
+  {
+    drug1Pattern: "quetiapine",
+    drug2Pattern: "cobicistat",
+    severity: "critical",
+    description: "Cobicistat significantly increases quetiapine exposure through CYP3A4 inhibition, risking severe sedation and cardiovascular toxicity.",
+    recommendation: "AVOID combination or use lowest quetiapine doses with careful monitoring. Consider alternative antipsychotic."
+  },
+  {
+    drug1Pattern: "lurasidone",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir dramatically increases lurasidone levels through CYP3A4 inhibition (>9-fold AUC increase).",
+    recommendation: "CONTRAINDICATED per FDA labeling. Use alternative antipsychotic not metabolized by CYP3A4."
+  },
+  {
+    drug1Pattern: "lurasidone",
+    drug2Pattern: "cobicistat",
+    severity: "critical",
+    description: "Cobicistat significantly increases lurasidone exposure through potent CYP3A4 inhibition.",
+    recommendation: "CONTRAINDICATED. Use alternative antipsychotic such as aripiprazole or risperidone."
+  },
+  {
+    drug1Pattern: "pimozide",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir dramatically increases pimozide levels through CYP3A4 inhibition, causing life-threatening cardiac arrhythmias (QT prolongation, torsades de pointes).",
+    recommendation: "CONTRAINDICATED - risk of fatal arrhythmias. Do not use together under any circumstances."
+  },
+  {
+    drug1Pattern: "pimozide",
+    drug2Pattern: "cobicistat",
+    severity: "critical",
+    description: "Cobicistat significantly increases pimozide exposure, risking fatal cardiac arrhythmias.",
+    recommendation: "CONTRAINDICATED. Never prescribe together."
+  },
+  {
+    drug1Pattern: "trazodone",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir increases trazodone levels through CYP3A4 inhibition, increasing sedation, dizziness, and hypotension risk.",
+    recommendation: "Use lower trazodone doses (start 25-50mg). Monitor for excessive sedation and orthostatic hypotension."
+  },
+  {
+    drug1Pattern: "buspirone",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir significantly increases buspirone levels through CYP3A4 inhibition (5-6 fold increase).",
+    recommendation: "Reduce buspirone dose significantly. Start 2.5mg twice daily and titrate carefully. Monitor for increased anxiety and dizziness."
+  },
+  {
+    drug1Pattern: "buspirone",
+    drug2Pattern: "cobicistat",
+    severity: "moderate",
+    description: "Cobicistat increases buspirone exposure through CYP3A4 inhibition.",
+    recommendation: "Use lowest buspirone doses. Monitor for paradoxical anxiety and adverse effects."
+  },
+  {
+    drug1Pattern: "sertraline",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir may decrease sertraline levels through enzyme induction, potentially reducing antidepressant efficacy.",
+    recommendation: "Monitor for depression symptoms. May need to increase sertraline dose based on clinical response."
+  },
+  {
+    drug1Pattern: "bupropion",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir decreases bupropion and active metabolite levels through CYP2B6 induction, potentially reducing antidepressant and smoking cessation efficacy.",
+    recommendation: "Monitor for reduced efficacy. May need increased bupropion dose. Watch for breakthrough depression or smoking relapse."
+  },
+  {
+    drug1Pattern: "bupropion",
+    drug2Pattern: "efavirenz",
+    severity: "moderate",
+    description: "Efavirenz decreases bupropion levels through enzyme induction, potentially decreasing efficacy.",
+    recommendation: "Monitor antidepressant response. May require bupropion dose increase."
+  },
+  
+  // CRITICAL - Anticonvulsants
+  {
+    drug1Pattern: "carbamazepine",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Bidirectional interaction: carbamazepine decreases protease inhibitor levels (risking HIV treatment failure), while ritonavir increases carbamazepine levels (risking toxicity).",
+    recommendation: "AVOID combination. Use alternative anticonvulsant (levetiracetam, valproic acid, lamotrigine). If unavoidable, requires intensive monitoring of both drug levels."
+  },
+  {
+    drug1Pattern: "carbamazepine",
+    drug2Pattern: "efavirenz",
+    severity: "critical",
+    description: "Bidirectional CYP3A4 induction: both drugs may decrease each other's levels, risking treatment failure for both conditions.",
+    recommendation: "AVOID combination. Use alternative anticonvulsant not affecting CYP enzymes."
+  },
+  {
+    drug1Pattern: "carbamazepine",
+    drug2Pattern: "dolutegravir",
+    severity: "moderate",
+    description: "Carbamazepine decreases dolutegravir levels through enzyme induction, potentially compromising HIV treatment.",
+    recommendation: "Increase dolutegravir to 50mg twice daily if carbamazepine necessary. Monitor viral load closely."
+  },
+  {
+    drug1Pattern: "phenytoin",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Bidirectional interaction: phenytoin decreases protease inhibitor levels while ritonavir may affect phenytoin levels unpredictably.",
+    recommendation: "AVOID if possible. If unavoidable, monitor both phenytoin and HIV drug levels. Consider levetiracetam or valproic acid instead."
+  },
+  {
+    drug1Pattern: "phenytoin",
+    drug2Pattern: "efavirenz",
+    severity: "moderate",
+    description: "Phenytoin may decrease efavirenz levels through CYP enzyme induction.",
+    recommendation: "Monitor viral load closely. May need efavirenz dose adjustment or alternative anticonvulsant."
+  },
+  {
+    drug1Pattern: "phenobarbital",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Phenobarbital decreases protease inhibitor levels through potent enzyme induction, risking HIV treatment failure.",
+    recommendation: "AVOID combination. Use alternative anticonvulsant such as levetiracetam or valproic acid."
+  },
+  
+  // CRITICAL/MODERATE - Cardiovascular Medications
+  {
+    drug1Pattern: "amlodipine",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir increases amlodipine levels through CYP3A4 inhibition, increasing risk of hypotension and peripheral edema.",
+    recommendation: "Start amlodipine at lowest dose (2.5mg) and titrate carefully. Monitor blood pressure and edema. Consider dose reduction if already on amlodipine."
+  },
+  {
+    drug1Pattern: "diltiazem",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir significantly increases diltiazem levels through CYP3A4 inhibition, risking bradycardia, heart block, and hypotension.",
+    recommendation: "Reduce diltiazem dose by 50-75%. Monitor heart rate, blood pressure, and ECG. Use with extreme caution."
+  },
+  {
+    drug1Pattern: "verapamil",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir increases verapamil levels through CYP3A4 inhibition, increasing risk of bradycardia, AV block, and hypotension.",
+    recommendation: "Reduce verapamil dose significantly. Monitor ECG, heart rate, and blood pressure closely."
+  },
+  {
+    drug1Pattern: "nifedipine",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir increases nifedipine levels through CYP3A4 inhibition, increasing hypotension and edema risk.",
+    recommendation: "Start with lowest nifedipine dose and titrate carefully. Monitor blood pressure."
+  },
+  {
+    drug1Pattern: "felodipine",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir significantly increases felodipine exposure through CYP3A4 inhibition.",
+    recommendation: "Use lowest felodipine doses. Monitor for hypotension and edema."
+  },
+  
+  // CRITICAL - Antiarrhythmics
+  {
+    drug1Pattern: "amiodarone",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir dramatically increases amiodarone levels through CYP3A4 inhibition, risking life-threatening cardiac arrhythmias, QT prolongation, and thyroid/pulmonary toxicity.",
+    recommendation: "AVOID combination if possible. If necessary, use lowest amiodarone dose with intensive cardiac monitoring (ECG, QT interval). Consider alternative antiarrhythmic."
+  },
+  {
+    drug1Pattern: "amiodarone",
+    drug2Pattern: "cobicistat",
+    severity: "critical",
+    description: "Cobicistat significantly increases amiodarone exposure, risking severe cardiac toxicity.",
+    recommendation: "AVOID combination. Use alternative antiarrhythmic if possible."
+  },
+  {
+    drug1Pattern: "dronedarone",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir dramatically increases dronedarone levels through CYP3A4 inhibition.",
+    recommendation: "CONTRAINDICATED per FDA labeling. Do not use together."
+  },
+  {
+    drug1Pattern: "dronedarone",
+    drug2Pattern: "cobicistat",
+    severity: "critical",
+    description: "Cobicistat significantly increases dronedarone exposure through CYP3A4 inhibition.",
+    recommendation: "CONTRAINDICATED. Use alternative antiarrhythmic."
+  },
+  {
+    drug1Pattern: "flecainide",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir may increase flecainide levels through CYP2D6 inhibition, increasing proarrhythmic risk.",
+    recommendation: "Monitor ECG and flecainide levels. Use with caution and consider dose reduction."
+  },
+  {
+    drug1Pattern: "propafenone",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir increases propafenone levels through CYP2D6 and CYP3A4 inhibition.",
+    recommendation: "Use with caution. Monitor ECG. May need propafenone dose reduction."
+  },
+  
+  // MODERATE - Digoxin
+  {
+    drug1Pattern: "digoxin",
+    drug2Pattern: "ritonavir",
+    severity: "moderate",
+    description: "Ritonavir increases digoxin levels through P-glycoprotein inhibition, increasing toxicity risk (nausea, arrhythmias, vision changes).",
+    recommendation: "Reduce digoxin dose by 50%. Monitor digoxin levels (goal 0.5-0.9 ng/mL). Watch for toxicity signs."
+  },
+  {
+    drug1Pattern: "digoxin",
+    drug2Pattern: "cobicistat",
+    severity: "moderate",
+    description: "Cobicistat increases digoxin exposure through P-gp inhibition.",
+    recommendation: "Reduce digoxin dose. Monitor levels and signs of toxicity."
+  },
+  {
+    drug1Pattern: "digoxin",
+    drug2Pattern: "darunavir",
+    severity: "moderate",
+    description: "Darunavir may increase digoxin levels, increasing toxicity risk.",
+    recommendation: "Monitor digoxin levels. Consider dose reduction."
+  },
+  
+  // CRITICAL/MODERATE - Anticoagulants
+  {
+    drug1Pattern: "rivaroxaban",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir significantly increases rivaroxaban levels through CYP3A4 and P-gp inhibition, dramatically increasing bleeding risk.",
+    recommendation: "AVOID combination per FDA labeling. Use alternative anticoagulant (warfarin with INR monitoring) or consider unboosted regimen."
+  },
+  {
+    drug1Pattern: "apixaban",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir increases apixaban levels through CYP3A4 and P-gp inhibition, significantly increasing bleeding risk.",
+    recommendation: "AVOID combination. Use warfarin with INR monitoring or consider switching HIV regimen."
+  },
+  {
+    drug1Pattern: "dabigatran",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir dramatically increases dabigatran levels through P-gp inhibition, greatly increasing bleeding risk.",
+    recommendation: "AVOID combination per FDA contraindication. Use warfarin or consider unboosted HIV regimen."
+  },
+  {
+    drug1Pattern: "edoxaban",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir increases edoxaban exposure through P-gp inhibition.",
+    recommendation: "AVOID combination. Use warfarin with INR monitoring as alternative."
+  },
+  
+  // CRITICAL - More PPIs with other ARVs
+  {
+    drug1Pattern: "atazanavir",
+    drug2Pattern: "lansoprazole",
+    severity: "critical",
+    description: "Lansoprazole significantly decreases atazanavir absorption through gastric pH elevation.",
+    recommendation: "AVOID concurrent use. Use H2 antagonist with 12+ hour separation if acid suppression needed."
+  },
+  {
+    drug1Pattern: "atazanavir",
+    drug2Pattern: "rabeprazole",
+    severity: "critical",
+    description: "Rabeprazole decreases atazanavir levels significantly through pH-dependent reduced absorption.",
+    recommendation: "Contraindicated. Consider H2 antagonist alternative with appropriate timing."
+  },
+  {
+    drug1Pattern: "rilpivirine",
+    drug2Pattern: "esomeprazole",
+    severity: "critical",
+    description: "Esomeprazole significantly reduces rilpivirine absorption, potentially causing virologic failure.",
+    recommendation: "CONTRAINDICATED. Use antacids (2+ hours apart) or H2 antagonists (12+ hours before rilpivirine) if needed."
+  },
+  {
+    drug1Pattern: "rilpivirine",
+    drug2Pattern: "lansoprazole",
+    severity: "critical",
+    description: "Lansoprazole reduces rilpivirine exposure, risking loss of virologic response.",
+    recommendation: "CONTRAINDICATED. Use alternative acid suppression with appropriate timing."
+  },
+  
+  // MODERATE/CRITICAL - Immunosuppressants
+  {
+    drug1Pattern: "tacrolimus",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir dramatically increases tacrolimus levels through CYP3A4 inhibition (10-80 fold increase), causing severe nephrotoxicity and neurotoxicity.",
+    recommendation: "Avoid if possible. If necessary, reduce tacrolimus dose by 90-95% and monitor levels intensively (target 5-10 ng/mL). Requires nephrology consultation."
+  },
+  {
+    drug1Pattern: "cyclosporine",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir significantly increases cyclosporine levels through CYP3A4 inhibition, risking nephrotoxicity and hypertension.",
+    recommendation: "Avoid if possible. If used, reduce cyclosporine dose dramatically (by 80-90%) and monitor levels closely."
+  },
+  {
+    drug1Pattern: "sirolimus",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir dramatically increases sirolimus levels through CYP3A4 inhibition.",
+    recommendation: "CONTRAINDICATED per FDA labeling. Do not use together."
+  },
+  {
+    drug1Pattern: "everolimus",
+    drug2Pattern: "ritonavir",
+    severity: "critical",
+    description: "Ritonavir significantly increases everolimus exposure through CYP3A4 inhibition.",
+    recommendation: "CONTRAINDICATED. Avoid combination."
+  },
+  
   {
     drug1Pattern: "ritonavir",
     drug2Pattern: "rifampin",

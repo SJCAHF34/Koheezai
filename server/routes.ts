@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import OpenAI from "openai";
 import { checkDrugInteractions } from "./lib/drugInteractions";
+import { checkRenalFunction } from "./lib/renalValidation";
+import { checkHepaticPregnancyFunction } from "./lib/hepaticPregnancyValidation";
 import { hivDrugs } from "../client/src/lib/hivDrugs";
 
 const openai = new OpenAI({
@@ -33,6 +35,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const interactions = checkDrugInteractions(data.selectedDrugs, data.concomitantMeds);
+      const renalAlerts = checkRenalFunction(data.selectedDrugs, data.egfr);
+      const hepaticPregnancyAlerts = checkHepaticPregnancyFunction(
+        data.selectedDrugs,
+        data.hepaticFunction,
+        data.pregnancy,
+        data.hlab5701
+      );
 
       const selectedDrugDetails = data.selectedDrugs.map(id => {
         const drug = hivDrugs.find(d => d.id === id);
@@ -64,6 +73,12 @@ ${data.geneticResistanceNotes || "None documented"}
 
 **Drug-Drug Interactions Identified:**
 ${interactions.length > 0 ? interactions.map(i => `${i.severity.toUpperCase()}: ${i.drug1} + ${i.drug2}`).join("; ") : "None identified"}
+
+**Renal Function Alerts:**
+${renalAlerts.length > 0 ? renalAlerts.map(a => `${a.severity.toUpperCase()}: ${a.medication} - ${a.description}`).join("; ") : "No renal concerns identified"}
+
+**Hepatic/Pregnancy/HLA-B*5701 Alerts:**
+${hepaticPregnancyAlerts.length > 0 ? hepaticPregnancyAlerts.map(a => `${a.severity.toUpperCase()} [${a.category}]: ${a.medication} - ${a.description}`).join("; ") : "No hepatic, pregnancy, or HLA concerns identified"}
 
 Please provide:
 1. A clinical assessment summary (3-4 paragraphs) that addresses:
@@ -106,6 +121,8 @@ Format your response as JSON:
 
       res.json({
         interactions,
+        renalAlerts,
+        hepaticPregnancyAlerts,
         clinicalSummary: result.clinicalSummary || "Assessment could not be generated.",
         consultationQuestions: result.consultationQuestions || [],
       });

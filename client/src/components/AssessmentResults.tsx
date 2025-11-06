@@ -2,17 +2,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, AlertCircle, Info } from "lucide-react";
-import { type DrugInteraction } from "@shared/schema";
+import { AlertTriangle, AlertCircle, Info, Activity, Shield, Baby } from "lucide-react";
+import { type DrugInteraction, type RenalAlert, type HepaticPregnancyAlert } from "@shared/schema";
 
 type AssessmentResultsProps = {
   interactions: DrugInteraction[];
+  renalAlerts: RenalAlert[];
+  hepaticPregnancyAlerts: HepaticPregnancyAlert[];
   clinicalSummary: string;
   consultationQuestions: string[];
 };
 
 export default function AssessmentResults({
   interactions,
+  renalAlerts,
+  hepaticPregnancyAlerts,
   clinicalSummary,
   consultationQuestions,
 }: AssessmentResultsProps) {
@@ -77,6 +81,111 @@ export default function AssessmentResults({
                 </CardContent>
               </Card>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {renalAlerts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Renal Function Alerts
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {renalAlerts.length} renal concern{renalAlerts.length !== 1 ? "s" : ""} identified based on patient eGFR
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {renalAlerts.map((alert, index) => (
+              <Card key={`${alert.medication}-${index}`} className="border-2" data-testid={`renal-alert-${index}`}>
+                <CardContent className="pt-6 space-y-3">
+                  <div className="flex items-start gap-3">
+                    {getSeverityIcon(alert.severity)}
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-medium">
+                          {alert.medication}
+                        </span>
+                        {getSeverityBadge(alert.severity)}
+                      </div>
+                      <p className="text-sm">{alert.description}</p>
+                      <div className="bg-muted p-3 rounded-md">
+                        <p className="text-sm font-medium mb-1">Recommendation:</p>
+                        <p className="text-sm text-muted-foreground">
+                          {alert.recommendation}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {hepaticPregnancyAlerts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Hepatic / Pregnancy / Genetic Alerts
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {hepaticPregnancyAlerts.length} alert{hepaticPregnancyAlerts.length !== 1 ? "s" : ""} for hepatic function, pregnancy, or HLA-B*5701 status
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {hepaticPregnancyAlerts.map((alert, index) => {
+              const getCategoryIcon = () => {
+                switch (alert.category) {
+                  case "hepatic":
+                    return <Activity className="w-4 h-4" />;
+                  case "pregnancy":
+                    return <Baby className="w-4 h-4" />;
+                  case "hlab5701":
+                    return <Shield className="w-4 h-4" />;
+                }
+              };
+
+              const getCategoryBadge = () => {
+                switch (alert.category) {
+                  case "hepatic":
+                    return <Badge variant="outline" className="ml-2">Hepatic</Badge>;
+                  case "pregnancy":
+                    return <Badge variant="outline" className="ml-2 bg-pink-50 dark:bg-pink-950">Pregnancy</Badge>;
+                  case "hlab5701":
+                    return <Badge variant="outline" className="ml-2 bg-purple-50 dark:bg-purple-950">HLA-B*5701</Badge>;
+                }
+              };
+
+              return (
+                <Card key={`${alert.medication}-${alert.category}-${index}`} className="border-2" data-testid={`hepatic-pregnancy-alert-${index}`}>
+                  <CardContent className="pt-6 space-y-3">
+                    <div className="flex items-start gap-3">
+                      {getSeverityIcon(alert.severity)}
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-medium">
+                            {alert.medication}
+                          </span>
+                          {getSeverityBadge(alert.severity)}
+                          {getCategoryBadge()}
+                        </div>
+                        <p className="text-sm">{alert.description}</p>
+                        <div className="bg-muted p-3 rounded-md">
+                          <p className="text-sm font-medium mb-1">Recommendation:</p>
+                          <p className="text-sm text-muted-foreground">
+                            {alert.recommendation}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </CardContent>
         </Card>
       )}

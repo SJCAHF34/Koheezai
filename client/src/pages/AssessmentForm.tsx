@@ -182,6 +182,8 @@ export default function AssessmentForm() {
             <div id="assessment-results" className="pt-8 border-t">
               <AssessmentResults
                 interactions={assessmentResult.interactions}
+                renalAlerts={assessmentResult.renalAlerts || []}
+                hepaticPregnancyAlerts={assessmentResult.hepaticPregnancyAlerts || []}
                 clinicalSummary={assessmentResult.clinicalSummary}
                 consultationQuestions={assessmentResult.consultationQuestions}
               />
