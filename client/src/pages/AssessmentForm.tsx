@@ -184,6 +184,7 @@ export default function AssessmentForm() {
                 interactions={assessmentResult.interactions}
                 renalAlerts={assessmentResult.renalAlerts || []}
                 hepaticPregnancyAlerts={assessmentResult.hepaticPregnancyAlerts || []}
+                clinicalRecommendations={assessmentResult.clinicalRecommendations || []}
                 clinicalSummary={assessmentResult.clinicalSummary}
                 consultationQuestions={assessmentResult.consultationQuestions}
               />

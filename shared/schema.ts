@@ -40,10 +40,19 @@ export type HepaticPregnancyAlert = {
   recommendation: string;
 };
 
+export type ClinicalRecommendation = {
+  category: "oi_prophylaxis" | "viral_load" | "immunization" | "adherence";
+  priority: "critical" | "important" | "routine";
+  title: string;
+  description: string;
+  recommendation: string;
+};
+
 export type AssessmentResult = {
   interactions: DrugInteraction[];
   renalAlerts: RenalAlert[];
   hepaticPregnancyAlerts: HepaticPregnancyAlert[];
+  clinicalRecommendations: ClinicalRecommendation[];
   clinicalSummary: string;
   consultationQuestions: string[];
 };

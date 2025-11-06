@@ -5,6 +5,7 @@ import OpenAI from "openai";
 import { checkDrugInteractions } from "./lib/drugInteractions";
 import { checkRenalFunction } from "./lib/renalValidation";
 import { checkHepaticPregnancyFunction } from "./lib/hepaticPregnancyValidation";
+import { generateClinicalRecommendations } from "./lib/clinicalRecommendations";
 import { hivDrugs } from "../client/src/lib/hivDrugs";
 
 const openai = new OpenAI({
@@ -41,6 +42,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data.hepaticFunction,
         data.pregnancy,
         data.hlab5701
+      );
+      const clinicalRecommendations = generateClinicalRecommendations(
+        data.cd4Count,
+        data.viralLoad,
+        data.treatmentStatus
       );
 
       const selectedDrugDetails = data.selectedDrugs.map(id => {
@@ -79,6 +85,9 @@ ${renalAlerts.length > 0 ? renalAlerts.map(a => `${a.severity.toUpperCase()}: ${
 
 **Hepatic/Pregnancy/HLA-B*5701 Alerts:**
 ${hepaticPregnancyAlerts.length > 0 ? hepaticPregnancyAlerts.map(a => `${a.severity.toUpperCase()} [${a.category}]: ${a.medication} - ${a.description}`).join("; ") : "No hepatic, pregnancy, or HLA concerns identified"}
+
+**Clinical Recommendations Generated:**
+${clinicalRecommendations.length > 0 ? clinicalRecommendations.map(r => `${r.priority.toUpperCase()} [${r.category}]: ${r.title}`).join("; ") : "Standard monitoring"}
 
 Please provide:
 1. A clinical assessment summary (3-4 paragraphs) that addresses:
@@ -123,6 +132,7 @@ Format your response as JSON:
         interactions,
         renalAlerts,
         hepaticPregnancyAlerts,
+        clinicalRecommendations,
         clinicalSummary: result.clinicalSummary || "Assessment could not be generated.",
         consultationQuestions: result.consultationQuestions || [],
       });

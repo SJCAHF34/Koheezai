@@ -2,13 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, AlertCircle, Info, Activity, Shield, Baby } from "lucide-react";
-import { type DrugInteraction, type RenalAlert, type HepaticPregnancyAlert } from "@shared/schema";
+import { AlertTriangle, AlertCircle, Info, Activity, Shield, Baby, HeartPulse, Syringe, TrendingUp } from "lucide-react";
+import { type DrugInteraction, type RenalAlert, type HepaticPregnancyAlert, type ClinicalRecommendation } from "@shared/schema";
 
 type AssessmentResultsProps = {
   interactions: DrugInteraction[];
   renalAlerts: RenalAlert[];
   hepaticPregnancyAlerts: HepaticPregnancyAlert[];
+  clinicalRecommendations: ClinicalRecommendation[];
   clinicalSummary: string;
   consultationQuestions: string[];
 };
@@ -17,6 +18,7 @@ export default function AssessmentResults({
   interactions,
   renalAlerts,
   hepaticPregnancyAlerts,
+  clinicalRecommendations,
   clinicalSummary,
   consultationQuestions,
 }: AssessmentResultsProps) {
@@ -178,6 +180,86 @@ export default function AssessmentResults({
                           <p className="text-sm font-medium mb-1">Recommendation:</p>
                           <p className="text-sm text-muted-foreground">
                             {alert.recommendation}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {clinicalRecommendations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-2">
+              <HeartPulse className="w-5 h-5" />
+              Clinical Recommendations
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Evidence-based recommendations for OI prophylaxis, viral load management, and immunizations
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {clinicalRecommendations.map((rec, index) => {
+              const getPriorityBadge = () => {
+                switch (rec.priority) {
+                  case "critical":
+                    return <Badge variant="destructive">Critical</Badge>;
+                  case "important":
+                    return <Badge className="bg-orange-600 hover:bg-orange-700">Important</Badge>;
+                  case "routine":
+                    return <Badge variant="secondary">Routine</Badge>;
+                }
+              };
+
+              const getCategoryIcon = () => {
+                switch (rec.category) {
+                  case "oi_prophylaxis":
+                    return <Shield className="w-4 h-4" />;
+                  case "viral_load":
+                    return <TrendingUp className="w-4 h-4" />;
+                  case "immunization":
+                    return <Syringe className="w-4 h-4" />;
+                  case "adherence":
+                    return <HeartPulse className="w-4 h-4" />;
+                }
+              };
+
+              const getCategoryBadge = () => {
+                switch (rec.category) {
+                  case "oi_prophylaxis":
+                    return <Badge variant="outline" className="ml-2">OI Prophylaxis</Badge>;
+                  case "viral_load":
+                    return <Badge variant="outline" className="ml-2 bg-blue-50 dark:bg-blue-950">Viral Load</Badge>;
+                  case "immunization":
+                    return <Badge variant="outline" className="ml-2 bg-green-50 dark:bg-green-950">Immunization</Badge>;
+                  case "adherence":
+                    return <Badge variant="outline" className="ml-2 bg-purple-50 dark:bg-purple-950">Adherence</Badge>;
+                }
+              };
+
+              return (
+                <Card key={`rec-${index}`} className="border-2" data-testid={`clinical-rec-${index}`}>
+                  <CardContent className="pt-6 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1">{getCategoryIcon()}</div>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold">
+                            {rec.title}
+                          </span>
+                          {getPriorityBadge()}
+                          {getCategoryBadge()}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{rec.description}</p>
+                        <div className="bg-muted p-3 rounded-md">
+                          <p className="text-sm font-medium mb-1">Recommendation:</p>
+                          <p className="text-sm text-muted-foreground whitespace-pre-line">
+                            {rec.recommendation}
                           </p>
                         </div>
                       </div>
