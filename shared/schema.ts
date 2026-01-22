@@ -48,6 +48,15 @@ export type ClinicalRecommendation = {
   recommendation: string;
 };
 
+export type EvidenceCitation = {
+  title: string;
+  journal: string;
+  pubmedId?: string;
+  relevance: "high" | "moderate" | "low";
+  summary: string;
+  url?: string;
+};
+
 export type AssessmentResult = {
   interactions: DrugInteraction[];
   renalAlerts: RenalAlert[];
@@ -55,4 +64,7 @@ export type AssessmentResult = {
   clinicalRecommendations: ClinicalRecommendation[];
   clinicalSummary: string;
   consultationQuestions: string[];
+  citations?: EvidenceCitation[];
+  sources?: string[];
+  aiProvider?: "openevidence" | "openai";
 };

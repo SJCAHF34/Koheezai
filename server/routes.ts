@@ -6,6 +6,7 @@ import { checkDrugInteractions } from "./lib/drugInteractions";
 import { checkRenalFunction } from "./lib/renalValidation";
 import { checkHepaticPregnancyFunction } from "./lib/hepaticPregnancyValidation";
 import { generateClinicalRecommendations } from "./lib/clinicalRecommendations";
+import { openEvidenceClient } from "./lib/openEvidence";
 import { hivDrugs } from "../client/src/lib/hivDrugs";
 
 const openai = new OpenAI({
@@ -54,7 +55,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return drug ? `${drug.name} (${drug.brandName}) - ${drug.dosage}` : id;
       }).join(", ");
 
-      const prompt = `You are an experienced clinical pharmacist specializing in HIV treatment. Generate a comprehensive clinical assessment based on the following patient information:
+      // Try OpenEvidence first (medical-specific AI with evidence-based citations)
+      let result: {
+        clinicalSummary: string;
+        consultationQuestions: string[];
+        citations?: Array<{ title: string; journal: string; pubmedId?: string; relevance: string; summary: string; url?: string }>;
+        sources?: string[];
+        provider?: string;
+      } = {
+        clinicalSummary: "",
+        consultationQuestions: [],
+        provider: "openai"
+      };
+
+      if (openEvidenceClient.isConfigured()) {
+        console.log("[Assessment] Attempting OpenEvidence API...");
+        const openEvidenceResult = await openEvidenceClient.generateHIVAssessment({
+          age: data.age,
+          pregnancy: data.pregnancy,
+          hlab5701: data.hlab5701,
+          treatmentStatus: data.treatmentStatus,
+          viralLoad: data.viralLoad,
+          cd4Count: data.cd4Count,
+          egfr: data.egfr,
+          hepaticFunction: data.hepaticFunction,
+          selectedDrugs: data.selectedDrugs,
+          concomitantMeds: data.concomitantMeds,
+          geneticResistanceNotes: data.geneticResistanceNotes,
+          interactions,
+          renalAlerts,
+          hepaticPregnancyAlerts,
+          clinicalRecommendations,
+          selectedDrugDetails,
+        });
+
+        if (openEvidenceResult) {
+          console.log("[Assessment] OpenEvidence response received");
+          result = openEvidenceResult;
+        } else {
+          console.log("[Assessment] OpenEvidence failed, falling back to OpenAI");
+        }
+      }
+
+      // Fallback to OpenAI if OpenEvidence is not configured or failed
+      if (!result.clinicalSummary) {
+        console.log("[Assessment] Using OpenAI for clinical assessment");
+        const prompt = `You are an experienced clinical pharmacist specializing in HIV treatment. Generate a comprehensive clinical assessment based on the following patient information:
 
 **Patient Demographics:**
 - Age: ${data.age} years
@@ -110,23 +156,27 @@ Format your response as JSON:
   "consultationQuestions": ["question 1", "question 2", ...]
 }`;
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert HIV pharmacist. Provide evidence-based, clinically appropriate assessments. Be thorough but concise. Always respond with valid JSON."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7,
-      });
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert HIV pharmacist. Provide evidence-based, clinically appropriate assessments. Be thorough but concise. Always respond with valid JSON."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7,
+        });
 
-      const result = JSON.parse(completion.choices[0].message.content || "{}");
+        const openaiResult = JSON.parse(completion.choices[0].message.content || "{}");
+        result.clinicalSummary = openaiResult.clinicalSummary || "Assessment could not be generated.";
+        result.consultationQuestions = openaiResult.consultationQuestions || [];
+        result.provider = "openai";
+      }
 
       res.json({
         interactions,
@@ -135,6 +185,9 @@ Format your response as JSON:
         clinicalRecommendations,
         clinicalSummary: result.clinicalSummary || "Assessment could not be generated.",
         consultationQuestions: result.consultationQuestions || [],
+        citations: result.citations,
+        sources: result.sources,
+        aiProvider: result.provider,
       });
     } catch (error) {
       console.error("Assessment generation error:", error);

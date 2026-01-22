@@ -179,7 +179,7 @@ export default function AssessmentForm() {
           </div>
 
           {assessmentResult && (
-            <div id="assessment-results" className="pt-8 border-t">
+            <div id="assessment-results" data-testid="assessment-results" className="pt-8 border-t">
               <AssessmentResults
                 interactions={assessmentResult.interactions}
                 renalAlerts={assessmentResult.renalAlerts || []}
@@ -187,6 +187,9 @@ export default function AssessmentForm() {
                 clinicalRecommendations={assessmentResult.clinicalRecommendations || []}
                 clinicalSummary={assessmentResult.clinicalSummary}
                 consultationQuestions={assessmentResult.consultationQuestions}
+                citations={assessmentResult.citations}
+                sources={assessmentResult.sources}
+                aiProvider={assessmentResult.aiProvider}
               />
             </div>
           )}

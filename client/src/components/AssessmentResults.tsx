@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, AlertCircle, Info, Activity, Shield, Baby, HeartPulse, Syringe, TrendingUp } from "lucide-react";
-import { type DrugInteraction, type RenalAlert, type HepaticPregnancyAlert, type ClinicalRecommendation } from "@shared/schema";
+import { AlertTriangle, AlertCircle, Info, Activity, Shield, Baby, HeartPulse, Syringe, TrendingUp, BookOpen, ExternalLink } from "lucide-react";
+import { type DrugInteraction, type RenalAlert, type HepaticPregnancyAlert, type ClinicalRecommendation, type EvidenceCitation } from "@shared/schema";
 
 type AssessmentResultsProps = {
   interactions: DrugInteraction[];
@@ -12,6 +12,9 @@ type AssessmentResultsProps = {
   clinicalRecommendations: ClinicalRecommendation[];
   clinicalSummary: string;
   consultationQuestions: string[];
+  citations?: EvidenceCitation[];
+  sources?: string[];
+  aiProvider?: "openevidence" | "openai";
 };
 
 export default function AssessmentResults({
@@ -21,6 +24,9 @@ export default function AssessmentResults({
   clinicalRecommendations,
   clinicalSummary,
   consultationQuestions,
+  citations,
+  sources,
+  aiProvider,
 }: AssessmentResultsProps) {
   const getSeverityIcon = (severity: "critical" | "moderate" | "minor") => {
     switch (severity) {
@@ -274,12 +280,67 @@ export default function AssessmentResults({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Clinical Assessment Summary</CardTitle>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="text-xl">Clinical Assessment Summary</CardTitle>
+            {aiProvider && (
+              <Badge variant="outline" className="text-xs">
+                {aiProvider === "openevidence" ? "OpenEvidence AI" : "OpenAI"}
+              </Badge>
+            )}
+          </div>
+          {sources && sources.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Sources: {sources.join(", ")}
+            </p>
+          )}
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="prose prose-sm max-w-none">
             <p className="text-sm whitespace-pre-line">{clinicalSummary}</p>
           </div>
+          
+          {citations && citations.length > 0 && (
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+                <BookOpen className="w-4 h-4" />
+                Evidence Citations
+              </h4>
+              <div className="space-y-3">
+                {citations.map((citation, index) => (
+                  <div key={index} className="text-sm p-3 bg-muted rounded-md">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="font-medium">{citation.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {citation.journal}
+                          {citation.pubmedId && ` (PMID: ${citation.pubmedId})`}
+                        </p>
+                      </div>
+                      <Badge 
+                        variant={citation.relevance === "high" ? "default" : "secondary"}
+                        className="text-xs shrink-0"
+                      >
+                        {citation.relevance}
+                      </Badge>
+                    </div>
+                    {citation.summary && (
+                      <p className="text-xs text-muted-foreground mt-2">{citation.summary}</p>
+                    )}
+                    {citation.url && (
+                      <a 
+                        href={citation.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-2"
+                      >
+                        View Source <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
