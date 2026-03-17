@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { ClipboardList } from "lucide-react";
 
 export default function PharmacistIntake() {
-  const [address, setAddress] = useState("");
   const [bin, setBin] = useState("");
   const [pcn, setPcn] = useState("");
   const [insuranceId, setInsuranceId] = useState("");
@@ -46,18 +45,6 @@ export default function PharmacistIntake() {
 
         {/* Free-text fields */}
         <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="intake-address" className="font-medium">
-              What is your current address?
-            </Label>
-            <Input
-              id="intake-address"
-              data-testid="input-intake-address"
-              placeholder="Enter patient address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
-          </div>
           <div className="space-y-1.5">
             <p className="font-medium text-sm">What is your current insurance?</p>
             <div className="grid grid-cols-2 gap-3">
