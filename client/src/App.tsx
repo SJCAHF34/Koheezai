@@ -6,8 +6,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AssessmentForm from "@/pages/AssessmentForm";
 import PatientAssistance from "@/pages/PatientAssistance";
+import ClinicalTools from "@/pages/ClinicalTools";
 import NotFound from "@/pages/not-found";
-import { Activity, HeartHandshake } from "lucide-react";
+import { Activity, HeartHandshake, Wrench } from "lucide-react";
 
 function NavLink({ href, children, testId }: { href: string; children: ReactNode; testId: string }) {
   const [location] = useLocation();
@@ -36,14 +37,21 @@ function Nav() {
             <Activity className="w-5 h-5 text-primary" />
             <span className="font-semibold text-sm hidden sm:block">HIV Treatment Assessor</span>
           </div>
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 flex-wrap">
             <NavLink href="/" testId="nav-assessment">
               <Activity className="w-4 h-4" />
-              Clinical Assessment
+              <span className="hidden sm:inline">Clinical Assessment</span>
+              <span className="sm:hidden">Assessment</span>
             </NavLink>
             <NavLink href="/patient-assistance" testId="nav-assistance">
               <HeartHandshake className="w-4 h-4" />
-              Patient Assistance
+              <span className="hidden sm:inline">Patient Assistance</span>
+              <span className="sm:hidden">Assistance</span>
+            </NavLink>
+            <NavLink href="/clinical-tools" testId="nav-clinical-tools">
+              <Wrench className="w-4 h-4" />
+              <span className="hidden sm:inline">Clinical Tools</span>
+              <span className="sm:hidden">Tools</span>
             </NavLink>
           </nav>
         </div>
@@ -57,6 +65,7 @@ function Router() {
     <Switch>
       <Route path="/" component={AssessmentForm} />
       <Route path="/patient-assistance" component={PatientAssistance} />
+      <Route path="/clinical-tools" component={ClinicalTools} />
       <Route component={NotFound} />
     </Switch>
   );
