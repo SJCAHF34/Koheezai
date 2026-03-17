@@ -31,7 +31,10 @@ export default function AssessmentResults({
   aiProvider,
 }: AssessmentResultsProps) {
   const [address, setAddress] = useState("");
-  const [insurance, setInsurance] = useState("");
+  const [bin, setBin] = useState("");
+  const [pcn, setPcn] = useState("");
+  const [insuranceId, setInsuranceId] = useState("");
+  const [rxgrp, setRxgrp] = useState("");
   const [yesNoAnswers, setYesNoAnswers] = useState<Record<string, "yes" | "no" | null>>({});
   const [counselingChecks, setCounselingChecks] = useState<Record<string, boolean>>({});
   const [assessmentMethod, setAssessmentMethod] = useState<Record<string, boolean>>({});
@@ -217,11 +220,11 @@ export default function AssessmentResults({
               Clinical Recommendations
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Evidence-based recommendations for OI prophylaxis, viral load management, and immunizations
+              Evidence-based recommendations for OI prophylaxis and viral load management
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {clinicalRecommendations.map((rec, index) => {
+            {clinicalRecommendations.filter((rec) => rec.category !== "immunization").map((rec, index) => {
               const getPriorityBadge = () => {
                 switch (rec.priority) {
                   case "critical":
@@ -379,16 +382,49 @@ export default function AssessmentResults({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="intake-insurance" className="font-medium">
-                What is your current insurance?
-              </Label>
-              <Input
-                id="intake-insurance"
-                data-testid="input-intake-insurance"
-                placeholder="Enter insurance plan"
-                value={insurance}
-                onChange={(e) => setInsurance(e.target.value)}
-              />
+              <p className="font-medium text-sm">What is your current insurance?</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="intake-bin" className="text-xs text-muted-foreground">BIN</Label>
+                  <Input
+                    id="intake-bin"
+                    data-testid="input-intake-bin"
+                    placeholder="BIN"
+                    value={bin}
+                    onChange={(e) => setBin(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="intake-pcn" className="text-xs text-muted-foreground">PCN</Label>
+                  <Input
+                    id="intake-pcn"
+                    data-testid="input-intake-pcn"
+                    placeholder="PCN"
+                    value={pcn}
+                    onChange={(e) => setPcn(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="intake-id" className="text-xs text-muted-foreground">ID</Label>
+                  <Input
+                    id="intake-id"
+                    data-testid="input-intake-id"
+                    placeholder="Member ID"
+                    value={insuranceId}
+                    onChange={(e) => setInsuranceId(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="intake-rxgrp" className="text-xs text-muted-foreground">RXGRP</Label>
+                  <Input
+                    id="intake-rxgrp"
+                    data-testid="input-intake-rxgrp"
+                    placeholder="RX Group"
+                    value={rxgrp}
+                    onChange={(e) => setRxgrp(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
