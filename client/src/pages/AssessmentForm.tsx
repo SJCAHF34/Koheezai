@@ -107,15 +107,6 @@ export default function AssessmentForm() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container max-w-7xl mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold">HIV Treatment Assessor</h1>
-          <p className="text-sm text-muted-foreground">
-            Comprehensive clinical assessment and drug-drug interaction checker
-          </p>
-        </div>
-      </header>
-
       <main className="container max-w-7xl mx-auto px-4 py-8">
         <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

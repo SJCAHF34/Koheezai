@@ -37,6 +37,14 @@ Preferred communication style: Simple, everyday language.
 - **Database Configuration**: Drizzle ORM configured for PostgreSQL with schema definitions, using Drizzle Kit for migrations. Prepared for Neon serverless database integration.
 - **Session Management**: Express session with PostgreSQL session store.
 
+### Patient Assistance Programs Section
+- Dedicated page (`/patient-assistance`) sourced from NeedyMeds and manufacturer websites
+- **32 HIV/ARV medications** across Gilead, ViiV Healthcare, Janssen, Merck, AbbVie, and more
+- Each medication lists copay cards and patient assistance programs (PAPs) with savings amounts, eligibility, phone numbers, and direct links to manufacturer programs and NeedyMeds pages
+- Broader resources section: ADAP, Ryan White Program, HealthWell Foundation, PAN Foundation, NeedyMeds directory
+- Searchable and filterable by program type (copay/PAP) and manufacturer
+- Data file: `client/src/lib/assistancePrograms.ts`
+
 ### Assessment Results Display
 - The `AssessmentResults` component displays comprehensive output, including:
     - Drug-Drug Interactions (severity-coded alerts).
