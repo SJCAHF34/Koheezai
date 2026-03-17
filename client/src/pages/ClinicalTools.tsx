@@ -78,7 +78,7 @@ const tools: ToolCard[] = [
     ],
     primaryAction: {
       label: "Open OneSource Portal",
-      url: "https://www.onesourcelogin.com/",
+      url: "https://www.onesource.passporthealth.com/_members/Home/Login.aspx",
       testId: "link-onesource-portal",
     },
     secondaryAction: {
