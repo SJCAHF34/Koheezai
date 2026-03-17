@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ClipboardList, FileText, Check } from "lucide-react";
+import { ClipboardList, FileText, Check, Copy } from "lucide-react";
 
 const YES_NO_QUESTIONS = [
   { key: "allergies",        label: "Medication allergies",                  question: "Do you have any medication allergies?",                                                                                          detailLabel: "Please list allergies",                    hasDetail: true },
   { key: "other-pharmacies", label: "Prescriptions at other pharmacies",     question: "Do you have any prescriptions that you are filling at other pharmacies?",                                                        detailLabel: "Please list medications and pharmacies",   hasDetail: true },
   { key: "otc",              label: "OTC medications",                       question: "Do you use any over the counter medications?",                                                                                    detailLabel: "Please list OTC medications",              hasDetail: true },
-  { key: "conditions",       label: "Additional health conditions",          question: "Do you have any additional health conditions that we haven't discussed?",                                                        hasDetail: false },
+  { key: "conditions",       label: "Additional health conditions",          question: "Do you have any additional health conditions that we haven't discussed?",                                                        detailLabel: "Please list conditions",                   hasDetail: true },
   { key: "physical",         label: "Physical medication concerns",          question: "Do you ever have concerns being able to physically take your medications (pill size, ability to swallow, etc)?",                  hasDetail: false },
   { key: "helper",           label: "Medication helper",                     question: "Is there anyone who helps you with your medications?",                                                                            hasDetail: false },
   { key: "cost",             label: "Medication affordability concerns",     question: "Do you have any issues affording your medications? Do you skip doses or avoid refilling medications due to cost?",               hasDetail: false },
@@ -39,8 +39,50 @@ export default function PharmacistIntake() {
   const [counselingChecks, setCounselingChecks] = useState<Record<string, boolean>>({});
   const [assessmentMethod, setAssessmentMethod] = useState<Record<string, boolean>>({});
 
+  const [summaryCopied, setSummaryCopied] = useState(false);
+
   const setYesNo = (key: string, val: "yes" | "no") =>
     setYesNoAnswers((prev) => ({ ...prev, [key]: prev[key] === val ? null : val }));
+
+  const buildSummaryText = (): string => {
+    const lines: string[] = ["PATIENT INTAKE SUMMARY", ""];
+    if (bin || pcn || insuranceId || rxgrp) {
+      lines.push("Insurance:");
+      if (bin)        lines.push(`  BIN:   ${bin}`);
+      if (pcn)        lines.push(`  PCN:   ${pcn}`);
+      if (insuranceId) lines.push(`  ID:    ${insuranceId}`);
+      if (rxgrp)      lines.push(`  RXGRP: ${rxgrp}`);
+      lines.push("");
+    }
+    const answered = YES_NO_QUESTIONS.filter((q) => yesNoAnswers[q.key]);
+    if (answered.length > 0) {
+      lines.push("Intake Responses:");
+      answered.forEach((q) => {
+        const ans = yesNoAnswers[q.key] === "yes" ? "Yes" : "No";
+        const detail = q.hasDetail && yesNoAnswers[q.key] === "yes" ? yesNoDetails[q.key] : "";
+        lines.push(`  ${q.label}: ${ans}${detail ? ` — ${detail}` : ""}`);
+      });
+      lines.push("");
+    }
+    const counseled = COUNSELING_ITEMS.filter((i) => counselingChecks[i.key]);
+    if (counseled.length > 0) {
+      lines.push("Patient Counseled On:");
+      counseled.forEach((i) => lines.push(`  - ${i.label}`));
+      lines.push("");
+    }
+    const methods = METHOD_ITEMS.filter((i) => assessmentMethod[i.key]);
+    if (methods.length > 0) {
+      lines.push(`Assessment Completed: ${methods.map((m) => m.label).join(", ")}`);
+    }
+    return lines.join("\n");
+  };
+
+  const handleCopySummary = () => {
+    navigator.clipboard.writeText(buildSummaryText()).then(() => {
+      setSummaryCopied(true);
+      setTimeout(() => setSummaryCopied(false), 2000);
+    });
+  };
 
   const hasInsurance = bin || pcn || insuranceId || rxgrp;
   const answeredCount = Object.values(yesNoAnswers).filter(Boolean).length;
@@ -162,10 +204,23 @@ export default function PharmacistIntake() {
       {hasSummary && (
         <Card data-testid="patient-summary">
           <CardHeader>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Patient Summary
-            </CardTitle>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Patient Summary
+              </CardTitle>
+              <button
+                type="button"
+                data-testid="btn-copy-summary"
+                onClick={handleCopySummary}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors hover-elevate ${
+                  summaryCopied ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border"
+                }`}
+              >
+                {summaryCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {summaryCopied ? "Copied!" : "Copy Summary"}
+              </button>
+            </div>
             <p className="text-sm text-muted-foreground">
               Auto-generated from consultation responses
             </p>
