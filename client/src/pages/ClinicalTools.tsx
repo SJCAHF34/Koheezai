@@ -53,7 +53,7 @@ const tools: ToolCard[] = [
     ],
     primaryAction: {
       label: "Open Ramsell Portal",
-      url: "https://www.ramsellcorp.com/",
+      url: "https://pbm.ramsellcorp.com/Security/SignIn.aspx?enc=alO9koyFXt1nW1sY4HUjZj3qlnLQ7z3Q%2fNrcaIWibZ8UChXT24cNOSdVDVQHj4QK",
       testId: "link-ramsell-portal",
     },
     secondaryAction: {
