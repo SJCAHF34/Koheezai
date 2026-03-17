@@ -36,6 +36,7 @@ export default function AssessmentResults({
   const [insuranceId, setInsuranceId] = useState("");
   const [rxgrp, setRxgrp] = useState("");
   const [yesNoAnswers, setYesNoAnswers] = useState<Record<string, "yes" | "no" | null>>({});
+  const [yesNoDetails, setYesNoDetails] = useState<Record<string, string>>({});
   const [counselingChecks, setCounselingChecks] = useState<Record<string, boolean>>({});
   const [assessmentMethod, setAssessmentMethod] = useState<Record<string, boolean>>({});
 
@@ -431,16 +432,16 @@ export default function AssessmentResults({
           {/* Yes / No questions */}
           <div className="space-y-3">
             {[
-              { key: "allergies", question: "Do you have any medication allergies?" },
-              { key: "other-pharmacies", question: "Do you have any prescriptions that you are filling at other pharmacies?" },
-              { key: "otc", question: "Do you use any over the counter medications?" },
-              { key: "conditions", question: "Do you have any additional health conditions that we haven't discussed?" },
-              { key: "physical", question: "Do you ever have concerns being able to physically take your medications (pill size, ability to swallow, etc)?" },
-              { key: "helper", question: "Is there anyone who helps you with your medications?" },
-              { key: "cost", question: "Do you have any issues affording your medications? Do you skip doses or avoid refilling medications due to cost?" },
-              { key: "housing", question: "Do you have any safety, health or security concerns with your current housing or living arrangements?" },
-              { key: "memory", question: "Do you have any issues with memory or reasoning?" },
-            ].map(({ key, question }) => (
+              { key: "allergies", question: "Do you have any medication allergies?", detailLabel: "Please list allergies", hasDetail: true },
+              { key: "other-pharmacies", question: "Do you have any prescriptions that you are filling at other pharmacies?", detailLabel: "Please list medications and pharmacies", hasDetail: true },
+              { key: "otc", question: "Do you use any over the counter medications?", detailLabel: "Please list OTC medications", hasDetail: true },
+              { key: "conditions", question: "Do you have any additional health conditions that we haven't discussed?", hasDetail: false },
+              { key: "physical", question: "Do you ever have concerns being able to physically take your medications (pill size, ability to swallow, etc)?", hasDetail: false },
+              { key: "helper", question: "Is there anyone who helps you with your medications?", hasDetail: false },
+              { key: "cost", question: "Do you have any issues affording your medications? Do you skip doses or avoid refilling medications due to cost?", hasDetail: false },
+              { key: "housing", question: "Do you have any safety, health or security concerns with your current housing or living arrangements?", hasDetail: false },
+              { key: "memory", question: "Do you have any issues with memory or reasoning?", hasDetail: false },
+            ].map(({ key, question, hasDetail, detailLabel }) => (
               <div key={key} className="p-4 rounded-md border space-y-2" data-testid={`yesno-${key}`}>
                 <p className="font-medium text-sm">{question}</p>
                 <div className="flex gap-3">
@@ -464,6 +465,16 @@ export default function AssessmentResults({
                     );
                   })}
                 </div>
+                {hasDetail && yesNoAnswers[key] === "yes" && (
+                  <Input
+                    data-testid={`input-detail-${key}`}
+                    placeholder={detailLabel}
+                    value={yesNoDetails[key] ?? ""}
+                    onChange={(e) =>
+                      setYesNoDetails((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                )}
               </div>
             ))}
           </div>
