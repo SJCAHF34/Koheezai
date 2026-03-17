@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { AlertTriangle, AlertCircle, Info, Activity, Shield, Baby, HeartPulse, Syringe, TrendingUp, BookOpen, ExternalLink } from "lucide-react";
 import { type DrugInteraction, type RenalAlert, type HepaticPregnancyAlert, type ClinicalRecommendation, type EvidenceCitation } from "@shared/schema";
 
@@ -28,6 +30,15 @@ export default function AssessmentResults({
   sources,
   aiProvider,
 }: AssessmentResultsProps) {
+  const [address, setAddress] = useState("");
+  const [insurance, setInsurance] = useState("");
+  const [yesNoAnswers, setYesNoAnswers] = useState<Record<string, "yes" | "no" | null>>({});
+  const [counselingChecks, setCounselingChecks] = useState<Record<string, boolean>>({});
+  const [assessmentMethod, setAssessmentMethod] = useState<Record<string, boolean>>({});
+
+  const setYesNo = (key: string, val: "yes" | "no") =>
+    setYesNoAnswers((prev) => ({ ...prev, [key]: prev[key] === val ? null : val }));
+
   const getSeverityIcon = (severity: "critical" | "moderate" | "minor") => {
     switch (severity) {
       case "critical":
@@ -348,30 +359,127 @@ export default function AssessmentResults({
         <CardHeader>
           <CardTitle className="text-xl">Pharmacist Consultation Questions</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Key questions to address during patient consultation
+            Initial patient intake assessment
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+
+          {/* Free-text fields */}
           <div className="space-y-4">
-            {consultationQuestions.map((question, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 p-4 rounded-md border hover-elevate"
-                data-testid={`question-${index}`}
-              >
-                <Checkbox id={`question-${index}`} data-testid={`checkbox-question-${index}`} />
-                <Label
-                  htmlFor={`question-${index}`}
-                  className="font-normal cursor-pointer flex-1"
-                >
-                  <span className="font-medium text-muted-foreground mr-2">
-                    {index + 1}.
-                  </span>
-                  {question}
+            <div className="space-y-1.5">
+              <Label htmlFor="intake-address" className="font-medium">
+                What is your current address?
+              </Label>
+              <Input
+                id="intake-address"
+                data-testid="input-intake-address"
+                placeholder="Enter patient address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="intake-insurance" className="font-medium">
+                What is your current insurance?
+              </Label>
+              <Input
+                id="intake-insurance"
+                data-testid="input-intake-insurance"
+                placeholder="Enter insurance plan"
+                value={insurance}
+                onChange={(e) => setInsurance(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Yes / No questions */}
+          <div className="space-y-3">
+            {[
+              { key: "allergies", question: "Do you have any medication allergies?" },
+              { key: "other-pharmacies", question: "Do you have any prescriptions that you are filling at other pharmacies?" },
+              { key: "otc", question: "Do you use any over the counter medications?" },
+              { key: "conditions", question: "Do you have any additional health conditions that we haven't discussed?" },
+              { key: "physical", question: "Do you ever have concerns being able to physically take your medications (pill size, ability to swallow, etc)?" },
+              { key: "helper", question: "Is there anyone who helps you with your medications?" },
+              { key: "cost", question: "Do you have any issues affording your medications? Do you skip doses or avoid refilling medications due to cost?" },
+              { key: "housing", question: "Do you have any safety, health or security concerns with your current housing or living arrangements?" },
+              { key: "memory", question: "Do you have any issues with memory or reasoning?" },
+            ].map(({ key, question }) => (
+              <div key={key} className="p-4 rounded-md border space-y-2" data-testid={`yesno-${key}`}>
+                <p className="font-medium text-sm">{question}</p>
+                <div className="flex gap-3">
+                  {(["Yes", "No"] as const).map((opt) => {
+                    const val = opt.toLowerCase() as "yes" | "no";
+                    const active = yesNoAnswers[key] === val;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        data-testid={`btn-${key}-${val}`}
+                        onClick={() => setYesNo(key, val)}
+                        className={`px-5 py-1.5 rounded-md border text-sm font-medium transition-colors ${
+                          active
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-foreground border-border hover-elevate"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Counseling checkboxes */}
+          <div className="space-y-2">
+            <p className="font-medium text-sm">The patient was counseled on the following information:</p>
+            {[
+              { key: "booklet", label: "Patient was given the welcome booklet that outlines the pharmacy's current contact information and overview of AHF's services." },
+              { key: "monograph", label: "Patient was given the specialty medication monograph." },
+              { key: "advocate", label: "AHF Pharmacist acts as patient's advocate to help support their overall health. Patient was informed to contact the pharmacist for any medication needs." },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex items-start gap-3 p-3 rounded-md border" data-testid={`counseling-${key}`}>
+                <Checkbox
+                  id={`counsel-${key}`}
+                  data-testid={`checkbox-counsel-${key}`}
+                  checked={!!counselingChecks[key]}
+                  onCheckedChange={(checked) =>
+                    setCounselingChecks((prev) => ({ ...prev, [key]: !!checked }))
+                  }
+                />
+                <Label htmlFor={`counsel-${key}`} className="font-normal cursor-pointer text-sm leading-snug">
+                  {label}
                 </Label>
               </div>
             ))}
           </div>
+
+          {/* Assessment method */}
+          <div className="space-y-2">
+            <p className="font-medium text-sm">This initial assessment was completed with the patient:</p>
+            {[
+              { key: "in-person", label: "In person" },
+              { key: "phone", label: "Via phone" },
+              { key: "other", label: "Other" },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex items-center gap-3 p-3 rounded-md border" data-testid={`method-${key}`}>
+                <Checkbox
+                  id={`method-${key}`}
+                  data-testid={`checkbox-method-${key}`}
+                  checked={!!assessmentMethod[key]}
+                  onCheckedChange={(checked) =>
+                    setAssessmentMethod((prev) => ({ ...prev, [key]: !!checked }))
+                  }
+                />
+                <Label htmlFor={`method-${key}`} className="font-normal cursor-pointer text-sm">
+                  {label}
+                </Label>
+              </div>
+            ))}
+          </div>
+
         </CardContent>
       </Card>
     </div>
