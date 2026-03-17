@@ -9,6 +9,7 @@ import TreatmentRegimenBuilder from "@/components/TreatmentRegimenBuilder";
 import ClinicalParameters from "@/components/ClinicalParameters";
 import ConcomitantMedications from "@/components/ConcomitantMedications";
 import GeneticResistanceNotes from "@/components/GeneticResistanceNotes";
+import PharmacistIntake from "@/components/PharmacistIntake";
 import AssessmentResults from "@/components/AssessmentResults";
 import { type AssessmentResult } from "@shared/schema";
 
@@ -149,6 +150,8 @@ export default function AssessmentForm() {
               onNotesChange={setGeneticResistanceNotes}
             />
           </div>
+
+          <PharmacistIntake />
 
           <div className="flex justify-center pt-6">
             <Button
