@@ -181,6 +181,17 @@ export default function AssessmentForm() {
                 citations={assessmentResult.citations}
                 sources={assessmentResult.sources}
                 aiProvider={assessmentResult.aiProvider}
+                patientData={{
+                  selectedDrugs,
+                  concomitantMeds,
+                  age,
+                  cd4Count,
+                  viralLoad,
+                  egfr,
+                  hepaticFunction,
+                  pregnancy,
+                  treatmentStatus,
+                }}
               />
             </div>
           )}

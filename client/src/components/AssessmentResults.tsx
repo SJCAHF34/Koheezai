@@ -4,8 +4,20 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, AlertCircle, Info, Activity, Shield, Baby, HeartPulse, Syringe, TrendingUp, BookOpen, ExternalLink } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info, Activity, Shield, Baby, HeartPulse, Syringe, TrendingUp, BookOpen, ExternalLink, Copy, Check, ExternalLink as OpenIcon } from "lucide-react";
 import { type DrugInteraction, type RenalAlert, type HepaticPregnancyAlert, type ClinicalRecommendation, type EvidenceCitation } from "@shared/schema";
+
+type PatientData = {
+  selectedDrugs: string[];
+  concomitantMeds: string[];
+  age?: number;
+  cd4Count?: number;
+  viralLoad?: number;
+  egfr?: number;
+  hepaticFunction?: string;
+  pregnancy?: string;
+  treatmentStatus?: string;
+};
 
 type AssessmentResultsProps = {
   interactions: DrugInteraction[];
@@ -17,6 +29,7 @@ type AssessmentResultsProps = {
   citations?: EvidenceCitation[];
   sources?: string[];
   aiProvider?: "openevidence" | "openai";
+  patientData?: PatientData;
 };
 
 export default function AssessmentResults({
@@ -29,8 +42,10 @@ export default function AssessmentResults({
   citations,
   sources,
   aiProvider,
+  patientData,
 }: AssessmentResultsProps) {
   const [address, setAddress] = useState("");
+  const [copied, setCopied] = useState(false);
   const [bin, setBin] = useState("");
   const [pcn, setPcn] = useState("");
   const [insuranceId, setInsuranceId] = useState("");
@@ -42,6 +57,37 @@ export default function AssessmentResults({
 
   const setYesNo = (key: string, val: "yes" | "no") =>
     setYesNoAnswers((prev) => ({ ...prev, [key]: prev[key] === val ? null : val }));
+
+  const buildOpenEvidencePrompt = (): string => {
+    const p = patientData;
+    if (!p) return "";
+    const lines: string[] = [];
+    lines.push("I am a pharmacist reviewing an HIV-positive patient. Please evaluate the following for treatment appropriateness and clinically significant drug-drug interactions:");
+    lines.push("");
+    lines.push(`Patient: ${p.age ? `${p.age}-year-old` : "Adult"}, ${p.pregnancy === "yes" ? "pregnant" : p.pregnancy === "no" ? "not pregnant" : "pregnancy status unknown"}, ${p.treatmentStatus === "naive" ? "treatment-naive" : "treatment-experienced"}`);
+    if (p.cd4Count !== undefined) lines.push(`CD4 Count: ${p.cd4Count} cells/µL`);
+    if (p.viralLoad !== undefined) lines.push(`HIV Viral Load: ${p.viralLoad} copies/mL`);
+    if (p.egfr !== undefined) lines.push(`eGFR: ${p.egfr} mL/min/1.73m²`);
+    if (p.hepaticFunction && p.hepaticFunction !== "normal") lines.push(`Hepatic Function: ${p.hepaticFunction} impairment`);
+    lines.push("");
+    lines.push(`ARV Regimen: ${p.selectedDrugs.length > 0 ? p.selectedDrugs.join(" + ") : "None specified"}`);
+    lines.push(`Concomitant Medications: ${p.concomitantMeds.length > 0 ? p.concomitantMeds.join(", ") : "None"}`);
+    lines.push("");
+    lines.push("Please address:");
+    lines.push("1. Is this ARV regimen appropriate for this patient's clinical profile?");
+    lines.push("2. Are there any clinically significant drug-drug interactions between the ARV regimen and concomitant medications?");
+    lines.push("3. Are any dose adjustments needed given the patient's renal or hepatic function?");
+    lines.push("4. Are there any contraindications or safety concerns?");
+    return lines.join("\n");
+  };
+
+  const handleCopy = () => {
+    const prompt = buildOpenEvidencePrompt();
+    navigator.clipboard.writeText(prompt).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const getSeverityIcon = (severity: "critical" | "moderate" | "minor") => {
     switch (severity) {
@@ -296,66 +342,49 @@ export default function AssessmentResults({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <CardTitle className="text-xl">Clinical Assessment Summary</CardTitle>
-            {aiProvider && (
-              <Badge variant="outline" className="text-xs">
-                {aiProvider === "openevidence" ? "OpenEvidence AI" : "OpenAI"}
-              </Badge>
-            )}
+            <CardTitle className="text-xl flex items-center gap-2">
+              <BookOpen className="w-5 h-5" />
+              OpenEvidence Query
+            </CardTitle>
+            <a
+              href="https://www.openevidence.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-openevidence-query"
+            >
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium hover-elevate"
+              >
+                Open OpenEvidence
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </a>
           </div>
-          {sources && sources.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              Sources: {sources.join(", ")}
-            </p>
-          )}
+          <p className="text-sm text-muted-foreground">
+            Copy this prompt and paste it into OpenEvidence to look up treatment appropriateness and drug-drug interactions with peer-reviewed citations.
+          </p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="prose prose-sm max-w-none">
-            <p className="text-sm whitespace-pre-line">{clinicalSummary}</p>
+        <CardContent className="space-y-3">
+          <div className="relative">
+            <pre
+              data-testid="openevidence-prompt"
+              className="text-sm whitespace-pre-wrap bg-muted rounded-md p-4 pr-12 leading-relaxed font-sans"
+            >
+              {buildOpenEvidencePrompt()}
+            </pre>
+            <button
+              type="button"
+              data-testid="btn-copy-prompt"
+              onClick={handleCopy}
+              className={`absolute top-3 right-3 p-1.5 rounded-md border text-xs font-medium transition-colors hover-elevate ${
+                copied ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border"
+              }`}
+              title="Copy to clipboard"
+            >
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            </button>
           </div>
-          
-          {citations && citations.length > 0 && (
-            <div className="border-t pt-4 mt-4">
-              <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
-                <BookOpen className="w-4 h-4" />
-                Evidence Citations
-              </h4>
-              <div className="space-y-3">
-                {citations.map((citation, index) => (
-                  <div key={index} className="text-sm p-3 bg-muted rounded-md">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <p className="font-medium">{citation.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {citation.journal}
-                          {citation.pubmedId && ` (PMID: ${citation.pubmedId})`}
-                        </p>
-                      </div>
-                      <Badge 
-                        variant={citation.relevance === "high" ? "default" : "secondary"}
-                        className="text-xs shrink-0"
-                      >
-                        {citation.relevance}
-                      </Badge>
-                    </div>
-                    {citation.summary && (
-                      <p className="text-xs text-muted-foreground mt-2">{citation.summary}</p>
-                    )}
-                    {citation.url && (
-                      <a 
-                        href={citation.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-2"
-                      >
-                        View Source <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
