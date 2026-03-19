@@ -12,7 +12,6 @@ import {
   RotateCw,
   ExternalLink,
   Shield,
-  CreditCard,
   BookOpen,
   Pill,
   Lock,
@@ -45,14 +44,6 @@ const browserTools: BrowserTool[] = [
     icon: Shield,
     iconColor: "text-purple-600",
     iconBg: "bg-purple-100 dark:bg-purple-900/40",
-  },
-  {
-    id: "onesource",
-    label: "OneSource",
-    url: "https://www.onesource.passporthealth.com/_members/Home/Login.aspx",
-    icon: CreditCard,
-    iconColor: "text-blue-600",
-    iconBg: "bg-blue-100 dark:bg-blue-900/40",
   },
   {
     id: "openevidence",

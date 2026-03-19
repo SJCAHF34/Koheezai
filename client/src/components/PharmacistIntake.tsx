@@ -3,7 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ClipboardList, FileText, Check, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ClipboardList, FileText, Check, Copy, ExternalLink } from "lucide-react";
+
+const ONESOURCE_URL = "https://www.onesource.passporthealth.com/_members/Home/Login.aspx";
 
 const YES_NO_QUESTIONS = [
   { key: "allergies",        label: "Medication allergies",                  question: "Do you have any medication allergies?",                                                                                          detailLabel: "Please list allergies",                    hasDetail: true },
@@ -106,7 +109,20 @@ export default function PharmacistIntake() {
 
           {/* Insurance fields */}
           <div className="space-y-1.5">
-            <p className="font-medium text-sm">What is your current insurance?</p>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="font-medium text-sm">What is your current insurance?</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-testid="button-onesource"
+                onClick={() => window.open(ONESOURCE_URL, "_blank", "noopener,noreferrer")}
+                className="flex items-center gap-1.5 text-xs"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Verify with OneSource
+              </Button>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="intake-bin" className="text-xs text-muted-foreground">BIN</Label>

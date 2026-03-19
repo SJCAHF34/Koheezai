@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Shield, CreditCard, BookOpen, Pill } from "lucide-react";
+import { Shield, BookOpen, Pill } from "lucide-react";
 
 export type ToolCard = {
   id: string;
@@ -52,32 +52,6 @@ export const clinicalTools: ToolCard[] = [
       label: "Pharmacy Support Info",
       url: "https://www.ramsellcorp.com/pharmacies/",
       testId: "link-ramsell-pharmacies",
-    },
-  },
-  {
-    id: "onesource",
-    title: "OneSource Medicare",
-    subtitle: "Medicare Part B & Medicare Advantage Verification",
-    icon: CreditCard,
-    iconColor: "text-blue-600 dark:text-blue-400",
-    iconBg: "bg-blue-100 dark:bg-blue-900/40",
-    description:
-      "OneSource provides real-time insurance eligibility and benefit verification for Medicare Part B and Medicare Advantage plans. Use it to confirm coverage, verify copay/coinsurance amounts, and check prior authorization requirements for HIV medications.",
-    tips: [
-      "Medicare Part B covers infusible/injectable HIV drugs (e.g., Trogarzo, Cabenuva) — verify under Part B before routing to pharmacy",
-      "Medicare Advantage plans may have different formulary tiers and PA requirements than traditional Medicare",
-      "Check the patient's Medicare Beneficiary Identifier (MBI) — not their Social Security Number",
-      "Confirm if the patient has a Supplemental (Medigap) plan that covers the Part B 20% coinsurance",
-    ],
-    primaryAction: {
-      label: "Open OneSource Portal",
-      url: "https://www.onesource.passporthealth.com/_members/Home/Login.aspx",
-      testId: "link-onesource-portal",
-    },
-    secondaryAction: {
-      label: "CMS Medicare Eligibility Guide",
-      url: "https://www.cms.gov/files/document/mln8816413-checking-medicare-eligibility.pdf",
-      testId: "link-cms-eligibility",
     },
   },
   {
