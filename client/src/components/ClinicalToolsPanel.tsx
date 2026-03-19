@@ -14,6 +14,7 @@ import {
   Shield,
   CreditCard,
   BookOpen,
+  Pill,
   Lock,
   X,
   Loader2,
@@ -60,6 +61,14 @@ const browserTools: BrowserTool[] = [
     icon: BookOpen,
     iconColor: "text-green-600",
     iconBg: "bg-green-100 dark:bg-green-900/40",
+  },
+  {
+    id: "uptodate",
+    label: "UpToDate DDI",
+    url: "https://www.uptodate.com/drug-interactions/#di-druglist",
+    icon: Pill,
+    iconColor: "text-orange-600",
+    iconBg: "bg-orange-100 dark:bg-orange-900/40",
   },
 ];
 

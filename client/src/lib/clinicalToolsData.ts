@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Shield, CreditCard, BookOpen } from "lucide-react";
+import { Shield, CreditCard, BookOpen, Pill } from "lucide-react";
 
 export type ToolCard = {
   id: string;
@@ -109,6 +109,27 @@ export const clinicalTools: ToolCard[] = [
       badge: "Free for Pharmacists",
       badgeColor: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
       text: "Individual pharmacist accounts are completely free with a valid NPI (National Provider Identifier). Sign up takes under 2 minutes — just verify your NPI and create a password. No institutional account or API key required.",
+    },
+  },
+  {
+    id: "uptodate",
+    title: "UpToDate Drug Interactions",
+    subtitle: "Comprehensive Drug-Drug Interaction Checker",
+    icon: Pill,
+    iconColor: "text-orange-600 dark:text-orange-400",
+    iconBg: "bg-orange-100 dark:bg-orange-900/40",
+    description:
+      "UpToDate's Drug Interactions tool allows pharmacists to check interactions between multiple drugs simultaneously. Covers HIV antiretrovirals, concomitant medications, and common drug classes with severity ratings and clinical management guidance.",
+    tips: [
+      "Add ARV regimen components individually to check all pairwise interactions",
+      "Severity ratings: Contraindicated, Serious, Significant, Minor — prioritize Contraindicated and Serious",
+      "Subscription required — confirm your institution has UpToDate access before relying on it",
+      "Cross-reference with Liverpool HIV DDI checker for ARV-specific guidance",
+    ],
+    primaryAction: {
+      label: "Open UpToDate DDI Checker",
+      url: "https://www.uptodate.com/drug-interactions/#di-druglist",
+      testId: "link-uptodate-portal",
     },
   },
 ];

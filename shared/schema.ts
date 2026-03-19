@@ -67,4 +67,6 @@ export type AssessmentResult = {
   citations?: EvidenceCitation[];
   sources?: string[];
   aiProvider?: "openevidence" | "openai";
+  ddiSource?: "liverpool" | "static";
+  ddiResolvedDrugs?: number;
 };

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, AlertCircle, Info, Activity, Shield, Baby, HeartPulse, Syringe, TrendingUp, BookOpen, ExternalLink, Copy, Check } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info, Activity, Shield, Baby, HeartPulse, Syringe, TrendingUp, BookOpen, ExternalLink, Copy, Check, FlaskConical, Database } from "lucide-react";
 import { type DrugInteraction, type RenalAlert, type HepaticPregnancyAlert, type ClinicalRecommendation, type EvidenceCitation } from "@shared/schema";
 
 type PatientData = {
@@ -26,6 +26,8 @@ type AssessmentResultsProps = {
   citations?: EvidenceCitation[];
   sources?: string[];
   aiProvider?: "openevidence" | "openai";
+  ddiSource?: "liverpool" | "static";
+  ddiResolvedDrugs?: number;
   patientData?: PatientData;
 };
 
@@ -39,6 +41,8 @@ export default function AssessmentResults({
   citations,
   sources,
   aiProvider,
+  ddiSource,
+  ddiResolvedDrugs,
   patientData,
 }: AssessmentResultsProps) {
   const [copied, setCopied] = useState(false);
@@ -101,7 +105,27 @@ export default function AssessmentResults({
       {interactions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Drug-Drug Interactions</CardTitle>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <CardTitle className="text-xl">Drug-Drug Interactions</CardTitle>
+              {ddiSource === "liverpool" ? (
+                <Badge
+                  data-testid="badge-ddi-source-liverpool"
+                  className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 flex items-center gap-1 no-default-active-elevate"
+                >
+                  <FlaskConical className="h-3 w-3" />
+                  Liverpool HIV DDI{ddiResolvedDrugs ? ` · ${ddiResolvedDrugs} drugs` : ""}
+                </Badge>
+              ) : (
+                <Badge
+                  data-testid="badge-ddi-source-static"
+                  variant="secondary"
+                  className="flex items-center gap-1 no-default-active-elevate"
+                >
+                  <Database className="h-3 w-3" />
+                  Built-in engine
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               {interactions.length} interaction{interactions.length !== 1 ? "s" : ""} identified
             </p>
