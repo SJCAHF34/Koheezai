@@ -77,7 +77,18 @@ export default function AssessmentForm() {
     if (selectedDrugs.length === 0) {
       toast({
         title: "Missing Information",
-        description: "Please select at least one HIV medication.",
+        description: regimenMode === "change"
+          ? "Please select at least one medication for the new regimen."
+          : "Please select at least one HIV medication.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (regimenMode === "change" && currentDrugs.length === 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please select at least one medication from the current regimen being discontinued.",
         variant: "destructive",
       });
       return;
