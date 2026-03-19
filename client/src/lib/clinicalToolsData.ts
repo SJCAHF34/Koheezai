@@ -1,0 +1,114 @@
+import type { LucideIcon } from "lucide-react";
+import { Shield, CreditCard, BookOpen } from "lucide-react";
+
+export type ToolCard = {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: LucideIcon;
+  iconColor: string;
+  iconBg: string;
+  description: string;
+  tips: string[];
+  primaryAction: {
+    label: string;
+    url: string;
+    testId: string;
+  };
+  secondaryAction?: {
+    label: string;
+    url: string;
+    testId: string;
+  };
+  highlight?: {
+    badge: string;
+    badgeColor: string;
+    text: string;
+  };
+};
+
+export const clinicalTools: ToolCard[] = [
+  {
+    id: "ramsell",
+    title: "Ramsell ADAP",
+    subtitle: "AIDS Drug Assistance Program Eligibility",
+    icon: Shield,
+    iconColor: "text-purple-600 dark:text-purple-400",
+    iconBg: "bg-purple-100 dark:bg-purple-900/40",
+    description:
+      "Ramsell manages ADAP programs across multiple states, allowing pharmacists and case managers to verify patient eligibility, process claims, and confirm enrollment status for the AIDS Drug Assistance Program.",
+    tips: [
+      "Login is state-specific — your state portal may differ from the main URL",
+      "Use patient's full legal name, date of birth, and state ID number",
+      "ADAP eligibility must be re-verified periodically — confirm active enrollment before dispensing",
+      "Some states have sub-portals (e.g., DC, Colorado, Illinois) accessible through the main portal",
+    ],
+    primaryAction: {
+      label: "Open Ramsell Portal",
+      url: "https://pbm.ramsellcorp.com/Security/SignIn.aspx?enc=alO9koyFXt1nW1sY4HUjZj3qlnLQ7z3Q%2fNrcaIWibZ8UChXT24cNOSdVDVQHj4QK",
+      testId: "link-ramsell-portal",
+    },
+    secondaryAction: {
+      label: "Pharmacy Support Info",
+      url: "https://www.ramsellcorp.com/pharmacies/",
+      testId: "link-ramsell-pharmacies",
+    },
+  },
+  {
+    id: "onesource",
+    title: "OneSource Medicare",
+    subtitle: "Medicare Part B & Medicare Advantage Verification",
+    icon: CreditCard,
+    iconColor: "text-blue-600 dark:text-blue-400",
+    iconBg: "bg-blue-100 dark:bg-blue-900/40",
+    description:
+      "OneSource provides real-time insurance eligibility and benefit verification for Medicare Part B and Medicare Advantage plans. Use it to confirm coverage, verify copay/coinsurance amounts, and check prior authorization requirements for HIV medications.",
+    tips: [
+      "Medicare Part B covers infusible/injectable HIV drugs (e.g., Trogarzo, Cabenuva) — verify under Part B before routing to pharmacy",
+      "Medicare Advantage plans may have different formulary tiers and PA requirements than traditional Medicare",
+      "Check the patient's Medicare Beneficiary Identifier (MBI) — not their Social Security Number",
+      "Confirm if the patient has a Supplemental (Medigap) plan that covers the Part B 20% coinsurance",
+    ],
+    primaryAction: {
+      label: "Open OneSource Portal",
+      url: "https://www.onesource.passporthealth.com/_members/Home/Login.aspx",
+      testId: "link-onesource-portal",
+    },
+    secondaryAction: {
+      label: "CMS Medicare Eligibility Guide",
+      url: "https://www.cms.gov/files/document/mln8816413-checking-medicare-eligibility.pdf",
+      testId: "link-cms-eligibility",
+    },
+  },
+  {
+    id: "openevidence",
+    title: "OpenEvidence",
+    subtitle: "Evidence-Based Clinical Guidelines & Literature",
+    icon: BookOpen,
+    iconColor: "text-green-600 dark:text-green-400",
+    iconBg: "bg-green-100 dark:bg-green-900/40",
+    description:
+      "OpenEvidence is a medical AI platform used by over 40% of U.S. physicians. It provides evidence-based clinical answers with citations from NEJM, JAMA, PubMed, and DHHS HIV Treatment Guidelines — ideal for real-time clinical decision support.",
+    tips: [
+      "Search by drug name or clinical question (e.g., \"dolutegravir renal dosing\" or \"PrEP in pregnancy\")",
+      "References DHHS HIV Treatment Guidelines, IDSA, and peer-reviewed literature",
+      "Best for complex drug interaction questions, dosing in organ impairment, and resistance management",
+      "Available on web and mobile — accessible during patient consultations",
+    ],
+    primaryAction: {
+      label: "Open OpenEvidence",
+      url: "https://www.openevidence.com/",
+      testId: "link-openevidence-portal",
+    },
+    secondaryAction: {
+      label: "Sign Up Free (NPI Required)",
+      url: "https://www.openevidence.com/sign-up",
+      testId: "link-openevidence-signup",
+    },
+    highlight: {
+      badge: "Free for Pharmacists",
+      badgeColor: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+      text: "Individual pharmacist accounts are completely free with a valid NPI (National Provider Identifier). Sign up takes under 2 minutes — just verify your NPI and create a password. No institutional account or API key required.",
+    },
+  },
+];
