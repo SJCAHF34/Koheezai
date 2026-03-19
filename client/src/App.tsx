@@ -8,7 +8,8 @@ import AssessmentForm from "@/pages/AssessmentForm";
 import PatientAssistance from "@/pages/PatientAssistance";
 import ClinicalTools from "@/pages/ClinicalTools";
 import NotFound from "@/pages/not-found";
-import { Activity, HeartHandshake, Wrench } from "lucide-react";
+import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
+import { Activity, HeartHandshake } from "lucide-react";
 
 function NavLink({ href, children, testId }: { href: string; children: ReactNode; testId: string }) {
   const [location] = useLocation();
@@ -48,11 +49,7 @@ function Nav() {
               <span className="hidden sm:inline">Patient Assistance</span>
               <span className="sm:hidden">Assistance</span>
             </NavLink>
-            <NavLink href="/clinical-tools" testId="nav-clinical-tools">
-              <Wrench className="w-4 h-4" />
-              <span className="hidden sm:inline">Clinical Tools</span>
-              <span className="sm:hidden">Tools</span>
-            </NavLink>
+            <ClinicalToolsPanel />
           </nav>
         </div>
       </div>
