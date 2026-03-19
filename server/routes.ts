@@ -203,6 +203,63 @@ Format your response as JSON:
     }
   });
 
+  // ── Frameable check — detects X-Frame-Options / CSP frame-ancestors ──
+  app.get("/api/check-frameable", async (req, res) => {
+    const { url } = req.query;
+    if (!url || typeof url !== "string") {
+      return res.status(400).json({ error: "url parameter required" });
+    }
+
+    try {
+      new URL(url);
+    } catch {
+      return res.status(400).json({ error: "Invalid URL" });
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: "HEAD",
+        signal: AbortSignal.timeout(8000),
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+        redirect: "follow",
+      });
+
+      const xfo = response.headers.get("x-frame-options")?.toLowerCase() ?? "";
+      const csp = response.headers.get("content-security-policy") ?? "";
+
+      const blockedByXFO = xfo === "deny" || xfo === "sameorigin";
+
+      // Parse frame-ancestors directive
+      const faMatch = csp.match(/frame-ancestors\s+([^;]+)/i);
+      let blockedByCSP = false;
+      if (faMatch) {
+        const fa = faMatch[1].trim();
+        blockedByCSP = fa === "'none'" || (fa.includes("'self'") && !fa.includes("*"));
+      }
+
+      if (blockedByXFO || blockedByCSP) {
+        return res.json({
+          frameable: false,
+          reason: blockedByXFO
+            ? `X-Frame-Options: ${xfo.toUpperCase()}`
+            : "CSP frame-ancestors",
+        });
+      }
+
+      return res.json({ frameable: true });
+    } catch (error) {
+      return res.json({
+        frameable: false,
+        reason: "Connection failed",
+        detail: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
