@@ -12,6 +12,8 @@ export const assessmentSchema = z.object({
   selectedDrugs: z.array(z.string()),
   concomitantMeds: z.array(z.string()),
   geneticResistanceNotes: z.string().optional(),
+  regimenType: z.enum(["new", "change"]).optional(),
+  currentDrugs: z.array(z.string()).optional(),
 });
 
 export type Assessment = z.infer<typeof assessmentSchema>;

@@ -26,6 +26,8 @@ const assessmentRequestSchema = z.object({
   selectedDrugs: z.array(z.string()),
   concomitantMeds: z.array(z.string()),
   geneticResistanceNotes: z.string().optional(),
+  regimenType: z.enum(["new", "change"]).optional(),
+  currentDrugs: z.array(z.string()).optional(),
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -76,6 +78,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return drug ? `${drug.name} (${drug.brandName}) - ${drug.dosage}` : id;
       }).join(", ");
 
+      const currentDrugDetails = (data.currentDrugs ?? []).map(id => {
+        const drug = hivDrugs.find(d => d.id === id);
+        return drug ? `${drug.name} (${drug.brandName}) - ${drug.dosage}` : id;
+      }).join(", ");
+
+      const regimenChangeBlock = data.regimenType === "change"
+        ? `\n**Regimen Change:**\n- Current Regimen (being discontinued): ${currentDrugDetails || "Not specified"}\n- New Regimen (being initiated): ${selectedDrugDetails}\nPlease address: reasons the current regimen may be suboptimal, clinical appropriateness of the new regimen, any safety considerations during the transition, and whether any washout or overlap is needed.`
+        : "";
+
       // Try OpenEvidence first (medical-specific AI with evidence-based citations)
       let result: {
         clinicalSummary: string;
@@ -108,6 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hepaticPregnancyAlerts,
           clinicalRecommendations,
           selectedDrugDetails,
+          regimenChangeBlock: regimenChangeBlock || undefined,
         });
 
         if (openEvidenceResult) {
@@ -137,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 **Selected HIV Regimen:**
 ${selectedDrugDetails}
-
+${regimenChangeBlock}
 **Concomitant Medications:**
 ${data.concomitantMeds.length > 0 ? data.concomitantMeds.join(", ") : "None reported"}
 

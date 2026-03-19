@@ -24,7 +24,9 @@ export default function AssessmentForm() {
   const [cd4Count, setCd4Count] = useState<number | undefined>();
   const [egfr, setEgfr] = useState<number | undefined>();
   const [hepaticFunction, setHepaticFunction] = useState<"normal" | "mild" | "moderate" | "severe">("normal");
+  const [regimenMode, setRegimenMode] = useState<"new" | "change">("new");
   const [selectedDrugs, setSelectedDrugs] = useState<string[]>([]);
+  const [currentDrugs, setCurrentDrugs] = useState<string[]>([]);
   const [concomitantMeds, setConcomitantMeds] = useState<string[]>([]);
   const [geneticResistanceNotes, setGeneticResistanceNotes] = useState("");
   const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(null);
@@ -42,6 +44,8 @@ export default function AssessmentForm() {
       selectedDrugs: string[];
       concomitantMeds: string[];
       geneticResistanceNotes?: string;
+      regimenType?: "new" | "change";
+      currentDrugs?: string[];
     }) => {
       const response = await apiRequest<AssessmentResult>("/api/assessment", {
         method: "POST",
@@ -103,6 +107,8 @@ export default function AssessmentForm() {
       selectedDrugs,
       concomitantMeds: flattenedMeds,
       geneticResistanceNotes,
+      regimenType: regimenMode,
+      currentDrugs: regimenMode === "change" ? currentDrugs : undefined,
     });
   };
 
@@ -135,8 +141,12 @@ export default function AssessmentForm() {
           </div>
 
           <TreatmentRegimenBuilder
+            regimenMode={regimenMode}
             selectedDrugs={selectedDrugs}
+            currentDrugs={currentDrugs}
+            onRegimenModeChange={setRegimenMode}
             onDrugsChange={setSelectedDrugs}
+            onCurrentDrugsChange={setCurrentDrugs}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

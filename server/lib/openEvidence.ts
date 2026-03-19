@@ -110,6 +110,7 @@ export class OpenEvidenceClient {
     hepaticPregnancyAlerts: Array<{ severity: string; category: string; medication: string; description: string }>;
     clinicalRecommendations: Array<{ priority: string; category: string; title: string }>;
     selectedDrugDetails: string;
+    regimenChangeBlock?: string;
   }): Promise<ClinicalAssessmentResult | null> {
     if (!this.isConfigured()) {
       return null;
@@ -129,6 +130,7 @@ Patient Profile:
 - Hepatic Function: ${patientData.hepaticFunction}
 
 HIV Regimen: ${patientData.selectedDrugDetails}
+${patientData.regimenChangeBlock ?? ""}
 Concomitant Medications: ${patientData.concomitantMeds.length > 0 ? patientData.concomitantMeds.join(", ") : "None"}
 
 Identified Issues:
