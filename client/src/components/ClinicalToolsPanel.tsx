@@ -14,6 +14,7 @@ import {
   Shield,
   BookOpen,
   Pill,
+  ClipboardList,
   Lock,
   X,
   Loader2,
@@ -60,6 +61,14 @@ const browserTools: BrowserTool[] = [
     icon: Pill,
     iconColor: "text-orange-600",
     iconBg: "bg-orange-100 dark:bg-orange-900/40",
+  },
+  {
+    id: "athena",
+    label: "Athena",
+    url: "https://athenanet.athenahealth.com/1/1/login/startoidc.esp?IDP=0oay9fqjxcuda2iRm297",
+    icon: ClipboardList,
+    iconColor: "text-blue-600",
+    iconBg: "bg-blue-100 dark:bg-blue-900/40",
   },
 ];
 
