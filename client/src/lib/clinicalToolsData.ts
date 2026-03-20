@@ -68,6 +68,7 @@ export const clinicalTools: ToolCard[] = [
       "References DHHS HIV Treatment Guidelines, IDSA, and peer-reviewed literature",
       "Best for complex drug interaction questions, dosing in organ impairment, and resistance management",
       "Available on web and mobile — accessible during patient consultations",
+      "On mobile or embedded browsers, if prompted to enable cookies, tap \"Open in new tab\" to access OpenEvidence in your full browser with your login session.",
     ],
     primaryAction: {
       label: "Open OpenEvidence",

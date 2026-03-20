@@ -373,6 +373,9 @@ export default function AssessmentResults({
           <p className="text-sm text-muted-foreground">
             Copy this prompt and paste it into OpenEvidence to look up treatment appropriateness and drug-drug interactions with peer-reviewed citations.
           </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            On mobile or embedded browsers, if prompted to enable cookies, tap "Open in new tab" to open OpenEvidence in your full browser where your login session is available.
+          </p>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="relative">
