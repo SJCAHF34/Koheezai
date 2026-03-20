@@ -205,8 +205,6 @@ export default function AssessmentForm() {
                 citations={assessmentResult.citations}
                 sources={assessmentResult.sources}
                 aiProvider={assessmentResult.aiProvider}
-                ddiSource={assessmentResult.ddiSource}
-                ddiResolvedDrugs={assessmentResult.ddiResolvedDrugs}
                 patientData={{
                   selectedDrugs,
                   concomitantMeds,

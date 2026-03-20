@@ -26,8 +26,6 @@ type AssessmentResultsProps = {
   citations?: EvidenceCitation[];
   sources?: string[];
   aiProvider?: "openevidence" | "openai";
-  ddiSource?: "liverpool" | "static";
-  ddiResolvedDrugs?: number;
   patientData?: PatientData;
 };
 
@@ -41,8 +39,6 @@ export default function AssessmentResults({
   citations,
   sources,
   aiProvider,
-  ddiSource,
-  ddiResolvedDrugs,
   patientData,
 }: AssessmentResultsProps) {
   const [copied, setCopied] = useState(false);

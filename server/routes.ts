@@ -7,7 +7,6 @@ import { checkRenalFunction } from "./lib/renalValidation";
 import { checkHepaticPregnancyFunction } from "./lib/hepaticPregnancyValidation";
 import { generateClinicalRecommendations } from "./lib/clinicalRecommendations";
 import { openEvidenceClient } from "./lib/openEvidence";
-import { checkLiverpoolInteractions, isConfigured as liverpoolConfigured } from "./lib/liverpoolDDI";
 import { hivDrugs } from "../client/src/lib/hivDrugs";
 
 const openai = new OpenAI({
@@ -39,26 +38,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "At least one HIV medication must be selected" });
       }
 
-      // Drug-drug interactions: try Liverpool API first, fall back to static engine
-      let ddiSource: "liverpool" | "static" = "static";
-      let ddiResolvedDrugs: number | undefined;
-      let interactions = checkDrugInteractions(data.selectedDrugs, data.concomitantMeds);
-
-      if (liverpoolConfigured()) {
-        console.log("[Assessment] Liverpool API key present — querying Liverpool DDI…");
-        const liverpoolResult = await checkLiverpoolInteractions(
-          data.selectedDrugs,
-          data.concomitantMeds,
-        );
-        if (liverpoolResult) {
-          interactions = liverpoolResult.interactions;
-          ddiSource = "liverpool";
-          ddiResolvedDrugs = liverpoolResult.resolvedCount;
-          console.log(`[Assessment] Using Liverpool DDI results (${interactions.length} interaction(s))`);
-        } else {
-          console.log("[Assessment] Liverpool DDI unavailable — using static engine");
-        }
-      }
+      const interactions = checkDrugInteractions(data.selectedDrugs, data.concomitantMeds);
 
       const renalAlerts = checkRenalFunction(data.selectedDrugs, data.egfr);
       const hepaticPregnancyAlerts = checkHepaticPregnancyFunction(
@@ -221,8 +201,6 @@ Format your response as JSON:
         citations: result.citations,
         sources: result.sources,
         aiProvider: result.provider,
-        ddiSource,
-        ddiResolvedDrugs,
       });
     } catch (error) {
       console.error("Assessment generation error:", error);
