@@ -60,13 +60,19 @@ export class OpenEvidenceClient {
     }
 
     try {
+      const sessionCookie = process.env.OPENEVIDENCE_SESSION_COOKIE;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${this.apiKey}`,
+        "Accept": "application/json",
+      };
+      if (sessionCookie) {
+        headers["Cookie"] = sessionCookie;
+      }
+
       const response = await fetch(`${this.baseUrl}/v1/query`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${this.apiKey}`,
-          "Accept": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           query: clinicalQuestion,
           include_citations: true,

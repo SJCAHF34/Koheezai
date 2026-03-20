@@ -172,8 +172,6 @@ export default function AssessmentForm() {
             />
           </div>
 
-          <PharmacistIntake />
-
           <div className="flex justify-center pt-6">
             <Button
               size="lg"
@@ -192,6 +190,8 @@ export default function AssessmentForm() {
               )}
             </Button>
           </div>
+
+          <PharmacistIntake />
 
           {assessmentResult && (
             <div id="assessment-results" data-testid="assessment-results" className="pt-8 border-t">
