@@ -123,8 +123,36 @@ export default function AssessmentForm() {
     });
   };
 
+  const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50">
+      {/* Page header */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="container max-w-7xl mx-auto px-4 py-8">
+          <div className="flex items-start gap-4">
+            <div
+              className="w-11 h-11 rounded-md flex items-center justify-center shrink-0 mt-0.5"
+              style={{ backgroundImage: GRADIENT }}
+            >
+              <Loader2 className="w-5 h-5 text-white opacity-0 absolute" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-0.5">
+                HIV/PrEP
+              </p>
+              <h1 className="text-2xl font-bold text-slate-900">Treatment Assessor</h1>
+              <p className="text-slate-500 text-sm mt-0.5">
+                Build a regimen, screen interactions, and generate an AI-powered clinical summary.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <main className="container max-w-7xl mx-auto px-4 py-8">
         <div className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -173,22 +201,22 @@ export default function AssessmentForm() {
           </div>
 
           <div className="flex justify-center pt-6">
-            <Button
-              size="lg"
+            <button
               onClick={generateAssessment}
               disabled={assessmentMutation.isPending}
-              className="w-full sm:w-auto min-w-64"
               data-testid="button-generate-assessment"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-sm font-semibold text-white rounded-md w-full sm:w-auto min-w-64 transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundImage: GRADIENT }}
             >
               {assessmentMutation.isPending ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Generating Assessment...
                 </>
               ) : (
                 "Generate Clinical Assessment"
               )}
-            </Button>
+            </button>
           </div>
 
           <PharmacistIntake />

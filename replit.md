@@ -11,9 +11,10 @@ Koheez.ai is a clinical decision support platform for HIV pharmacists. It featur
 - Unauthenticated users accessing /app/* are redirected to /login.
 
 ## Route Structure
-- `/` → LandingPage (public, Klaviyo-style Koheez.ai marketing page)
-- `/login` → LoginPage (sign in / create account tabs)
-- `/app` → AssessmentForm (protected)
+- `/` → LandingPage (public, white background, blue→purple→red gradient logo only)
+- `/login` → LoginPage (sign in / create account tabs, white/light theme)
+- `/app` → DashboardPage (protected, member dashboard with tool cards)
+- `/app/assessment` → AssessmentForm (protected, HIV/PrEP Treatment Assessor)
 - `/app/patient-assistance` → PatientAssistance (protected)
 - `/app/clinical-tools` → ClinicalTools (protected)
 

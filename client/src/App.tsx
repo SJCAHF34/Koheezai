@@ -10,9 +10,12 @@ import PatientAssistance from "@/pages/PatientAssistance";
 import ClinicalTools from "@/pages/ClinicalTools";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
+import DashboardPage from "@/pages/DashboardPage";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
-import { Activity, HeartHandshake, LogOut } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard } from "lucide-react";
+
+const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
 // ── Auth hook ──────────────────────────────────────────────────────────────
 export function useAuth() {
@@ -46,13 +49,13 @@ function Spinner() {
 // ── App nav ────────────────────────────────────────────────────────────────
 function NavLink({ href, children, testId }: { href: string; children: ReactNode; testId: string }) {
   const [location] = useLocation();
-  const active = location === href;
+  const active = location === href || (href !== "/app" && location.startsWith(href));
   return (
     <Link
       href={href}
       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
         active
-          ? "bg-primary text-primary-foreground"
+          ? "bg-purple-50 text-purple-700"
           : "text-muted-foreground hover:text-foreground hover:bg-muted"
       }`}
       data-testid={testId}
@@ -75,20 +78,30 @@ function AppNav() {
   });
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-card">
+    <header className="sticky top-0 z-50 border-b bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 gap-4">
-          <div className="flex items-center gap-2 shrink-0">
-            <Activity className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-sm hidden sm:block">
-              Koheez<span className="text-[#22c55e]">.ai</span>
+          {/* Logo */}
+          <Link href="/app">
+            <span className="font-bold text-sm tracking-tight cursor-pointer">
+              <span
+                className="bg-clip-text text-transparent"
+                style={{ backgroundImage: LOGO_GRADIENT }}
+              >
+                Koheez.ai
+              </span>
             </span>
-          </div>
+          </Link>
+
           <nav className="flex items-center gap-1 flex-wrap">
-            <NavLink href="/app" testId="nav-assessment">
+            <NavLink href="/app" testId="nav-dashboard">
+              <LayoutDashboard className="w-4 h-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </NavLink>
+            <NavLink href="/app/assessment" testId="nav-assessment">
               <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline">Clinical Assessment</span>
-              <span className="sm:hidden">Assessment</span>
+              <span className="hidden sm:inline">HIV/PrEP</span>
+              <span className="sm:hidden">Assess</span>
             </NavLink>
             <NavLink href="/app/patient-assistance" testId="nav-assistance">
               <HeartHandshake className="w-4 h-4" />
@@ -136,6 +149,9 @@ function Router() {
         {isLoading ? <Spinner /> : isAuthenticated ? <Redirect to="/app" /> : <LoginPage />}
       </Route>
       <Route path="/app">
+        <Protected component={DashboardPage} />
+      </Route>
+      <Route path="/app/assessment">
         <Protected component={AssessmentForm} />
       </Route>
       <Route path="/app/patient-assistance">

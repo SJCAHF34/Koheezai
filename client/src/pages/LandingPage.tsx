@@ -1,23 +1,18 @@
 import { Link } from "wouter";
 import { Activity, Shield, Pill, HeartHandshake, ArrowRight, CheckCircle, Zap, Users, BookOpen } from "lucide-react";
 
-const GRADIENT = "linear-gradient(90deg, #9333ea, #3b82f6, #ef4444, #facc15)";
-
-function GradientText({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <span
-      className={`bg-clip-text text-transparent inline ${className}`}
-      style={{ backgroundImage: GRADIENT }}
-    >
-      {children}
-    </span>
-  );
-}
+const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
+const CTA_GRADIENT  = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
 function KoheezLogo({ className = "" }: { className?: string }) {
   return (
     <span className={`font-bold tracking-tight ${className}`}>
-      <GradientText>Koheez.ai</GradientText>
+      <span
+        className="bg-clip-text text-transparent"
+        style={{ backgroundImage: LOGO_GRADIENT }}
+      >
+        Koheez.ai
+      </span>
     </span>
   );
 }
@@ -102,7 +97,7 @@ export default function LandingPage() {
               <button
                 data-testid="nav-get-started"
                 className="px-4 py-2 text-sm font-semibold text-white rounded-md transition-opacity hover:opacity-90"
-                style={{ backgroundImage: GRADIENT }}
+                style={{ backgroundImage: CTA_GRADIENT }}
               >
                 Get started
               </button>
@@ -113,18 +108,20 @@ export default function LandingPage() {
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden pt-24 pb-28 px-6 bg-white">
+        {/* Subtle gradient wash behind hero */}
         <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
-          style={{ backgroundImage: GRADIENT }}
+          style={{ backgroundImage: CTA_GRADIENT }}
         />
         <div className="relative max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full text-xs font-semibold tracking-wide uppercase border border-purple-200 bg-purple-50">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full text-xs font-semibold tracking-wide uppercase border border-purple-200 bg-purple-50 text-purple-700">
             <Activity className="w-3 h-3 text-purple-500 shrink-0" />
-            <GradientText>EHR · AI · Patient Communications — Connected</GradientText>
+            EHR · AI · Patient Communications — Connected
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6 text-slate-900">
             Your EHR, your AI,{" "}
-            <GradientText>your patients — one platform.</GradientText>
+            <span className="text-slate-700">your patients —</span>{" "}
+            <span className="text-slate-900">one platform.</span>
           </h1>
           <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
             Koheez.ai connects your EHR, AI-powered clinical tools, and patient
@@ -136,7 +133,7 @@ export default function LandingPage() {
               <button
                 data-testid="hero-get-started"
                 className="inline-flex items-center gap-2 px-7 py-3.5 text-base font-semibold text-white rounded-md transition-opacity hover:opacity-90"
-                style={{ backgroundImage: GRADIENT }}
+                style={{ backgroundImage: CTA_GRADIENT }}
               >
                 Get started free
                 <ArrowRight className="w-4 h-4" />
@@ -168,8 +165,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-slate-900">
-              Everything your HIV consult{" "}
-              <GradientText>needs</GradientText>
+              Everything your HIV consult needs
             </h2>
             <p className="text-slate-500 text-lg max-w-xl mx-auto">
               Purpose-built for clinical pharmacists managing HIV patients in complex polypharmacy environments.
@@ -183,7 +179,7 @@ export default function LandingPage() {
               >
                 <div
                   className="w-10 h-10 rounded-md flex items-center justify-center mb-4"
-                  style={{ backgroundImage: "linear-gradient(135deg, #f3e8ff, #dbeafe)" }}
+                  style={{ backgroundImage: "linear-gradient(135deg, #dbeafe, #ede9fe)" }}
                 >
                   <f.icon className="w-5 h-5 text-purple-600" />
                 </div>
@@ -200,8 +196,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-              From intake to assessment{" "}
-              <GradientText>in minutes</GradientText>
+              From intake to assessment in minutes
             </h2>
             <p className="text-slate-500 text-lg max-w-xl mx-auto">
               A streamlined three-step workflow designed around how pharmacists actually work.
@@ -212,7 +207,7 @@ export default function LandingPage() {
               <div key={s.number} className="flex flex-col">
                 <span
                   className="text-5xl font-extrabold mb-4 leading-none bg-clip-text text-transparent"
-                  style={{ backgroundImage: GRADIENT }}
+                  style={{ backgroundImage: CTA_GRADIENT }}
                 >
                   {s.number}
                 </span>
@@ -228,7 +223,7 @@ export default function LandingPage() {
       <section className="py-20 px-6 border-t border-slate-100">
         <div
           className="max-w-4xl mx-auto rounded-md px-8 py-14 text-center text-white"
-          style={{ backgroundImage: GRADIENT }}
+          style={{ backgroundImage: CTA_GRADIENT }}
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-5 text-white">
             Ready to elevate your HIV consultations?
