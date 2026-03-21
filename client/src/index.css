@@ -77,7 +77,6 @@
   --chart-5: 16 90% 48%;
 
   --font-sans: Inter, Roboto, system-ui, -apple-system, sans-serif;
-  --font-heading: 'Reckless Neue', Georgia, serif;
   --font-serif: Georgia, serif;
   --font-mono: 'JetBrains Mono', Menlo, monospace;
   --radius: .5rem; /* 8px */
@@ -213,10 +212,6 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-heading);
   }
 }
 
