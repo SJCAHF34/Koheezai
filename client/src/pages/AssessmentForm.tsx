@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Loader2, BookOpen, ExternalLink, Copy, Check, FileText } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Loader2, BookOpen, ExternalLink, Copy, Check, FileText, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
+import { useSearch } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import PatientDemographics from "@/components/PatientDemographics";
 import TreatmentRegimenBuilder from "@/components/TreatmentRegimenBuilder";
@@ -12,6 +13,11 @@ import PharmacistIntake from "@/components/PharmacistIntake";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { type AssessmentResult } from "@shared/schema";
+import {
+  generatePatientId,
+  loadAssessment,
+  saveAssessment,
+} from "@/lib/patientStorage";
 
 const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
 
@@ -198,35 +204,71 @@ function buildPatientContext(p: {
 // ── Main Component ────────────────────────────────────────────────────────
 export default function AssessmentForm() {
   const { toast } = useToast();
+  const search = useSearch();
 
-  // Form state
-  const [age, setAge] = useState<number | undefined>(undefined);
-  const [pregnancy, setPregnancy] = useState<"yes" | "no" | "unknown">("unknown");
-  const [hlab5701, setHlab5701] = useState<"positive" | "negative" | "unknown">("unknown");
-  const [treatmentStatus, setTreatmentStatus] = useState<"naive" | "experienced">("naive");
-  const [viralLoad, setViralLoad] = useState<number | undefined>();
-  const [cd4Count, setCd4Count] = useState<number | undefined>();
-  const [egfr, setEgfr] = useState<number | undefined>();
-  const [hepaticFunction, setHepaticFunction] = useState<"normal" | "mild" | "moderate" | "severe">("normal");
-  const [regimenMode, setRegimenMode] = useState<"new" | "change">("new");
-  const [selectedDrugs, setSelectedDrugs] = useState<string[]>([]);
-  const [currentDrugs, setCurrentDrugs] = useState<string[]>([]);
-  const [concomitantMeds, setConcomitantMeds] = useState<string[]>([]);
-  const [geneticResistanceNotes, setGeneticResistanceNotes] = useState("");
+  // ── Patient ID ─────────────────────────────────────────────────────────
+  const urlPatientId = new URLSearchParams(search).get("patientId");
+  const [patientId] = useState<string>(() => urlPatientId ?? generatePatientId());
+
+  // ── Form state (initialised from saved data if resuming) ───────────────
+  const saved = urlPatientId ? loadAssessment(urlPatientId)?.formData : null;
+
+  const [age, setAge] = useState<number | undefined>(saved?.age);
+  const [pregnancy, setPregnancy] = useState<"yes" | "no" | "unknown">(saved?.pregnancy ?? "unknown");
+  const [hlab5701, setHlab5701] = useState<"positive" | "negative" | "unknown">(saved?.hlab5701 ?? "unknown");
+  const [treatmentStatus, setTreatmentStatus] = useState<"naive" | "experienced">(saved?.treatmentStatus ?? "naive");
+  const [viralLoad, setViralLoad] = useState<number | undefined>(saved?.viralLoad);
+  const [cd4Count, setCd4Count] = useState<number | undefined>(saved?.cd4Count);
+  const [egfr, setEgfr] = useState<number | undefined>(saved?.egfr);
+  const [hepaticFunction, setHepaticFunction] = useState<"normal" | "mild" | "moderate" | "severe">(saved?.hepaticFunction ?? "normal");
+  const [regimenMode, setRegimenMode] = useState<"new" | "change">(saved?.regimenMode ?? "new");
+  const [selectedDrugs, setSelectedDrugs] = useState<string[]>(saved?.selectedDrugs ?? []);
+  const [currentDrugs, setCurrentDrugs] = useState<string[]>(saved?.currentDrugs ?? []);
+  const [concomitantMeds, setConcomitantMeds] = useState<string[]>(saved?.concomitantMeds ?? []);
+  const [geneticResistanceNotes, setGeneticResistanceNotes] = useState(saved?.geneticResistanceNotes ?? "");
 
   // Step 2 result
-  const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(null);
+  const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(saved?.assessmentResult ?? null);
   const [promptCopied, setPromptCopied] = useState(false);
 
   // Step 3 — OpenEvidence response
-  const [oeResponse, setOeResponse] = useState("");
+  const [oeResponse, setOeResponse] = useState(saved?.oeResponse ?? "");
 
   // Step 5 — Comprehensive note
-  const [comprehensiveNote, setComprehensiveNote] = useState<string | null>(null);
+  const [comprehensiveNote, setComprehensiveNote] = useState<string | null>(saved?.comprehensiveNote ?? null);
   const [noteCopied, setNoteCopied] = useState(false);
 
   // ── Active step ────────────────────────────────────────────────────────
   const activeStep = !assessmentResult ? 1 : !oeResponse.trim() ? 3 : !comprehensiveNote ? 4 : 5;
+
+  // ── Auto-save (debounced 800 ms) ───────────────────────────────────────
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  const persistNow = useCallback(() => {
+    saveAssessment({
+      patientId,
+      savedAt: new Date().toISOString(),
+      formData: {
+        age, pregnancy, hlab5701, treatmentStatus, viralLoad, cd4Count, egfr,
+        hepaticFunction, regimenMode, selectedDrugs, currentDrugs, concomitantMeds,
+        geneticResistanceNotes, oeResponse, comprehensiveNote, assessmentResult,
+      },
+    });
+    setLastSaved(new Date());
+  }, [
+    patientId, age, pregnancy, hlab5701, treatmentStatus, viralLoad, cd4Count, egfr,
+    hepaticFunction, regimenMode, selectedDrugs, currentDrugs, concomitantMeds,
+    geneticResistanceNotes, oeResponse, comprehensiveNote, assessmentResult,
+  ]);
+
+  useEffect(() => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(persistNow, 800);
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, [persistNow]);
 
   // ── Mutation: Create OE Query (Step 2) ───────────────────────────────
   type AssessmentPayload = {
@@ -255,7 +297,6 @@ export default function AssessmentForm() {
     onSuccess: (data) => {
       setAssessmentResult(data);
       setOeResponse("");
-      setCheckedQuestions(new Set());
       setComprehensiveNote(null);
       toast({ title: "OpenEvidence Query Created", description: "Copy the prompt and paste it into OpenEvidence." });
       setTimeout(() => {
@@ -371,23 +412,45 @@ export default function AssessmentForm() {
     <div className="min-h-screen bg-slate-50">
       {/* ── Page header ── */}
       <div className="bg-white border-b border-slate-200">
-        <div className="container max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-start gap-4">
-            <div
-              className="w-10 h-10 rounded-md flex items-center justify-center shrink-0 mt-0.5"
+        <div className="container max-w-7xl mx-auto px-4 py-5">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-start gap-4">
+              <div
+                className="w-10 h-10 rounded-md flex items-center justify-center shrink-0 mt-0.5"
+                style={{ backgroundImage: GRADIENT }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">HIV/PrEP</p>
+                <h1 className="text-xl font-bold text-slate-900">Treatment Assessor</h1>
+                <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
+                  <span
+                    className="text-xs font-bold px-2 py-0.5 rounded-full text-white tracking-wide"
+                    style={{ backgroundImage: GRADIENT }}
+                    data-testid="text-patient-id"
+                  >
+                    {patientId}
+                  </span>
+                  {lastSaved && (
+                    <span className="text-[11px] text-slate-400">
+                      Auto-saved {lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => { persistNow(); toast({ title: "Saved", description: `Patient ${patientId} saved to dashboard.` }); }}
+              data-testid="button-save-assessment"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-md transition-opacity hover:opacity-90"
               style={{ backgroundImage: GRADIENT }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">HIV/PrEP</p>
-              <h1 className="text-xl font-bold text-slate-900">Treatment Assessor</h1>
-              <p className="text-slate-500 text-sm mt-0.5">
-                Follow the five-step workflow to generate an evidence-based pharmacy consultation note.
-              </p>
-            </div>
+              <Save className="w-4 h-4" />
+              Save
+            </button>
           </div>
         </div>
       </div>

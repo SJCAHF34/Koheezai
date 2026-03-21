@@ -1,6 +1,8 @@
-import { Link } from "wouter";
-import { Activity, HeartHandshake, Wrench, ArrowRight, Pill } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
+import { Activity, HeartHandshake, Wrench, ArrowRight, Pill, Trash2, Clock, ChevronRight } from "lucide-react";
 import { useAuth } from "@/App";
+import { loadAllAssessments, deleteAssessment, type SavedAssessment } from "@/lib/patientStorage";
 
 const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
 
@@ -48,10 +50,51 @@ const tools = [
   },
 ];
 
+function formatRelativeTime(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function getRegimenSummary(a: SavedAssessment): string {
+  const drugs = a.formData.selectedDrugs;
+  if (drugs.length === 0) return "No regimen selected";
+  if (drugs.length <= 3) return drugs.join(" + ");
+  return `${drugs.slice(0, 2).join(" + ")} +${drugs.length - 2} more`;
+}
+
+function stepProgress(a: SavedAssessment): { label: string; pct: number } {
+  const { assessmentResult, oeResponse, comprehensiveNote } = a.formData;
+  if (comprehensiveNote) return { label: "Note generated", pct: 100 };
+  if (oeResponse?.trim()) return { label: "OE response entered", pct: 75 };
+  if (assessmentResult) return { label: "Query created", pct: 50 };
+  return { label: "In progress", pct: 25 };
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
-
+  const [, navigate] = useLocation();
   const firstName = user?.name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "there";
+
+  const [assessments, setAssessments] = useState<SavedAssessment[]>([]);
+
+  useEffect(() => {
+    setAssessments(loadAllAssessments());
+  }, []);
+
+  const handleDelete = (patientId: string) => {
+    deleteAssessment(patientId);
+    setAssessments(loadAllAssessments());
+  };
+
+  const handleResume = (patientId: string) => {
+    navigate(`/app/assessment?patientId=${encodeURIComponent(patientId)}`);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -65,13 +108,13 @@ export default function DashboardPage() {
             Clinical <GradientText>Dashboard</GradientText>
           </h1>
           <p className="text-slate-500 mt-2 text-base">
-            Select a tool to begin your session.
+            Select a tool or resume a recent patient.
           </p>
         </div>
       </div>
 
-      {/* Tool cards */}
-      <div className="max-w-5xl mx-auto px-6 py-10">
+      <div className="max-w-5xl mx-auto px-6 py-10 space-y-10">
+        {/* Tool cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {tools.map((tool) => (
             <Link key={tool.id} href={tool.href}>
@@ -81,14 +124,14 @@ export default function DashboardPage() {
                   tool.featured ? "border-purple-200 ring-1 ring-purple-100" : "border-slate-200"
                 }`}
               >
-                {/* Top gradient accent */}
                 <div
                   className="h-1 w-full rounded-t-md"
-                  style={{ backgroundImage: tool.featured ? GRADIENT : "none", backgroundColor: tool.featured ? undefined : "transparent" }}
+                  style={{
+                    backgroundImage: tool.featured ? GRADIENT : "none",
+                    backgroundColor: tool.featured ? undefined : "transparent",
+                  }}
                 />
-
                 <div className="p-6 flex flex-col flex-1">
-                  {/* Icon + badge row */}
                   <div className="flex items-start justify-between mb-4">
                     <div
                       className="w-11 h-11 rounded-md flex items-center justify-center shrink-0"
@@ -111,8 +154,6 @@ export default function DashboardPage() {
                       </span>
                     )}
                   </div>
-
-                  {/* Text */}
                   <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-0.5">
                     {tool.label}
                   </p>
@@ -120,8 +161,6 @@ export default function DashboardPage() {
                   <p className="text-sm text-slate-500 leading-relaxed flex-1">
                     {tool.description}
                   </p>
-
-                  {/* CTA row */}
                   <div className="mt-5 flex items-center gap-1 text-sm font-semibold text-purple-600 group-hover:gap-2 transition-all">
                     Open
                     <ArrowRight className="w-4 h-4" />
@@ -132,8 +171,92 @@ export default function DashboardPage() {
           ))}
         </div>
 
+        {/* Recent Patients */}
+        <div>
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <h2 className="text-lg font-bold text-slate-900">Recent Patients</h2>
+            <Link href="/app/assessment">
+              <span className="text-sm font-semibold text-purple-600 hover:text-purple-700 cursor-pointer flex items-center gap-1">
+                New patient
+                <ChevronRight className="w-4 h-4" />
+              </span>
+            </Link>
+          </div>
+
+          {assessments.length === 0 ? (
+            <div className="rounded-md border border-slate-200 bg-white px-6 py-10 text-center">
+              <p className="text-slate-400 text-sm">No saved patients yet. Start an assessment and it will appear here automatically.</p>
+            </div>
+          ) : (
+            <div className="rounded-md border border-slate-200 bg-white divide-y divide-slate-100">
+              {assessments.map((a) => {
+                const progress = stepProgress(a);
+                return (
+                  <div
+                    key={a.patientId}
+                    data-testid={`row-patient-${a.patientId}`}
+                    className="flex items-center gap-4 px-5 py-4 flex-wrap"
+                  >
+                    {/* Patient ID pill */}
+                    <span
+                      className="text-xs font-bold px-2.5 py-1 rounded-full text-white shrink-0 tracking-wide"
+                      style={{ backgroundImage: GRADIENT }}
+                    >
+                      {a.patientId}
+                    </span>
+
+                    {/* Regimen */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">
+                        {getRegimenSummary(a)}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {/* Progress bar */}
+                        <div className="w-24 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${progress.pct}%`, backgroundImage: GRADIENT }}
+                          />
+                        </div>
+                        <span className="text-[11px] text-slate-400">{progress.label}</span>
+                      </div>
+                    </div>
+
+                    {/* Timestamp */}
+                    <div className="flex items-center gap-1 text-[11px] text-slate-400 shrink-0">
+                      <Clock className="w-3 h-3" />
+                      {formatRelativeTime(a.savedAt)}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => handleResume(a.patientId)}
+                        data-testid={`button-resume-${a.patientId}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-md transition-opacity hover:opacity-90"
+                        style={{ backgroundImage: GRADIENT }}
+                      >
+                        Resume
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(a.patientId)}
+                        data-testid={`button-delete-${a.patientId}`}
+                        className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="Delete patient"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Info strip */}
-        <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-2 text-xs text-slate-400">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-xs text-slate-400">
           {[
             "EHR-connected workflow",
             "AI-powered assessments",
