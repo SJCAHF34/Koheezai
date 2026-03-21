@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, BookOpen, ExternalLink, Copy, Check, FileText, ClipboardList, ChevronDown } from "lucide-react";
+import { Loader2, BookOpen, ExternalLink, Copy, Check, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -10,7 +10,6 @@ import ConcomitantMedications from "@/components/ConcomitantMedications";
 import GeneticResistanceNotes from "@/components/GeneticResistanceNotes";
 import PharmacistIntake from "@/components/PharmacistIntake";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { type AssessmentResult } from "@shared/schema";
 
@@ -28,25 +27,25 @@ const STEPS = [
     num: 2,
     title: "Create OpenEvidence Query",
     tooltip:
-      "Click 'Create OpenEvidence Query' to generate a structured clinical prompt based on your patient's data. Copy it and paste it into OpenEvidence at openevidence.com to retrieve peer-reviewed evidence.",
+      "Click 'Create OpenEvidence Query' to generate a structured clinical prompt. Copy it and paste it into OpenEvidence at openevidence.com to retrieve peer-reviewed evidence.",
   },
   {
     num: 3,
     title: "Input OpenEvidence Response",
     tooltip:
-      "After running your query on OpenEvidence, paste the full response into the 'OpenEvidence Response' box. This evidence will be incorporated into your comprehensive clinical note.",
+      "Paste the full OpenEvidence response into the response box. This evidence will be incorporated into your comprehensive clinical note.",
   },
   {
     num: 4,
-    title: "Pharmacist Consultation Questions",
+    title: "Initial Intake Assessment",
     tooltip:
-      "Review the AI-generated pharmacist consultation questions. Check off each question as you address it with the patient during your counseling session.",
+      "Complete the patient intake assessment — insurance details, yes/no intake questions, and counseling checklist — to capture the full consultation context.",
   },
   {
     num: 5,
     title: "Generate Comprehensive Note",
     tooltip:
-      "Click 'Generate Comprehensive Note' to compile all clinical details, OpenEvidence findings, and consultation points into a formatted pharmacy documentation note ready for your EHR.",
+      "Click 'Generate Comprehensive Note' to compile all clinical details, OpenEvidence findings, and intake responses into a formatted pharmacy documentation note ready for your EHR.",
   },
 ];
 
@@ -222,9 +221,6 @@ export default function AssessmentForm() {
   // Step 3 — OpenEvidence response
   const [oeResponse, setOeResponse] = useState("");
 
-  // Step 4 — Consultation questions checklist
-  const [checkedQuestions, setCheckedQuestions] = useState<Set<number>>(new Set());
-
   // Step 5 — Comprehensive note
   const [comprehensiveNote, setComprehensiveNote] = useState<string | null>(null);
   const [noteCopied, setNoteCopied] = useState(false);
@@ -367,13 +363,7 @@ export default function AssessmentForm() {
     });
   };
 
-  const toggleQuestion = (idx: number) => {
-    setCheckedQuestions((prev) => {
-      const next = new Set(prev);
-      next.has(idx) ? next.delete(idx) : next.add(idx);
-      return next;
-    });
-  };
+
 
   const oePrompt = buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds });
 
@@ -540,157 +530,110 @@ export default function AssessmentForm() {
               )}
             </section>
 
-            {/* ── STEP 3: OpenEvidence Response ── */}
-            {assessmentResult && (
-              <section>
-                <SectionLabel num={3} label="Input OpenEvidence Response" active={activeStep === 3} />
-                <div className="mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        OpenEvidence Response
-                      </CardTitle>
-                      <p className="text-xs text-muted-foreground">
-                        After running your query on OpenEvidence, paste the full response here. It will be used to generate your comprehensive pharmacy note.
-                      </p>
-                    </CardHeader>
-                    <CardContent>
-                      <textarea
-                        data-testid="input-oe-response"
-                        value={oeResponse}
-                        onChange={(e) => setOeResponse(e.target.value)}
-                        placeholder="Paste the OpenEvidence response here..."
-                        rows={10}
-                        className="w-full px-3.5 py-2.5 rounded-md border border-slate-300 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 transition-colors resize-y bg-white leading-relaxed"
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
-              </section>
-            )}
+            {/* ── STEP 3: OpenEvidence Response (always visible) ── */}
+            <section>
+              <SectionLabel num={3} label="Input OpenEvidence Response" active={activeStep === 3} />
+              <div className="mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      OpenEvidence Response
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      After running your query on OpenEvidence, paste the full response here. It will be incorporated into your comprehensive pharmacy note.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <textarea
+                      data-testid="input-oe-response"
+                      value={oeResponse}
+                      onChange={(e) => setOeResponse(e.target.value)}
+                      placeholder={
+                        assessmentResult
+                          ? "Paste the OpenEvidence response here..."
+                          : "Complete Step 2 first, then paste the OpenEvidence response here..."
+                      }
+                      rows={10}
+                      className="w-full px-3.5 py-2.5 rounded-md border border-slate-300 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 transition-colors resize-y bg-white leading-relaxed"
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </section>
 
-            {/* ── STEP 4: Pharmacist Consultation Questions ── */}
-            {assessmentResult && oeResponse.trim() && (assessmentResult.consultationQuestions?.length ?? 0) > 0 && (
-              <section>
-                <SectionLabel num={4} label="Pharmacist Consultation Questions" active={activeStep === 4} />
-                <div className="mt-4">
+            {/* ── STEP 4: Initial Intake Assessment ── */}
+            <section>
+              <SectionLabel num={4} label="Initial Intake Assessment" active={activeStep === 4} />
+              <div className="mt-4">
+                <PharmacistIntake />
+              </div>
+            </section>
+
+            {/* ── STEP 5: Generate Comprehensive Note (always visible at bottom) ── */}
+            <section>
+              <SectionLabel num={5} label="Generate Comprehensive Note" active={activeStep >= 4} />
+              <div className="mt-4 flex justify-start">
+                <button
+                  onClick={handleGenerateNote}
+                  disabled={noteMutation.isPending}
+                  data-testid="button-generate-note"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-sm font-semibold text-white rounded-md transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundImage: GRADIENT }}
+                >
+                  {noteMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating Note...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4" />
+                      Generate Comprehensive Note
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Comprehensive note output */}
+              {comprehensiveNote && (
+                <div id="comprehensive-note" className="mt-5">
                   <Card>
                     <CardHeader>
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <CardTitle className="text-base flex items-center gap-2">
-                          <ClipboardList className="w-4 h-4" />
-                          Consultation Questions
+                          <FileText className="w-4 h-4" />
+                          Pharmacy Consultation Note
                         </CardTitle>
-                        <span className="text-xs text-muted-foreground">
-                          {checkedQuestions.size} / {assessmentResult.consultationQuestions.length} addressed
-                        </span>
+                        <button
+                          type="button"
+                          data-testid="btn-copy-note"
+                          onClick={handleCopyNote}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors hover-elevate ${
+                            noteCopied
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background border-border"
+                          }`}
+                        >
+                          {noteCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          {noteCopied ? "Copied!" : "Copy Note"}
+                        </button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Check off each question as you address it with the patient.
+                        Review and edit as needed before pasting into your EHR.
                       </p>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2">
-                        {assessmentResult.consultationQuestions.map((q, idx) => (
-                          <div
-                            key={idx}
-                            onClick={() => toggleQuestion(idx)}
-                            data-testid={`consultation-q-${idx}`}
-                            className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors ${
-                              checkedQuestions.has(idx)
-                                ? "bg-purple-50 border-purple-200"
-                                : "bg-white border-slate-200 hover:bg-slate-50"
-                            }`}
-                          >
-                            <Checkbox
-                              checked={checkedQuestions.has(idx)}
-                              onCheckedChange={() => toggleQuestion(idx)}
-                              className="mt-0.5 shrink-0"
-                            />
-                            <p className={`text-sm leading-snug ${checkedQuestions.has(idx) ? "line-through text-slate-400" : "text-slate-700"}`}>
-                              {q}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
+                      <pre
+                        data-testid="comprehensive-note-text"
+                        className="text-sm whitespace-pre-wrap leading-relaxed font-sans text-slate-800 bg-slate-50 rounded-md p-4 border border-slate-200"
+                      >
+                        {comprehensiveNote}
+                      </pre>
                     </CardContent>
                   </Card>
                 </div>
-              </section>
-            )}
-
-            {/* ── STEP 5: Generate Comprehensive Note ── */}
-            {assessmentResult && oeResponse.trim() && (
-              <section>
-                <SectionLabel num={5} label="Generate Comprehensive Note" active={activeStep >= 4} />
-                <div className="mt-4 flex justify-start">
-                  <button
-                    onClick={handleGenerateNote}
-                    disabled={noteMutation.isPending}
-                    data-testid="button-generate-note"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-sm font-semibold text-white rounded-md transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundImage: GRADIENT }}
-                  >
-                    {noteMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Generating Note...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-4 h-4" />
-                        Generate Comprehensive Note
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Comprehensive note output */}
-                {comprehensiveNote && (
-                  <div id="comprehensive-note" className="mt-5">
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            Pharmacy Consultation Note
-                          </CardTitle>
-                          <button
-                            type="button"
-                            data-testid="btn-copy-note"
-                            onClick={handleCopyNote}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors hover-elevate ${
-                              noteCopied
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-background border-border"
-                            }`}
-                          >
-                            {noteCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                            {noteCopied ? "Copied!" : "Copy Note"}
-                          </button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Review and edit as needed before pasting into your EHR.
-                        </p>
-                      </CardHeader>
-                      <CardContent>
-                        <pre
-                          data-testid="comprehensive-note-text"
-                          className="text-sm whitespace-pre-wrap leading-relaxed font-sans text-slate-800 bg-slate-50 rounded-md p-4 border border-slate-200"
-                        >
-                          {comprehensiveNote}
-                        </pre>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* ── Pharmacist Intake (always visible) ── */}
-            <section className="border-t border-slate-200 pt-8">
-              <PharmacistIntake />
+              )}
             </section>
 
           </div>

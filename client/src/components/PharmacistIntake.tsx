@@ -99,10 +99,10 @@ export default function PharmacistIntake() {
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2">
             <ClipboardList className="w-5 h-5" />
-            Pharmacist Consultation Questions
+            Initial Intake Assessment
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Initial patient intake assessment
+            Insurance details, intake questions, and counseling checklist
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
