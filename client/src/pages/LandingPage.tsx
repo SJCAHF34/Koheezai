@@ -120,7 +120,8 @@ export default function LandingPage() {
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6 text-slate-900">
             Your Portals, your AI,{" "}
-            <span className="text-slate-700">your Patients —</span>
+            <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)" }}>your Patients</span>
+            <span className="text-slate-700"> —</span>
             <br />
             <span className="text-slate-900">one platform.</span>
           </h1>
