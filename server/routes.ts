@@ -9,6 +9,19 @@ import { generateClinicalRecommendations } from "./lib/clinicalRecommendations";
 import { openEvidenceClient } from "./lib/openEvidence";
 import { hivDrugs } from "../client/src/lib/hivDrugs";
 
+declare module "express-session" {
+  interface SessionData {
+    userId?: string;
+    user?: { email: string; name: string };
+  }
+}
+
+const DEMO_USERS = [
+  { email: "test@koheez.ai", password: "Koheez1", name: "Test User" },
+];
+
+const inMemoryUsers: Array<{ email: string; password: string; name: string }> = [];
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -30,6 +43,53 @@ const assessmentRequestSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ── Auth routes ──────────────────────────────────────────────────────────
+  app.get("/api/auth/me", (req, res) => {
+    if (req.session?.userId && req.session?.user) {
+      return res.json({ user: req.session.user });
+    }
+    return res.status(401).json({ error: "Not authenticated" });
+  });
+
+  app.post("/api/auth/login", (req, res) => {
+    const { email, password } = req.body as { email?: string; password?: string };
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+    const allUsers = [...DEMO_USERS, ...inMemoryUsers];
+    const found = allUsers.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
+    );
+    if (!found) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+    req.session.userId = found.email;
+    req.session.user = { email: found.email, name: found.name };
+    return res.json({ user: req.session.user });
+  });
+
+  app.post("/api/auth/signup", (req, res) => {
+    const { email, password, name } = req.body as { email?: string; password?: string; name?: string };
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+    const allUsers = [...DEMO_USERS, ...inMemoryUsers];
+    if (allUsers.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
+      return res.status(409).json({ error: "An account with this email already exists" });
+    }
+    const newUser = { email, password, name: name || email };
+    inMemoryUsers.push(newUser);
+    req.session.userId = email;
+    req.session.user = { email, name: newUser.name };
+    return res.json({ user: req.session.user });
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy(() => {});
+    return res.json({ ok: true });
+  });
+
+  // ── Assessment route ──────────────────────────────────────────────────────
   app.post("/api/assessment", async (req, res) => {
     try {
       const data = assessmentRequestSchema.parse(req.body);

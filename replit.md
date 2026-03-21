@@ -1,7 +1,21 @@
-# HIV Treatment Assessor
+# Koheez.ai — HIV Clinical Decision Support
 
 ## Overview
-The HIV Treatment Assessor is a clinical decision support tool for pharmacists and healthcare providers. It performs comprehensive HIV treatment assessments by evaluating drug-drug interactions, analyzing patient demographics and clinical parameters, and generating AI-powered consultation recommendations. The application processes patient data, including antiretroviral regimens, concomitant medications, lab values, and genetic markers, to produce structured clinical assessments with interaction alerts and pharmacist consultation questions.
+Koheez.ai is a clinical decision support platform for HIV pharmacists. It features a Klaviyo-inspired dark landing/marketing page, session-based authentication (sign in / sign up), and a protected app workspace. The app performs comprehensive HIV treatment assessments by evaluating drug-drug interactions, analyzing patient demographics and clinical parameters, and generating AI-powered OpenEvidence query prompts and pharmacist consultation recommendations.
+
+## Authentication
+- Session-based auth via express-session (SESSION_SECRET env var).
+- Test login: test@koheez.ai / Koheez1 (hardcoded in server/routes.ts DEMO_USERS).
+- New accounts stored in in-memory array (inMemoryUsers) — not persisted across restarts.
+- Auth endpoints: GET /api/auth/me, POST /api/auth/login, POST /api/auth/signup, POST /api/auth/logout.
+- Unauthenticated users accessing /app/* are redirected to /login.
+
+## Route Structure
+- `/` → LandingPage (public, Klaviyo-style Koheez.ai marketing page)
+- `/login` → LoginPage (sign in / create account tabs)
+- `/app` → AssessmentForm (protected)
+- `/app/patient-assistance` → PatientAssistance (protected)
+- `/app/clinical-tools` → ClinicalTools (protected)
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
