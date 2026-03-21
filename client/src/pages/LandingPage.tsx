@@ -120,7 +120,7 @@ export default function LandingPage() {
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6 text-slate-900">
             Your Portals, your AI,{" "}
-            <span className="text-slate-700">your patients —</span>
+            <span className="text-slate-700">your Patients —</span>
             <br />
             <span className="text-slate-900">one platform.</span>
           </h1>
