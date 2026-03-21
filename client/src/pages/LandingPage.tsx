@@ -25,60 +25,60 @@ function KoheezLogo({ className = "" }: { className?: string }) {
 const features = [
   {
     icon: Zap,
-    title: "AI-Powered Clinical Assessments",
+    title: "AI That Reads Your EHR Context",
     description:
-      "Generate comprehensive HIV treatment assessments in seconds. Our AI synthesizes patient demographics, lab values, and drug regimens into actionable clinical summaries.",
+      "Pull patient data from your EHR into AI-powered assessments instantly. No re-entry — Koheez.ai bridges your chart and your clinical thinking.",
   },
   {
     icon: Shield,
-    title: "Drug Interaction Screening",
+    title: "Connected Drug Interaction Screening",
     description:
-      "Catch clinically significant drug-drug interactions across ARV regimens and concomitant medications using an evidence-based interaction engine.",
+      "Automatically cross-reference the full medication list from the EHR against ARV regimens. Catch interactions without toggling between systems.",
   },
   {
     icon: Pill,
-    title: "Regimen Builder",
+    title: "Regimen Builder Tied to the Chart",
     description:
-      "Build new therapy regimens or evaluate regimen changes side-by-side. Supports treatment-naive and experienced patients with full class coverage.",
+      "Build or switch ARV regimens with full context from the patient's chart — labs, diagnoses, current meds — all in one connected workflow.",
   },
   {
     icon: HeartHandshake,
-    title: "Patient Assistance Programs",
+    title: "Patient Communications, Ready to Send",
     description:
-      "Instantly look up manufacturer copay cards and PAPs for 32+ HIV medications from Gilead, ViiV, Janssen, Merck, and more.",
+      "Generate plain-language medication counseling summaries and assistance program referrals that can be sent directly to patients or documented in the chart.",
   },
   {
     icon: BookOpen,
-    title: "OpenEvidence Integration",
+    title: "AI + Evidence, Side by Side",
     description:
-      "Generate ready-to-paste prompts for OpenEvidence so you can pull peer-reviewed citations directly from the literature for any clinical question.",
+      "Koheez.ai pairs OpenEvidence's peer-reviewed citations with AI synthesis so every recommendation is backed by literature and ready to document.",
   },
   {
     icon: Users,
-    title: "Clinical Tools at Your Fingertips",
+    title: "One Hub for Every Clinical Tool",
     description:
-      "One-click access to Ramsell, UpToDate DDI checker, and Athena — the external tools your workflow already depends on.",
+      "Athena, Ramsell, UpToDate, and OpenEvidence — connected through a single interface so your team stops switching tabs and starts closing loops.",
   },
 ];
 
 const steps = [
   {
     number: "01",
-    title: "Enter patient information",
+    title: "Connect your patient's chart",
     description:
-      "Input demographics, lab values (CD4, viral load, eGFR), and hepatic status. The intake form mirrors a real clinical workflow.",
+      "Open a patient in your EHR and bring their demographics, labs, and medications into Koheez.ai in seconds — no copy-paste required.",
   },
   {
     number: "02",
-    title: "Build the ARV regimen",
+    title: "Let AI and evidence do the work",
     description:
-      "Select HIV medications from our comprehensive library. Toggle between New Therapy and Change Regimen to evaluate switches.",
+      "Koheez.ai screens interactions, validates organ function, and generates an AI assessment grounded in peer-reviewed literature.",
   },
   {
     number: "03",
-    title: "Generate the assessment",
+    title: "Communicate and document",
     description:
-      "Get an AI-generated clinical summary, OpenEvidence query prompt, and pharmacist consultation checklist — ready for chart documentation.",
+      "Send patient-friendly counseling notes, log consultation findings back to the chart, and close the loop — all from one place.",
   },
 ];
 
@@ -120,16 +120,16 @@ export default function LandingPage() {
         <div className="relative max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full text-xs font-semibold tracking-wide uppercase border border-purple-200 bg-purple-50">
             <Activity className="w-3 h-3 text-purple-500 shrink-0" />
-            <GradientText>Clinical Decision Support for HIV Pharmacists</GradientText>
+            <GradientText>EHR · AI · Patient Communications — Connected</GradientText>
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6 text-slate-900">
-            HIV clinical intelligence,{" "}
-            <GradientText>built for pharmacists.</GradientText>
+            Your EHR, your AI,{" "}
+            <GradientText>your patients — one platform.</GradientText>
           </h1>
           <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Koheez.ai streamlines HIV treatment consultations — from drug interaction
-            screening and organ-function validation to AI-powered assessments and
-            patient assistance program lookup.
+            Koheez.ai connects your EHR, AI-powered clinical tools, and patient
+            communications into a single workflow — so HIV pharmacists spend less time
+            switching systems and more time with patients.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/login?tab=signup">
