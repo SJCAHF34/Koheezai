@@ -123,7 +123,7 @@ export default function AssessmentForm() {
     });
   };
 
-  const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
+  const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
 
   return (
     <div className="min-h-screen bg-slate-50">

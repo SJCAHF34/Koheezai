@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Activity, Shield, Pill, HeartHandshake, ArrowRight, CheckCircle, Zap, Users, BookOpen } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
-const CTA_GRADIENT  = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
+const CTA_GRADIENT  = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
 
 function KoheezLogo({ className = "" }: { className?: string }) {
   return (

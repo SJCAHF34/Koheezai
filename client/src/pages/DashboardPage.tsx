@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Activity, HeartHandshake, Wrench, ArrowRight, Pill } from "lucide-react";
 import { useAuth } from "@/App";
 
-const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
+const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
 
 function GradientText({ children }: { children: React.ReactNode }) {
   return (

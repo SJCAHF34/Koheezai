@@ -4,20 +4,18 @@ import { Activity } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
-const GRADIENT = "linear-gradient(90deg, #9333ea, #3b82f6, #ef4444, #facc15)";
-
-function GradientText({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="bg-clip-text text-transparent" style={{ backgroundImage: GRADIENT }}>
-      {children}
-    </span>
-  );
-}
+const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
+const GRADIENT      = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
 
 function KoheezLogo({ className = "" }: { className?: string }) {
   return (
     <span className={`font-bold tracking-tight ${className}`}>
-      <GradientText>Koheez.ai</GradientText>
+      <span
+        className="bg-clip-text text-transparent"
+        style={{ backgroundImage: LOGO_GRADIENT }}
+      >
+        Koheez.ai
+      </span>
     </span>
   );
 }
