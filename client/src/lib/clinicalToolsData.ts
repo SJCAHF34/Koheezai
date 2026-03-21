@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Shield, BookOpen, Pill, ClipboardList } from "lucide-react";
+import { Shield, BookOpen, Pill } from "lucide-react";
 
 export type ToolCard = {
   id: string;
@@ -105,27 +105,6 @@ export const clinicalTools: ToolCard[] = [
       label: "Open UpToDate DDI Checker",
       url: "https://www.uptodate.com/drug-interactions/#di-druglist",
       testId: "link-uptodate-portal",
-    },
-  },
-  {
-    id: "athena",
-    title: "Athena (athenahealth)",
-    subtitle: "Electronic Health Records & Patient Chart Access",
-    icon: ClipboardList,
-    iconColor: "text-blue-600 dark:text-blue-400",
-    iconBg: "bg-blue-100 dark:bg-blue-900/40",
-    description:
-      "athenahealth is an EHR and practice management platform. Use the Athena portal to access patient charts, review medication histories, confirm diagnoses, and document clinical notes during HIV consultations.",
-    tips: [
-      "Log in with your athenahealth credentials — contact your practice administrator if access is needed",
-      "Review the medication list and active problem list before completing your assessment",
-      "Document pharmacist consultation notes in the patient's chart after each review",
-      "Use the patient chart to verify insurance and prior authorization status for ARV medications",
-    ],
-    primaryAction: {
-      label: "Open Athena Portal",
-      url: "https://athenanet.athenahealth.com/1/1/login/startoidc.esp?IDP=0oay9fqjxcuda2iRm297",
-      testId: "link-athena-portal",
     },
   },
 ];

@@ -20,9 +20,9 @@ function KoheezLogo({ className = "" }: { className?: string }) {
 const features = [
   {
     icon: Zap,
-    title: "AI That Reads Your EHR Context",
+    title: "AI That Reads Your Portals Context",
     description:
-      "Pull patient data from your EHR into AI-powered assessments instantly. No re-entry — Koheez.ai bridges your chart and your clinical thinking.",
+      "Pull patient data from your portals into AI-powered assessments instantly. No re-entry — Koheez.ai bridges your chart and your clinical thinking.",
   },
   {
     icon: Shield,
@@ -52,7 +52,7 @@ const features = [
     icon: Users,
     title: "One Hub for Every Clinical Tool",
     description:
-      "Athena, Ramsell, UpToDate, and OpenEvidence — connected through a single interface so your team stops switching tabs and starts closing loops.",
+      "Ramsell, UpToDate, and OpenEvidence — connected through a single interface so your team stops switching tabs and starts closing loops.",
   },
 ];
 
@@ -119,7 +119,7 @@ export default function LandingPage() {
             EHR · AI · Patient Communications — Connected
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6 text-slate-900">
-            Your EHR, your AI,{" "}
+            Your Portals, your AI,{" "}
             <span className="text-slate-700">your patients —</span>{" "}
             <span className="text-slate-900">one platform.</span>
           </h1>

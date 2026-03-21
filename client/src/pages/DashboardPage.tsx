@@ -44,7 +44,7 @@ const tools = [
     label: "Clinical Tools",
     title: "External Integrations",
     description:
-      "One-click access to Ramsell, OpenEvidence, UpToDate DDI checker, and Athena — without leaving your workflow.",
+      "One-click access to Ramsell, OpenEvidence, and UpToDate DDI checker — without leaving your workflow.",
     badge: null,
     featured: false,
   },
