@@ -276,6 +276,86 @@ Format your response as JSON:
     }
   });
 
+  // ── Generate Comprehensive Note ──────────────────────────────────────────
+  const generateNoteSchema = z.object({
+    patientContext: z.string(),
+    oeQuery: z.string(),
+    oeResponse: z.string(),
+    consultationQuestions: z.array(z.string()),
+  });
+
+  app.post("/api/generate-note", async (req, res) => {
+    if (!req.session?.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    try {
+      const data = generateNoteSchema.parse(req.body);
+      const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+      const prompt = `You are an expert HIV clinical pharmacist. Generate a comprehensive pharmacy consultation note for medical record documentation.
+
+PATIENT CLINICAL CONTEXT:
+${data.patientContext}
+
+OPENEVIDENCE QUERY SUBMITTED:
+${data.oeQuery}
+
+OPENEVIDENCE EVIDENCE-BASED RESPONSE:
+${data.oeResponse}
+
+PHARMACIST CONSULTATION QUESTIONS:
+${data.consultationQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
+
+Generate a professional pharmacy consultation note with these exact sections:
+
+PHARMACY CONSULTATION NOTE
+Date: ${today}
+
+1. PATIENT CLINICAL SUMMARY
+Brief overview of patient demographics, HIV status, and treatment context.
+
+2. REGIMEN ASSESSMENT
+Evaluation of the ARV regimen appropriateness based on the clinical profile and OpenEvidence findings.
+
+3. DRUG INTERACTION SUMMARY
+Key drug-drug interaction findings and their clinical significance.
+
+4. CLINICAL RECOMMENDATIONS
+Evidence-based recommendations derived from OpenEvidence.
+
+5. PATIENT COUNSELING POINTS
+Key points addressed during the consultation, referencing the consultation questions.
+
+6. FOLLOW-UP PLAN
+Recommended monitoring parameters and follow-up timeline.
+
+Write in professional clinical language for medical record documentation. Be specific and evidence-based.`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert HIV clinical pharmacist generating professional pharmacy consultation notes for medical record documentation. Be thorough, evidence-based, and use appropriate clinical terminology.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.4,
+      });
+
+      res.json({ note: completion.choices[0].message.content || "" });
+    } catch (error) {
+      console.error("Note generation error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      res.status(500).json({
+        error: "Failed to generate note",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
   // ── Frameable check — detects X-Frame-Options / CSP frame-ancestors ──
   app.get("/api/check-frameable", async (req, res) => {
     const { url } = req.query;
