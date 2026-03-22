@@ -18,7 +18,7 @@ declare module "express-session" {
 
 const DEMO_USERS = [
   { email: "test@koheez.ai", password: "Koheez1", name: "Test User" },
-  { email: "jason.rockwood@gmail.com", password: "hollywood", name: "Jason Rockwood" },
+  { email: "jrockwoodpharmd@gmail.com", password: "hollywood", name: "Jason Rockwood" },
 ];
 
 const inMemoryUsers: Array<{ email: string; password: string; name: string }> = [];
