@@ -3,6 +3,7 @@ import { useAuth } from "@/App";
 import { getUserProfile, isDirectorRole, getRoleLabel, type UserRole } from "@/lib/userProfile";
 import {
   TASKS,
+  SITES,
   CATEGORY_CONFIG,
   ROLE_CONFIG,
   type PharmacyTask,
@@ -73,22 +74,28 @@ function TaskCheckbox({
   animating,
   onClick,
   testId,
+  disabled,
 }: {
   completed: boolean;
   animating: boolean;
   onClick: () => void;
   testId: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       data-testid={testId}
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       aria-pressed={completed}
-      className={`relative shrink-0 mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 ${
+      className={`relative shrink-0 mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 focus:outline-none ${
+        disabled ? "cursor-default" : "focus-visible:ring-2 focus-visible:ring-purple-400"
+      } ${
         completed
           ? "bg-green-500 border-green-500 scale-100"
           : animating
           ? "border-green-400 scale-125 bg-green-50"
+          : disabled
+          ? "border-slate-200 opacity-50"
           : "border-slate-300 hover:border-purple-400 hover:scale-110"
       }`}
     >
@@ -111,6 +118,7 @@ function TaskRow({
   animating,
   assignment,
   canAssign,
+  readOnly,
   onToggle,
   onAssign,
 }: {
@@ -119,6 +127,7 @@ function TaskRow({
   animating: boolean;
   assignment?: TaskAssignment;
   canAssign: boolean;
+  readOnly?: boolean;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
 }) {
@@ -135,6 +144,7 @@ function TaskRow({
         animating={animating}
         onClick={() => onToggle(task)}
         testId={`checkbox-${task.id}`}
+        disabled={readOnly}
       />
 
       <div className="flex-1 min-w-0">
@@ -177,7 +187,7 @@ function TaskRow({
         </div>
       </div>
 
-      {canAssign && !completed && (
+      {canAssign && !completed && !readOnly && (
         <button
           data-testid={`button-assign-${task.id}`}
           onClick={() => onAssign(task)}
@@ -200,6 +210,7 @@ function CategorySection({
   animating,
   assignments,
   canAssign,
+  readOnly,
   onToggle,
   onAssign,
 }: {
@@ -209,6 +220,7 @@ function CategorySection({
   animating: Set<string>;
   assignments: Map<string, TaskAssignment>;
   canAssign: boolean;
+  readOnly?: boolean;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
 }) {
@@ -251,6 +263,7 @@ function CategorySection({
             animating={animating.has(task.id)}
             assignment={assignments.get(task.id)}
             canAssign={canAssign}
+            readOnly={readOnly}
             onToggle={onToggle}
             onAssign={onAssign}
           />
@@ -451,14 +464,22 @@ export default function TaskManager() {
   const { user } = useAuth();
   const profile = user ? getUserProfile(user.email, user.name) : null;
 
+  // Optional URL params from regional dashboard drill-down
+  const searchParams = new URLSearchParams(
+    typeof window !== "undefined" ? window.location.search : ""
+  );
+  const urlSiteId = searchParams.get("siteId");
+  const readOnly = searchParams.get("readOnly") === "true";
+
   const [frequency, setFrequency] = useState<TaskFrequency>("daily");
-  const [viewingRole, setViewingRole] = useState<ViewingRole>("own");
+  const [viewingRole, setViewingRole] = useState<ViewingRole>(readOnly ? "all" : "own");
   const [completions, setCompletions] = useState<Set<string>>(new Set());
   const [animating, setAnimating] = useState<Set<string>>(new Set());
   const [assignments, setAssignments] = useState<Map<string, TaskAssignment>>(new Map());
   const [assigningTask, setAssigningTask] = useState<PharmacyTask | null>(null);
 
-  const siteId = profile?.siteId ?? "1417";
+  // siteId from URL param overrides the user's own site (regional drill-down)
+  const siteId = urlSiteId ?? profile?.siteId ?? "1417";
   const isDir = isDirectorRole(profile?.role ?? "pharmacist");
 
   useEffect(() => {
@@ -485,7 +506,7 @@ export default function TaskManager() {
 
   const toggleCompletion = useCallback(
     (task: PharmacyTask) => {
-      if (!profile) return;
+      if (!profile || readOnly) return;
       const isCompleted = completions.has(task.id);
       if (isCompleted) {
         removeCompletion(task.id, siteId, task.frequency);
@@ -517,7 +538,12 @@ export default function TaskManager() {
 
   if (!profile) return null;
 
-  const visible = getVisibleTasks(frequency, profile.role, viewingRole);
+  // When drilling down via URL, show all tasks for that site (director-style "all" view)
+  const effectiveViewingRole: ViewingRole = readOnly ? "all" : viewingRole;
+  const drillSite = urlSiteId ? SITES.find((s) => s.id === urlSiteId) : null;
+  const displaySiteName = drillSite?.name ?? profile.siteName;
+
+  const visible = getVisibleTasks(frequency, profile.role, effectiveViewingRole);
   const grouped = groupByCategory(visible);
   const totalTasks = visible.length;
   const doneTasks = visible.filter((t) => completions.has(t.id)).length;
@@ -532,6 +558,21 @@ export default function TaskManager() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Read-only drill-down notice */}
+      {readOnly && (
+        <div
+          data-testid="banner-readonly"
+          className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center gap-2"
+        >
+          <span className="text-xs font-bold uppercase tracking-wide text-amber-700">
+            Read-only view
+          </span>
+          <span className="text-xs text-amber-600">
+            Viewing {displaySiteName} task list as Regional Director — no changes can be made.
+          </span>
+        </div>
+      )}
+
       {/* Page header */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-6 py-8">
@@ -541,7 +582,7 @@ export default function TaskManager() {
                 <ClipboardList className="w-5 h-5 text-purple-600" />
                 <h1 className="text-2xl font-bold text-slate-900">Task Manager</h1>
               </div>
-              <p className="text-sm text-slate-400">{profile.siteName} · {today}</p>
+              <p className="text-sm text-slate-400">{displaySiteName} · {today}</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right">
@@ -588,8 +629,8 @@ export default function TaskManager() {
           ))}
         </div>
 
-        {/* Director role-view selector */}
-        {isDir && (
+        {/* Director role-view selector (hidden in read-only drill-down — forced to All Roles) */}
+        {isDir && !readOnly && (
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
               View tasks for
@@ -620,8 +661,8 @@ export default function TaskManager() {
           </div>
         )}
 
-        {/* Director site overview cards */}
-        {isDir && (
+        {/* Director site overview cards (hidden in read-only drill-down) */}
+        {isDir && !readOnly && (
           <SiteOverviewPanel
             siteId={siteId}
             frequency={frequency}
@@ -647,6 +688,7 @@ export default function TaskManager() {
                   animating={animating}
                   assignments={assignments}
                   canAssign={isDir}
+                  readOnly={readOnly}
                   onToggle={toggleCompletion}
                   onAssign={setAssigningTask}
                 />

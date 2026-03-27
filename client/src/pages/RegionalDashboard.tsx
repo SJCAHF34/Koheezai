@@ -1,15 +1,16 @@
-import { useState } from "react";
-import { Link, Redirect } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/App";
 import { getUserProfile } from "@/lib/userProfile";
-import { CATEGORY_CONFIG, type TaskCategory } from "@/lib/taskData";
+import { SITES, TASKS, CATEGORY_CONFIG, type TaskCategory } from "@/lib/taskData";
+import { loadCompletions } from "@/lib/taskStorage";
 import {
   getAllSiteTrends,
-  getTroubleSpots,
+  getTroubleSpotTasks,
   getAverageCategoryDays,
   TREND_CATEGORIES,
   SPARKLINE_COLORS,
   type SiteTrend,
+  type CategoryTrend,
 } from "@/lib/trendData";
 import {
   MapPin,
@@ -17,14 +18,26 @@ import {
   TrendingDown,
   Minus,
   AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
   Globe,
   BarChart3,
+  ChevronRight,
+  Eye,
 } from "lucide-react";
 
-const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
+const DAILY_TASKS = TASKS.filter((t) => t.frequency === "daily");
+const DAILY_TASK_COUNT = DAILY_TASKS.length;
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function completionTextColor(pct: number) {
+  return pct >= 80 ? "text-green-600" : pct >= 60 ? "text-amber-600" : "text-red-500";
+}
+function completionBarColor(pct: number) {
+  return pct >= 80 ? "bg-green-500" : pct >= 60 ? "bg-amber-400" : "bg-red-400";
+}
+function shortLabel(label: string) {
+  return label.replace(" Compliance", "").replace(" Metrics", "");
+}
 
 // ── Sparkline SVG ──────────────────────────────────────────────────────────
 function Sparkline({
@@ -93,72 +106,63 @@ function TrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
   return <Minus className="w-3.5 h-3.5 text-slate-400" />;
 }
 
-// ── Completion colour helper ───────────────────────────────────────────────
-function completionColor(pct: number) {
-  return pct >= 80 ? "text-green-600" : pct >= 60 ? "text-amber-600" : "text-red-500";
-}
-function completionBar(pct: number) {
-  return pct >= 80 ? "bg-green-500" : pct >= 60 ? "bg-amber-400" : "bg-red-400";
-}
-
-// ── Category label shortener ───────────────────────────────────────────────
-function shortLabel(label: string) {
-  return label.replace(" Compliance", "").replace(" Metrics", "");
-}
-
 // ── Site card ──────────────────────────────────────────────────────────────
+// Clicking navigates to the full Task Manager for that site in read-only mode
 function SiteCard({
   trend,
-  isExpanded,
-  onToggle,
+  realTodayPctByCategory,
+  realTodayAvg,
+  onDrillDown,
 }: {
   trend: SiteTrend;
-  isExpanded: boolean;
-  onToggle: () => void;
+  realTodayPctByCategory?: Partial<Record<TaskCategory, number>>;
+  realTodayAvg?: number;
+  onDrillDown: (siteId: string) => void;
 }) {
+  const site = SITES.find((s) => s.id === trend.siteId);
   const orderedCats: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
 
+  // Use real data if provided, else fall back to simulated
+  const todayPct = realTodayAvg ?? trend.todayAvg;
+
+  // Category today %: real override or simulated
+  const getCatPct = (cat: TaskCategory) =>
+    realTodayPctByCategory?.[cat] ?? trend.categories[cat].days[6].pct;
+
+  const overallTrend: "up" | "down" | "stable" =
+    trend.overallAvg >= todayPct + 5
+      ? "down"
+      : trend.overallAvg <= todayPct - 5
+      ? "up"
+      : "stable";
+
   return (
-    <div
+    <button
       data-testid={`site-card-${trend.siteId}`}
-      className="bg-white border border-slate-200 rounded-md overflow-hidden"
+      className="w-full text-left bg-white border border-slate-200 rounded-md overflow-hidden hover:shadow-md transition-shadow group"
+      onClick={() => onDrillDown(trend.siteId)}
     >
-      {/* Clickable header */}
-      <button
-        data-testid={`btn-expand-site-${trend.siteId}`}
-        className="w-full text-left px-5 pt-4 pb-3 flex items-center gap-4"
-        onClick={onToggle}
-      >
+      {/* Card header */}
+      <div className="px-5 pt-4 pb-3 flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
             <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
             <p className="text-sm font-bold text-slate-800 truncate">{trend.siteName}</p>
           </div>
-          <p className="text-xs text-slate-400 pl-4">{trend.region}</p>
+          <p className="text-xs text-slate-400 pl-4">{site?.region}</p>
         </div>
 
         <div className="text-right shrink-0">
-          <p className={`text-2xl font-bold ${completionColor(trend.todayAvg)}`}>
-            {trend.todayAvg}%
-          </p>
+          <p className={`text-2xl font-bold ${completionTextColor(todayPct)}`}>{todayPct}%</p>
           <p className="text-[10px] text-slate-400">Today</p>
         </div>
-
-        <div className="shrink-0 text-slate-400">
-          {isExpanded ? (
-            <ChevronUp className="w-4 h-4" />
-          ) : (
-            <ChevronDown className="w-4 h-4" />
-          )}
-        </div>
-      </button>
+      </div>
 
       {/* Category mini-bars */}
-      <div className="px-5 pb-4 grid grid-cols-2 gap-x-5 gap-y-2.5">
+      <div className="px-5 pb-3 grid grid-cols-2 gap-x-5 gap-y-2">
         {orderedCats.map((cat) => {
-          const ct = trend.categories[cat];
           const cfg = CATEGORY_CONFIG[cat];
-          const pct = ct.days[6].pct;
+          const pct = getCatPct(cat);
           return (
             <div key={cat}>
               <div className="flex items-center justify-between mb-1">
@@ -167,12 +171,12 @@ function SiteCard({
                 </span>
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] font-bold text-slate-600">{pct}%</span>
-                  <TrendIcon trend={ct.trend} />
+                  <TrendIcon trend={trend.categories[cat].trend} />
                 </div>
               </div>
               <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${completionBar(pct)}`}
+                  className={`h-full rounded-full transition-all duration-500 ${completionBarColor(pct)}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
@@ -181,90 +185,68 @@ function SiteCard({
         })}
       </div>
 
-      {/* Expanded detail */}
-      {isExpanded && (
-        <div
-          data-testid={`site-detail-${trend.siteId}`}
-          className="border-t border-slate-100 px-5 py-4 bg-slate-50"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              7-Day Trends
-            </p>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] text-slate-400">
-                7d avg: <span className="font-bold text-slate-600">{trend.overallAvg}%</span>
-              </span>
-              {trend.siteId === "1417" && (
-                <Link href="/app/tasks">
-                  <span className="text-xs font-semibold text-purple-600 flex items-center gap-1 cursor-pointer hover:underline">
-                    Task Manager <ExternalLink className="w-3 h-3" />
-                  </span>
-                </Link>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {orderedCats.map((cat) => {
-              const ct = trend.categories[cat];
-              const cfg = CATEGORY_CONFIG[cat];
-              return (
-                <div key={cat}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-[10px] font-semibold ${cfg.color}`}>
-                      {shortLabel(cfg.label)}
-                    </span>
-                    <span className="text-[10px] text-slate-500">{ct.avg7d}% avg</span>
-                  </div>
-                  <Sparkline
-                    data={ct.days.map((d) => d.pct)}
-                    color={SPARKLINE_COLORS[cat]}
-                    width={126}
-                    height={40}
-                  />
-                  <div className="flex justify-between mt-1">
-                    {ct.days.map((d, i) => (
-                      <span
-                        key={i}
-                        className="text-[8px] text-slate-400"
-                        style={{ width: 14, textAlign: "center" }}
-                      >
-                        {d.label === "Today" ? "T" : d.label[0]}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
+      {/* 7d overview + drill-down hint */}
+      <div className="px-5 pb-3.5 flex items-center justify-between">
+        <span className="text-[10px] text-slate-400">
+          7d avg: <span className="font-semibold text-slate-600">{trend.overallAvg}%</span>
+          {" · "}
+          <TrendIcon trend={overallTrend} />
+        </span>
+        <span className="text-xs font-semibold text-purple-600 flex items-center gap-1 group-hover:gap-1.5 transition-all">
+          <Eye className="w-3 h-3" />
+          View tasks
+          <ChevronRight className="w-3 h-3" />
+        </span>
+      </div>
+    </button>
   );
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function RegionalDashboard() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
 
   if (!user) return null;
-  const profile = getUserProfile(user.email, user.name ?? "");
 
-  if (profile.role !== "regional_director") {
-    return <Redirect to="/app/tasks" />;
+  // ── Real completion data for Site 1417 (today, daily tasks) ──
+  const site1417Completions = loadCompletions("1417", "daily");
+
+  // Per-category real pct for Site 1417 today
+  const realCatPcts: Partial<Record<TaskCategory, number>> = {};
+  let realTodayTotal = 0;
+  for (const cat of TREND_CATEGORIES) {
+    const catTasks = DAILY_TASKS.filter((t) => t.category === cat);
+    const done = catTasks.filter((t) => site1417Completions.has(t.id)).length;
+    realCatPcts[cat] = catTasks.length > 0 ? Math.round((done / catTasks.length) * 100) : 0;
+    realTodayTotal += realCatPcts[cat]!;
   }
+  const realTodayAvg1417 = Math.round(realTodayTotal / TREND_CATEGORIES.length);
 
-  const [expandedSite, setExpandedSite] = useState<string | null>(null);
-
+  // ── Simulated site trends ──
   const allTrends = getAllSiteTrends();
-  const troubleSpots = getTroubleSpots();
+  const troubleSpotTasks = getTroubleSpotTasks(10);
+
+  // ── Aggregate stats ──
+  // Tasks completed today: real count for 1417, simulated for 1842 & 2031
+  const real1417Count = site1417Completions.size;
+  const sim1842Count = Math.round(
+    (allTrends.find((t) => t.siteId === "1842")?.todayAvg ?? 0) / 100 * DAILY_TASK_COUNT
+  );
+  const sim2031Count = Math.round(
+    (allTrends.find((t) => t.siteId === "2031")?.todayAvg ?? 0) / 100 * DAILY_TASK_COUNT
+  );
+  const totalCompletedToday = real1417Count + sim1842Count + sim2031Count;
+  const totalPossibleToday = DAILY_TASK_COUNT * SITES.length;
 
   const avgCompliance = Math.round(
     allTrends.reduce((s, t) => s + t.overallAvg, 0) / allTrends.length
   );
-  const todayAvg = Math.round(
-    allTrends.reduce((s, t) => s + t.todayAvg, 0) / allTrends.length
+  const todayAvgAllSites = Math.round(
+    [realTodayAvg1417,
+      allTrends.find((t) => t.siteId === "1842")?.todayAvg ?? 0,
+      allTrends.find((t) => t.siteId === "2031")?.todayAvg ?? 0,
+    ].reduce((s, v) => s + v, 0) / SITES.length
   );
 
   const today = new Date().toLocaleDateString("en-US", {
@@ -274,9 +256,13 @@ export default function RegionalDashboard() {
     year: "numeric",
   });
 
+  const handleDrillDown = (siteId: string) => {
+    navigate(`/app/tasks?siteId=${siteId}&readOnly=true`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* ── Page header ─────────────────────────────────────────────────── */}
+      {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-6 py-8">
           <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -285,7 +271,9 @@ export default function RegionalDashboard() {
                 <Globe className="w-5 h-5 text-purple-600" />
                 <h1 className="text-2xl font-bold text-slate-900">Regional Dashboard</h1>
               </div>
-              <p className="text-sm text-slate-400">Southern + Northern California · {today}</p>
+              <p className="text-sm text-slate-400">
+                Southern + Northern California · {today}
+              </p>
             </div>
             <span
               className="text-xs font-bold px-2.5 py-1 rounded-full text-white whitespace-nowrap"
@@ -298,22 +286,26 @@ export default function RegionalDashboard() {
           {/* Aggregate stat tiles */}
           <div className="grid grid-cols-3 gap-4 mt-6">
             <div
-              data-testid="stat-sites"
+              data-testid="stat-tasks-completed"
               className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
             >
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                Sites Monitored
+                Tasks Completed Today
               </p>
-              <p className="text-3xl font-bold text-slate-900">{allTrends.length}</p>
+              <p className="text-3xl font-bold text-slate-900">{totalCompletedToday}</p>
+              <p className="text-xs text-slate-400 mt-0.5">of {totalPossibleToday} across all sites</p>
             </div>
             <div
               data-testid="stat-today"
               className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
             >
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                Today's Avg
+                Today's Rate
               </p>
-              <p className={`text-3xl font-bold ${completionColor(todayAvg)}`}>{todayAvg}%</p>
+              <p className={`text-3xl font-bold ${completionTextColor(todayAvgAllSites)}`}>
+                {todayAvgAllSites}%
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">avg across {SITES.length} sites</p>
             </div>
             <div
               data-testid="stat-compliance"
@@ -322,22 +314,23 @@ export default function RegionalDashboard() {
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">
                 7-Day Compliance
               </p>
-              <p className={`text-3xl font-bold ${completionColor(avgCompliance)}`}>
+              <p className={`text-3xl font-bold ${completionTextColor(avgCompliance)}`}>
                 {avgCompliance}%
               </p>
+              <p className="text-xs text-slate-400 mt-0.5">{SITES.length} sites monitored</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-        {/* ── Site cards ───────────────────────────────────────────────── */}
+        {/* ── Site cards ──────────────────────────────────────────────── */}
         <section>
           <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
             <MapPin className="w-4 h-4 text-purple-600" />
             Site Breakdown
             <span className="text-xs font-normal text-slate-400 ml-1">
-              — Click a site to view 7-day trends
+              — Click a site to open its full task list in read-only mode
             </span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -345,10 +338,9 @@ export default function RegionalDashboard() {
               <SiteCard
                 key={trend.siteId}
                 trend={trend}
-                isExpanded={expandedSite === trend.siteId}
-                onToggle={() =>
-                  setExpandedSite(expandedSite === trend.siteId ? null : trend.siteId)
-                }
+                realTodayPctByCategory={trend.siteId === "1417" ? realCatPcts : undefined}
+                realTodayAvg={trend.siteId === "1417" ? realTodayAvg1417 : undefined}
+                onDrillDown={handleDrillDown}
               />
             ))}
           </div>
@@ -360,7 +352,7 @@ export default function RegionalDashboard() {
             <BarChart3 className="w-4 h-4 text-purple-600" />
             7-Day Category Trends
             <span className="text-xs font-normal text-slate-400 ml-1">
-              — Average across all sites
+              — Cross-site simulated averages
             </span>
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -370,7 +362,7 @@ export default function RegionalDashboard() {
               const avg = Math.round(days.reduce((s, v) => s + v, 0) / days.length);
               const todayVal = days[6];
               const diff = days[6] - days[4];
-              const trend =
+              const trend: "up" | "down" | "stable" =
                 diff > 6 ? "up" : diff < -6 ? "down" : "stable";
 
               return (
@@ -397,7 +389,7 @@ export default function RegionalDashboard() {
                   />
                   <p className="text-[10px] text-slate-400 mt-1.5">
                     Today:{" "}
-                    <span className={`font-semibold ${completionColor(todayVal)}`}>
+                    <span className={`font-semibold ${completionTextColor(todayVal)}`}>
                       {todayVal}%
                     </span>
                   </p>
@@ -407,65 +399,76 @@ export default function RegionalDashboard() {
           </div>
         </section>
 
-        {/* ── Trouble spots ────────────────────────────────────────────── */}
+        {/* ── Task-level Trouble Spots ─────────────────────────────────── */}
         <section>
           <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             Trouble Spots
             <span className="text-xs font-normal text-slate-400 ml-1">
-              — Categories sorted by 7-day average, lowest first
+              — Individual tasks below 50% completion over 7 days (cross-site)
             </span>
           </h2>
           <div className="bg-white border border-slate-200 rounded-md divide-y divide-slate-100">
-            {troubleSpots.map((spot) => {
-              const cfg = CATEGORY_CONFIG[spot.category];
-              const isLow = spot.avgPct < 65;
-              return (
-                <div
-                  key={spot.category}
-                  data-testid={`trouble-spot-${spot.category}`}
-                  className="flex items-center gap-4 px-5 py-3.5 flex-wrap"
-                >
-                  {/* Category label */}
-                  <div className="flex items-center gap-2 w-40 shrink-0">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
-                    <span className={`text-sm font-semibold ${cfg.color}`}>{cfg.label}</span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="flex-1 min-w-0">
-                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden max-w-52">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${completionBar(spot.avgPct)}`}
-                        style={{ width: `${spot.avgPct}%` }}
-                      />
+            {troubleSpotTasks.length === 0 ? (
+              <div className="px-5 py-6 text-center text-sm text-slate-400">
+                No tasks below 50% completion threshold — all tasks performing above benchmark.
+              </div>
+            ) : (
+              troubleSpotTasks.map((spot) => {
+                const cfg = CATEGORY_CONFIG[spot.task.category];
+                const isCritical = spot.avgCompletionPct < 30;
+                return (
+                  <div
+                    key={spot.task.id}
+                    data-testid={`trouble-spot-task-${spot.task.id}`}
+                    className="flex items-start gap-4 px-5 py-3.5 flex-wrap"
+                  >
+                    {/* Task + category */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 leading-snug truncate">
+                        {spot.task.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${cfg.badge}`}>
+                          {cfg.label}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          Worst: {spot.worstSiteName}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 shrink-0 flex-wrap">
-                    <span className={`text-sm font-bold ${isLow ? "text-red-600" : "text-amber-600"}`}>
-                      {spot.avgPct}% avg
-                    </span>
-                    <div className="flex items-center gap-3">
+                    {/* Per-site breakdown */}
+                    <div className="flex items-center gap-3 shrink-0 flex-wrap">
                       {spot.siteBreakdown.map((sb) => (
                         <span key={sb.siteId} className="text-[11px] text-slate-500">
-                          {sb.siteName.replace("Site ", "")}: {" "}
-                          <span className={`font-bold ${completionColor(sb.avg7d)}`}>
+                          {sb.siteName.replace("Site ", "")}:{" "}
+                          <span className={`font-bold ${completionTextColor(sb.avg7d)}`}>
                             {sb.avg7d}%
                           </span>
                         </span>
                       ))}
                     </div>
-                    {isLow && (
-                      <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-50 text-red-600 whitespace-nowrap">
-                        Action needed
+
+                    {/* Avg badge */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-sm font-bold ${
+                          isCritical ? "text-red-600" : "text-amber-600"
+                        }`}
+                      >
+                        {spot.avgCompletionPct}% avg
                       </span>
-                    )}
+                      {isCritical && (
+                        <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-50 text-red-600 whitespace-nowrap">
+                          Critical
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </section>
       </div>

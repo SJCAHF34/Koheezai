@@ -161,6 +161,23 @@ function Protected({ component: Component }: { component: () => JSX.Element | nu
   );
 }
 
+// ── RegionalProtected: role-gated wrapper for /app/tasks/regional ──────────
+function RegionalProtected({ component: Component }: { component: () => JSX.Element | null }) {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  if (isLoading) return <Spinner />;
+  if (!isAuthenticated) return <Redirect to="/login" />;
+  if (user) {
+    const profile = getUserProfile(user.email, user.name ?? "");
+    if (profile.role !== "regional_director") return <Redirect to="/app/tasks" />;
+  }
+  return (
+    <>
+      <AppNav />
+      <Component />
+    </>
+  );
+}
+
 // ── Main router ────────────────────────────────────────────────────────────
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -180,9 +197,9 @@ function Router() {
       <Route path="/app/patient-assistance">
         <Protected component={PatientAssistance} />
       </Route>
-      {/* Regional dashboard — must appear before /app/tasks so the path is matched first */}
+      {/* Regional dashboard — role-gated; must appear before /app/tasks */}
       <Route path="/app/tasks/regional">
-        <Protected component={RegionalDashboard} />
+        <RegionalProtected component={RegionalDashboard} />
       </Route>
       <Route path="/app/tasks">
         <Protected component={TaskManager} />

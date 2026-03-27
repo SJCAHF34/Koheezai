@@ -1,4 +1,4 @@
-import { SITES, CATEGORY_CONFIG, type TaskCategory } from "./taskData";
+import { SITES, CATEGORY_CONFIG, TASKS, type TaskCategory, type PharmacyTask } from "./taskData";
 
 export const TREND_CATEGORIES: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
 
@@ -25,7 +25,7 @@ const BASE_RATES: Record<TaskCategory, number> = {
   retention: 58, // Retention is the weakest category industry-wide
 };
 
-// Per-site performance adjustments
+// Per-site performance adjustments (percentage points)
 const SITE_ADJ: Record<string, number> = {
   "1417": 6,   // Site 1417: above average
   "1842": -13, // Site 1842: underperforming
@@ -69,6 +69,13 @@ export interface TroubleSpot {
   worstSiteName: string;
 }
 
+export interface TaskTroubleSpot {
+  task: PharmacyTask;
+  avgCompletionPct: number; // cross-site, 7-day average
+  siteBreakdown: Array<{ siteId: string; siteName: string; avg7d: number }>;
+  worstSiteName: string;
+}
+
 function getPast7Days(): Array<{ iso: string; label: string }> {
   const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const result: Array<{ iso: string; label: string }> = [];
@@ -96,8 +103,7 @@ export function generateSiteTrends(siteId: string): SiteTrend {
 
     const dayPoints: DayPoint[] = days7.map(({ iso, label }) => {
       const rand = seededRandom(`${siteId}-${cat}-${iso}`);
-      // ±16% daily variance with a small day-of-week pattern
-      const variance = (rand() - 0.5) * 32;
+      const variance = (rand() - 0.5) * 32; // ±16% daily variance
       const pct = Math.round(Math.max(0, Math.min(100, base + variance)));
       return { date: iso, label, pct };
     });
@@ -116,7 +122,6 @@ export function generateSiteTrends(siteId: string): SiteTrend {
   const overallAvg = Math.round(
     TREND_CATEGORIES.reduce((s, cat) => s + categories[cat].avg7d, 0) / TREND_CATEGORIES.length
   );
-
   const todayAvg = Math.round(
     TREND_CATEGORIES.reduce((s, cat) => s + categories[cat].days[6].pct, 0) / TREND_CATEGORIES.length
   );
@@ -149,10 +154,65 @@ export function getTroubleSpots(): TroubleSpot[] {
   }).sort((a, b) => a.avgPct - b.avgPct);
 }
 
-// Returns cross-site average completion per day for a given category (for the aggregate sparkline)
+/**
+ * Returns individual daily tasks with <50% simulated cross-site completion rate over 7 days.
+ * Uses seeded PRNG so results are deterministic across renders.
+ * Limited to `limit` worst results (sorted ascending by avgCompletionPct).
+ */
+export function getTroubleSpotTasks(limit = 12): TaskTroubleSpot[] {
+  const days7 = getPast7Days();
+  const dailyTasks = TASKS.filter((t) => t.frequency === "daily");
+  const results: TaskTroubleSpot[] = [];
+
+  for (const task of dailyTasks) {
+    const siteBreakdown: Array<{ siteId: string; siteName: string; avg7d: number }> = [];
+
+    for (const site of SITES) {
+      const siteAdj = SITE_ADJ[site.id] ?? 0;
+      const catBase = BASE_RATES[task.category];
+
+      // Task-specific offset: some tasks are chronically harder to complete
+      const taskBaseRand = seededRandom(`tb-${task.id}`);
+      const taskOffset = (taskBaseRand() - 0.5) * 24; // ±12 pp
+
+      // Probability that this task is completed on any given day at this site
+      const probability = Math.max(5, Math.min(95, catBase + siteAdj + taskOffset));
+
+      // Simulate each of the 7 days
+      let daysCompleted = 0;
+      for (const { iso } of days7) {
+        const rand = seededRandom(`tc-${task.id}-${site.id}-${iso}`);
+        if (rand() * 100 < probability) daysCompleted++;
+      }
+
+      siteBreakdown.push({
+        siteId: site.id,
+        siteName: site.name,
+        avg7d: Math.round((daysCompleted / 7) * 100),
+      });
+    }
+
+    const avgCompletionPct = Math.round(
+      siteBreakdown.reduce((s, sb) => s + sb.avg7d, 0) / siteBreakdown.length
+    );
+
+    if (avgCompletionPct < 50) {
+      const sorted = [...siteBreakdown].sort((a, b) => a.avg7d - b.avg7d);
+      results.push({
+        task,
+        avgCompletionPct,
+        siteBreakdown: sorted,
+        worstSiteName: sorted[0].siteName,
+      });
+    }
+  }
+
+  return results.sort((a, b) => a.avgCompletionPct - b.avgCompletionPct).slice(0, limit);
+}
+
+/** Returns cross-site average completion per day for a given category (for the aggregate sparkline) */
 export function getAverageCategoryDays(cat: TaskCategory, allTrends: SiteTrend[]): number[] {
-  const numDays = 7;
-  return Array.from({ length: numDays }, (_, i) =>
+  return Array.from({ length: 7 }, (_, i) =>
     Math.round(allTrends.reduce((s, st) => s + st.categories[cat].days[i].pct, 0) / allTrends.length)
   );
 }
