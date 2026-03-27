@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, HeartHandshake, Wrench, ArrowRight, Pill, Trash2, Clock, ChevronRight } from "lucide-react";
+import { Activity, HeartHandshake, Wrench, ArrowRight, Pill, Trash2, Clock, ChevronRight, ClipboardList } from "lucide-react";
 import { useAuth } from "@/App";
 import { loadAllAssessments, deleteAssessment, type SavedAssessment } from "@/lib/patientStorage";
+import { TASKS, type TaskFrequency } from "@/lib/taskData";
+import { loadCompletions, getPeriodKey } from "@/lib/taskStorage";
+import { getUserProfile } from "@/lib/userProfile";
 
 const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
 
@@ -25,6 +28,17 @@ const tools = [
       "Build ARV regimens, screen drug interactions, validate organ function, and generate AI-powered clinical summaries.",
     badge: "Core Tool",
     featured: true,
+  },
+  {
+    id: "tasks",
+    href: "/app/tasks",
+    icon: ClipboardList,
+    label: "Task Manager",
+    title: "Daily Workflows",
+    description:
+      "Role-based daily, weekly, monthly, and quarterly task checklists with ACHC, state board, and retention tracking.",
+    badge: null,
+    featured: false,
   },
   {
     id: "patient-assistance",
@@ -76,6 +90,55 @@ function stepProgress(a: SavedAssessment): { label: string; pct: number } {
   return { label: "In progress", pct: 25 };
 }
 
+function TaskSummaryWidget({ userEmail, userName }: { userEmail: string; userName: string }) {
+  const profile = getUserProfile(userEmail, userName);
+  const freq: TaskFrequency = "daily";
+  const completions = loadCompletions(profile.siteId, freq);
+  const dailyTasks = TASKS.filter(
+    (t) =>
+      t.frequency === freq &&
+      (t.role === profile.role || t.role === "all_staff" ||
+        (profile.role === "director" || profile.role === "regional_director"))
+  );
+  const done = dailyTasks.filter((t) => completions.has(t.id)).length;
+  const pct = dailyTasks.length > 0 ? Math.round((done / dailyTasks.length) * 100) : 0;
+
+  return (
+    <Link href="/app/tasks">
+      <div
+        data-testid="widget-tasks-today"
+        className="bg-white border border-slate-200 rounded-md px-5 py-4 flex items-center gap-4 hover:shadow-sm transition-shadow cursor-pointer group"
+      >
+        <div
+          className="w-10 h-10 rounded-md flex items-center justify-center shrink-0"
+          style={{ background: "linear-gradient(135deg,#f1f5f9,#e2e8f0)" }}
+        >
+          <ClipboardList className="w-5 h-5 text-purple-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Today's Tasks</p>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden max-w-40">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  pct === 100 ? "bg-green-500" : "bg-purple-500"
+                }`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="text-xs font-semibold text-slate-600">
+              {done}/{dailyTasks.length} complete
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 text-purple-600 group-hover:gap-2 transition-all text-xs font-semibold shrink-0">
+          View tasks <ChevronRight className="w-3.5 h-3.5" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -115,7 +178,7 @@ export default function DashboardPage() {
 
       <div className="max-w-5xl mx-auto px-6 py-10 space-y-10">
         {/* Tool cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {tools.map((tool) => (
             <Link key={tool.id} href={tool.href}>
               <div
@@ -170,6 +233,11 @@ export default function DashboardPage() {
             </Link>
           ))}
         </div>
+
+        {/* Today's task glance */}
+        {user && (
+          <TaskSummaryWidget userEmail={user.email} userName={user.name ?? ""} />
+        )}
 
         {/* Recent Patients */}
         <div>

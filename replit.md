@@ -13,10 +13,11 @@ Koheez.ai is a clinical decision support platform for HIV pharmacists. It featur
 ## Route Structure
 - `/` → LandingPage (public, white background, blue→purple→red gradient logo only)
 - `/login` → LoginPage (sign in / create account tabs, white/light theme)
-- `/app` → DashboardPage (protected, member dashboard with tool cards)
+- `/app` → DashboardPage (protected, member dashboard with tool cards + Today's Tasks widget)
 - `/app/assessment` → AssessmentForm (protected, HIV/PrEP Treatment Assessor)
 - `/app/patient-assistance` → PatientAssistance (protected)
 - `/app/clinical-tools` → ClinicalTools (protected)
+- `/app/tasks` → TaskManager (protected, role-based pharmacy task management)
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -51,6 +52,19 @@ Preferred communication style: Simple, everyday language.
 - **User Storage**: In-memory storage (`MemStorage` class) for user data (not persistent across restarts).
 - **Database Configuration**: Drizzle ORM configured for PostgreSQL with schema definitions, using Drizzle Kit for migrations. Prepared for Neon serverless database integration.
 - **Session Management**: Express session with PostgreSQL session store.
+
+### Pharmacy Task Manager (`/app/tasks`)
+- Role-based checklist system with 70+ seeded tasks across four frequencies: Daily, Weekly, Monthly, Quarterly.
+- Task categories: **Operations** (slate), **ACHC Compliance** (blue), **State Board** (emerald), **Retention Metrics** (amber).
+- Roles: `data_entry_tech`, `pv2_tech`, `delivery_tech`, `pharmacist`, `director`, `regional_director`.
+- Non-directors see only their role's tasks + `all_staff` tasks.
+- Directors see a **role-view selector** (My Tasks / DE Tech / PV2 Tech / Delivery Tech / Pharmacist / All Roles) and a **Site Overview panel** showing per-role completion % cards.
+- **Animated checkboxes**: circular checkbox scales on click, turns green with Check icon, task text fades/strikes through. Completions saved to localStorage.
+- **Assign Task dialog** (directors only): hover any task row → UserPlus button → dialog to assign role + optional note. Assignment displayed inline on the task row.
+- **Today's Tasks widget** on Dashboard: compact progress bar linking to /app/tasks.
+- Data layer: `client/src/lib/taskData.ts` (types + seed), `client/src/lib/taskStorage.ts` (localStorage helpers), `client/src/lib/userProfile.ts` (role mapping for demo users).
+- localStorage keys: `koheez_task_completions`, `koheez_task_assignments`.
+- Period keys: daily=YYYY-MM-DD, weekly=YYYY-Www, monthly=YYYY-MM, quarterly=YYYY-Qn.
 
 ### Patient Assistance Programs Section
 - Dedicated page (`/patient-assistance`) sourced from NeedyMeds and manufacturer websites

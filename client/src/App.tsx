@@ -11,9 +11,10 @@ import ClinicalTools from "@/pages/ClinicalTools";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
+import TaskManager from "@/pages/TaskManager";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
@@ -103,6 +104,10 @@ function AppNav() {
               <span className="hidden sm:inline">HIV/PrEP</span>
               <span className="sm:hidden">Assess</span>
             </NavLink>
+            <NavLink href="/app/tasks" testId="nav-tasks">
+              <ClipboardList className="w-4 h-4" />
+              <span className="hidden sm:inline">Tasks</span>
+            </NavLink>
             <NavLink href="/app/patient-assistance" testId="nav-assistance">
               <HeartHandshake className="w-4 h-4" />
               <span className="hidden sm:inline">Patient Assistance</span>
@@ -156,6 +161,9 @@ function Router() {
       </Route>
       <Route path="/app/patient-assistance">
         <Protected component={PatientAssistance} />
+      </Route>
+      <Route path="/app/tasks">
+        <Protected component={TaskManager} />
       </Route>
       <Route path="/app/clinical-tools">
         <Protected component={ClinicalTools} />
