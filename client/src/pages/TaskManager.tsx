@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/App";
-import { getUserProfile, isDirectorRole, getRoleLabel } from "@/lib/userProfile";
+import { getUserProfile, isDirectorRole, getRoleLabel, type UserRole } from "@/lib/userProfile";
 import {
   TASKS,
   CATEGORY_CONFIG,
@@ -42,11 +42,11 @@ type ViewingRole = TaskRole | "own" | "all";
 
 function getVisibleTasks(
   frequency: TaskFrequency,
-  userRole: string,
+  userRole: UserRole,
   viewingRole: ViewingRole
 ): PharmacyTask[] {
   const byFreq = TASKS.filter((t) => t.frequency === frequency);
-  if (isDirectorRole(userRole as any)) {
+  if (isDirectorRole(userRole)) {
     if (viewingRole === "all") return byFreq;
     if (viewingRole === "own")
       return byFreq.filter((t) => t.role === "director" || t.role === "all_staff");
@@ -167,8 +167,10 @@ function TaskRow({
           {assignment && (
             <span className="text-[10px] text-purple-600 font-medium">
               Assigned to{" "}
-              {ROLE_CONFIG[assignment.assignedToRole as keyof typeof ROLE_CONFIG]?.short ??
-                assignment.assignedToRole}
+              {assignment.assignedToName
+                ? assignment.assignedToName
+                : (ROLE_CONFIG[assignment.assignedToRole as keyof typeof ROLE_CONFIG]?.short ??
+                    assignment.assignedToRole)}
               {assignment.note ? ` · ${assignment.note}` : ""}
             </span>
           )}
@@ -334,6 +336,7 @@ function AssignDialog({
   onClose: () => void;
 }) {
   const [selectedRole, setSelectedRole] = useState<string>("pharmacist");
+  const [specificPerson, setSpecificPerson] = useState("");
   const [note, setNote] = useState("");
 
   const roleOptions = Object.entries(ROLE_CONFIG).filter(([k]) => k !== "director");
@@ -384,7 +387,20 @@ function AssignDialog({
           </div>
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-              Note (optional)
+              Specific Staff Member <span className="normal-case font-normal text-slate-400">(optional — overrides role)</span>
+            </p>
+            <input
+              type="text"
+              value={specificPerson}
+              onChange={(e) => setSpecificPerson(e.target.value)}
+              data-testid="input-assign-person"
+              placeholder="e.g., Sarah M. or sarah@example.com"
+              className="w-full text-sm rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700 placeholder:text-slate-400"
+            />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+              Note <span className="normal-case font-normal text-slate-400">(optional)</span>
             </p>
             <textarea
               value={note}
@@ -408,6 +424,7 @@ function AssignDialog({
               onSave({
                 taskId: task.id,
                 assignedToRole: selectedRole,
+                assignedToName: specificPerson.trim() || undefined,
                 note: note.trim(),
                 assignedBy: directorName,
                 assignedAt: new Date().toISOString(),
@@ -462,7 +479,7 @@ export default function TaskManager() {
         });
       } else {
         setAnimating((prev) => new Set(prev).add(task.id));
-        saveCompletion(task.id, siteId, profile.email, profile.role, task.frequency);
+        saveCompletion(task.id, task.role, siteId, profile.email, profile.role, task.frequency);
         setCompletions((prev) => new Set(prev).add(task.id));
         setTimeout(() => {
           setAnimating((prev) => {

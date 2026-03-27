@@ -18,7 +18,7 @@ const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteNam
   "test@koheez.ai": {
     role: "regional_director",
     siteId: "1417",
-    siteName: "Site 1417",
+    siteName: "All Sites",
   },
   "jrockwoodpharmd@gmail.com": {
     role: "director",

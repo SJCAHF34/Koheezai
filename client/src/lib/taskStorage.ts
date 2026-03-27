@@ -5,6 +5,7 @@ const ASSIGNMENTS_KEY = "koheez_task_assignments";
 
 export interface TaskCompletion {
   taskId: string;
+  taskRole: string;
   completedAt: string;
   period: string;
   siteId: string;
@@ -15,6 +16,7 @@ export interface TaskCompletion {
 export interface TaskAssignment {
   taskId: string;
   assignedToRole: string;
+  assignedToName?: string;
   note: string;
   assignedBy: string;
   assignedAt: string;
@@ -88,6 +90,7 @@ export function loadAllSiteCompletions(
 
 export function saveCompletion(
   taskId: string,
+  taskRole: string,
   siteId: string,
   userEmail: string,
   userRole: string,
@@ -97,7 +100,15 @@ export function saveCompletion(
   const all = readCompletions().filter(
     (c) => !(c.taskId === taskId && c.siteId === siteId && c.period === period)
   );
-  all.push({ taskId, completedAt: new Date().toISOString(), period, siteId, userEmail, userRole });
+  all.push({
+    taskId,
+    taskRole,
+    completedAt: new Date().toISOString(),
+    period,
+    siteId,
+    userEmail,
+    userRole,
+  });
   writeCompletions(all);
 }
 
