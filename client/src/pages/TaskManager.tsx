@@ -468,8 +468,14 @@ export default function TaskManager() {
   const searchParams = new URLSearchParams(
     typeof window !== "undefined" ? window.location.search : ""
   );
-  const urlSiteId = searchParams.get("siteId");
-  const readOnly = searchParams.get("readOnly") === "true";
+  const rawUrlSiteId = searchParams.get("siteId");
+  const rawReadOnly = searchParams.get("readOnly") === "true";
+
+  // Only regional directors are allowed to override siteId via URL param.
+  // Any other authenticated user gets their own site regardless of URL tampering.
+  const isRegionalDir = profile?.role === "regional_director";
+  const urlSiteId = (rawUrlSiteId && isRegionalDir) ? rawUrlSiteId : null;
+  const readOnly = rawReadOnly && isRegionalDir;
 
   const [frequency, setFrequency] = useState<TaskFrequency>("daily");
   const [viewingRole, setViewingRole] = useState<ViewingRole>(readOnly ? "all" : "own");
@@ -478,7 +484,7 @@ export default function TaskManager() {
   const [assignments, setAssignments] = useState<Map<string, TaskAssignment>>(new Map());
   const [assigningTask, setAssigningTask] = useState<PharmacyTask | null>(null);
 
-  // siteId from URL param overrides the user's own site (regional drill-down)
+  // siteId from URL param overrides the user's own site (regional directors only)
   const siteId = urlSiteId ?? profile?.siteId ?? "1417";
   const isDir = isDirectorRole(profile?.role ?? "pharmacist");
 

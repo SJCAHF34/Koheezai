@@ -158,27 +158,45 @@ function SiteCard({
         </div>
       </div>
 
-      {/* Category mini-bars */}
-      <div className="px-5 pb-3 grid grid-cols-2 gap-x-5 gap-y-2">
+      {/* Per-category: today + 7d avg mini-bars */}
+      <div className="px-5 pb-3 grid grid-cols-2 gap-x-5 gap-y-3">
         {orderedCats.map((cat) => {
           const cfg = CATEGORY_CONFIG[cat];
-          const pct = getCatPct(cat);
+          const todayPctCat = getCatPct(cat);
+          const weekAvgCat = trend.categories[cat].avg7d;
           return (
             <div key={cat}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] font-semibold text-slate-500">
                   {shortLabel(cfg.label)}
                 </span>
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-bold text-slate-600">{pct}%</span>
-                  <TrendIcon trend={trend.categories[cat].trend} />
-                </div>
+                <TrendIcon trend={trend.categories[cat].trend} />
               </div>
-              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${completionBarColor(pct)}`}
-                  style={{ width: `${pct}%` }}
-                />
+              {/* Today bar */}
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[9px] text-slate-400 w-7 shrink-0">Today</span>
+                <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${completionBarColor(todayPctCat)}`}
+                    style={{ width: `${todayPctCat}%` }}
+                  />
+                </div>
+                <span className={`text-[9px] font-bold w-6 text-right ${completionTextColor(todayPctCat)}`}>
+                  {todayPctCat}%
+                </span>
+              </div>
+              {/* 7-day avg bar */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] text-slate-400 w-7 shrink-0">7d</span>
+                <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 opacity-50 ${completionBarColor(weekAvgCat)}`}
+                    style={{ width: `${weekAvgCat}%` }}
+                  />
+                </div>
+                <span className="text-[9px] text-slate-400 w-6 text-right font-medium">
+                  {weekAvgCat}%
+                </span>
               </div>
             </div>
           );
