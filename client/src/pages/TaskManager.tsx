@@ -469,13 +469,17 @@ export default function TaskManager() {
     typeof window !== "undefined" ? window.location.search : ""
   );
   const rawUrlSiteId = searchParams.get("siteId");
-  const rawReadOnly = searchParams.get("readOnly") === "true";
 
-  // Only regional directors are allowed to override siteId via URL param.
+  // Only regional directors are allowed to drill into a different site via URL param.
   // Any other authenticated user gets their own site regardless of URL tampering.
   const isRegionalDir = profile?.role === "regional_director";
-  const urlSiteId = (rawUrlSiteId && isRegionalDir) ? rawUrlSiteId : null;
-  const readOnly = rawReadOnly && isRegionalDir;
+  // Validate siteId against the known SITES list to reject arbitrary strings
+  const knownSiteIds = new Set(SITES.map((s) => s.id));
+  const effectiveRawSiteId = (rawUrlSiteId && knownSiteIds.has(rawUrlSiteId)) ? rawUrlSiteId : null;
+  const urlSiteId = (effectiveRawSiteId && isRegionalDir) ? effectiveRawSiteId : null;
+  // If a regional director is viewing another site, read-only is ALWAYS enforced —
+  // it must not depend on a URL flag that could be omitted or spoofed.
+  const readOnly = isRegionalDir && !!urlSiteId;
 
   const [frequency, setFrequency] = useState<TaskFrequency>("daily");
   const [viewingRole, setViewingRole] = useState<ViewingRole>(readOnly ? "all" : "own");
