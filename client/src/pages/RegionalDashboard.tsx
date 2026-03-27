@@ -106,28 +106,43 @@ function TrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
   return <Minus className="w-3.5 h-3.5 text-slate-400" />;
 }
 
+// ── Per-site real stats from localStorage ──────────────────────────────────
+interface SiteRealStats {
+  siteId: string;
+  completedCount: number;
+  todayAvg: number;
+  catPcts: Record<TaskCategory, number>;
+}
+
+function computeSiteRealStats(siteId: string): SiteRealStats {
+  const completions = loadCompletions(siteId, "daily");
+  const catPcts = {} as Record<TaskCategory, number>;
+  for (const cat of TREND_CATEGORIES) {
+    const catTasks = DAILY_TASKS.filter((t) => t.category === cat);
+    const done = catTasks.filter((t) => completions.has(t.id)).length;
+    catPcts[cat] = catTasks.length > 0 ? Math.round((done / catTasks.length) * 100) : 0;
+  }
+  const todayAvg = Math.round(
+    TREND_CATEGORIES.reduce((s, cat) => s + catPcts[cat], 0) / TREND_CATEGORIES.length
+  );
+  return { siteId, completedCount: completions.size, todayAvg, catPcts };
+}
+
 // ── Site card ──────────────────────────────────────────────────────────────
 // Clicking navigates to the full Task Manager for that site in read-only mode
 function SiteCard({
   trend,
-  realTodayPctByCategory,
-  realTodayAvg,
+  realStats,
   onDrillDown,
 }: {
   trend: SiteTrend;
-  realTodayPctByCategory?: Partial<Record<TaskCategory, number>>;
-  realTodayAvg?: number;
+  realStats: SiteRealStats;
   onDrillDown: (siteId: string) => void;
 }) {
   const site = SITES.find((s) => s.id === trend.siteId);
   const orderedCats: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
 
-  // Use real data if provided, else fall back to simulated
-  const todayPct = realTodayAvg ?? trend.todayAvg;
-
-  // Category today %: real override or simulated
-  const getCatPct = (cat: TaskCategory) =>
-    realTodayPctByCategory?.[cat] ?? trend.categories[cat].days[6].pct;
+  const todayPct = realStats.todayAvg;
 
   const overallTrend: "up" | "down" | "stable" =
     trend.overallAvg >= todayPct + 5
@@ -158,11 +173,11 @@ function SiteCard({
         </div>
       </div>
 
-      {/* Per-category: today + 7d avg mini-bars */}
+      {/* Per-category: today (real) + 7d avg (simulated trend) mini-bars */}
       <div className="px-5 pb-3 grid grid-cols-2 gap-x-5 gap-y-3">
         {orderedCats.map((cat) => {
           const cfg = CATEGORY_CONFIG[cat];
-          const todayPctCat = getCatPct(cat);
+          const todayPctCat = realStats.catPcts[cat];
           const weekAvgCat = trend.categories[cat].avg7d;
           return (
             <div key={cat}>
@@ -227,44 +242,24 @@ export default function RegionalDashboard() {
 
   if (!user) return null;
 
-  // ── Real completion data for Site 1417 (today, daily tasks) ──
-  const site1417Completions = loadCompletions("1417", "daily");
+  // ── Real per-site stats: load from localStorage for every site ──────────
+  // Sites without usage (e.g. 1842, 2031 in this demo) will show 0 completions
+  const siteRealStats: SiteRealStats[] = SITES.map((s) => computeSiteRealStats(s.id));
+  const realStatsBySite = new Map(siteRealStats.map((ss) => [ss.siteId, ss]));
 
-  // Per-category real pct for Site 1417 today
-  const realCatPcts: Partial<Record<TaskCategory, number>> = {};
-  let realTodayTotal = 0;
-  for (const cat of TREND_CATEGORIES) {
-    const catTasks = DAILY_TASKS.filter((t) => t.category === cat);
-    const done = catTasks.filter((t) => site1417Completions.has(t.id)).length;
-    realCatPcts[cat] = catTasks.length > 0 ? Math.round((done / catTasks.length) * 100) : 0;
-    realTodayTotal += realCatPcts[cat]!;
-  }
-  const realTodayAvg1417 = Math.round(realTodayTotal / TREND_CATEGORIES.length);
-
-  // ── Simulated site trends ──
+  // ── Simulated 7-day trends (ONLY used for sparklines and 7d avg bars) ──
   const allTrends = getAllSiteTrends();
   const troubleSpotTasks = getTroubleSpotTasks(10);
 
-  // ── Aggregate stats ──
-  // Tasks completed today: real count for 1417, simulated for 1842 & 2031
-  const real1417Count = site1417Completions.size;
-  const sim1842Count = Math.round(
-    (allTrends.find((t) => t.siteId === "1842")?.todayAvg ?? 0) / 100 * DAILY_TASK_COUNT
-  );
-  const sim2031Count = Math.round(
-    (allTrends.find((t) => t.siteId === "2031")?.todayAvg ?? 0) / 100 * DAILY_TASK_COUNT
-  );
-  const totalCompletedToday = real1417Count + sim1842Count + sim2031Count;
+  // ── Aggregate stats — all derived from real localStorage data ──────────
+  const totalCompletedToday = siteRealStats.reduce((s, ss) => s + ss.completedCount, 0);
   const totalPossibleToday = DAILY_TASK_COUNT * SITES.length;
-
+  const todayAvgAllSites = Math.round(
+    siteRealStats.reduce((s, ss) => s + ss.todayAvg, 0) / SITES.length
+  );
+  // 7-day compliance uses simulated trend avg (real historical data is not persisted)
   const avgCompliance = Math.round(
     allTrends.reduce((s, t) => s + t.overallAvg, 0) / allTrends.length
-  );
-  const todayAvgAllSites = Math.round(
-    [realTodayAvg1417,
-      allTrends.find((t) => t.siteId === "1842")?.todayAvg ?? 0,
-      allTrends.find((t) => t.siteId === "2031")?.todayAvg ?? 0,
-    ].reduce((s, v) => s + v, 0) / SITES.length
   );
 
   const today = new Date().toLocaleDateString("en-US", {
@@ -356,8 +351,7 @@ export default function RegionalDashboard() {
               <SiteCard
                 key={trend.siteId}
                 trend={trend}
-                realTodayPctByCategory={trend.siteId === "1417" ? realCatPcts : undefined}
-                realTodayAvg={trend.siteId === "1417" ? realTodayAvg1417 : undefined}
+                realStats={realStatsBySite.get(trend.siteId)!}
                 onDrillDown={handleDrillDown}
               />
             ))}
