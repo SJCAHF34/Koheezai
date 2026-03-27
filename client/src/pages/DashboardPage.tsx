@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, Redirect } from "wouter";
 import { Activity, HeartHandshake, Wrench, ArrowRight, Pill, Trash2, Clock, ChevronRight, ClipboardList } from "lucide-react";
 import { useAuth } from "@/App";
 import { loadAllAssessments, deleteAssessment, type SavedAssessment } from "@/lib/patientStorage";
@@ -142,13 +142,21 @@ function TaskSummaryWidget({ userEmail, userName }: { userEmail: string; userNam
 export default function DashboardPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const firstName = user?.name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "there";
-
   const [assessments, setAssessments] = useState<SavedAssessment[]>([]);
 
   useEffect(() => {
     setAssessments(loadAllAssessments());
   }, []);
+
+  const firstName = user?.name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "there";
+
+  // Regional directors land on their dedicated dashboard, not here
+  if (user) {
+    const profile = getUserProfile(user.email, user.name ?? "");
+    if (profile.role === "regional_director") {
+      return <Redirect to="/app/tasks/regional" />;
+    }
+  }
 
   const handleDelete = (patientId: string) => {
     deleteAssessment(patientId);

@@ -12,9 +12,11 @@ import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import TaskManager from "@/pages/TaskManager";
+import RegionalDashboard from "@/pages/RegionalDashboard";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList } from "lucide-react";
+import { getUserProfile } from "@/lib/userProfile";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
@@ -70,6 +72,9 @@ function AppNav() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
+  const isRegional = profile?.role === "regional_director";
+
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("/api/auth/logout", { method: "POST" }),
     onSuccess: () => {
@@ -83,7 +88,7 @@ function AppNav() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 gap-4">
           {/* Logo */}
-          <Link href="/app">
+          <Link href={isRegional ? "/app/tasks/regional" : "/app"}>
             <span className="font-bold text-sm tracking-tight cursor-pointer">
               <span
                 className="bg-clip-text text-transparent"
@@ -95,25 +100,38 @@ function AppNav() {
           </Link>
 
           <nav className="flex items-center gap-1 flex-wrap">
-            <NavLink href="/app" testId="nav-dashboard">
-              <LayoutDashboard className="w-4 h-4" />
-              <span className="hidden sm:inline">Dashboard</span>
-            </NavLink>
+            {/* Regional dashboard link — regional directors only */}
+            {isRegional ? (
+              <NavLink href="/app/tasks/regional" testId="nav-regional">
+                <Globe className="w-4 h-4" />
+                <span className="hidden sm:inline">Regional</span>
+              </NavLink>
+            ) : (
+              <NavLink href="/app" testId="nav-dashboard">
+                <LayoutDashboard className="w-4 h-4" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </NavLink>
+            )}
+
             <NavLink href="/app/assessment" testId="nav-assessment">
               <Activity className="w-4 h-4" />
               <span className="hidden sm:inline">HIV/PrEP</span>
               <span className="sm:hidden">Assess</span>
             </NavLink>
+
             <NavLink href="/app/tasks" testId="nav-tasks">
               <ClipboardList className="w-4 h-4" />
               <span className="hidden sm:inline">Tasks</span>
             </NavLink>
+
             <NavLink href="/app/patient-assistance" testId="nav-assistance">
               <HeartHandshake className="w-4 h-4" />
               <span className="hidden sm:inline">Patient Assistance</span>
               <span className="sm:hidden">Assistance</span>
             </NavLink>
+
             <ClinicalToolsPanel />
+
             <button
               data-testid="btn-logout"
               onClick={() => logoutMutation.mutate()}
@@ -161,6 +179,10 @@ function Router() {
       </Route>
       <Route path="/app/patient-assistance">
         <Protected component={PatientAssistance} />
+      </Route>
+      {/* Regional dashboard — must appear before /app/tasks so the path is matched first */}
+      <Route path="/app/tasks/regional">
+        <Protected component={RegionalDashboard} />
       </Route>
       <Route path="/app/tasks">
         <Protected component={TaskManager} />

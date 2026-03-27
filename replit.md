@@ -13,10 +13,11 @@ Koheez.ai is a clinical decision support platform for HIV pharmacists. It featur
 ## Route Structure
 - `/` → LandingPage (public, white background, blue→purple→red gradient logo only)
 - `/login` → LoginPage (sign in / create account tabs, white/light theme)
-- `/app` → DashboardPage (protected, member dashboard with tool cards + Today's Tasks widget)
+- `/app` → DashboardPage (protected, member dashboard with tool cards + Today's Tasks widget; redirects regional_director to /app/tasks/regional)
 - `/app/assessment` → AssessmentForm (protected, HIV/PrEP Treatment Assessor)
 - `/app/patient-assistance` → PatientAssistance (protected)
 - `/app/clinical-tools` → ClinicalTools (protected)
+- `/app/tasks/regional` → RegionalDashboard (protected, regional_director only; redirects other roles to /app/tasks)
 - `/app/tasks` → TaskManager (protected, role-based pharmacy task management)
 
 ## User Preferences
@@ -82,6 +83,18 @@ Preferred communication style: Simple, everyday language.
     - Clinical Recommendations (priority-based cards for OI prophylaxis, viral load, immunizations, adherence).
     - AI-generated Clinical Assessment Summary.
     - Pharmacist Consultation Questions (checkbox-enabled list).
+
+### Regional Director Dashboard (`/app/tasks/regional`)
+- Role-gated: only `regional_director` users can access; all others are redirected to `/app/tasks`.
+- `test@koheez.ai` (Regional Director) is automatically redirected here when landing on `/app` or clicking the logo.
+- **Aggregate stat tiles**: Sites Monitored, Today's Avg (cross-site), 7-Day Compliance (cross-site).
+- **Site Breakdown**: One card per site (1417, 1842, 2031) with today's overall % and category mini-bars (ACHC, State Board, Retention, Operations). Clicking a card expands a 7-day trend panel with four sparklines.
+- **7-Day Category Trends**: Four sparkline cards (one per category) showing cross-site averages over the past 7 days.
+- **Trouble Spots**: All four categories sorted ascending by 7-day avg. Categories below 65% show "Action needed" badge. Per-site breakdown shown inline.
+- **Trend data**: Simulated via seeded PRNG (`trendData.ts`) — deterministic across page loads. Base rates: operations 74%, ACHC 82%, state board 79%, retention 58%. Site 1417 is above average (+6pp), Site 1842 underperforms (−13pp), Site 2031 is near average (+2pp).
+- **Nav**: Regional directors see a "Regional" link (Globe icon) instead of "Dashboard". Logo links to `/app/tasks/regional`.
+- **Site 1417** expanded detail shows a "Task Manager" link to `/app/tasks` (real data); Sites 1842/2031 show simulated data only.
+- Data file: `client/src/lib/trendData.ts`.
 
 ### Authentication and Authorization
 - Basic user management infrastructure exists, but full authentication is not yet implemented in the assessment workflow.
