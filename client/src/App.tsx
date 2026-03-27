@@ -131,7 +131,7 @@ function AppNav() {
 }
 
 // ── Protected page wrapper ─────────────────────────────────────────────────
-function Protected({ component: Component }: { component: () => JSX.Element }) {
+function Protected({ component: Component }: { component: () => JSX.Element | null }) {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) return <Spinner />;
   if (!isAuthenticated) return <Redirect to="/login" />;

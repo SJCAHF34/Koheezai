@@ -58,10 +58,26 @@ function writeCompletions(completions: TaskCompletion[]): void {
   } catch {}
 }
 
-export function loadCompletions(siteId: string, frequency: TaskFrequency): Set<string> {
+/**
+ * Load completed taskIds for a given site + frequency period.
+ * @param roleFilter  When provided, only returns completions whose taskRole matches
+ *                    the filter OR is "all_staff" (shared cross-role tasks).
+ *                    Pass undefined / omit to load all completions for the period
+ *                    (used by director "All Roles" view and overview cards).
+ */
+export function loadCompletions(
+  siteId: string,
+  frequency: TaskFrequency,
+  roleFilter?: string
+): Set<string> {
   const period = getPeriodKey(frequency);
   const all = readCompletions();
-  const filtered = all.filter((c) => c.siteId === siteId && c.period === period);
+  const filtered = all.filter(
+    (c) =>
+      c.siteId === siteId &&
+      c.period === period &&
+      (roleFilter == null || c.taskRole === roleFilter || c.taskRole === "all_staff")
+  );
   return new Set(filtered.map((c) => c.taskId));
 }
 

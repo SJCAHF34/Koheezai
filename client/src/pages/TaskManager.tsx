@@ -263,13 +263,13 @@ function CategorySection({
 // ── Site Overview Panel (directors) ─────────────────────────────────────────
 
 function SiteOverviewPanel({
+  siteId,
   frequency,
-  completions,
   onSelectRole,
   viewingRole,
 }: {
+  siteId: string;
   frequency: TaskFrequency;
-  completions: Set<string>;
   onSelectRole: (r: ViewingRole) => void;
   viewingRole: ViewingRole;
 }) {
@@ -283,10 +283,12 @@ function SiteOverviewPanel({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2">
       {roleCards.map(({ role, label }) => {
+        // Load completions independently per role (role-scoped, includes all_staff)
+        const roleCompletions = loadCompletions(siteId, frequency, role);
         const roleTasks = TASKS.filter(
           (t) => t.frequency === frequency && (t.role === role || t.role === "all_staff")
         );
-        const done = roleTasks.filter((t) => completions.has(t.id)).length;
+        const done = roleTasks.filter((t) => roleCompletions.has(t.id)).length;
         const pct = roleTasks.length > 0 ? Math.round((done / roleTasks.length) * 100) : 0;
         const isActive = viewingRole === role;
         return (
@@ -461,10 +463,25 @@ export default function TaskManager() {
 
   useEffect(() => {
     if (!profile) return;
-    setCompletions(loadCompletions(siteId, frequency));
+    // Compute the role filter for completions:
+    // - non-directors: always their own role (role-scoped)
+    // - directors in "own" view: load for "director" role
+    // - directors in a specific role view: load for that role
+    // - directors in "all" view: load without filter (all site completions)
+    // Note: regional_director siteId is "1417" for Task #6; multi-site regional
+    // view is handled in Task #7 (Regional Dashboard at /app/tasks/regional).
+    let roleFilter: string | undefined;
+    if (isDir) {
+      if (viewingRole === "all") roleFilter = undefined;
+      else if (viewingRole === "own") roleFilter = "director";
+      else roleFilter = viewingRole as string;
+    } else {
+      roleFilter = profile.role;
+    }
+    setCompletions(loadCompletions(siteId, frequency, roleFilter));
     const aList = loadAssignments(siteId);
     setAssignments(new Map(aList.map((a) => [a.taskId, a])));
-  }, [frequency, siteId, profile?.email]);
+  }, [frequency, siteId, profile?.email, viewingRole]);
 
   const toggleCompletion = useCallback(
     (task: PharmacyTask) => {
@@ -606,8 +623,8 @@ export default function TaskManager() {
         {/* Director site overview cards */}
         {isDir && (
           <SiteOverviewPanel
+            siteId={siteId}
             frequency={frequency}
-            completions={completions}
             onSelectRole={setViewingRole}
             viewingRole={viewingRole}
           />
