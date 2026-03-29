@@ -17,6 +17,7 @@ export interface PharmacyTask {
   role: TaskRole;
   frequency: TaskFrequency;
   category: TaskCategory;
+  taskGroup: string;
   isUrgent?: boolean;
 }
 
@@ -77,6 +78,60 @@ export const ROLE_CONFIG: Record<
   director: { label: "Site Director", short: "Director", color: "text-rose-700" },
 };
 
+/** Display order for role sections in the new role-based view */
+export const ROLE_ORDER: TaskRole[] = [
+  "data_entry_tech",
+  "pv2_tech",
+  "delivery_tech",
+  "pharmacist",
+  "director",
+  "all_staff",
+];
+
+/** Ordered task-group names within each role */
+export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
+  data_entry_tech: [
+    "Contact Manager",
+    "ICQ",
+    "Data Entry",
+    "Adjudication Exception",
+    "Support Other Roles",
+  ],
+  pv2_tech: [
+    "CRC & Order Review",
+    "Dispensing & Copay",
+    "Patient Retention",
+    "Digital & In-Store",
+    "Weekly Purchase",
+  ],
+  delivery_tech: [
+    "Opening & Compliance",
+    "Package Management",
+    "Delivery Setup",
+    "Invoicing & Reports",
+    "Closing",
+    "Weekly",
+  ],
+  pharmacist: [
+    "Shift Sign-In",
+    "Central Fulfillment",
+    "Voicemail & Emails",
+    "PV1 / PIKE",
+    "Pharmacy Orders",
+    "Shift Sign-Out",
+    "Weekly",
+    "Monthly & Quarterly",
+  ],
+  director: [
+    "Daily Operations",
+    "Weekly Reviews",
+    "ACHC Compliance",
+    "State Board",
+    "Retention Metrics",
+  ],
+  all_staff: ["Team Huddle"],
+};
+
 export const TASKS: PharmacyTask[] = [
   // ── DATA ENTRY TECH · DAILY ─────────────────────────────────────────────
   {
@@ -86,6 +141,7 @@ export const TASKS: PharmacyTask[] = [
     role: "data_entry_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Contact Manager",
     isUrgent: true,
   },
   {
@@ -95,6 +151,7 @@ export const TASKS: PharmacyTask[] = [
     role: "data_entry_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Contact Manager",
   },
   {
     id: "de-d-003",
@@ -103,6 +160,7 @@ export const TASKS: PharmacyTask[] = [
     role: "data_entry_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "ICQ",
     isUrgent: true,
   },
   {
@@ -112,6 +170,7 @@ export const TASKS: PharmacyTask[] = [
     role: "data_entry_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Data Entry",
   },
   {
     id: "de-d-005",
@@ -120,6 +179,7 @@ export const TASKS: PharmacyTask[] = [
     role: "data_entry_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Data Entry",
   },
   {
     id: "de-d-006",
@@ -128,6 +188,7 @@ export const TASKS: PharmacyTask[] = [
     role: "data_entry_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Data Entry",
   },
   {
     id: "de-d-007",
@@ -136,6 +197,7 @@ export const TASKS: PharmacyTask[] = [
     role: "data_entry_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Adjudication Exception",
   },
   {
     id: "de-d-008",
@@ -144,6 +206,7 @@ export const TASKS: PharmacyTask[] = [
     role: "data_entry_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Support Other Roles",
   },
 
   // ── PV2 TECH · DAILY ────────────────────────────────────────────────────
@@ -154,6 +217,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "CRC & Order Review",
     isUrgent: true,
   },
   {
@@ -163,6 +227,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "CRC & Order Review",
   },
   {
     id: "pv2-d-003",
@@ -171,6 +236,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "CRC & Order Review",
   },
   {
     id: "pv2-d-004",
@@ -179,6 +245,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "CRC & Order Review",
   },
   {
     id: "pv2-d-005",
@@ -187,6 +254,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "state_board",
+    taskGroup: "Dispensing & Copay",
   },
   {
     id: "pv2-d-006",
@@ -195,6 +263,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Dispensing & Copay",
   },
   {
     id: "pv2-d-007",
@@ -203,6 +272,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Dispensing & Copay",
   },
   {
     id: "pv2-d-008",
@@ -211,6 +281,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "retention",
+    taskGroup: "Patient Retention",
   },
   {
     id: "pv2-d-009",
@@ -219,6 +290,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Patient Retention",
   },
   {
     id: "pv2-d-010",
@@ -227,6 +299,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Patient Retention",
   },
   {
     id: "pv2-d-011",
@@ -235,6 +308,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Digital & In-Store",
   },
   {
     id: "pv2-d-012",
@@ -243,6 +317,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Digital & In-Store",
   },
 
   // ── DELIVERY TECH · DAILY ───────────────────────────────────────────────
@@ -253,6 +328,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Opening & Compliance",
     isUrgent: true,
   },
   {
@@ -262,6 +338,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "achc",
+    taskGroup: "Opening & Compliance",
     isUrgent: true,
   },
   {
@@ -271,6 +348,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "achc",
+    taskGroup: "Opening & Compliance",
   },
   {
     id: "del-d-004",
@@ -279,6 +357,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Package Management",
     isUrgent: true,
   },
   {
@@ -288,6 +367,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Package Management",
   },
   {
     id: "del-d-006",
@@ -296,6 +376,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "retention",
+    taskGroup: "Delivery Setup",
   },
   {
     id: "del-d-007",
@@ -304,6 +385,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Delivery Setup",
     isUrgent: true,
   },
   {
@@ -313,6 +395,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Delivery Setup",
     isUrgent: true,
   },
   {
@@ -322,6 +405,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Delivery Setup",
   },
   {
     id: "del-d-010",
@@ -330,6 +414,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Invoicing & Reports",
   },
   {
     id: "del-d-011",
@@ -338,6 +423,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "retention",
+    taskGroup: "Invoicing & Reports",
   },
   {
     id: "del-d-012",
@@ -346,6 +432,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Invoicing & Reports",
   },
   {
     id: "del-d-013",
@@ -354,6 +441,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "retention",
+    taskGroup: "Invoicing & Reports",
   },
   {
     id: "del-d-014",
@@ -362,6 +450,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Invoicing & Reports",
   },
   {
     id: "del-d-015",
@@ -370,6 +459,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Closing",
   },
 
   // ── PHARMACIST · DAILY ──────────────────────────────────────────────────
@@ -380,6 +470,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "state_board",
+    taskGroup: "Shift Sign-In",
     isUrgent: true,
   },
   {
@@ -389,6 +480,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Central Fulfillment",
     isUrgent: true,
   },
   {
@@ -398,6 +490,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Central Fulfillment",
     isUrgent: true,
   },
   {
@@ -407,6 +500,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Central Fulfillment",
   },
   {
     id: "rph-d-005",
@@ -415,6 +509,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Voicemail & Emails",
   },
   {
     id: "rph-d-006",
@@ -423,6 +518,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Voicemail & Emails",
   },
   {
     id: "rph-d-007",
@@ -431,6 +527,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "PV1 / PIKE",
     isUrgent: true,
   },
   {
@@ -440,6 +537,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "PV1 / PIKE",
   },
   {
     id: "rph-d-009",
@@ -448,6 +546,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "PV1 / PIKE",
   },
   {
     id: "rph-d-010",
@@ -456,6 +555,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "PV1 / PIKE",
   },
   {
     id: "rph-d-011",
@@ -464,6 +564,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "PV1 / PIKE",
   },
   {
     id: "rph-d-012",
@@ -472,6 +573,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Pharmacy Orders",
     isUrgent: true,
   },
   {
@@ -481,6 +583,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Pharmacy Orders",
     isUrgent: true,
   },
   {
@@ -490,6 +593,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "PV1 / PIKE",
     isUrgent: true,
   },
   {
@@ -499,6 +603,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "PV1 / PIKE",
     isUrgent: true,
   },
   {
@@ -508,6 +613,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Voicemail & Emails",
   },
   {
     id: "rph-d-017",
@@ -516,6 +622,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Voicemail & Emails",
   },
   {
     id: "rph-d-018",
@@ -524,6 +631,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "daily",
     category: "state_board",
+    taskGroup: "Shift Sign-Out",
   },
 
   // ── DIRECTOR · DAILY ────────────────────────────────────────────────────
@@ -534,6 +642,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Daily Operations",
     isUrgent: true,
   },
   {
@@ -543,6 +652,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "daily",
     category: "operations",
+    taskGroup: "Daily Operations",
   },
   {
     id: "dir-d-003",
@@ -551,6 +661,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "daily",
     category: "retention",
+    taskGroup: "Daily Operations",
   },
 
   // ── WEEKLY TASKS ────────────────────────────────────────────────────────
@@ -561,6 +672,7 @@ export const TASKS: PharmacyTask[] = [
     role: "delivery_tech",
     frequency: "weekly",
     category: "operations",
+    taskGroup: "Weekly",
   },
   {
     id: "pv2-w-001",
@@ -569,6 +681,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pv2_tech",
     frequency: "weekly",
     category: "operations",
+    taskGroup: "Weekly Purchase",
   },
   {
     id: "rph-w-001",
@@ -577,6 +690,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "weekly",
     category: "retention",
+    taskGroup: "Weekly",
   },
   {
     id: "rph-w-002",
@@ -585,6 +699,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "weekly",
     category: "achc",
+    taskGroup: "Weekly",
   },
   {
     id: "dir-w-001",
@@ -593,6 +708,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "weekly",
     category: "operations",
+    taskGroup: "Weekly Reviews",
   },
   {
     id: "dir-w-002",
@@ -601,6 +717,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "weekly",
     category: "operations",
+    taskGroup: "Weekly Reviews",
   },
   {
     id: "dir-w-003",
@@ -609,6 +726,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "weekly",
     category: "retention",
+    taskGroup: "Weekly Reviews",
   },
   {
     id: "all-w-001",
@@ -617,6 +735,7 @@ export const TASKS: PharmacyTask[] = [
     role: "all_staff",
     frequency: "weekly",
     category: "operations",
+    taskGroup: "Team Huddle",
   },
 
   // ── MONTHLY TASKS ───────────────────────────────────────────────────────
@@ -628,6 +747,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "achc",
+    taskGroup: "ACHC Compliance",
   },
   {
     id: "achc-m-002",
@@ -636,6 +756,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "achc",
+    taskGroup: "ACHC Compliance",
   },
   {
     id: "achc-m-003",
@@ -644,6 +765,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "achc",
+    taskGroup: "ACHC Compliance",
   },
   {
     id: "achc-m-004",
@@ -652,6 +774,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "achc",
+    taskGroup: "ACHC Compliance",
   },
   {
     id: "achc-m-005",
@@ -660,6 +783,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "achc",
+    taskGroup: "ACHC Compliance",
   },
   // State Board
   {
@@ -669,6 +793,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "state_board",
+    taskGroup: "State Board",
   },
   {
     id: "sb-m-002",
@@ -677,6 +802,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "state_board",
+    taskGroup: "State Board",
   },
   {
     id: "sb-m-003",
@@ -685,6 +811,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "state_board",
+    taskGroup: "State Board",
   },
   // Retention
   {
@@ -694,6 +821,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "retention",
+    taskGroup: "Retention Metrics",
   },
   {
     id: "ret-m-002",
@@ -702,6 +830,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "retention",
+    taskGroup: "Retention Metrics",
   },
   {
     id: "ret-m-003",
@@ -710,6 +839,7 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "monthly",
     category: "retention",
+    taskGroup: "Monthly & Quarterly",
   },
   {
     id: "ret-m-004",
@@ -718,6 +848,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "retention",
+    taskGroup: "Retention Metrics",
   },
 
   // ── QUARTERLY TASKS ─────────────────────────────────────────────────────
@@ -729,6 +860,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "achc",
+    taskGroup: "ACHC Compliance",
   },
   {
     id: "achc-q-002",
@@ -737,6 +869,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "achc",
+    taskGroup: "ACHC Compliance",
   },
   {
     id: "achc-q-003",
@@ -745,6 +878,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "achc",
+    taskGroup: "ACHC Compliance",
   },
   {
     id: "achc-q-004",
@@ -753,6 +887,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "achc",
+    taskGroup: "ACHC Compliance",
   },
   // State Board
   {
@@ -762,6 +897,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "state_board",
+    taskGroup: "State Board",
   },
   {
     id: "sb-q-002",
@@ -770,6 +906,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "state_board",
+    taskGroup: "State Board",
   },
   {
     id: "sb-q-003",
@@ -778,6 +915,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "state_board",
+    taskGroup: "State Board",
   },
   // Retention
   {
@@ -787,6 +925,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "retention",
+    taskGroup: "Retention Metrics",
   },
   {
     id: "ret-q-002",
@@ -795,6 +934,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "retention",
+    taskGroup: "Retention Metrics",
   },
   {
     id: "ret-q-003",
@@ -803,6 +943,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "retention",
+    taskGroup: "Retention Metrics",
   },
   {
     id: "ret-q-004",
@@ -811,5 +952,6 @@ export const TASKS: PharmacyTask[] = [
     role: "pharmacist",
     frequency: "quarterly",
     category: "retention",
+    taskGroup: "Monthly & Quarterly",
   },
 ];
