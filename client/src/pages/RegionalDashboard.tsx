@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/App";
 import { getUserProfile } from "@/lib/userProfile";
@@ -12,6 +13,7 @@ import {
   type SiteTrend,
   type CategoryTrend,
 } from "@/lib/trendData";
+import { STORE_REGIONS, type StoreRegion, type StoreLocation } from "@/lib/storeDirectory";
 import {
   MapPin,
   TrendingUp,
@@ -22,6 +24,8 @@ import {
   BarChart3,
   ChevronRight,
   Eye,
+  ChevronDown,
+  Store,
 } from "lucide-react";
 
 const DAILY_TASKS = TASKS.filter((t) => t.frequency === "daily");
@@ -235,6 +239,84 @@ function SiteCard({
   );
 }
 
+// ── Store Directory ─────────────────────────────────────────────────────────
+function StoreDirectorySection({ onDrillDown }: { onDrillDown: (id: string) => void }) {
+  const [openRegions, setOpenRegions] = useState<Set<string>>(() => new Set(["Western Region"]));
+
+  const toggleRegion = (region: string) => {
+    setOpenRegions((prev) => {
+      const next = new Set(prev);
+      if (next.has(region)) next.delete(region);
+      else next.add(region);
+      return next;
+    });
+  };
+
+  return (
+    <section>
+      <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
+        <Store className="w-4 h-4 text-purple-600" />
+        Store Directory
+        <span className="text-xs font-normal text-slate-400 ml-1">
+          — All locations organized by region
+        </span>
+      </h2>
+      <div className="space-y-2">
+        {STORE_REGIONS.map((reg) => {
+          const isOpen = openRegions.has(reg.region);
+          return (
+            <div
+              key={reg.region}
+              className="bg-white border border-slate-200 rounded-md overflow-hidden"
+            >
+              {/* Region header */}
+              <button
+                data-testid={`region-toggle-${reg.shortName}`}
+                onClick={() => toggleRegion(reg.region)}
+                className="w-full flex items-center justify-between px-5 py-3.5 hover-elevate"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${reg.dotColor} shrink-0`} />
+                  <span className={`text-sm font-bold ${reg.color}`}>{reg.region}</span>
+                  <span className="text-xs text-slate-400 font-medium">
+                    {reg.stores.length} {reg.stores.length === 1 ? "location" : "locations"}
+                  </span>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                    isOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Store grid */}
+              {isOpen && (
+                <div className="px-5 pb-4 pt-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {reg.stores.map((store) => (
+                      <button
+                        key={store.id}
+                        data-testid={`store-card-${store.id}`}
+                        onClick={() => onDrillDown(store.id)}
+                        className="text-left px-3 py-2.5 border border-slate-100 rounded-md hover-elevate group"
+                      >
+                        <p className="text-xs font-semibold text-slate-700 leading-snug group-hover:text-purple-700 transition-colors">
+                          {store.name}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">#{store.id}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function RegionalDashboard() {
   const { user } = useAuth();
@@ -270,7 +352,7 @@ export default function RegionalDashboard() {
   });
 
   const handleDrillDown = (siteId: string) => {
-    navigate(`/app/tasks?siteId=${siteId}&readOnly=true`);
+    navigate(`/app/tasks?siteId=${siteId}`);
   };
 
   return (
@@ -343,7 +425,7 @@ export default function RegionalDashboard() {
             <MapPin className="w-4 h-4 text-purple-600" />
             Site Breakdown
             <span className="text-xs font-normal text-slate-400 ml-1">
-              — Click a site to open its full task list in read-only mode
+              — Click a site to open its full task list
             </span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -410,6 +492,9 @@ export default function RegionalDashboard() {
             })}
           </div>
         </section>
+
+        {/* ── Store Directory ─────────────────────────────────────────── */}
+        <StoreDirectorySection onDrillDown={handleDrillDown} />
 
         {/* ── Task-level Trouble Spots ─────────────────────────────────── */}
         <section>

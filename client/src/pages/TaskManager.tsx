@@ -12,6 +12,7 @@ import {
   type TaskRole,
   type TaskFrequency,
 } from "@/lib/taskData";
+import { findStore } from "@/lib/storeDirectory";
 import {
   loadCompletions,
   saveCompletion,
@@ -746,7 +747,9 @@ export default function TaskManager() {
 
   if (!profile) return null;
 
-  const drillSite = urlSiteId ? SITES.find((s) => s.id === urlSiteId) : null;
+  const drillSite = urlSiteId
+    ? (SITES.find((s) => s.id === urlSiteId) ?? (findStore(urlSiteId) ? { id: urlSiteId, name: findStore(urlSiteId)!.name, region: "" } : null))
+    : null;
   const displaySiteName = drillSite?.name ?? profile.siteName;
 
   const visible = getVisibleTasks(frequency, profile.role, viewingRole);
