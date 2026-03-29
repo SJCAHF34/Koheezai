@@ -676,18 +676,19 @@ export default function TaskManager() {
   );
   const rawUrlSiteId = searchParams.get("siteId");
 
-  // Only regional directors are allowed to drill into a different site via URL param.
+  // Regional directors can drill into any site via URL param and retain full access.
   const isRegionalDir = profile?.role === "regional_director";
   const knownSiteIds = new Set(SITES.map((s) => s.id));
   const effectiveRawSiteId =
     rawUrlSiteId && knownSiteIds.has(rawUrlSiteId) ? rawUrlSiteId : null;
   const urlSiteId =
     effectiveRawSiteId && isRegionalDir ? effectiveRawSiteId : null;
-  // Read-only is ALWAYS enforced by role+context, not a URL flag
-  const readOnly = isRegionalDir && !!urlSiteId;
+  // Regional directors have full edit access everywhere — no read-only mode.
+  const readOnly = false;
 
   const [frequency, setFrequency] = useState<TaskFrequency>("daily");
-  const [viewingRole, setViewingRole] = useState<ViewingRole>(readOnly ? "all" : "own");
+  // Default to "all" when drilling into a specific site so the full picture is visible.
+  const [viewingRole, setViewingRole] = useState<ViewingRole>(urlSiteId ? "all" : "own");
   const [completions, setCompletions] = useState<Set<string>>(new Set());
   const [animating, setAnimating] = useState<Set<string>>(new Set());
   const [assignments, setAssignments] = useState<Map<string, TaskAssignment>>(new Map());
@@ -745,12 +746,11 @@ export default function TaskManager() {
 
   if (!profile) return null;
 
-  const effectiveViewingRole: ViewingRole = readOnly ? "all" : viewingRole;
   const drillSite = urlSiteId ? SITES.find((s) => s.id === urlSiteId) : null;
   const displaySiteName = drillSite?.name ?? profile.siteName;
 
-  const visible = getVisibleTasks(frequency, profile.role, effectiveViewingRole);
-  const roleGroups = buildRoleGroups(visible, effectiveViewingRole, profile.role);
+  const visible = getVisibleTasks(frequency, profile.role, viewingRole);
+  const roleGroups = buildRoleGroups(visible, viewingRole, profile.role);
   const totalTasks = visible.length;
   const doneTasks = visible.filter((t) => completions.has(t.id)).length;
   const overallPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
@@ -764,21 +764,6 @@ export default function TaskManager() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Read-only drill-down notice */}
-      {readOnly && (
-        <div
-          data-testid="banner-readonly"
-          className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center gap-2"
-        >
-          <span className="text-xs font-bold uppercase tracking-wide text-amber-700">
-            Read-only view
-          </span>
-          <span className="text-xs text-amber-600">
-            Viewing {displaySiteName} task list as Regional Director — no changes can be made.
-          </span>
-        </div>
-      )}
-
       {/* Page header */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-6 py-8">
