@@ -275,22 +275,24 @@ function TaskRow({
           </p>
         )}
 
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${cat.badge}`}>
-            {cat.label}
-          </span>
-          {assignment && (
-            <span className="text-[10px] text-purple-600 font-medium">
-              Assigned to{" "}
-              {assignment.assignedToName
-                ? assignment.assignedToName
-                : (ROLE_CONFIG[assignment.assignedToRole as keyof typeof ROLE_CONFIG]?.short ??
-                    assignment.assignedToRole)}
-              {assignment.note ? ` · ${assignment.note}` : ""}
-            </span>
-          )}
-        </div>
+        {assignment && (
+          <p className="text-[10px] text-purple-600 font-medium mt-1">
+            Assigned to{" "}
+            {assignment.assignedToName
+              ? assignment.assignedToName
+              : (ROLE_CONFIG[assignment.assignedToRole as keyof typeof ROLE_CONFIG]?.short ??
+                  assignment.assignedToRole)}
+            {assignment.note ? ` · ${assignment.note}` : ""}
+          </p>
+        )}
       </div>
+
+      {/* Category badge — right-aligned */}
+      <span
+        className={`shrink-0 self-start mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded ${cat.badge}`}
+      >
+        {cat.label}
+      </span>
 
       {canAssign && !completed && !readOnly && (
         <button

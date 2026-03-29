@@ -130,11 +130,10 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "Team Huddle",
   ],
   director: [
-    "Daily Operations",
-    "Weekly Reviews",
-    "ACHC Compliance",
-    "State Board",
-    "Retention Metrics",
+    "Daily",
+    "Weekly",
+    "Monthly",
+    "Quarterly",
     "Team Huddle",
   ],
 };
@@ -649,7 +648,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "daily",
     category: "operations",
-    taskGroup: "Daily Operations",
+    taskGroup: "Daily",
     isUrgent: true,
   },
   {
@@ -659,7 +658,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "daily",
     category: "operations",
-    taskGroup: "Daily Operations",
+    taskGroup: "Daily",
   },
   {
     id: "dir-d-003",
@@ -668,7 +667,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "daily",
     category: "retention",
-    taskGroup: "Daily Operations",
+    taskGroup: "Daily",
   },
 
   // ── WEEKLY TASKS ────────────────────────────────────────────────────────
@@ -715,7 +714,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "weekly",
     category: "operations",
-    taskGroup: "Weekly Reviews",
+    taskGroup: "Weekly",
   },
   {
     id: "dir-w-002",
@@ -724,7 +723,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "weekly",
     category: "operations",
-    taskGroup: "Weekly Reviews",
+    taskGroup: "Weekly",
   },
   {
     id: "dir-w-003",
@@ -733,7 +732,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "weekly",
     category: "retention",
-    taskGroup: "Weekly Reviews",
+    taskGroup: "Weekly",
   },
   {
     id: "all-w-001",
@@ -754,7 +753,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "achc",
-    taskGroup: "ACHC Compliance",
+    taskGroup: "Monthly",
   },
   {
     id: "achc-m-002",
@@ -763,7 +762,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "achc",
-    taskGroup: "ACHC Compliance",
+    taskGroup: "Monthly",
   },
   {
     id: "achc-m-003",
@@ -772,7 +771,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "achc",
-    taskGroup: "ACHC Compliance",
+    taskGroup: "Monthly",
   },
   {
     id: "achc-m-004",
@@ -781,7 +780,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "achc",
-    taskGroup: "ACHC Compliance",
+    taskGroup: "Monthly",
   },
   {
     id: "achc-m-005",
@@ -790,7 +789,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "achc",
-    taskGroup: "ACHC Compliance",
+    taskGroup: "Monthly",
   },
   // State Board
   {
@@ -800,7 +799,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "state_board",
-    taskGroup: "State Board",
+    taskGroup: "Monthly",
   },
   {
     id: "sb-m-002",
@@ -809,7 +808,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "state_board",
-    taskGroup: "State Board",
+    taskGroup: "Monthly",
   },
   {
     id: "sb-m-003",
@@ -818,7 +817,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "state_board",
-    taskGroup: "State Board",
+    taskGroup: "Monthly",
   },
   // Retention
   {
@@ -828,7 +827,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "retention",
-    taskGroup: "Retention Metrics",
+    taskGroup: "Monthly",
   },
   {
     id: "ret-m-002",
@@ -837,7 +836,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "retention",
-    taskGroup: "Retention Metrics",
+    taskGroup: "Monthly",
   },
   {
     id: "ret-m-003",
@@ -855,7 +854,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "monthly",
     category: "retention",
-    taskGroup: "Retention Metrics",
+    taskGroup: "Monthly",
   },
 
   // ── QUARTERLY TASKS ─────────────────────────────────────────────────────
@@ -867,7 +866,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "achc",
-    taskGroup: "ACHC Compliance",
+    taskGroup: "Quarterly",
   },
   {
     id: "achc-q-002",
@@ -876,7 +875,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "achc",
-    taskGroup: "ACHC Compliance",
+    taskGroup: "Quarterly",
   },
   {
     id: "achc-q-003",
@@ -885,7 +884,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "achc",
-    taskGroup: "ACHC Compliance",
+    taskGroup: "Quarterly",
   },
   {
     id: "achc-q-004",
@@ -894,7 +893,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "achc",
-    taskGroup: "ACHC Compliance",
+    taskGroup: "Quarterly",
   },
   // State Board
   {
@@ -904,7 +903,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "state_board",
-    taskGroup: "State Board",
+    taskGroup: "Quarterly",
   },
   {
     id: "sb-q-002",
@@ -913,7 +912,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "state_board",
-    taskGroup: "State Board",
+    taskGroup: "Quarterly",
   },
   {
     id: "sb-q-003",
@@ -922,7 +921,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "state_board",
-    taskGroup: "State Board",
+    taskGroup: "Quarterly",
   },
   // Retention
   {
@@ -932,7 +931,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "retention",
-    taskGroup: "Retention Metrics",
+    taskGroup: "Quarterly",
   },
   {
     id: "ret-q-002",
@@ -941,7 +940,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "retention",
-    taskGroup: "Retention Metrics",
+    taskGroup: "Quarterly",
   },
   {
     id: "ret-q-003",
@@ -950,7 +949,7 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "quarterly",
     category: "retention",
-    taskGroup: "Retention Metrics",
+    taskGroup: "Quarterly",
   },
   {
     id: "ret-q-004",
