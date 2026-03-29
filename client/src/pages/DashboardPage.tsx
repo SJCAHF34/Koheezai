@@ -5,7 +5,7 @@ import { useAuth } from "@/App";
 import { loadAllAssessments, deleteAssessment, type SavedAssessment } from "@/lib/patientStorage";
 import { TASKS, type TaskFrequency } from "@/lib/taskData";
 import { loadCompletions, getPeriodKey } from "@/lib/taskStorage";
-import { getUserProfile } from "@/lib/userProfile";
+import { getUserProfile, isDirectorRole, isRegionalOrAbove } from "@/lib/userProfile";
 
 const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
 
@@ -97,8 +97,7 @@ function TaskSummaryWidget({ userEmail, userName }: { userEmail: string; userNam
   const dailyTasks = TASKS.filter(
     (t) =>
       t.frequency === freq &&
-      (t.role === profile.role || t.role === "all_staff" ||
-        (profile.role === "director" || profile.role === "regional_director"))
+      (t.role === profile.role || t.role === "all_staff" || isDirectorRole(profile.role))
   );
   const done = dailyTasks.filter((t) => completions.has(t.id)).length;
   const pct = dailyTasks.length > 0 ? Math.round((done / dailyTasks.length) * 100) : 0;
@@ -153,7 +152,7 @@ export default function DashboardPage() {
   // Regional directors land on their dedicated dashboard, not here
   if (user) {
     const profile = getUserProfile(user.email, user.name ?? "");
-    if (profile.role === "regional_director") {
+    if (isRegionalOrAbove(profile.role)) {
       return <Redirect to="/app/tasks/regional" />;
     }
   }

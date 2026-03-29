@@ -59,6 +59,12 @@ export type EvidenceCitation = {
   url?: string;
 };
 
+export type LiverpoolDDIStatus = {
+  enabled: boolean;
+  resolvedDrugs: number;
+  newInteractions: number;
+};
+
 export type AssessmentResult = {
   interactions: DrugInteraction[];
   renalAlerts: RenalAlert[];
@@ -69,6 +75,5 @@ export type AssessmentResult = {
   citations?: EvidenceCitation[];
   sources?: string[];
   aiProvider?: "openevidence" | "openai";
-  ddiSource?: "liverpool" | "static";
-  ddiResolvedDrugs?: number;
+  liverpoolDDI?: LiverpoolDDIStatus;
 };

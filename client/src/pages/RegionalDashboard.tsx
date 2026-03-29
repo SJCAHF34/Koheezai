@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/App";
-import { getUserProfile } from "@/lib/userProfile";
+import { getUserProfile, isCPO, getAssignedRegion, getRoleLabel } from "@/lib/userProfile";
 import { SITES, TASKS, CATEGORY_CONFIG, type TaskCategory } from "@/lib/taskData";
 import { loadCompletions } from "@/lib/taskStorage";
 import {
@@ -244,8 +244,20 @@ function SiteCard({
 }
 
 // ── Store Directory ─────────────────────────────────────────────────────────
-function StoreDirectorySection({ onDrillDown }: { onDrillDown: (id: string) => void }) {
-  const [openRegions, setOpenRegions] = useState<Set<string>>(() => new Set(["Western Region"]));
+function StoreDirectorySection({
+  onDrillDown,
+  filterRegion,
+}: {
+  onDrillDown: (id: string) => void;
+  filterRegion?: string | null;
+}) {
+  const visibleRegions = filterRegion
+    ? STORE_REGIONS.filter((r) => r.region === filterRegion)
+    : STORE_REGIONS;
+
+  const [openRegions, setOpenRegions] = useState<Set<string>>(
+    () => new Set(filterRegion ? [filterRegion] : ["Western Region"])
+  );
 
   const toggleRegion = (region: string) => {
     setOpenRegions((prev) => {
@@ -266,7 +278,7 @@ function StoreDirectorySection({ onDrillDown }: { onDrillDown: (id: string) => v
         </span>
       </h2>
       <div className="space-y-2">
-        {STORE_REGIONS.map((reg) => {
+        {visibleRegions.map((reg) => {
           const isOpen = openRegions.has(reg.region);
           return (
             <div
@@ -326,8 +338,16 @@ export default function RegionalDashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [period, setPeriod] = useState<TrendPeriod>("7d");
+  // CPO region filter — null means "All Regions"; RPDs are locked to their region
+  const [cpoFilterRegion, setCpoFilterRegion] = useState<string | null>(null);
 
   if (!user) return null;
+
+  const profile = getUserProfile(user.email, user.name ?? "");
+  const assignedRegion = getAssignedRegion(profile);
+  const isCpoUser = isCPO(profile.role);
+  // Effective region: RPD → their region; CPO → whatever filter is set (null = all)
+  const filterRegion = assignedRegion ?? cpoFilterRegion;
 
   // ── Real per-site stats: load from localStorage for every site ──────────
   const siteRealStats: SiteRealStats[] = SITES.map((s) => computeSiteRealStats(s.id));
@@ -373,14 +393,14 @@ export default function RegionalDashboard() {
                 <h1 className="text-2xl font-bold text-slate-900">Regional Dashboard</h1>
               </div>
               <p className="text-sm text-slate-400">
-                Southern + Northern California · {today}
+                {filterRegion ?? "All Regions"} · {today}
               </p>
             </div>
             <span
               className="text-xs font-bold px-2.5 py-1 rounded-full text-white whitespace-nowrap"
               style={{ background: "linear-gradient(90deg,#3b82f6,#9333ea)" }}
             >
-              Regional Director
+              {getRoleLabel(profile.role)}
             </span>
           </div>
 
@@ -456,22 +476,43 @@ export default function RegionalDashboard() {
                 — Click any category to see all-site rankings
               </span>
             </h2>
-            {/* Period selector */}
-            <div className="flex gap-1">
-              {(["7d", "30d", "6m", "1y"] as TrendPeriod[]).map((p) => (
-                <button
-                  key={p}
-                  data-testid={`period-btn-${p}`}
-                  onClick={() => setPeriod(p)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-bold border transition-all ${
-                    period === p
-                      ? "border-purple-400 bg-purple-50 text-purple-700"
-                      : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
-                  }`}
-                >
-                  {PERIOD_CONFIG[p].label}
-                </button>
-              ))}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* CPO region filter */}
+              {isCpoUser && (
+                <div className="flex gap-1">
+                  {[null, ...STORE_REGIONS.map((r) => r.region)].map((r) => (
+                    <button
+                      key={r ?? "all"}
+                      data-testid={`region-filter-${r ?? "all"}`}
+                      onClick={() => setCpoFilterRegion(r)}
+                      className={`px-2 py-1 rounded-md text-[11px] font-bold border transition-all ${
+                        cpoFilterRegion === r
+                          ? "border-blue-400 bg-blue-50 text-blue-700"
+                          : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                      }`}
+                    >
+                      {r ? r.replace(" Region", "") : "All"}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* Period selector */}
+              <div className="flex gap-1">
+                {(["7d", "30d", "6m", "1y"] as TrendPeriod[]).map((p) => (
+                  <button
+                    key={p}
+                    data-testid={`period-btn-${p}`}
+                    onClick={() => setPeriod(p)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold border transition-all ${
+                      period === p
+                        ? "border-purple-400 bg-purple-50 text-purple-700"
+                        : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                    }`}
+                  >
+                    {PERIOD_CONFIG[p].label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -493,7 +534,7 @@ export default function RegionalDashboard() {
                 <button
                   key={cat}
                   data-testid={`trend-card-${cat}`}
-                  onClick={() => navigate(`/app/category-report?cat=${cat}&period=${period}`)}
+                  onClick={() => navigate(`/app/category-report?cat=${cat}&period=${period}${filterRegion ? `&region=${encodeURIComponent(filterRegion)}` : ""}`)}
                   className="bg-white border border-slate-200 rounded-md px-4 py-4 text-left hover:shadow-md hover:border-purple-200 transition-all group"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -530,7 +571,7 @@ export default function RegionalDashboard() {
         </section>
 
         {/* ── Store Directory ─────────────────────────────────────────── */}
-        <StoreDirectorySection onDrillDown={handleDrillDown} />
+        <StoreDirectorySection onDrillDown={handleDrillDown} filterRegion={filterRegion} />
 
         {/* ── Task-level Trouble Spots ─────────────────────────────────── */}
         <section>

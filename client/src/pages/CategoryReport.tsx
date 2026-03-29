@@ -11,6 +11,7 @@ import {
 } from "@/lib/trendData";
 import { CATEGORY_CONFIG, type TaskCategory } from "@/lib/taskData";
 import { STORE_REGIONS, ALL_STORES } from "@/lib/storeDirectory";
+import { getUserProfile, isCPO, getAssignedRegion } from "@/lib/userProfile";
 import {
   ArrowLeft,
   TrendingUp,
@@ -177,6 +178,7 @@ export default function CategoryReport() {
   const params = new URLSearchParams(window.location.search);
   const initCat = (params.get("cat") as TaskCategory) ?? "achc";
   const initPeriod = (params.get("period") as TrendPeriod) ?? "7d";
+  const initRegion = params.get("region") ?? null;
 
   const [cat, setCat] = useState<TaskCategory>(
     TREND_CATEGORIES.includes(initCat) ? initCat : "achc"
@@ -184,15 +186,26 @@ export default function CategoryReport() {
   const [period, setPeriod] = useState<TrendPeriod>(
     (Object.keys(PERIOD_CONFIG) as TrendPeriod[]).includes(initPeriod) ? initPeriod : "7d"
   );
+  const [filterRegion, setFilterRegion] = useState<string | null>(initRegion);
 
   if (!user) return null;
+
+  const profile = getUserProfile(user.email, user.name ?? "");
+  const isCpoUser = isCPO(profile.role);
+  const assignedRegion = getAssignedRegion(profile);
+  // RPD: always locked to their region; CPO: use filter state
+  const effectiveRegion = assignedRegion ?? filterRegion;
 
   const cfg = CATEGORY_CONFIG[cat];
   const periodLabel = PERIOD_CONFIG[period].label;
 
+  const baseStores = effectiveRegion
+    ? ALL_STORES_WITH_REGION.filter((s) => s.region === effectiveRegion)
+    : ALL_STORES_WITH_REGION;
+
   const rankings = useMemo(
-    () => getSiteRankingByCategory(cat, period, ALL_STORES_WITH_REGION),
-    [cat, period]
+    () => getSiteRankingByCategory(cat, period, baseStores),
+    [cat, period, effectiveRegion]
   );
 
   // Assign global ranks and group into tiers
@@ -281,6 +294,43 @@ export default function CategoryReport() {
               </button>
             ))}
           </div>
+
+          {/* CPO region filter */}
+          {isCpoUser && (
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Region:</span>
+              <div className="flex gap-1 flex-wrap">
+                {[null, ...STORE_REGIONS.map((r) => r.region)].map((r) => (
+                  <button
+                    key={r ?? "all"}
+                    data-testid={`region-tab-${r ?? "all"}`}
+                    onClick={() => setFilterRegion(r)}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition-all ${
+                      filterRegion === r
+                        ? "border-blue-400 bg-blue-50 text-blue-700"
+                        : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                    }`}
+                  >
+                    {r ? r.replace(" Region", "") : "All Regions"}
+                  </button>
+                ))}
+              </div>
+              {effectiveRegion && (
+                <span className="text-[10px] text-slate-400">
+                  · Showing {baseStores.length} locations
+                </span>
+              )}
+            </div>
+          )}
+          {assignedRegion && !isCpoUser && (
+            <div className="mt-3 flex items-center gap-1.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Region:</span>
+              <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                {assignedRegion}
+              </span>
+              <span className="text-[10px] text-slate-400">· {baseStores.length} locations</span>
+            </div>
+          )}
 
           {/* Period selector */}
           <div className="mt-2 flex gap-1">

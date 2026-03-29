@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/App";
-import { getUserProfile, isDirectorRole, type UserRole } from "@/lib/userProfile";
+import {
+  getUserProfile,
+  isDirectorRole,
+  isRegionalOrAbove,
+  isPharmacyDirector,
+  isTechRole,
+  type UserRole,
+} from "@/lib/userProfile";
 import {
   TASKS,
   SITES,
@@ -19,7 +26,13 @@ import {
   removeCompletion,
   loadAssignments,
   saveAssignment,
+  loadPriorities,
+  savePriority,
+  dismissPriority,
+  removePriority,
+  hasPriority,
   type TaskAssignment,
+  type TaskPriority,
 } from "@/lib/taskStorage";
 import {
   Check,
@@ -30,6 +43,8 @@ import {
   PartyPopper,
   ChevronDown,
   ChevronRight,
+  Bell,
+  Flag,
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -218,18 +233,24 @@ function TaskRow({
   animating,
   assignment,
   canAssign,
+  canPrioritize,
+  isPrioritized,
   readOnly,
   onToggle,
   onAssign,
+  onPrioritize,
 }: {
   task: PharmacyTask;
   completed: boolean;
   animating: boolean;
   assignment?: TaskAssignment;
   canAssign: boolean;
+  canPrioritize: boolean;
+  isPrioritized: boolean;
   readOnly?: boolean;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
+  onPrioritize: (t: PharmacyTask) => void;
 }) {
   const cat = CATEGORY_CONFIG[task.category];
   return (
@@ -253,6 +274,12 @@ function TaskRow({
             <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-50 text-red-600">
               <AlertTriangle className="w-2.5 h-2.5" />
               Urgent
+            </span>
+          )}
+          {isPrioritized && !completed && (
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
+              <Flag className="w-2.5 h-2.5" />
+              Priority Alert
             </span>
           )}
           <p
@@ -295,6 +322,23 @@ function TaskRow({
         {cat.label}
       </span>
 
+      {/* Priority alert button — directors only */}
+      {canPrioritize && !readOnly && (
+        <button
+          data-testid={`button-prioritize-${task.id}`}
+          onClick={() => onPrioritize(task)}
+          title={isPrioritized ? "Remove priority alert" : "Send priority alert to Pharmacy Director"}
+          className={`shrink-0 p-1.5 rounded-md transition-colors ${
+            isPrioritized
+              ? "text-amber-600 bg-amber-50 visible"
+              : "invisible group-hover:visible text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+          }`}
+        >
+          <Flag className="w-4 h-4" />
+        </button>
+      )}
+
+      {/* Assign button — directors only, techs can be reassigned */}
       {canAssign && !completed && !readOnly && (
         <button
           data-testid={`button-assign-${task.id}`}
@@ -317,20 +361,26 @@ function TaskGroupSection({
   completions,
   animating,
   assignments,
+  priorities,
   canAssign,
+  canPrioritize,
   readOnly,
   onToggle,
   onAssign,
+  onPrioritize,
 }: {
   groupName: string;
   tasks: PharmacyTask[];
   completions: Set<string>;
   animating: Set<string>;
   assignments: Map<string, TaskAssignment>;
+  priorities: Set<string>;
   canAssign: boolean;
+  canPrioritize: boolean;
   readOnly?: boolean;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
+  onPrioritize: (t: PharmacyTask) => void;
 }) {
   const [open, setOpen] = useState(true);
   const done = tasks.filter((t) => completions.has(t.id)).length;
@@ -370,9 +420,12 @@ function TaskGroupSection({
               animating={animating.has(task.id)}
               assignment={assignments.get(task.id)}
               canAssign={canAssign}
+              canPrioritize={canPrioritize}
+              isPrioritized={priorities.has(task.id)}
               readOnly={readOnly}
               onToggle={onToggle}
               onAssign={onAssign}
+              onPrioritize={onPrioritize}
             />
           ))}
         </div>
@@ -389,20 +442,26 @@ function RoleSection({
   completions,
   animating,
   assignments,
+  priorities,
   canAssign,
+  canPrioritize,
   readOnly,
   onToggle,
   onAssign,
+  onPrioritize,
 }: {
   role: TaskRole;
   groups: Array<{ groupName: string; tasks: PharmacyTask[] }>;
   completions: Set<string>;
   animating: Set<string>;
   assignments: Map<string, TaskAssignment>;
+  priorities: Set<string>;
   canAssign: boolean;
+  canPrioritize: boolean;
   readOnly?: boolean;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
+  onPrioritize: (t: PharmacyTask) => void;
 }) {
   const [open, setOpen] = useState(true);
   const style = ROLE_STYLE[role];
@@ -467,10 +526,13 @@ function RoleSection({
               completions={completions}
               animating={animating}
               assignments={assignments}
+              priorities={priorities}
               canAssign={canAssign}
+              canPrioritize={canPrioritize}
               readOnly={readOnly}
               onToggle={onToggle}
               onAssign={onAssign}
+              onPrioritize={onPrioritize}
             />
           ))}
         </div>
@@ -665,6 +727,125 @@ function AssignDialog({
   );
 }
 
+// ── Priority Dialog ────────────────────────────────────────────────────────────
+
+function PriorityDialog({
+  task,
+  siteId,
+  directorName,
+  directorRole,
+  isPrioritized,
+  onSave,
+  onRemove,
+  onClose,
+}: {
+  task: PharmacyTask;
+  siteId: string;
+  directorName: string;
+  directorRole: string;
+  isPrioritized: boolean;
+  onSave: (p: TaskPriority) => void;
+  onRemove: (taskId: string) => void;
+  onClose: () => void;
+}) {
+  const [note, setNote] = useState("");
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        data-testid="dialog-prioritize-task"
+        className="bg-white rounded-lg shadow-xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <Flag className="w-4 h-4 text-amber-600" />
+            <h3 className="font-semibold text-slate-900 text-sm">
+              {isPrioritized ? "Remove Priority Alert" : "Send Priority Alert"}
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="px-5 py-4 space-y-4">
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Task</p>
+            <p className="text-sm font-medium text-slate-800">{task.title}</p>
+          </div>
+          {isPrioritized ? (
+            <p className="text-sm text-slate-600">
+              This task is currently flagged as a priority alert for the Pharmacy Director. Removing it will clear the alert.
+            </p>
+          ) : (
+            <>
+              <p className="text-xs text-slate-500">
+                This will send a priority alert to the Pharmacy Director at this store. They will see it highlighted in their task list.
+              </p>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Note{" "}
+                  <span className="normal-case font-normal text-slate-400">(optional)</span>
+                </p>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  data-testid="input-priority-note"
+                  placeholder="Add context for the Pharmacy Director..."
+                  className="w-full text-sm rounded-md border border-slate-200 px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-slate-700 placeholder:text-slate-400"
+                  rows={2}
+                />
+              </div>
+            </>
+          )}
+        </div>
+        <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            Cancel
+          </button>
+          {isPrioritized ? (
+            <button
+              onClick={() => { onRemove(task.id); onClose(); }}
+              data-testid="button-confirm-remove-priority"
+              className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-slate-600 hover:bg-slate-700 transition-colors"
+            >
+              Remove Alert
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                onSave({
+                  taskId: task.id,
+                  taskTitle: task.title,
+                  siteId,
+                  note: note.trim(),
+                  prioritizedBy: directorName,
+                  prioritizedByRole: directorRole,
+                  prioritizedAt: new Date().toISOString(),
+                  dismissed: false,
+                });
+                onClose();
+              }}
+              data-testid="button-confirm-priority"
+              className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 transition-colors"
+            >
+              Send Alert
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function TaskManager() {
@@ -677,26 +858,29 @@ export default function TaskManager() {
   );
   const rawUrlSiteId = searchParams.get("siteId");
 
-  // Regional directors can drill into any site via URL param and retain full access.
-  const isRegionalDir = profile?.role === "regional_director";
+  // Regional/CPO directors can drill into any site via URL param and retain full access.
+  const isRegionalDir = profile ? isRegionalOrAbove(profile.role) : false;
   const knownSiteIds = new Set(SITES.map((s) => s.id));
   const effectiveRawSiteId =
     rawUrlSiteId && knownSiteIds.has(rawUrlSiteId) ? rawUrlSiteId : null;
   const urlSiteId =
     effectiveRawSiteId && isRegionalDir ? effectiveRawSiteId : null;
-  // Regional directors have full edit access everywhere — no read-only mode.
   const readOnly = false;
 
   const [frequency, setFrequency] = useState<TaskFrequency>("daily");
-  // Default to "all" when drilling into a specific site so the full picture is visible.
   const [viewingRole, setViewingRole] = useState<ViewingRole>(urlSiteId ? "all" : "own");
   const [completions, setCompletions] = useState<Set<string>>(new Set());
   const [animating, setAnimating] = useState<Set<string>>(new Set());
   const [assignments, setAssignments] = useState<Map<string, TaskAssignment>>(new Map());
   const [assigningTask, setAssigningTask] = useState<PharmacyTask | null>(null);
+  const [prioritizingTask, setPrioritizingTask] = useState<PharmacyTask | null>(null);
+  const [activePriorities, setActivePriorities] = useState<TaskPriority[]>([]);
+  const [priorityIds, setPriorityIds] = useState<Set<string>>(new Set());
 
   const siteId = urlSiteId ?? profile?.siteId ?? "1417";
   const isDir = isDirectorRole(profile?.role ?? "pharmacist");
+  const isPharmDir = profile ? isPharmacyDirector(profile.role) : false;
+  const canPrioritize = isDir && !isTechRole(profile?.role ?? "pharmacist");
 
   useEffect(() => {
     if (!profile) return;
@@ -711,6 +895,9 @@ export default function TaskManager() {
     setCompletions(loadCompletions(siteId, frequency, roleFilter));
     const aList = loadAssignments(siteId);
     setAssignments(new Map(aList.map((a) => [a.taskId, a])));
+    const pList = loadPriorities(siteId);
+    setActivePriorities(pList);
+    setPriorityIds(new Set(pList.map((p) => p.taskId)));
   }, [frequency, siteId, profile?.email, viewingRole]);
 
   const toggleCompletion = useCallback(
@@ -745,6 +932,32 @@ export default function TaskManager() {
     setAssignments((prev) => new Map(prev).set(a.taskId, a));
   }, []);
 
+  const handlePrioritySave = useCallback((p: TaskPriority) => {
+    savePriority(p);
+    setActivePriorities((prev) => [...prev.filter((x) => x.taskId !== p.taskId), p]);
+    setPriorityIds((prev) => new Set([...prev, p.taskId]));
+  }, []);
+
+  const handlePriorityRemove = useCallback((taskId: string) => {
+    removePriority(taskId, siteId);
+    setActivePriorities((prev) => prev.filter((p) => p.taskId !== taskId));
+    setPriorityIds((prev) => {
+      const next = new Set(prev);
+      next.delete(taskId);
+      return next;
+    });
+  }, [siteId]);
+
+  const handleDismissPriority = useCallback((taskId: string) => {
+    dismissPriority(taskId, siteId);
+    setActivePriorities((prev) => prev.filter((p) => p.taskId !== taskId));
+  }, [siteId]);
+
+  const handleDismissAllPriorities = useCallback(() => {
+    activePriorities.forEach((p) => dismissPriority(p.taskId, siteId));
+    setActivePriorities([]);
+  }, [activePriorities, siteId]);
+
   if (!profile) return null;
 
   const drillSite = urlSiteId
@@ -767,6 +980,58 @@ export default function TaskManager() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Priority alert banner — Pharmacy Director only */}
+      {isPharmDir && activePriorities.length > 0 && (
+        <div
+          data-testid="priority-alert-banner"
+          className="bg-amber-50 border-b border-amber-200 px-6 py-3"
+        >
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-2">
+                <Bell className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">
+                    {activePriorities.length} priority alert{activePriorities.length !== 1 ? "s" : ""} from leadership
+                  </p>
+                  <div className="mt-1 space-y-1">
+                    {activePriorities.map((p) => (
+                      <div key={p.taskId} className="flex items-start gap-2">
+                        <Flag className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="text-xs font-medium text-amber-800">{p.taskTitle}</span>
+                          {p.note && (
+                            <span className="text-xs text-amber-600 ml-1">· {p.note}</span>
+                          )}
+                          <span className="text-xs text-amber-500 ml-1">
+                            — {p.prioritizedBy}
+                          </span>
+                        </div>
+                        <button
+                          data-testid={`button-dismiss-priority-${p.taskId}`}
+                          onClick={() => handleDismissPriority(p.taskId)}
+                          className="shrink-0 text-amber-400 hover:text-amber-700 transition-colors"
+                          title="Dismiss alert"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <button
+                data-testid="button-dismiss-all-priorities"
+                onClick={handleDismissAllPriorities}
+                className="text-xs font-medium text-amber-600 hover:text-amber-800 transition-colors shrink-0"
+              >
+                Dismiss all
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page header */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-6 py-8">
@@ -884,10 +1149,13 @@ export default function TaskManager() {
                 completions={completions}
                 animating={animating}
                 assignments={assignments}
+                priorities={priorityIds}
                 canAssign={isDir}
+                canPrioritize={canPrioritize}
                 readOnly={readOnly}
                 onToggle={toggleCompletion}
                 onAssign={setAssigningTask}
+                onPrioritize={setPrioritizingTask}
               />
             ))}
           </div>
@@ -910,6 +1178,20 @@ export default function TaskManager() {
           directorName={profile.name}
           onSave={handleAssignSave}
           onClose={() => setAssigningTask(null)}
+        />
+      )}
+
+      {/* Priority dialog */}
+      {prioritizingTask && (
+        <PriorityDialog
+          task={prioritizingTask}
+          siteId={siteId}
+          directorName={profile.name}
+          directorRole={profile.role}
+          isPrioritized={priorityIds.has(prioritizingTask.id)}
+          onSave={handlePrioritySave}
+          onRemove={handlePriorityRemove}
+          onClose={() => setPrioritizingTask(null)}
         />
       )}
     </div>

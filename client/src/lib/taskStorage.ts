@@ -2,6 +2,7 @@ import type { TaskFrequency } from "./taskData";
 
 const COMPLETIONS_KEY = "koheez_task_completions";
 const ASSIGNMENTS_KEY = "koheez_task_assignments";
+const PRIORITIES_KEY = "koheez_task_priorities";
 
 export interface TaskCompletion {
   taskId: string;
@@ -21,6 +22,17 @@ export interface TaskAssignment {
   assignedBy: string;
   assignedAt: string;
   siteId: string;
+}
+
+export interface TaskPriority {
+  taskId: string;
+  taskTitle: string;
+  siteId: string;
+  note: string;
+  prioritizedBy: string;
+  prioritizedByRole: string;
+  prioritizedAt: string;
+  dismissed: boolean;
 }
 
 export function getPeriodKey(frequency: TaskFrequency): string {
@@ -58,13 +70,6 @@ function writeCompletions(completions: TaskCompletion[]): void {
   } catch {}
 }
 
-/**
- * Load completed taskIds for a given site + frequency period.
- * @param roleFilter  When provided, only returns completions whose taskRole matches
- *                    the filter OR is "all_staff" (shared cross-role tasks).
- *                    Pass undefined / omit to load all completions for the period
- *                    (used by director "All Roles" view and overview cards).
- */
 export function loadCompletions(
   siteId: string,
   frequency: TaskFrequency,
@@ -173,4 +178,51 @@ export function removeAssignment(taskId: string, siteId: string): void {
       JSON.stringify(readAssignments().filter((a) => !(a.taskId === taskId && a.siteId === siteId)))
     );
   } catch {}
+}
+
+// ── Task Priorities / Alerts ───────────────────────────────────────────────
+
+function readPriorities(): TaskPriority[] {
+  try {
+    const raw = localStorage.getItem(PRIORITIES_KEY);
+    return raw ? (JSON.parse(raw) as TaskPriority[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePriorities(priorities: TaskPriority[]): void {
+  try {
+    localStorage.setItem(PRIORITIES_KEY, JSON.stringify(priorities));
+  } catch {}
+}
+
+export function loadPriorities(siteId: string): TaskPriority[] {
+  return readPriorities().filter((p) => p.siteId === siteId && !p.dismissed);
+}
+
+export function savePriority(priority: TaskPriority): void {
+  const all = readPriorities().filter(
+    (p) => !(p.taskId === priority.taskId && p.siteId === priority.siteId)
+  );
+  all.push(priority);
+  writePriorities(all);
+}
+
+export function dismissPriority(taskId: string, siteId: string): void {
+  writePriorities(
+    readPriorities().map((p) =>
+      p.taskId === taskId && p.siteId === siteId ? { ...p, dismissed: true } : p
+    )
+  );
+}
+
+export function removePriority(taskId: string, siteId: string): void {
+  writePriorities(
+    readPriorities().filter((p) => !(p.taskId === taskId && p.siteId === siteId))
+  );
+}
+
+export function hasPriority(taskId: string, siteId: string): boolean {
+  return readPriorities().some((p) => p.taskId === taskId && p.siteId === siteId && !p.dismissed);
 }

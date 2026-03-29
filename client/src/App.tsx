@@ -16,7 +16,7 @@ import RegionalDashboard from "@/pages/RegionalDashboard";
 import CategoryReport from "@/pages/CategoryReport";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
-import { getUserProfile } from "@/lib/userProfile";
+import { getUserProfile, isRegionalOrAbove } from "@/lib/userProfile";
 import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
@@ -74,7 +74,7 @@ function AppNav() {
   const queryClient = useQueryClient();
 
   const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
-  const isRegional = profile?.role === "regional_director";
+  const isRegional = profile ? isRegionalOrAbove(profile.role) : false;
 
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("/api/auth/logout", { method: "POST" }),
@@ -169,7 +169,7 @@ function RegionalProtected({ component: Component }: { component: () => JSX.Elem
   if (!isAuthenticated) return <Redirect to="/login" />;
   if (user) {
     const profile = getUserProfile(user.email, user.name ?? "");
-    if (profile.role !== "regional_director") return <Redirect to="/app/tasks" />;
+    if (!isRegionalOrAbove(profile.role)) return <Redirect to="/app/tasks" />;
   }
   return (
     <>

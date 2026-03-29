@@ -5,7 +5,10 @@ Koheez.ai is a clinical decision support platform for HIV pharmacists. It featur
 
 ## Authentication
 - Session-based auth via express-session (SESSION_SECRET env var).
-- Test login: test@koheez.ai / Koheez1 (hardcoded in server/routes.ts DEMO_USERS).
+- Demo credentials (all hardcoded in server/routes.ts DEMO_USERS):
+  - `cpo@koheez.ai` / `KohezCPO1` — Chief Pharmacy Officer (all regions)
+  - `test@koheez.ai` / `Koheez1` — Regional Pharmacy Director (Western Region, siteId 1417)
+  - `jrockwoodpharmd@gmail.com` / `hollywood` — Pharmacy Director (Site 1417, RX Pike Street)
 - New accounts stored in in-memory array (inMemoryUsers) — not persisted across restarts.
 - Auth endpoints: GET /api/auth/me, POST /api/auth/login, POST /api/auth/signup, POST /api/auth/logout.
 - Unauthenticated users accessing /app/* are redirected to /login.
@@ -13,15 +16,25 @@ Koheez.ai is a clinical decision support platform for HIV pharmacists. It featur
 ## Route Structure
 - `/` → LandingPage (public, white background, blue→purple→red gradient logo only)
 - `/login` → LoginPage (sign in / create account tabs, white/light theme)
-- `/app` → DashboardPage (protected, member dashboard with tool cards + Today's Tasks widget; redirects regional_director to /app/tasks/regional)
+- `/app` → DashboardPage (protected; CPO + RPD redirect to /app/tasks/regional; PD goes to /app)
 - `/app/assessment` → AssessmentForm (protected, HIV/PrEP Treatment Assessor)
 - `/app/patient-assistance` → PatientAssistance (protected)
 - `/app/clinical-tools` → ClinicalTools (protected)
-- `/app/tasks/regional` → RegionalDashboard (protected, regional_director only; redirects other roles to /app/tasks)
+- `/app/tasks/regional` → RegionalDashboard (protected, CPO + RPD only; others redirected to /app/tasks)
 - `/app/tasks` → TaskManager (protected, role-based pharmacy task management)
+- `/app/category-report` → CategoryReport (protected, regional dashboard drill-down; filterable by region)
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
+
+## Role Hierarchy
+Three-tier hierarchy defined in `client/src/lib/userProfile.ts`:
+- **`chief_pharmacy_officer` (CPO)**: All-region access to Regional Dashboard. Sees region filter tabs (All / Western / Northern / Southern / Eastern) on RegionalDashboard and CategoryReport. Can flag task priorities.
+- **`regional_pharmacy_director` (RPD)**: Locked to assigned region (e.g., Western Region). Auto-filtered dashboard + category report. Can flag task priorities.
+- **`pharmacy_director`**: Site-level task manager access (`/app/tasks`). Sees priority alert banner, can flag and dismiss alerts. Can assign tasks.
+- Tech roles: `data_entry_tech`, `pv2_tech`, `delivery_tech`, `pharmacist` — see only their tasks, no flagging.
+
+Helper functions: `isRegionalOrAbove()`, `isCPO()`, `isPharmacyDirector()`, `isTechRole()`, `isDirectorRole()`, `getAssignedRegion()`.
 
 ## System Architecture
 
@@ -41,7 +54,8 @@ Preferred communication style: Simple, everyday language.
 - **Request Validation**: Zod schema validation for incoming assessment data.
 
 ### Clinical Validation Modules
-- **Drug Interaction Engine**: Comprehensive engine with 100+ evidence-based rules for ARV-to-concomitant, ARV-to-ARV, and duplicate therapy interactions. Includes severity levels, descriptions, and clinical recommendations.
+- **Drug Interaction Engine**: Comprehensive engine with 100+ evidence-based rules for ARV-to-concomitant, ARV-to-ARV, and duplicate therapy interactions. Includes severity levels, descriptions, and clinical recommendations. (`server/lib/drugInteractions.ts`)
+- **Liverpool HIV DDI Integration**: `server/lib/liverpoolDDI.ts` — calls the University of Liverpool HIV Drug Interactions API (requires `LIVERPOOL_API_KEY`). Looks up drug IDs by name, then fetches traffic-light interaction ratings (red→critical, amber→moderate, yellow→minor, green→skip). Merges Liverpool results with local rules, deduplicating by drug pair. Falls back gracefully when key is not configured.
 - **Renal Function Validation**: eGFR-based safety checks for medications, including contraindications and dose adjustments for TDF/TAF-containing products and Biktarvy.
 - **Hepatic/Pregnancy/Genetic Validation**: Alerts for hepatic impairment (Child-Pugh staging), pregnancy contraindications (e.g., Efavirenz, Cobicistat), and HLA-B*5701 screening for Abacavir hypersensitivity.
 - **Clinical Recommendations Engine**: Evidence-based decision support for OI prophylaxis (PCP, MAC, Toxoplasmosis based on CD4 count), viral load assessment (undetectable, low-level viremia, virologic failure), and immunization recommendations (CDC/ACIP guidelines).
@@ -54,54 +68,61 @@ Preferred communication style: Simple, everyday language.
 - **Database Configuration**: Drizzle ORM configured for PostgreSQL with schema definitions, using Drizzle Kit for migrations. Prepared for Neon serverless database integration.
 - **Session Management**: Express session with PostgreSQL session store.
 
+### Assessment Form & DDI Alert Summary
+- `AssessmentForm.tsx`: Multi-step workflow — Step 1 Clinical Details → Step 2 Create OpenEvidence Query → Step 3 Input OE Response → Step 4 Initial Intake Assessment → Step 5 Generate Comprehensive Note.
+- After the query is created (Step 2), a **DDI Alert Summary bar** appears showing:
+  - Total alert count with severity badges (Critical/Moderate/Minor color-coded pills)
+  - **Liverpool HIV DDI badge** (blue, `data-testid="badge-liverpool-ddi"`) if Liverpool API is configured
+  - **Internal Rules Engine badge** (gray, `data-testid="badge-internal-ddi"`) when Liverpool not configured
+  - `data-testid="ddi-alert-summary"` for the entire summary bar
+- Assessment API response includes `liverpoolDDI: { enabled, resolvedDrugs, newInteractions }`.
+
 ### Pharmacy Task Manager (`/app/tasks`)
 - Role-based checklist system with 70+ seeded tasks across four frequencies: Daily, Weekly, Monthly, Quarterly.
 - Task categories: **Operations** (slate), **ACHC Compliance** (blue), **State Board** (emerald), **Retention Metrics** (amber).
-- Roles: `data_entry_tech`, `pv2_tech`, `delivery_tech`, `pharmacist`, `director`, `regional_director`.
+- `TaskRole` strings (internal): `data_entry_tech`, `pv2_tech`, `delivery_tech`, `pharmacist`, `director`, `all_staff`.
 - Non-directors see only their role's tasks + `all_staff` tasks.
-- Directors see a **role-view selector** (My Tasks / DE Tech / PV2 Tech / Delivery Tech / Pharmacist / All Roles) and a **Site Overview panel** showing per-role completion % cards.
+- Directors see a **role-view selector** and a **Site Overview panel** showing per-role completion % cards.
 - **Animated checkboxes**: circular checkbox scales on click, turns green with Check icon, task text fades/strikes through. Completions saved to localStorage.
-- **Assign Task dialog** (directors only): hover any task row → UserPlus button → dialog to assign role + optional note. Assignment displayed inline on the task row.
+- **Assign Task dialog** (directors only): hover any task row → UserPlus button → dialog to assign role + optional note.
+- **Priority Alert system** (directors only): Flag (amber) button on task rows → `PriorityDialog` sets Low/Medium/High priority with optional note. `pharmacy_director` users see an amber alert banner at top of TaskManager for their site's flagged tasks (individual dismiss + "Dismiss all"). CPO/RPD can also flag tasks.
 - **Today's Tasks widget** on Dashboard: compact progress bar linking to /app/tasks.
-- Data layer: `client/src/lib/taskData.ts` (types + seed), `client/src/lib/taskStorage.ts` (localStorage helpers), `client/src/lib/userProfile.ts` (role mapping for demo users).
-- localStorage keys: `koheez_task_completions`, `koheez_task_assignments`.
+- Data layer: `client/src/lib/taskData.ts`, `client/src/lib/taskStorage.ts`, `client/src/lib/userProfile.ts`.
+- localStorage keys: `koheez_task_completions`, `koheez_task_assignments`, `koheez_task_priorities`.
 - Period keys: daily=YYYY-MM-DD, weekly=YYYY-Www, monthly=YYYY-MM, quarterly=YYYY-Qn.
 
 ### Patient Assistance Programs Section
-- Dedicated page (`/patient-assistance`) sourced from NeedyMeds and manufacturer websites
-- **32 HIV/ARV medications** across Gilead, ViiV Healthcare, Janssen, Merck, AbbVie, and more
-- Each medication lists copay cards and patient assistance programs (PAPs) with savings amounts, eligibility, phone numbers, and direct links to manufacturer programs and NeedyMeds pages
-- Broader resources section: ADAP, Ryan White Program, HealthWell Foundation, PAN Foundation, NeedyMeds directory
-- Searchable and filterable by program type (copay/PAP) and manufacturer
-- Data file: `client/src/lib/assistancePrograms.ts`
+- Dedicated page (`/patient-assistance`) sourced from NeedyMeds and manufacturer websites.
+- **32 HIV/ARV medications** across Gilead, ViiV Healthcare, Janssen, Merck, AbbVie, and more.
+- Each medication lists copay cards and patient assistance programs (PAPs) with savings amounts, eligibility, phone numbers, and direct links.
+- Searchable and filterable by program type (copay/PAP) and manufacturer.
+- Data file: `client/src/lib/assistancePrograms.ts`.
 
-### Assessment Results Display
-- The `AssessmentResults` component displays comprehensive output, including:
-    - Drug-Drug Interactions (severity-coded alerts).
-    - Renal Function Alerts (eGFR-based warnings).
-    - Hepatic/Pregnancy/Genetic Alerts (category-tagged).
-    - Clinical Recommendations (priority-based cards for OI prophylaxis, viral load, immunizations, adherence).
-    - AI-generated Clinical Assessment Summary.
-    - Pharmacist Consultation Questions (checkbox-enabled list).
+### Regional Dashboard (`/app/tasks/regional`)
+- Role-gated: CPO and RPD can access; Pharmacy Directors + tech roles are redirected to `/app/tasks`.
+- **CPO view**: Region filter tabs ("All", Western, Northern, Southern, Eastern) in the Category Trends header and CategoryReport. Filter persists as URL param `region=`.
+- **RPD view**: Auto-locked to assigned region (e.g., Western Region). No region filter tabs.
+- **Aggregate stat tiles**: Sites Monitored, Today's Avg, 7-Day Compliance.
+- **Site Breakdown**: Cards per site with today's overall % and category mini-bars. Click expands 7-day trend sparklines.
+- **Store Directory**: 69 simulated stores across 4 regions from `client/src/lib/storeDirectory.ts`. Filterable by CPO region filter.
+- **7-Day Category Trends**: Sparkline cards per category with period selector (7d/30d/6m/1y). Click → CategoryReport.
+- **Trouble Spots**: Categories sorted by 7-day avg. Below 65% → "Action needed" badge.
+- Trend data: Simulated via seeded PRNG (`trendData.ts`). Base rates: operations 74%, ACHC 82%, state board 79%, retention 58%.
+- Header shows dynamic role label ("Chief Pharmacy Officer" / "Regional Pharmacy Director") and region.
 
-### Regional Director Dashboard (`/app/tasks/regional`)
-- Role-gated: only `regional_director` users can access; all others are redirected to `/app/tasks`.
-- `test@koheez.ai` (Regional Director) is automatically redirected here when landing on `/app` or clicking the logo.
-- **Aggregate stat tiles**: Sites Monitored, Today's Avg (cross-site), 7-Day Compliance (cross-site).
-- **Site Breakdown**: One card per site (1417, 1842, 2031) with today's overall % and category mini-bars (ACHC, State Board, Retention, Operations). Clicking a card expands a 7-day trend panel with four sparklines.
-- **7-Day Category Trends**: Four sparkline cards (one per category) showing cross-site averages over the past 7 days.
-- **Trouble Spots**: All four categories sorted ascending by 7-day avg. Categories below 65% show "Action needed" badge. Per-site breakdown shown inline.
-- **Trend data**: Simulated via seeded PRNG (`trendData.ts`) — deterministic across page loads. Base rates: operations 74%, ACHC 82%, state board 79%, retention 58%. Site 1417 is above average (+6pp), Site 1842 underperforms (−13pp), Site 2031 is near average (+2pp).
-- **Nav**: Regional directors see a "Regional" link (Globe icon) instead of "Dashboard". Logo links to `/app/tasks/regional`.
-- **Site 1417** expanded detail shows a "Task Manager" link to `/app/tasks` (real data); Sites 1842/2031 show simulated data only.
-- Data file: `client/src/lib/trendData.ts`.
-
-### Authentication and Authorization
-- Basic user management infrastructure exists, but full authentication is not yet implemented in the assessment workflow.
+### CategoryReport (`/app/category-report`)
+- All stores ranked by a single category's completion across a selected period.
+- URL params: `cat=` (achc/state_board/operations/retention), `period=` (7d/30d/6m/1y), `region=` (optional).
+- **CPO**: Shows region filter tabs (All Regions / each region). Clickable, updates store list.
+- **RPD**: Shows non-interactive "Western Region" badge with store count (auto-locked).
+- Stores grouped into tiers: Top (≥80%), Good (65–79%), At Risk (50–64%), Critical (<50%).
+- Mini sparklines per store row, progress bars, trend icons (up/down/stable).
+- Data file: `client/src/lib/trendData.ts` → `getSiteRankingByCategory()`.
 
 ## External Dependencies
 
 - **OpenAI API**: Used for generating AI-powered clinical summaries and consultation questions. Requires `OPENAI_API_KEY`.
+- **Liverpool HIV Drug Interactions API**: University of Liverpool DDI checker for enhanced drug interaction coverage. Requires `LIVERPOOL_API_KEY` (contact hivgroup@liverpool.ac.uk). API docs: hivdrugs.docs.apiary.io. Falls back gracefully when not configured.
 - **NIH RxTerms API (Clinical Tables Search Service)**: Provides autocomplete suggestions for concomitant medications. No API key required.
 - **PostgreSQL Database**: Expected via `DATABASE_URL` environment variable for data persistence, session storage, and user management. Utilizes Neon serverless PostgreSQL.
 - **Third-Party UI Libraries**:

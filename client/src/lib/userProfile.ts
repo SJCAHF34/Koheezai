@@ -3,8 +3,9 @@ export type UserRole =
   | "pv2_tech"
   | "delivery_tech"
   | "pharmacist"
-  | "director"
-  | "regional_director";
+  | "pharmacy_director"
+  | "regional_pharmacy_director"
+  | "chief_pharmacy_officer";
 
 export interface UserProfile {
   email: string;
@@ -12,25 +13,33 @@ export interface UserProfile {
   role: UserRole;
   siteId: string;
   siteName: string;
+  region?: string;
 }
 
-const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteName">> = {
+const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteName" | "region">> = {
+  "cpo@koheez.ai": {
+    role: "chief_pharmacy_officer",
+    siteId: "ALL",
+    siteName: "All Regions",
+    region: "all",
+  },
   "test@koheez.ai": {
-    role: "regional_director",
+    role: "regional_pharmacy_director",
     siteId: "1417",
-    siteName: "All Sites",
+    siteName: "Western Region",
+    region: "Western Region",
   },
   "jrockwoodpharmd@gmail.com": {
-    role: "director",
+    role: "pharmacy_director",
     siteId: "1417",
-    siteName: "Site 1417",
+    siteName: "RX Pike Street",
   },
 };
 
 const DEFAULT_PROFILE: Pick<UserProfile, "role" | "siteId" | "siteName"> = {
   role: "pharmacist",
   siteId: "1417",
-  siteName: "Site 1417",
+  siteName: "RX Pike Street",
 };
 
 export function getUserProfile(email: string, name: string): UserProfile {
@@ -39,7 +48,38 @@ export function getUserProfile(email: string, name: string): UserProfile {
 }
 
 export function isDirectorRole(role: UserRole): boolean {
-  return role === "director" || role === "regional_director";
+  return (
+    role === "pharmacy_director" ||
+    role === "regional_pharmacy_director" ||
+    role === "chief_pharmacy_officer"
+  );
+}
+
+export function isRegionalOrAbove(role: UserRole): boolean {
+  return role === "regional_pharmacy_director" || role === "chief_pharmacy_officer";
+}
+
+export function isCPO(role: UserRole): boolean {
+  return role === "chief_pharmacy_officer";
+}
+
+export function isPharmacyDirector(role: UserRole): boolean {
+  return role === "pharmacy_director";
+}
+
+export function isTechRole(role: UserRole): boolean {
+  return (
+    role === "data_entry_tech" ||
+    role === "pv2_tech" ||
+    role === "delivery_tech" ||
+    role === "pharmacist"
+  );
+}
+
+export function getAssignedRegion(profile: UserProfile): string | null {
+  if (isCPO(profile.role)) return null;
+  if (profile.role === "regional_pharmacy_director") return profile.region ?? null;
+  return null;
 }
 
 export function getRoleLabel(role: UserRole): string {
@@ -48,8 +88,9 @@ export function getRoleLabel(role: UserRole): string {
     pv2_tech: "PV2 Tech",
     delivery_tech: "Delivery Tech",
     pharmacist: "Pharmacist",
-    director: "Site Director",
-    regional_director: "Regional Director",
+    pharmacy_director: "Pharmacy Director",
+    regional_pharmacy_director: "Regional Pharmacy Director",
+    chief_pharmacy_officer: "Chief Pharmacy Officer",
   };
   return labels[role] ?? role;
 }
