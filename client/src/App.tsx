@@ -13,6 +13,7 @@ import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import TaskManager from "@/pages/TaskManager";
 import RegionalDashboard from "@/pages/RegionalDashboard";
+import CategoryReport from "@/pages/CategoryReport";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile } from "@/lib/userProfile";
@@ -200,6 +201,10 @@ function Router() {
       {/* Regional dashboard — role-gated; must appear before /app/tasks */}
       <Route path="/app/tasks/regional">
         <RegionalProtected component={RegionalDashboard} />
+      </Route>
+      {/* Category report — regional director only */}
+      <Route path="/app/category-report">
+        <RegionalProtected component={CategoryReport} />
       </Route>
       <Route path="/app/tasks">
         <Protected component={TaskManager} />

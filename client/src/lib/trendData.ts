@@ -17,20 +17,27 @@ function seededRandom(seed: string): () => number {
   };
 }
 
-// Base 7-day average completion rates per category (realistic pharmacy benchmarks)
+// Base average completion rates per category (realistic pharmacy benchmarks)
 const BASE_RATES: Record<TaskCategory, number> = {
   operations: 74,
   achc: 82,
   state_board: 79,
-  retention: 58, // Retention is the weakest category industry-wide
+  retention: 58,
 };
 
-// Per-site performance adjustments (percentage points)
+// Per-site performance adjustments for known sites (percentage points)
 const SITE_ADJ: Record<string, number> = {
   "1417": 6,   // Site 1417: above average
   "1842": -13, // Site 1842: underperforming
   "2031": 2,   // Site 2031: near average
 };
+
+// Derive a consistent site-specific adjustment for any siteId
+export function getSiteAdj(siteId: string): number {
+  if (siteId in SITE_ADJ) return SITE_ADJ[siteId];
+  const rand = seededRandom(`site-adj-${siteId}`);
+  return Math.round((rand() - 0.5) * 36); // ±18 pp range
+}
 
 export const SPARKLINE_COLORS: Record<TaskCategory, string> = {
   achc: "#3b82f6",
@@ -39,10 +46,23 @@ export const SPARKLINE_COLORS: Record<TaskCategory, string> = {
   operations: "#64748b",
 };
 
+// ── Period types ────────────────────────────────────────────────────────────
+
+export type TrendPeriod = "7d" | "30d" | "6m" | "1y";
+
+export const PERIOD_CONFIG: Record<TrendPeriod, { label: string; points: number; unit: "day" | "week" }> = {
+  "7d":  { label: "7 Days",   points: 7,  unit: "day" },
+  "30d": { label: "30 Days",  points: 30, unit: "day" },
+  "6m":  { label: "6 Months", points: 26, unit: "week" },
+  "1y":  { label: "1 Year",   points: 52, unit: "week" },
+};
+
+// ── Interfaces ──────────────────────────────────────────────────────────────
+
 export interface DayPoint {
-  date: string;  // YYYY-MM-DD
-  label: string; // "Mon", "Tue" … "Today"
-  pct: number;   // 0–100
+  date: string;
+  label: string;
+  pct: number;
 }
 
 export interface CategoryTrend {
@@ -71,23 +91,70 @@ export interface TroubleSpot {
 
 export interface TaskTroubleSpot {
   task: PharmacyTask;
-  avgCompletionPct: number; // cross-site, 7-day average
+  avgCompletionPct: number;
   siteBreakdown: Array<{ siteId: string; siteName: string; avg7d: number }>;
   worstSiteName: string;
 }
 
-function getPast7Days(): Array<{ iso: string; label: string }> {
-  const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+export interface SiteRanking {
+  siteId: string;
+  siteName: string;
+  region: string;
+  avg: number;
+  trend: "up" | "down" | "stable";
+  points: number[];
+}
+
+// ── Period helpers ──────────────────────────────────────────────────────────
+
+const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function pad(n: number) { return String(n).padStart(2, "0"); }
+
+function toIso(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function getPeriodPoints(period: TrendPeriod): Array<{ iso: string; label: string }> {
+  const { points, unit } = PERIOD_CONFIG[period];
   const result: Array<{ iso: string; label: string }> = [];
-  for (let i = 6; i >= 0; i--) {
+
+  for (let i = points - 1; i >= 0; i--) {
     const d = new Date();
-    d.setDate(d.getDate() - i);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    result.push({ iso, label: i === 0 ? "Today" : weekday[d.getDay()] });
+    if (unit === "day") {
+      d.setDate(d.getDate() - i);
+    } else {
+      d.setDate(d.getDate() - i * 7);
+    }
+    const iso = toIso(d);
+    let label: string;
+    if (i === 0) {
+      label = unit === "week" ? MONTHS[d.getMonth()] : "Today";
+    } else if (unit === "day") {
+      label = period === "7d" ? WEEKDAY[d.getDay()] : `${d.getMonth() + 1}/${d.getDate()}`;
+    } else {
+      label = MONTHS[d.getMonth()];
+    }
+    result.push({ iso, label });
   }
   return result;
 }
+
+function getPast7Days(): Array<{ iso: string; label: string }> {
+  return getPeriodPoints("7d");
+}
+
+function calcTrend(points: number[]): "up" | "down" | "stable" {
+  const n = points.length;
+  const third = Math.max(1, Math.floor(n / 3));
+  const early = points.slice(0, third).reduce((s, v) => s + v, 0) / third;
+  const late = points.slice(-third).reduce((s, v) => s + v, 0) / third;
+  const diff = late - early;
+  return diff > 7 ? "up" : diff < -7 ? "down" : "stable";
+}
+
+// ── Legacy 7-day site trend ──────────────────────────────────────────────────
 
 export function generateSiteTrends(siteId: string): SiteTrend {
   const site = SITES.find((s) => s.id === siteId);
@@ -100,22 +167,17 @@ export function generateSiteTrends(siteId: string): SiteTrend {
 
   for (const cat of TREND_CATEGORIES) {
     const base = BASE_RATES[cat] + siteAdj;
-
     const dayPoints: DayPoint[] = days7.map(({ iso, label }) => {
       const rand = seededRandom(`${siteId}-${cat}-${iso}`);
-      const variance = (rand() - 0.5) * 32; // ±16% daily variance
+      const variance = (rand() - 0.5) * 32;
       const pct = Math.round(Math.max(0, Math.min(100, base + variance)));
       return { date: iso, label, pct };
     });
-
     const avg7d = Math.round(dayPoints.reduce((s, d) => s + d.pct, 0) / 7);
-
-    // Trend: compare average of days 1-3 vs days 5-7
     const earlyAvg = (dayPoints[0].pct + dayPoints[1].pct + dayPoints[2].pct) / 3;
     const lateAvg = (dayPoints[4].pct + dayPoints[5].pct + dayPoints[6].pct) / 3;
     const diff = lateAvg - earlyAvg;
     const trend: "up" | "down" | "stable" = diff > 7 ? "up" : diff < -7 ? "down" : "stable";
-
     categories[cat] = { category: cat, days: dayPoints, avg7d, trend };
   }
 
@@ -133,32 +195,108 @@ export function getAllSiteTrends(): SiteTrend[] {
   return SITES.map((s) => generateSiteTrends(s.id));
 }
 
+// ── Period-aware site trend ──────────────────────────────────────────────────
+
+export function generateSiteTrendsForPeriod(
+  siteId: string,
+  siteName: string,
+  region: string,
+  period: TrendPeriod
+): SiteTrend {
+  const siteAdj = getSiteAdj(siteId);
+  const pts = getPeriodPoints(period);
+
+  const categories = {} as Record<TaskCategory, CategoryTrend>;
+
+  for (const cat of TREND_CATEGORIES) {
+    const base = Math.max(5, Math.min(95, BASE_RATES[cat] + siteAdj));
+    const dayPoints: DayPoint[] = pts.map(({ iso, label }) => {
+      const rand = seededRandom(`${siteId}-${cat}-${iso}`);
+      const variance = (rand() - 0.5) * 32;
+      const pct = Math.round(Math.max(0, Math.min(100, base + variance)));
+      return { date: iso, label, pct };
+    });
+    const avg7d = Math.round(dayPoints.reduce((s, d) => s + d.pct, 0) / dayPoints.length);
+    const trend = calcTrend(dayPoints.map((d) => d.pct));
+    categories[cat] = { category: cat, days: dayPoints, avg7d, trend };
+  }
+
+  const overallAvg = Math.round(
+    TREND_CATEGORIES.reduce((s, cat) => s + categories[cat].avg7d, 0) / TREND_CATEGORIES.length
+  );
+  const lastIdx = pts.length - 1;
+  const todayAvg = Math.round(
+    TREND_CATEGORIES.reduce((s, cat) => s + categories[cat].days[lastIdx].pct, 0) / TREND_CATEGORIES.length
+  );
+
+  return { siteId, siteName, region, categories, overallAvg, todayAvg };
+}
+
+export function getAllSiteTrendsForPeriod(period: TrendPeriod): SiteTrend[] {
+  return SITES.map((s) =>
+    generateSiteTrendsForPeriod(s.id, s.name, s.region, period)
+  );
+}
+
+/** Cross-site average completion per data point for a given category & period */
+export function getAverageCategoryPointsForPeriod(
+  cat: TaskCategory,
+  allTrends: SiteTrend[]
+): number[] {
+  const n = allTrends[0]?.categories[cat]?.days.length ?? 7;
+  return Array.from({ length: n }, (_, i) =>
+    Math.round(
+      allTrends.reduce((s, st) => s + st.categories[cat].days[i].pct, 0) / allTrends.length
+    )
+  );
+}
+
+/** Rank all provided stores by their avg completion % for a category × period */
+export function getSiteRankingByCategory(
+  cat: TaskCategory,
+  period: TrendPeriod,
+  allStores: Array<{ id: string; name: string; region: string }>
+): SiteRanking[] {
+  const pts = getPeriodPoints(period);
+
+  const rankings: SiteRanking[] = allStores.map(({ id, name, region }) => {
+    const siteAdj = getSiteAdj(id);
+    const base = Math.max(5, Math.min(95, BASE_RATES[cat] + siteAdj));
+
+    const values = pts.map(({ iso }) => {
+      const rand = seededRandom(`${id}-${cat}-${iso}`);
+      const variance = (rand() - 0.5) * 32;
+      return Math.round(Math.max(0, Math.min(100, base + variance)));
+    });
+
+    const avg = Math.round(values.reduce((s, v) => s + v, 0) / values.length);
+    const trend = calcTrend(values);
+
+    return { siteId: id, siteName: name, region, avg, trend, points: values };
+  });
+
+  return rankings.sort((a, b) => b.avg - a.avg);
+}
+
+// ── Legacy helpers ───────────────────────────────────────────────────────────
+
 export function getTroubleSpots(): TroubleSpot[] {
   const allTrends = getAllSiteTrends();
-
   return TREND_CATEGORIES.map((cat) => {
     const siteBreakdown = allTrends
       .map((st) => ({ siteId: st.siteId, siteName: st.siteName, avg7d: st.categories[cat].avg7d }))
       .sort((a, b) => a.avg7d - b.avg7d);
-
     const avgPct = Math.round(siteBreakdown.reduce((s, sb) => s + sb.avg7d, 0) / siteBreakdown.length);
-    const worstSiteName = siteBreakdown[0].siteName;
-
     return {
       category: cat,
       label: CATEGORY_CONFIG[cat].label,
       avgPct,
       siteBreakdown,
-      worstSiteName,
+      worstSiteName: siteBreakdown[0].siteName,
     };
   }).sort((a, b) => a.avgPct - b.avgPct);
 }
 
-/**
- * Returns individual daily tasks with <50% simulated cross-site completion rate over 7 days.
- * Uses seeded PRNG so results are deterministic across renders.
- * Limited to `limit` worst results (sorted ascending by avgCompletionPct).
- */
 export function getTroubleSpotTasks(limit = 12): TaskTroubleSpot[] {
   const days7 = getPast7Days();
   const dailyTasks = TASKS.filter((t) => t.frequency === "daily");
@@ -170,15 +308,10 @@ export function getTroubleSpotTasks(limit = 12): TaskTroubleSpot[] {
     for (const site of SITES) {
       const siteAdj = SITE_ADJ[site.id] ?? 0;
       const catBase = BASE_RATES[task.category];
-
-      // Task-specific offset: some tasks are chronically harder to complete
       const taskBaseRand = seededRandom(`tb-${task.id}`);
-      const taskOffset = (taskBaseRand() - 0.5) * 24; // ±12 pp
-
-      // Probability that this task is completed on any given day at this site
+      const taskOffset = (taskBaseRand() - 0.5) * 24;
       const probability = Math.max(5, Math.min(95, catBase + siteAdj + taskOffset));
 
-      // Simulate each of the 7 days
       let daysCompleted = 0;
       for (const { iso } of days7) {
         const rand = seededRandom(`tc-${task.id}-${site.id}-${iso}`);
@@ -198,19 +331,13 @@ export function getTroubleSpotTasks(limit = 12): TaskTroubleSpot[] {
 
     if (avgCompletionPct < 50) {
       const sorted = [...siteBreakdown].sort((a, b) => a.avg7d - b.avg7d);
-      results.push({
-        task,
-        avgCompletionPct,
-        siteBreakdown: sorted,
-        worstSiteName: sorted[0].siteName,
-      });
+      results.push({ task, avgCompletionPct, siteBreakdown: sorted, worstSiteName: sorted[0].siteName });
     }
   }
 
   return results.sort((a, b) => a.avgCompletionPct - b.avgCompletionPct).slice(0, limit);
 }
 
-/** Returns cross-site average completion per day for a given category (for the aggregate sparkline) */
 export function getAverageCategoryDays(cat: TaskCategory, allTrends: SiteTrend[]): number[] {
   return Array.from({ length: 7 }, (_, i) =>
     Math.round(allTrends.reduce((s, st) => s + st.categories[cat].days[i].pct, 0) / allTrends.length)

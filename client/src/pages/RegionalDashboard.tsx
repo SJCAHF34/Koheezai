@@ -6,10 +6,14 @@ import { SITES, TASKS, CATEGORY_CONFIG, type TaskCategory } from "@/lib/taskData
 import { loadCompletions } from "@/lib/taskStorage";
 import {
   getAllSiteTrends,
+  getAllSiteTrendsForPeriod,
   getTroubleSpotTasks,
   getAverageCategoryDays,
+  getAverageCategoryPointsForPeriod,
   TREND_CATEGORIES,
   SPARKLINE_COLORS,
+  PERIOD_CONFIG,
+  type TrendPeriod,
   type SiteTrend,
   type CategoryTrend,
 } from "@/lib/trendData";
@@ -321,16 +325,18 @@ function StoreDirectorySection({ onDrillDown }: { onDrillDown: (id: string) => v
 export default function RegionalDashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const [period, setPeriod] = useState<TrendPeriod>("7d");
 
   if (!user) return null;
 
   // ── Real per-site stats: load from localStorage for every site ──────────
-  // Sites without usage (e.g. 1842, 2031 in this demo) will show 0 completions
   const siteRealStats: SiteRealStats[] = SITES.map((s) => computeSiteRealStats(s.id));
   const realStatsBySite = new Map(siteRealStats.map((ss) => [ss.siteId, ss]));
 
-  // ── Simulated 7-day trends (ONLY used for sparklines and 7d avg bars) ──
+  // ── 7-day trends for site cards (always 7d) ─────────────────────────────
   const allTrends = getAllSiteTrends();
+  // ── Period-aware trends for category sparklines ──────────────────────────
+  const periodTrends = getAllSiteTrendsForPeriod(period);
   const troubleSpotTasks = getTroubleSpotTasks(10);
 
   // ── Aggregate stats — all derived from real localStorage data ──────────
@@ -442,28 +448,53 @@ export default function RegionalDashboard() {
 
         {/* ── Regional trend sparklines ────────────────────────────────── */}
         <section>
-          <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-purple-600" />
-            7-Day Category Trends
-            <span className="text-xs font-normal text-slate-400 ml-1">
-              — Cross-site simulated averages
-            </span>
-          </h2>
+          <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
+            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-purple-600" />
+              Category Trends
+              <span className="text-xs font-normal text-slate-400 ml-1">
+                — Click any category to see all-site rankings
+              </span>
+            </h2>
+            {/* Period selector */}
+            <div className="flex gap-1">
+              {(["7d", "30d", "6m", "1y"] as TrendPeriod[]).map((p) => (
+                <button
+                  key={p}
+                  data-testid={`period-btn-${p}`}
+                  onClick={() => setPeriod(p)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-bold border transition-all ${
+                    period === p
+                      ? "border-purple-400 bg-purple-50 text-purple-700"
+                      : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                  }`}
+                >
+                  {PERIOD_CONFIG[p].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {TREND_CATEGORIES.map((cat) => {
               const cfg = CATEGORY_CONFIG[cat];
-              const days = getAverageCategoryDays(cat, allTrends);
+              const days = getAverageCategoryPointsForPeriod(cat, periodTrends);
               const avg = Math.round(days.reduce((s, v) => s + v, 0) / days.length);
-              const todayVal = days[6];
-              const diff = days[6] - days[4];
+              const latestVal = days[days.length - 1];
+              const n = days.length;
+              const third = Math.max(1, Math.floor(n / 3));
+              const earlyAvg = days.slice(0, third).reduce((s, v) => s + v, 0) / third;
+              const lateAvg = days.slice(-third).reduce((s, v) => s + v, 0) / third;
+              const diff = lateAvg - earlyAvg;
               const trend: "up" | "down" | "stable" =
                 diff > 6 ? "up" : diff < -6 ? "down" : "stable";
 
               return (
-                <div
+                <button
                   key={cat}
                   data-testid={`trend-card-${cat}`}
-                  className="bg-white border border-slate-200 rounded-md px-4 py-4"
+                  onClick={() => navigate(`/app/category-report?cat=${cat}&period=${period}`)}
+                  className="bg-white border border-slate-200 rounded-md px-4 py-4 text-left hover:shadow-md hover:border-purple-200 transition-all group"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className={`text-[10px] font-bold uppercase tracking-wide ${cfg.color}`}>
@@ -473,7 +504,7 @@ export default function RegionalDashboard() {
                   </div>
                   <div className="flex items-end gap-1.5 mb-2">
                     <span className="text-2xl font-bold text-slate-800">{avg}%</span>
-                    <span className="text-xs text-slate-400 mb-0.5">7d avg</span>
+                    <span className="text-xs text-slate-400 mb-0.5">{PERIOD_CONFIG[period].label} avg</span>
                   </div>
                   <Sparkline
                     data={days}
@@ -481,13 +512,18 @@ export default function RegionalDashboard() {
                     width={128}
                     height={44}
                   />
-                  <p className="text-[10px] text-slate-400 mt-1.5">
-                    Today:{" "}
-                    <span className={`font-semibold ${completionTextColor(todayVal)}`}>
-                      {todayVal}%
+                  <div className="flex items-center justify-between mt-1.5">
+                    <p className="text-[10px] text-slate-400">
+                      Latest:{" "}
+                      <span className={`font-semibold ${completionTextColor(latestVal)}`}>
+                        {latestVal}%
+                      </span>
+                    </p>
+                    <span className="text-[10px] font-semibold text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                      View all sites →
                     </span>
-                  </p>
-                </div>
+                  </div>
+                </button>
               );
             })}
           </div>
