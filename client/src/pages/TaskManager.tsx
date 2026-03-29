@@ -57,7 +57,9 @@ function getVisibleTasks(
   return byFreq.filter((t) => t.role === userRole || t.role === "all_staff");
 }
 
-/** Group tasks into role buckets → task-group buckets, respecting defined orders */
+/** Group tasks into role buckets → task-group buckets, respecting defined orders.
+ *  `all_staff` tasks are ALWAYS folded into each applicable role section —
+ *  they never appear as a standalone "All Staff" section. */
 function buildRoleGroups(
   tasks: PharmacyTask[],
   viewingRole: ViewingRole,
@@ -65,25 +67,31 @@ function buildRoleGroups(
 ): Array<{ role: TaskRole; groups: Array<{ groupName: string; tasks: PharmacyTask[] }> }> {
   const roleMap = new Map<TaskRole, PharmacyTask[]>();
 
+  // Roles that receive folded all_staff tasks (all display roles)
+  const displayRoles = ROLE_ORDER as TaskRole[];
+
   for (const task of tasks) {
-    let effectiveRole: TaskRole;
-    if (viewingRole === "all") {
-      // In "All Roles" view each task goes to its actual role section
-      effectiveRole = task.role;
-    } else {
-      // In single-role view, all_staff tasks fold into the target role
-      if (task.role === "all_staff") {
+    if (task.role === "all_staff") {
+      if (viewingRole === "all") {
+        // Fold into every role section so staff see it in their own view
+        for (const r of displayRoles) {
+          if (!roleMap.has(r)) roleMap.set(r, []);
+          roleMap.get(r)!.push(task);
+        }
+      } else {
+        // Single-role view: fold into the target role section
         const targetRole: TaskRole =
           viewingRole === "own"
             ? (isDirectorRole(userRole) ? "director" : (userRole as TaskRole))
             : (viewingRole as TaskRole);
-        effectiveRole = targetRole;
-      } else {
-        effectiveRole = task.role;
+        if (!roleMap.has(targetRole)) roleMap.set(targetRole, []);
+        roleMap.get(targetRole)!.push(task);
       }
+    } else {
+      const effectiveRole = task.role;
+      if (!roleMap.has(effectiveRole)) roleMap.set(effectiveRole, []);
+      roleMap.get(effectiveRole)!.push(task);
     }
-    if (!roleMap.has(effectiveRole)) roleMap.set(effectiveRole, []);
-    roleMap.get(effectiveRole)!.push(task);
   }
 
   return ROLE_ORDER.filter((r) => roleMap.has(r)).map((role) => {

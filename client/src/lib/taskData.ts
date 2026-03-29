@@ -78,17 +78,20 @@ export const ROLE_CONFIG: Record<
   director: { label: "Site Director", short: "Director", color: "text-rose-700" },
 };
 
-/** Display order for role sections in the new role-based view */
+/** Display order for role sections in the new role-based view.
+ *  `all_staff` is intentionally excluded — those tasks are folded
+ *  into each applicable role section rather than shown separately. */
 export const ROLE_ORDER: TaskRole[] = [
   "data_entry_tech",
   "pv2_tech",
   "delivery_tech",
   "pharmacist",
   "director",
-  "all_staff",
 ];
 
-/** Ordered task-group names within each role */
+/** Ordered task-group names within each role.
+ *  "Team Huddle" is listed last in every role so that folded
+ *  all_staff tasks always appear at the bottom of any role section. */
 export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
   data_entry_tech: [
     "Contact Manager",
@@ -96,6 +99,7 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "Data Entry",
     "Adjudication Exception",
     "Support Other Roles",
+    "Team Huddle",
   ],
   pv2_tech: [
     "CRC & Order Review",
@@ -103,6 +107,7 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "Patient Retention",
     "Digital & In-Store",
     "Weekly Purchase",
+    "Team Huddle",
   ],
   delivery_tech: [
     "Opening & Compliance",
@@ -111,6 +116,7 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "Invoicing & Reports",
     "Closing",
     "Weekly",
+    "Team Huddle",
   ],
   pharmacist: [
     "Shift Sign-In",
@@ -121,6 +127,7 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "Shift Sign-Out",
     "Weekly",
     "Monthly & Quarterly",
+    "Team Huddle",
   ],
   director: [
     "Daily Operations",
@@ -128,8 +135,8 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "ACHC Compliance",
     "State Board",
     "Retention Metrics",
+    "Team Huddle",
   ],
-  all_staff: ["Team Huddle"],
 };
 
 export const TASKS: PharmacyTask[] = [
