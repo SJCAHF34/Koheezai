@@ -226,3 +226,82 @@ export function removePriority(taskId: string, siteId: string): void {
 export function hasPriority(taskId: string, siteId: string): boolean {
   return readPriorities().some((p) => p.taskId === taskId && p.siteId === siteId && !p.dismissed);
 }
+
+// ── Handoff Notes ──────────────────────────────────────────────────────────
+
+const HANDOFF_KEY = "koheez_handoff_notes";
+
+export interface HandoffItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface HandoffNote {
+  id: string;
+  siteId: string;
+  rawText: string;
+  items: HandoffItem[];
+  forDate: string;
+  createdAt: string;
+  createdBy: string;
+  createdByRole: string;
+}
+
+function readHandoffNotes(): HandoffNote[] {
+  try {
+    const raw = localStorage.getItem(HANDOFF_KEY);
+    return raw ? (JSON.parse(raw) as HandoffNote[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeHandoffNotes(notes: HandoffNote[]): void {
+  try {
+    localStorage.setItem(HANDOFF_KEY, JSON.stringify(notes));
+  } catch {}
+}
+
+export function getTomorrowDateKey(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+export function getTodayDateKey(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+export function loadHandoffForDate(siteId: string, date: string): HandoffNote | null {
+  return readHandoffNotes().find((n) => n.siteId === siteId && n.forDate === date) ?? null;
+}
+
+export function saveHandoffNote(note: HandoffNote): void {
+  const all = readHandoffNotes().filter(
+    (n) => !(n.siteId === note.siteId && n.forDate === note.forDate)
+  );
+  all.push(note);
+  writeHandoffNotes(all);
+}
+
+export function toggleHandoffItemComplete(siteId: string, date: string, itemId: string): void {
+  const all = readHandoffNotes().map((n) => {
+    if (n.siteId !== siteId || n.forDate !== date) return n;
+    return {
+      ...n,
+      items: n.items.map((item) =>
+        item.id === itemId ? { ...item, completed: !item.completed } : item
+      ),
+    };
+  });
+  writeHandoffNotes(all);
+}
+
+export function purgeStaleHandoffNotes(): void {
+  const today = getTodayDateKey();
+  writeHandoffNotes(readHandoffNotes().filter((n) => n.forDate >= today));
+}

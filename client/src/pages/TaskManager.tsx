@@ -31,8 +31,16 @@ import {
   dismissPriority,
   removePriority,
   hasPriority,
+  loadHandoffForDate,
+  saveHandoffNote,
+  toggleHandoffItemComplete,
+  getTodayDateKey,
+  getTomorrowDateKey,
+  purgeStaleHandoffNotes,
   type TaskAssignment,
   type TaskPriority,
+  type HandoffNote,
+  type HandoffItem,
 } from "@/lib/taskStorage";
 import {
   Check,
@@ -45,6 +53,11 @@ import {
   ChevronRight,
   Bell,
   Flag,
+  Sparkles,
+  Loader2,
+  Trash2,
+  Plus,
+  ClipboardCheck,
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -846,6 +859,259 @@ function PriorityDialog({
   );
 }
 
+// ── Custom Tasks (handoff items for today) ────────────────────────────────────
+function CustomTasksSection({
+  siteId,
+  note,
+  onToggle,
+}: {
+  siteId: string;
+  note: HandoffNote;
+  onToggle: (itemId: string) => void;
+}) {
+  const allDone = note.items.every((i) => i.completed);
+  return (
+    <div
+      data-testid="custom-tasks-section"
+      className="bg-white border border-indigo-200 rounded-md overflow-hidden"
+    >
+      <div className="px-5 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
+        <ClipboardCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+        <span className="text-sm font-bold text-indigo-800">Handoff Tasks</span>
+        <span className="text-xs text-indigo-500 ml-1">
+          from yesterday's notes · {note.items.filter((i) => i.completed).length}/{note.items.length} done
+        </span>
+        {allDone && (
+          <span className="ml-auto text-xs font-semibold text-green-600 flex items-center gap-1">
+            <Check className="w-3 h-3" /> All clear
+          </span>
+        )}
+      </div>
+      <ul className="divide-y divide-slate-50">
+        {note.items.map((item) => (
+          <li key={item.id} className="flex items-center gap-3 px-5 py-3">
+            <button
+              data-testid={`handoff-check-${item.id}`}
+              onClick={() => onToggle(item.id)}
+              className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                item.completed
+                  ? "bg-green-500 border-green-500 scale-110"
+                  : "border-slate-300 hover:border-indigo-400"
+              }`}
+            >
+              {item.completed && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+            </button>
+            <span
+              className={`text-sm transition-all ${
+                item.completed ? "line-through text-slate-400" : "text-slate-700"
+              }`}
+            >
+              {item.text}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ── Handoff Panel (write notes for tomorrow) ──────────────────────────────────
+function HandoffPanel({
+  siteId,
+  authorName,
+  authorRole,
+}: {
+  siteId: string;
+  authorName: string;
+  authorRole: string;
+}) {
+  const tomorrow = getTomorrowDateKey();
+  const existing = loadHandoffForDate(siteId, tomorrow);
+
+  const [rawText, setRawText] = useState("");
+  const [items, setItems] = useState<HandoffItem[]>(existing?.items ?? []);
+  const [newItemText, setNewItemText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(!!existing);
+  const [error, setError] = useState("");
+
+  const handleGenerate = async () => {
+    if (!rawText.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/handoff/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: rawText }),
+      });
+      const data = await res.json();
+      if (Array.isArray(data.items)) {
+        setItems(
+          data.items.map((text: string, i: number) => ({
+            id: `gen-${Date.now()}-${i}`,
+            text,
+            completed: false,
+          }))
+        );
+        setSaved(false);
+      } else {
+        setError("Could not generate items. Try again.");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddItem = () => {
+    const t = newItemText.trim();
+    if (!t) return;
+    setItems((prev) => [...prev, { id: `manual-${Date.now()}`, text: t, completed: false }]);
+    setNewItemText("");
+    setSaved(false);
+  };
+
+  const handleRemoveItem = (id: string) => {
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    setSaved(false);
+  };
+
+  const handleSave = () => {
+    if (items.length === 0) return;
+    saveHandoffNote({
+      id: `${siteId}-${tomorrow}`,
+      siteId,
+      rawText,
+      items,
+      forDate: tomorrow,
+      createdAt: new Date().toISOString(),
+      createdBy: authorName,
+      createdByRole: authorRole,
+    });
+    setSaved(true);
+  };
+
+  return (
+    <div
+      data-testid="handoff-panel"
+      className="bg-white border border-slate-200 rounded-md overflow-hidden"
+    >
+      <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+        <ClipboardCheck className="w-4 h-4 text-purple-600 shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-bold text-slate-800">Handoff Notes</p>
+          <p className="text-xs text-slate-400">Leave tasks for tomorrow's team</p>
+        </div>
+        {saved && items.length > 0 && (
+          <span
+            data-testid="handoff-saved-badge"
+            className="text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-md"
+          >
+            Saved for tomorrow
+          </span>
+        )}
+      </div>
+
+      <div className="px-5 py-4 space-y-4">
+        {/* Raw text input */}
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">
+            What needs attention tomorrow?
+          </label>
+          <textarea
+            data-testid="handoff-textarea"
+            value={rawText}
+            onChange={(e) => { setRawText(e.target.value); setSaved(false); }}
+            placeholder="e.g. Patient Jones called about refill, fridge temp alarm triggered, waiting on DEA audit documents from supplier..."
+            className="w-full text-sm rounded-md border border-slate-200 px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700 placeholder:text-slate-400 min-h-[80px]"
+            rows={3}
+          />
+          <button
+            data-testid="handoff-generate-btn"
+            onClick={handleGenerate}
+            disabled={loading || !rawText.trim()}
+            className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-purple-600 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-700 transition-colors"
+          >
+            {loading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5" />
+            )}
+            {loading ? "Generating…" : "Generate Items"}
+          </button>
+          {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+        </div>
+
+        {/* Generated / manual bullet list */}
+        {items.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+              Tasks for tomorrow ({items.length})
+            </p>
+            <ul className="space-y-1.5">
+              {items.map((item) => (
+                <li key={item.id} className="flex items-center gap-2 group">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0" />
+                  <span
+                    data-testid={`handoff-item-${item.id}`}
+                    className="flex-1 text-sm text-slate-700"
+                  >
+                    {item.text}
+                  </span>
+                  <button
+                    data-testid={`handoff-remove-${item.id}`}
+                    onClick={() => handleRemoveItem(item.id)}
+                    className="shrink-0 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Remove item"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Manual add */}
+        <div className="flex items-center gap-2">
+          <input
+            data-testid="handoff-add-input"
+            type="text"
+            value={newItemText}
+            onChange={(e) => setNewItemText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAddItem(); }}
+            placeholder="Add a custom task…"
+            className="flex-1 text-sm rounded-md border border-slate-200 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700 placeholder:text-slate-400"
+          />
+          <button
+            data-testid="handoff-add-btn"
+            onClick={handleAddItem}
+            disabled={!newItemText.trim()}
+            className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold border border-slate-200 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add
+          </button>
+        </div>
+
+        {/* Save button */}
+        <div className="flex justify-end pt-1 border-t border-slate-100">
+          <button
+            data-testid="handoff-save-btn"
+            onClick={handleSave}
+            disabled={items.length === 0}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
+          >
+            <ClipboardCheck className="w-4 h-4" />
+            Save for Tomorrow
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function TaskManager() {
@@ -876,6 +1142,7 @@ export default function TaskManager() {
   const [prioritizingTask, setPrioritizingTask] = useState<PharmacyTask | null>(null);
   const [activePriorities, setActivePriorities] = useState<TaskPriority[]>([]);
   const [priorityIds, setPriorityIds] = useState<Set<string>>(new Set());
+  const [todayHandoff, setTodayHandoff] = useState<HandoffNote | null>(null);
 
   const siteId = urlSiteId ?? profile?.siteId ?? "1417";
   const isDir = isDirectorRole(profile?.role ?? "pharmacist");
@@ -898,6 +1165,9 @@ export default function TaskManager() {
     const pList = loadPriorities(siteId);
     setActivePriorities(pList);
     setPriorityIds(new Set(pList.map((p) => p.taskId)));
+    // Load today's handoff tasks and purge stale entries
+    purgeStaleHandoffNotes();
+    setTodayHandoff(loadHandoffForDate(siteId, getTodayDateKey()));
   }, [frequency, siteId, profile?.email, viewingRole]);
 
   const toggleCompletion = useCallback(
@@ -958,7 +1228,15 @@ export default function TaskManager() {
     setActivePriorities([]);
   }, [activePriorities, siteId]);
 
+  const handleHandoffToggle = useCallback((itemId: string) => {
+    const today = getTodayDateKey();
+    toggleHandoffItemComplete(siteId, today, itemId);
+    setTodayHandoff(loadHandoffForDate(siteId, today));
+  }, [siteId]);
+
   if (!profile) return null;
+
+  const showHandoff = !isRegionalOrAbove(profile.role) && !urlSiteId;
 
   const drillSite = urlSiteId
     ? (SITES.find((s) => s.id === urlSiteId) ?? (findStore(urlSiteId) ? { id: urlSiteId, name: findStore(urlSiteId)!.name, region: "" } : null))
@@ -1132,6 +1410,15 @@ export default function TaskManager() {
           />
         )}
 
+        {/* Handoff tasks from yesterday — daily view only, store users only */}
+        {showHandoff && frequency === "daily" && todayHandoff && todayHandoff.items.length > 0 && (
+          <CustomTasksSection
+            siteId={siteId}
+            note={todayHandoff}
+            onToggle={handleHandoffToggle}
+          />
+        )}
+
         {/* Role-based task list */}
         {roleGroups.length === 0 ? (
           <div className="bg-white border border-slate-100 rounded-md px-6 py-12 text-center">
@@ -1167,6 +1454,15 @@ export default function TaskManager() {
             <PartyPopper className="w-5 h-5" />
             <span className="text-sm font-semibold">All tasks complete for this period!</span>
           </div>
+        )}
+
+        {/* Handoff notes panel — daily view only, store users only */}
+        {showHandoff && frequency === "daily" && (
+          <HandoffPanel
+            siteId={siteId}
+            authorName={profile.name}
+            authorRole={profile.role}
+          />
         )}
       </div>
 

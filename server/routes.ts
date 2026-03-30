@@ -392,6 +392,56 @@ Write in professional clinical language for medical record documentation. Be spe
     }
   });
 
+  // ── Handoff note generation — converts free text → action bullet items ──
+  app.post("/api/handoff/generate", async (req, res) => {
+    const { text } = req.body as { text?: string };
+    if (!text || typeof text !== "string" || text.trim().length === 0) {
+      return res.status(400).json({ error: "text is required" });
+    }
+
+    const lineFallback = (raw: string): string[] =>
+      raw
+        .split(/[\n,;]+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 3);
+
+    try {
+      if (!process.env.OPENAI_API_KEY) {
+        return res.json({ items: lineFallback(text) });
+      }
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a clinical pharmacy operations assistant. Convert the following handoff note into a concise, actionable bulleted task list. " +
+              "Each item should be a clear, self-contained action (4–12 words). Respond ONLY with a JSON array of strings — no markdown, no explanation.",
+          },
+          { role: "user", content: text.trim() },
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 400,
+        temperature: 0.3,
+      });
+
+      const raw = completion.choices[0].message.content || "{}";
+      const parsed = JSON.parse(raw);
+      const items: string[] = Array.isArray(parsed.items)
+        ? parsed.items
+        : Array.isArray(parsed.tasks)
+        ? parsed.tasks
+        : Array.isArray(parsed.actions)
+        ? parsed.actions
+        : lineFallback(text);
+
+      return res.json({ items: items.filter((i) => typeof i === "string" && i.trim().length > 0) });
+    } catch {
+      return res.json({ items: lineFallback(text) });
+    }
+  });
+
   // ── Frameable check — detects X-Frame-Options / CSP frame-ancestors ──
   app.get("/api/check-frameable", async (req, res) => {
     const { url } = req.query;
