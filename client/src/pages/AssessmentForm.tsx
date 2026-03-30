@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, BookOpen, ExternalLink, Copy, Check, FileText, Save, ShieldAlert, AlertTriangle, Info } from "lucide-react";
+import AssessorWaiver from "@/components/AssessorWaiver";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { useSearch } from "wouter";
@@ -206,6 +207,10 @@ export default function AssessmentForm() {
   const { toast } = useToast();
   const search = useSearch();
 
+  const [waiverAccepted, setWaiverAccepted] = useState(() =>
+    localStorage.getItem("koheez_waiver_accepted") === "true"
+  );
+
   // ── Patient ID ─────────────────────────────────────────────────────────
   const urlPatientId = new URLSearchParams(search).get("patientId");
   const [patientId] = useState<string>(() => urlPatientId ?? generatePatientId());
@@ -410,6 +415,11 @@ export default function AssessmentForm() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* ── Clinical Responsibility Waiver gate ── */}
+      {!waiverAccepted && (
+        <AssessorWaiver onAccept={() => setWaiverAccepted(true)} />
+      )}
+
       {/* ── Page header ── */}
       <div className="bg-white border-b border-slate-200">
         <div className="container max-w-7xl mx-auto px-4 py-5">

@@ -26,7 +26,7 @@ const tools = [
     title: "Treatment Assessor",
     description:
       "Build ARV regimens, screen drug interactions, validate organ function, and generate AI-powered clinical summaries.",
-    badge: "Core Tool",
+    badge: null,
     featured: true,
     iconBg: null,
     iconColor: "text-white",
@@ -186,7 +186,7 @@ export default function DashboardPage() {
             Welcome back, {firstName}
           </p>
           <h1 className="text-3xl font-bold text-slate-900">
-            {dashboardTitle} <GradientText>Dashboard</GradientText>
+            <GradientText>{dashboardTitle}</GradientText> Dashboard
           </h1>
           <p className="text-slate-500 mt-2 text-base">
             Select a tool or resume a recent patient.
