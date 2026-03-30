@@ -28,6 +28,8 @@ const tools = [
       "Build ARV regimens, screen drug interactions, validate organ function, and generate AI-powered clinical summaries.",
     badge: "Core Tool",
     featured: true,
+    iconBg: null,
+    iconColor: "text-white",
   },
   {
     id: "tasks",
@@ -39,6 +41,8 @@ const tools = [
       "Role-based daily, weekly, monthly, and quarterly task checklists with ACHC, state board, and retention tracking.",
     badge: null,
     featured: false,
+    iconBg: "bg-violet-100",
+    iconColor: "text-violet-600",
   },
   {
     id: "patient-assistance",
@@ -50,6 +54,8 @@ const tools = [
       "Look up manufacturer copay cards and PAPs for 32+ HIV medications. ADAP, Ryan White, and more.",
     badge: null,
     featured: false,
+    iconBg: "bg-emerald-100",
+    iconColor: "text-emerald-600",
   },
   {
     id: "clinical-tools",
@@ -61,6 +67,8 @@ const tools = [
       "One-click access to Ramsell, OpenEvidence, and UpToDate DDI checker — without leaving your workflow.",
     badge: null,
     featured: false,
+    iconBg: "bg-amber-100",
+    iconColor: "text-amber-600",
   },
 ];
 
@@ -157,6 +165,9 @@ export default function DashboardPage() {
     }
   }
 
+  const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
+  const dashboardTitle = profile && isDirectorRole(profile.role) ? "Pharmacy" : "Clinical";
+
   const handleDelete = (patientId: string) => {
     deleteAssessment(patientId);
     setAssessments(loadAllAssessments());
@@ -175,7 +186,7 @@ export default function DashboardPage() {
             Welcome back, {firstName}
           </p>
           <h1 className="text-3xl font-bold text-slate-900">
-            Clinical <GradientText>Dashboard</GradientText>
+            {dashboardTitle} <GradientText>Dashboard</GradientText>
           </h1>
           <p className="text-slate-500 mt-2 text-base">
             Select a tool or resume a recent patient.
@@ -204,16 +215,10 @@ export default function DashboardPage() {
                 <div className="p-6 flex flex-col flex-1">
                   <div className="flex items-start justify-between mb-4">
                     <div
-                      className="w-11 h-11 rounded-md flex items-center justify-center shrink-0"
-                      style={{
-                        backgroundImage: tool.featured
-                          ? GRADIENT
-                          : "linear-gradient(135deg, #f1f5f9, #e2e8f0)",
-                      }}
+                      className={`w-11 h-11 rounded-md flex items-center justify-center shrink-0 ${!tool.featured && tool.iconBg ? tool.iconBg : ""}`}
+                      style={tool.featured ? { backgroundImage: GRADIENT } : undefined}
                     >
-                      <tool.icon
-                        className={`w-5 h-5 ${tool.featured ? "text-white" : "text-slate-500"}`}
-                      />
+                      <tool.icon className={`w-5 h-5 ${tool.iconColor}`} />
                     </div>
                     {tool.badge && (
                       <span
