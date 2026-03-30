@@ -413,13 +413,12 @@ export default function AssessmentForm() {
 
   const oePrompt = buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds });
 
+  if (!waiverAccepted) {
+    return <AssessorWaiver onAccept={() => setWaiverAccepted(true)} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* ── Clinical Responsibility Waiver gate ── */}
-      {!waiverAccepted && (
-        <AssessorWaiver onAccept={() => setWaiverAccepted(true)} />
-      )}
-
       {/* ── Page header ── */}
       <div className="bg-white border-b border-slate-200">
         <div className="container max-w-7xl mx-auto px-4 py-5">

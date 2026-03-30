@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShieldAlert } from "lucide-react";
 
 const STORAGE_KEY = "koheez_waiver_accepted";
@@ -10,11 +10,22 @@ interface AssessorWaiverProps {
 
 export default function AssessorWaiver({ onAccept }: AssessorWaiverProps) {
   const [checked, setChecked] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem(STORAGE_KEY) === "true") {
+      onAccept();
+    } else {
+      setVisible(true);
+    }
+  }, [onAccept]);
 
   const handleAccept = () => {
     localStorage.setItem(STORAGE_KEY, "true");
     onAccept();
   };
+
+  if (!visible) return null;
 
   return (
     <div
