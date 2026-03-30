@@ -856,6 +856,16 @@ export const TASKS: PharmacyTask[] = [
     category: "retention",
     taskGroup: "Monthly",
   },
+  // Operations
+  {
+    id: "ops-m-001",
+    title: "Submit next month's staffing coverage schedule",
+    description: "Prepare and submit the staffing schedule for the upcoming month. Due by the end of the first week of the prior month — e.g., April's schedule is due by the end of the first week of March. Ensure all shifts are covered, including backup coverage for anticipated PTO.",
+    role: "director",
+    frequency: "monthly",
+    category: "operations",
+    taskGroup: "Monthly",
+  },
 
   // ── QUARTERLY TASKS ─────────────────────────────────────────────────────
   // ACHC
@@ -890,6 +900,15 @@ export const TASKS: PharmacyTask[] = [
     id: "achc-q-004",
     title: "Pharmacy staff competency assessments",
     description: "Complete formal quarterly competency assessments for all pharmacy staff members.",
+    role: "director",
+    frequency: "quarterly",
+    category: "achc",
+    taskGroup: "Quarterly",
+  },
+  {
+    id: "achc-q-005",
+    title: "Conduct CQI meeting and document action items",
+    description: "Facilitate the quarterly Continuous Quality Improvement (CQI) meeting. Prepare agenda covering adverse events, medication errors, patient outcomes, and process gaps identified since the last meeting. Document all attendees, discussion points, and assigned action items with target resolution dates. File meeting minutes per ACHC accreditation requirements.",
     role: "director",
     frequency: "quarterly",
     category: "achc",
