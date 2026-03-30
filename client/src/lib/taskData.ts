@@ -223,6 +223,15 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Support Other Roles",
   },
+  {
+    id: "de-d-010",
+    title: "SupplyLogix cycle count",
+    description: "Cycle count the medications to track on hand inventory using SupplyLogix.",
+    role: "data_entry_tech",
+    frequency: "daily",
+    category: "operations",
+    taskGroup: "Support Other Roles",
+  },
 
   // ── PV2 TECH · DAILY ────────────────────────────────────────────────────
   {
@@ -631,6 +640,15 @@ export const TASKS: PharmacyTask[] = [
     taskGroup: "Voicemail & Emails",
   },
   {
+    id: "rph-d-019",
+    title: "Good Results Consultation / Clinical Reassessments / Initial Assessments",
+    description: "Review alerts on McKesson's Home Screen CPS and complete Good Results Consultations, Clinical Reassessments, and Initial Assessments.",
+    role: "pharmacist",
+    frequency: "daily",
+    category: "operations",
+    taskGroup: "PV1 / PIKE",
+  },
+  {
     id: "rph-d-018",
     title: "Sign out pharmacist signature log (end of day)",
     description: "Sign out of pharmacist signature log at end of shift.",
@@ -722,6 +740,15 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "weekly",
     category: "retention",
+    taskGroup: "Weekly",
+  },
+  {
+    id: "dir-w-004",
+    title: "Pharmalink / Order Express Credit Memo",
+    description: "Review recalls and quarantined medications, then submit a return through Cardinal as a credit memo. If unable to return through Cardinal, process the return through Pharmalink.",
+    role: "director",
+    frequency: "weekly",
+    category: "operations",
     taskGroup: "Weekly",
   },
   {
@@ -851,6 +878,15 @@ export const TASKS: PharmacyTask[] = [
     id: "ops-m-001",
     title: "Submit next month's staffing coverage schedule",
     description: "Prepare and submit the staffing schedule for the upcoming month. Due by the end of the first week of the prior month — e.g., April's schedule is due by the end of the first week of March. Ensure all shifts are covered, including backup coverage for anticipated PTO.",
+    role: "director",
+    frequency: "monthly",
+    category: "operations",
+    taskGroup: "Monthly",
+  },
+  {
+    id: "dir-m-001",
+    title: "Hazardous Waste Review",
+    description: "Review expired medications and dispose of them appropriately in the black waste bin or blue/white bin. Contact supply chain to schedule a pickup.",
     role: "director",
     frequency: "monthly",
     category: "operations",
