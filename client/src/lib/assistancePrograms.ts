@@ -866,7 +866,7 @@ export const broaderResources: BroaderResource[] = [
     description: "Federal/state program providing HIV medications to low-income, uninsured, and underinsured people with HIV. Available in all 50 states and U.S. territories.",
     eligibility: "Low-income individuals with HIV diagnosis. Must be a U.S. resident. Each state has different income limits and formularies.",
     phone: "1-800-448-0440",
-    website: "https://ryanwhite.hrsa.gov/about/parts-and-initiatives/part-b-adap",
+    website: "https://adap.directory/directory",
     needymedsUrl: "https://www.needymeds.org/copay_diseases.taf?_function=summary&disease_id=745&disease_eng=HIV/AIDS",
   },
   {
@@ -883,7 +883,7 @@ export const broaderResources: BroaderResource[] = [
     description: "Non-profit providing copay assistance for HIV-positive patients with commercial insurance or Medicare Part D. Can help with premiums and cost-sharing.",
     eligibility: "Commercially insured or Medicare Part D patients with HIV. Income up to 400–500% FPL.",
     phone: "1-800-675-8416",
-    website: "https://www.healthwellfoundation.org/fund/hiv-aids/",
+    website: "https://www.healthwellfoundation.org/disease-funds/",
     needymedsUrl: "https://www.needymeds.org/copay_diseases.taf?_function=summary&disease_id=745",
   },
   {
