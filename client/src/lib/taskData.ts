@@ -28,9 +28,9 @@ export interface Site {
 }
 
 export const SITES: Site[] = [
-  { id: "1417", name: "Site 1417", region: "Southern California" },
-  { id: "1842", name: "Site 1842", region: "Southern California" },
-  { id: "2031", name: "Site 2031", region: "Northern California" },
+  { id: "1417", name: "RX Pike Street", region: "Seattle, WA" },
+  { id: "1842", name: "RX Hollywood Flagship", region: "Los Angeles, CA" },
+  { id: "2031", name: "RX Oakland", region: "Oakland, CA" },
 ];
 
 export const CATEGORY_CONFIG: Record<
