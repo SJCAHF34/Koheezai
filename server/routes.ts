@@ -22,6 +22,7 @@ const DEMO_USERS = [
   { email: "test@koheez.ai", password: "Koheez1", name: "Test User" },
   { email: "jrockwoodpharmd@gmail.com", password: "hollywood", name: "Jason Rockwood" },
   { email: "director@koheez.ai", password: "Director1", name: "Pharmacy Director" },
+  { email: "tech@koheez.ai", password: "Tech1", name: "Data Entry Tech" },
 ];
 
 const inMemoryUsers: Array<{ email: string; password: string; name: string }> = [];
