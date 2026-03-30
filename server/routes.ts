@@ -416,8 +416,9 @@ Write in professional clinical language for medical record documentation. Be spe
           {
             role: "system",
             content:
-              "You are a clinical pharmacy operations assistant. Convert the following handoff note into a concise, actionable bulleted task list. " +
-              "Each item should be a clear, self-contained action (4–12 words). Respond ONLY with a JSON array of strings — no markdown, no explanation.",
+              "You are a clinical pharmacy operations assistant. Convert the following handoff note into a concise, actionable task list. " +
+              "Each item should be a clear, self-contained action (4–12 words). " +
+              'Respond ONLY with a JSON object in this exact format: { "items": ["task 1", "task 2", ...] }. No markdown, no explanation.',
           },
           { role: "user", content: text.trim() },
         ],
