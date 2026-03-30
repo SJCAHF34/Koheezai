@@ -23,6 +23,7 @@ Koheez.ai is a clinical decision support platform for HIV pharmacists. It featur
 - `/app/tasks/regional` → RegionalDashboard (protected, CPO + RPD only; others redirected to /app/tasks)
 - `/app/tasks` → TaskManager (protected, role-based pharmacy task management)
 - `/app/category-report` → CategoryReport (protected, regional dashboard drill-down; filterable by region)
+- `/app/achc-workbook` → AchcWorkbook (protected; tech roles redirected to /app/tasks; CPO/RPD read-only with site selector; directors fill out quarterly ACHC compliance workbook)
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -118,6 +119,18 @@ Helper functions: `isRegionalOrAbove()`, `isCPO()`, `isPharmacyDirector()`, `isT
 - Stores grouped into tiers: Top (≥80%), Good (65–79%), At Risk (50–64%), Critical (<50%).
 - Mini sparklines per store row, progress bars, trend icons (up/down/stable).
 - Data file: `client/src/lib/trendData.ts` → `getSiteRankingByCategory()`.
+
+### ACHC Compliance Workbook (`/app/achc-workbook`)
+- Quarterly self-assessment form for pharmacy directors to document ACHC compliance.
+- **7 sections**: Patient Rights & Education (6 items), Policies & Procedures (5), Medication Management (6), Quality Management/CQI (5), Staff Competency & Training (5), Infection Control (5), Emergency Preparedness (5) — 37 total checklist items.
+- Each section is an accordion with boolean checkboxes and a free-text notes field.
+- **Role-based access**: Tech roles redirected to `/app/tasks`. CPO sees all-store site selector (read-only). RPD sees region-scoped site selector (read-only). Pharmacy Director sees editable form for their site.
+- **Status tracking**: Not Started → In Progress (any item checked) → Submitted (director attests + clicks Submit).
+- **Attestation area**: Auto-fills director name + today's date; Submit Workbook button locks the form.
+- **localStorage key**: `koheez_achc_workbook`, scoped by siteId + quarter (YYYY-Qn).
+- **TaskManager integration**: All ACHC quarterly task rows show an "Open ACHC Workbook" link.
+- **Nav link**: "ACHC" appears in top nav for all non-tech roles (data-testid: `nav-achc-workbook`).
+- Data file: `client/src/lib/achcWorkbookData.ts`. Storage helpers: `client/src/lib/taskStorage.ts` (`loadWorkbook`, `saveWorkbook`, `submitWorkbook`, `getCurrentQuarter`, `getWorkbookStatus`).
 
 ## External Dependencies
 

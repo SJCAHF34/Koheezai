@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "wouter";
 import { useAuth } from "@/App";
 import {
   getUserProfile,
@@ -58,6 +59,7 @@ import {
   Trash2,
   Plus,
   ClipboardCheck,
+  ArrowUpRight,
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -314,6 +316,17 @@ function TaskRow({
           >
             {task.description}
           </p>
+        )}
+
+        {task.category === "achc" && task.frequency === "quarterly" && (
+          <Link
+            href="/app/achc-workbook"
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 hover:text-blue-800 mt-1"
+            data-testid={`link-achc-workbook-${task.id}`}
+          >
+            Open ACHC Workbook
+            <ArrowUpRight className="w-3 h-3" />
+          </Link>
         )}
 
         {assignment && (

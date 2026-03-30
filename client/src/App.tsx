@@ -14,10 +14,11 @@ import DashboardPage from "@/pages/DashboardPage";
 import TaskManager from "@/pages/TaskManager";
 import RegionalDashboard from "@/pages/RegionalDashboard";
 import CategoryReport from "@/pages/CategoryReport";
+import AchcWorkbook from "@/pages/AchcWorkbook";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
-import { getUserProfile, isRegionalOrAbove } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe } from "lucide-react";
+import { getUserProfile, isRegionalOrAbove, isDirectorRole, isTechRole } from "@/lib/userProfile";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
@@ -75,6 +76,7 @@ function AppNav() {
 
   const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
   const isRegional = profile ? isRegionalOrAbove(profile.role) : false;
+  const showWorkbook = profile ? !isTechRole(profile.role) : false;
 
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("/api/auth/logout", { method: "POST" }),
@@ -124,6 +126,13 @@ function AppNav() {
               <ClipboardList className="w-4 h-4" />
               <span className="hidden sm:inline">Tasks</span>
             </NavLink>
+
+            {showWorkbook && (
+              <NavLink href="/app/achc-workbook" testId="nav-achc-workbook">
+                <BookCheck className="w-4 h-4" />
+                <span className="hidden sm:inline">ACHC</span>
+              </NavLink>
+            )}
 
             <NavLink href="/app/patient-assistance" testId="nav-assistance">
               <HeartHandshake className="w-4 h-4" />
@@ -211,6 +220,9 @@ function Router() {
       </Route>
       <Route path="/app/clinical-tools">
         <Protected component={ClinicalTools} />
+      </Route>
+      <Route path="/app/achc-workbook">
+        <Protected component={AchcWorkbook} />
       </Route>
       <Route component={NotFound} />
     </Switch>

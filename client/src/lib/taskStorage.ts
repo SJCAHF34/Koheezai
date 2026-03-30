@@ -305,3 +305,83 @@ export function purgeStaleHandoffNotes(): void {
   const today = getTodayDateKey();
   writeHandoffNotes(readHandoffNotes().filter((n) => n.forDate >= today));
 }
+
+// ── ACHC Workbook ───────────────────────────────────────────────────────────
+
+const WORKBOOK_KEY = "koheez_achc_workbook";
+
+export type WorkbookStatus = "not_started" | "in_progress" | "submitted";
+
+export interface WorkbookItemResponse {
+  itemId: string;
+  checked: boolean;
+}
+
+export interface WorkbookSectionResponse {
+  sectionId: string;
+  items: WorkbookItemResponse[];
+  notes: string;
+}
+
+export interface WorkbookRecord {
+  siteId: string;
+  quarter: string;
+  sections: WorkbookSectionResponse[];
+  status: WorkbookStatus;
+  submittedBy?: string;
+  submittedAt?: string;
+  lastUpdatedAt: string;
+}
+
+export function getCurrentQuarter(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const q = Math.ceil((now.getMonth() + 1) / 3);
+  return `${y}-Q${q}`;
+}
+
+function readWorkbooks(): WorkbookRecord[] {
+  try {
+    const raw = localStorage.getItem(WORKBOOK_KEY);
+    return raw ? (JSON.parse(raw) as WorkbookRecord[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeWorkbooks(records: WorkbookRecord[]): void {
+  try {
+    localStorage.setItem(WORKBOOK_KEY, JSON.stringify(records));
+  } catch {}
+}
+
+export function loadWorkbook(siteId: string, quarter: string): WorkbookRecord | null {
+  return readWorkbooks().find((r) => r.siteId === siteId && r.quarter === quarter) ?? null;
+}
+
+export function saveWorkbook(record: WorkbookRecord): void {
+  const all = readWorkbooks().filter(
+    (r) => !(r.siteId === record.siteId && r.quarter === record.quarter)
+  );
+  all.push({ ...record, lastUpdatedAt: new Date().toISOString() });
+  writeWorkbooks(all);
+}
+
+export function submitWorkbook(siteId: string, quarter: string, submittedBy: string): void {
+  const all = readWorkbooks().map((r) => {
+    if (r.siteId !== siteId || r.quarter !== quarter) return r;
+    return {
+      ...r,
+      status: "submitted" as WorkbookStatus,
+      submittedBy,
+      submittedAt: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+    };
+  });
+  writeWorkbooks(all);
+}
+
+export function getWorkbookStatus(siteId: string, quarter: string): WorkbookStatus {
+  const record = loadWorkbook(siteId, quarter);
+  return record?.status ?? "not_started";
+}
