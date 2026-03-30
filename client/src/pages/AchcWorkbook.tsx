@@ -140,7 +140,7 @@ export default function AchcWorkbook() {
   const selectorStores = canBrowseAll
     ? ALL_STORES
     : isViewer && profile?.region
-    ? STORE_REGIONS.find((r) => r.region === profile.region)?.stores ?? ALL_STORES
+    ? STORE_REGIONS.find((r) => r.region === profile.region)?.stores ?? []
     : [];
 
   const activeSiteId = isViewer ? selectedSiteId : (profile?.siteId ?? "");

@@ -130,7 +130,8 @@ function AppNav() {
             {showWorkbook && (
               <NavLink href="/app/achc-workbook" testId="nav-achc-workbook">
                 <BookCheck className="w-4 h-4" />
-                <span className="hidden sm:inline">ACHC</span>
+                <span className="hidden sm:inline">ACHC Workbook</span>
+                <span className="sm:hidden">ACHC</span>
               </NavLink>
             )}
 
