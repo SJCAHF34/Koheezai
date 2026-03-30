@@ -17,7 +17,7 @@ import CategoryReport from "@/pages/CategoryReport";
 import AchcWorkbook from "@/pages/AchcWorkbook";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
-import { getUserProfile, isRegionalOrAbove, isDirectorRole, isTechRole } from "@/lib/userProfile";
+import { getUserProfile, isRegionalOrAbove, isTechRole } from "@/lib/userProfile";
 import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";

@@ -45,6 +45,7 @@ import {
   Building2,
   Lock,
   FileCheck2,
+  Circle,
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -198,6 +199,9 @@ export default function AchcWorkbook() {
 
   function handleSubmit() {
     if (!record || !activeSiteId) return;
+    // Ensure record is persisted first (handles untouched workbooks that have
+    // never been saved via persistRecord)
+    saveWorkbook(record);
     submitWorkbook(activeSiteId, quarter, attestorName || (profile?.name ?? ""));
     const updated = loadWorkbook(activeSiteId, quarter);
     if (updated) setRecord(updated);
@@ -340,50 +344,95 @@ export default function AchcWorkbook() {
                 <AccordionContent className="px-4 pb-4 pt-1">
                   <p className="text-xs text-muted-foreground mb-4">{section.description}</p>
 
-                  <div className="space-y-3 mb-4">
-                    {section.items.map((item) => {
-                      const resp = secResp.items.find((i) => i.itemId === item.id);
-                      const isChecked = resp?.checked ?? false;
-
-                      return (
-                        <div
-                          key={item.id}
-                          className="flex items-start gap-3"
-                          data-testid={`workbook-item-${item.id}`}
-                        >
-                          <Checkbox
-                            id={`check-${item.id}`}
-                            checked={isChecked}
-                            disabled={submitted || isViewer}
-                            onCheckedChange={(val) =>
-                              handleCheck(section.id, item.id, !!val)
-                            }
-                            data-testid={`workbook-checkbox-${item.id}`}
-                          />
-                          <Label
-                            htmlFor={`check-${item.id}`}
-                            className={`text-sm leading-snug cursor-pointer select-none ${
-                              isChecked ? "line-through text-muted-foreground" : "text-foreground"
-                            } ${(submitted || isViewer) ? "cursor-default" : ""}`}
-                          >
-                            {item.text}
-                          </Label>
+                  {isViewer ? (
+                    /* Read-only display — no form controls */
+                    <>
+                      <div className="space-y-2.5 mb-4">
+                        {section.items.map((item) => {
+                          const resp = secResp.items.find((i) => i.itemId === item.id);
+                          const isChecked = resp?.checked ?? false;
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex items-start gap-2.5"
+                              data-testid={`workbook-item-${item.id}`}
+                            >
+                              {isChecked ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                              ) : (
+                                <Circle className="w-4 h-4 text-muted-foreground/40 shrink-0 mt-0.5" />
+                              )}
+                              <span
+                                className={`text-sm leading-snug ${
+                                  isChecked ? "text-muted-foreground line-through" : "text-foreground"
+                                }`}
+                              >
+                                {item.text}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {secResp.notes ? (
+                        <div className="space-y-1" data-testid={`workbook-notes-${section.id}`}>
+                          <p className="text-xs font-medium text-muted-foreground">Section notes</p>
+                          <p className="text-sm text-foreground whitespace-pre-wrap">{secResp.notes}</p>
                         </div>
-                      );
-                    })}
-                  </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic" data-testid={`workbook-notes-${section.id}`}>
+                          No notes entered.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    /* Editable form controls — directors + submitted state */
+                    <>
+                      <div className="space-y-3 mb-4">
+                        {section.items.map((item) => {
+                          const resp = secResp.items.find((i) => i.itemId === item.id);
+                          const isChecked = resp?.checked ?? false;
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Section notes</Label>
-                    <Textarea
-                      placeholder={isViewer || submitted ? "No notes entered." : "Add notes, observations, or follow-up items for this section…"}
-                      value={secResp.notes}
-                      readOnly={submitted || isViewer}
-                      onChange={(e) => handleNotes(section.id, e.target.value)}
-                      className="text-sm resize-none min-h-[72px]"
-                      data-testid={`workbook-notes-${section.id}`}
-                    />
-                  </div>
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex items-start gap-3"
+                              data-testid={`workbook-item-${item.id}`}
+                            >
+                              <Checkbox
+                                id={`check-${item.id}`}
+                                checked={isChecked}
+                                disabled={submitted}
+                                onCheckedChange={(val) =>
+                                  handleCheck(section.id, item.id, !!val)
+                                }
+                                data-testid={`workbook-checkbox-${item.id}`}
+                              />
+                              <Label
+                                htmlFor={`check-${item.id}`}
+                                className={`text-sm leading-snug select-none ${
+                                  isChecked ? "line-through text-muted-foreground" : "text-foreground"
+                                } ${submitted ? "cursor-default" : "cursor-pointer"}`}
+                              >
+                                {item.text}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Section notes</Label>
+                        <Textarea
+                          placeholder={submitted ? "No notes entered." : "Add notes, observations, or follow-up items for this section…"}
+                          value={secResp.notes}
+                          readOnly={submitted}
+                          onChange={(e) => handleNotes(section.id, e.target.value)}
+                          className="text-sm resize-none min-h-[72px]"
+                          data-testid={`workbook-notes-${section.id}`}
+                        />
+                      </div>
+                    </>
+                  )}
                 </AccordionContent>
               </AccordionItem>
             );
