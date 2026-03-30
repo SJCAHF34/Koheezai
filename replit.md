@@ -9,6 +9,7 @@ Koheez.ai is a clinical decision support platform for HIV pharmacists. It featur
   - `cpo@koheez.ai` / `KohezCPO1` — Chief Pharmacy Officer (all regions)
   - `test@koheez.ai` / `Koheez1` — Regional Pharmacy Director (Western Region, siteId 1417)
   - `jrockwoodpharmd@gmail.com` / `hollywood` — Pharmacy Director (Site 1417, RX Pike Street)
+  - `director@koheez.ai` / `Director1` — Pharmacy Director (Site 1417, RX Pike Street)
 - New accounts stored in in-memory array (inMemoryUsers) — not persisted across restarts.
 - Auth endpoints: GET /api/auth/me, POST /api/auth/login, POST /api/auth/signup, POST /api/auth/logout.
 - Unauthenticated users accessing /app/* are redirected to /login.

@@ -34,6 +34,11 @@ const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteNam
     siteId: "1417",
     siteName: "RX Pike Street",
   },
+  "director@koheez.ai": {
+    role: "pharmacy_director",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+  },
 };
 
 const DEFAULT_PROFILE: Pick<UserProfile, "role" | "siteId" | "siteName"> = {
