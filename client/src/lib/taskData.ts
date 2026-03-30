@@ -642,16 +642,6 @@ export const TASKS: PharmacyTask[] = [
 
   // ── DIRECTOR · DAILY ────────────────────────────────────────────────────
   {
-    id: "dir-d-001",
-    title: "Review daily staffing coverage",
-    description: "Confirm all positions are covered and address any gaps or callouts.",
-    role: "director",
-    frequency: "daily",
-    category: "operations",
-    taskGroup: "Daily",
-    isUrgent: true,
-  },
-  {
     id: "dir-d-002",
     title: "Morning team briefing / stand-up",
     description: "Lead or facilitate morning team stand-up to communicate priorities and issues.",
