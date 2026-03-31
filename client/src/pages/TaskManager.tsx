@@ -34,7 +34,8 @@ import {
   dismissPriority,
   removePriority,
   hasPriority,
-  loadHandoffForDate,
+  loadHandoffNoteForRoleAndDate,
+  loadHandoffNotesForRole,
   saveHandoffNote,
   toggleHandoffItemComplete,
   getTodayDateKey,
@@ -1498,6 +1499,38 @@ function PriorityDialog({
   );
 }
 
+// ── Role badge colors for handoff designation ─────────────────────────────────
+const ROLE_CHIP_OPTIONS: { value: string; label: string }[] = [
+  { value: "all", label: "All Staff" },
+  { value: "data_entry_tech", label: "Data Entry Tech" },
+  { value: "delivery_tech", label: "Delivery Tech" },
+  { value: "pharmacist_1", label: "Pharmacist 1" },
+  { value: "pharmacist_2", label: "Pharmacist 2" },
+  { value: "pharmacy_director", label: "Director" },
+];
+
+function handoffRoleLabel(forRole: string): string {
+  return ROLE_CHIP_OPTIONS.find((c) => c.value === forRole)?.label ?? "All Staff";
+}
+
+function HandoffRoleBadge({ forRole }: { forRole: string }) {
+  const label = handoffRoleLabel(forRole);
+  const colorMap: Record<string, string> = {
+    all: "bg-indigo-100 text-indigo-700",
+    data_entry_tech: "bg-sky-100 text-sky-700",
+    delivery_tech: "bg-orange-100 text-orange-700",
+    pharmacist_1: "bg-purple-100 text-purple-700",
+    pharmacist_2: "bg-violet-100 text-violet-700",
+    pharmacy_director: "bg-emerald-100 text-emerald-700",
+  };
+  const cls = colorMap[forRole] ?? "bg-indigo-100 text-indigo-700";
+  return (
+    <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${cls}`} data-testid="handoff-role-badge">
+      For: {label}
+    </span>
+  );
+}
+
 // ── Custom Tasks (handoff items for today) ────────────────────────────────────
 function CustomTasksSection({
   siteId,
@@ -1506,18 +1539,20 @@ function CustomTasksSection({
 }: {
   siteId: string;
   note: HandoffNote;
-  onToggle: (itemId: string) => void;
+  onToggle: (itemId: string, forRole: string) => void;
 }) {
   const allDone = note.items.every((i) => i.completed);
+  const forRole = note.forRole || "all";
   return (
     <div
       data-testid="custom-tasks-section"
       className="bg-white border border-indigo-200 rounded-md overflow-hidden"
     >
-      <div className="px-5 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
+      <div className="px-5 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2 flex-wrap">
         <ClipboardCheck className="w-4 h-4 text-indigo-600 shrink-0" />
         <span className="text-sm font-bold text-indigo-800">Handoff Tasks</span>
-        <span className="text-xs text-indigo-500 ml-1">
+        <HandoffRoleBadge forRole={forRole} />
+        <span className="text-xs text-indigo-500">
           from yesterday's notes · {note.items.filter((i) => i.completed).length}/{note.items.length} done
         </span>
         {allDone && (
@@ -1531,7 +1566,7 @@ function CustomTasksSection({
           <li key={item.id} className="flex items-center gap-3 px-5 py-3">
             <button
               data-testid={`handoff-check-${item.id}`}
-              onClick={() => onToggle(item.id)}
+              onClick={() => onToggle(item.id, forRole)}
               className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
                 item.completed
                   ? "bg-green-500 border-green-500 scale-110"
@@ -1577,9 +1612,13 @@ function HandoffPanel({
   const tomorrow = getTomorrowDateKey();
 
   const [targetDate, setTargetDate] = useState(tomorrow);
+  const [forRole, setForRole] = useState("all");
 
-  // Reload note whenever the target date changes
-  const existing = loadHandoffForDate(siteId, targetDate);
+  function loadNote(date: string, role: string) {
+    return loadHandoffNoteForRoleAndDate(siteId, date, role);
+  }
+
+  const existing = loadNote(targetDate, forRole);
 
   const [rawText, setRawText] = useState(existing?.rawText ?? "");
   const [items, setItems] = useState<HandoffItem[]>(existing?.items ?? []);
@@ -1588,10 +1627,20 @@ function HandoffPanel({
   const [saved, setSaved] = useState(!!existing);
   const [error, setError] = useState("");
 
-  // When the user picks a different date, load whatever was saved for that date
+  // When the user picks a different date, load whatever was saved for that date+role
   const handleDateChange = (newDate: string) => {
     setTargetDate(newDate);
-    const note = loadHandoffForDate(siteId, newDate);
+    const note = loadNote(newDate, forRole);
+    setRawText(note?.rawText ?? "");
+    setItems(note?.items ?? []);
+    setSaved(!!note);
+    setError("");
+  };
+
+  // When the user picks a different role, load whatever was saved for that date+role
+  const handleRoleChange = (newRole: string) => {
+    setForRole(newRole);
+    const note = loadNote(targetDate, newRole);
     setRawText(note?.rawText ?? "");
     setItems(note?.items ?? []);
     setSaved(!!note);
@@ -1644,11 +1693,12 @@ function HandoffPanel({
   const handleSave = () => {
     if (items.length === 0) return;
     saveHandoffNote({
-      id: `${siteId}-${targetDate}`,
+      id: `${siteId}-${targetDate}-${forRole}`,
       siteId,
       rawText,
       items,
       forDate: targetDate,
+      forRole,
       createdAt: new Date().toISOString(),
       createdBy: authorName,
       createdByRole: authorRole,
@@ -1689,6 +1739,33 @@ function HandoffPanel({
           <p className="text-xs font-semibold text-red-700 leading-relaxed">
             <span className="uppercase tracking-wide">Critical:</span> Do not include patient PHI (names, DOB, address, or other identifiers) in handoff notes. Use <span className="font-bold">RX#</span> only to reference prescriptions.
           </p>
+        </div>
+
+        {/* Role designation chips */}
+        <div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            For who?
+          </p>
+          <div className="flex flex-wrap gap-1.5" data-testid="handoff-role-chips">
+            {ROLE_CHIP_OPTIONS.map((chip) => {
+              const isSelected = forRole === chip.value;
+              return (
+                <button
+                  key={chip.value}
+                  type="button"
+                  data-testid={`handoff-role-chip-${chip.value}`}
+                  onClick={() => handleRoleChange(chip.value)}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-md border transition-colors ${
+                    isSelected
+                      ? "bg-purple-600 text-white border-purple-600"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-700"
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Date picker */}
@@ -1848,7 +1925,7 @@ export default function TaskManager() {
   const [prioritizingTask, setPrioritizingTask] = useState<PharmacyTask | null>(null);
   const [activePriorities, setActivePriorities] = useState<TaskPriority[]>([]);
   const [priorityIds, setPriorityIds] = useState<Set<string>>(new Set());
-  const [todayHandoff, setTodayHandoff] = useState<HandoffNote | null>(null);
+  const [todayHandoffs, setTodayHandoffs] = useState<HandoffNote[]>([]);
 
   const siteId = urlSiteId ?? profile?.siteId ?? "1417";
   const isDir = isDirectorRole(profile?.role ?? "pharmacist_1");
@@ -1873,7 +1950,7 @@ export default function TaskManager() {
     setPriorityIds(new Set(pList.map((p) => p.taskId)));
     // Load today's handoff tasks and purge stale entries
     purgeStaleHandoffNotes();
-    setTodayHandoff(loadHandoffForDate(siteId, getTodayDateKey()));
+    setTodayHandoffs(loadHandoffNotesForRole(siteId, getTodayDateKey(), profile.role));
   }, [frequency, siteId, profile?.email, viewingRole]);
 
   const toggleCompletion = useCallback(
@@ -1934,11 +2011,13 @@ export default function TaskManager() {
     setActivePriorities([]);
   }, [activePriorities, siteId]);
 
-  const handleHandoffToggle = useCallback((itemId: string) => {
+  const handleHandoffToggle = useCallback((itemId: string, forRole: string) => {
     const today = getTodayDateKey();
-    toggleHandoffItemComplete(siteId, today, itemId);
-    setTodayHandoff(loadHandoffForDate(siteId, today));
-  }, [siteId]);
+    toggleHandoffItemComplete(siteId, today, itemId, forRole);
+    if (profile) {
+      setTodayHandoffs(loadHandoffNotesForRole(siteId, today, profile.role));
+    }
+  }, [siteId, profile]);
 
   if (!profile) return null;
 
@@ -2202,13 +2281,14 @@ export default function TaskManager() {
         )}
 
         {/* Handoff tasks from yesterday — daily view only, store users only */}
-        {showHandoff && frequency === "daily" && todayHandoff && todayHandoff.items.length > 0 && (
+        {showHandoff && frequency === "daily" && todayHandoffs.map((note) => (
           <CustomTasksSection
+            key={note.id}
             siteId={siteId}
-            note={todayHandoff}
+            note={note}
             onToggle={handleHandoffToggle}
           />
-        )}
+        ))}
 
         {/* Role-based task list */}
         {roleGroups.length === 0 ? (

@@ -267,6 +267,7 @@ export interface HandoffNote {
   rawText: string;
   items: HandoffItem[];
   forDate: string;
+  forRole: string;
   createdAt: string;
   createdBy: string;
   createdByRole: string;
@@ -304,17 +305,36 @@ export function loadHandoffForDate(siteId: string, date: string): HandoffNote | 
   return readHandoffNotes().find((n) => n.siteId === siteId && n.forDate === date) ?? null;
 }
 
+export function loadHandoffNoteForRoleAndDate(siteId: string, date: string, forRole: string): HandoffNote | null {
+  const resolved = forRole || "all";
+  return readHandoffNotes().find(
+    (n) => n.siteId === siteId && n.forDate === date && (n.forRole || "all") === resolved
+  ) ?? null;
+}
+
+export function loadHandoffNotesForRole(siteId: string, date: string, userRole: string): HandoffNote[] {
+  const notes = readHandoffNotes().filter((n) => n.siteId === siteId && n.forDate === date);
+  const isDir = userRole === "pharmacy_director";
+  if (isDir) return notes.filter((n) => n.items.length > 0);
+  return notes.filter((n) => {
+    const nr = n.forRole || "all";
+    return (nr === userRole || nr === "all") && n.items.length > 0;
+  });
+}
+
 export function saveHandoffNote(note: HandoffNote): void {
+  const forRole = note.forRole || "all";
   const all = readHandoffNotes().filter(
-    (n) => !(n.siteId === note.siteId && n.forDate === note.forDate)
+    (n) => !(n.siteId === note.siteId && n.forDate === note.forDate && (n.forRole || "all") === forRole)
   );
-  all.push(note);
+  all.push({ ...note, forRole });
   writeHandoffNotes(all);
 }
 
-export function toggleHandoffItemComplete(siteId: string, date: string, itemId: string): void {
+export function toggleHandoffItemComplete(siteId: string, date: string, itemId: string, forRole: string): void {
+  const resolved = forRole || "all";
   const all = readHandoffNotes().map((n) => {
-    if (n.siteId !== siteId || n.forDate !== date) return n;
+    if (n.siteId !== siteId || n.forDate !== date || (n.forRole || "all") !== resolved) return n;
     return {
       ...n,
       items: n.items.map((item) =>
