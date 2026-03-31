@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/App";
-import { getUserProfile, isRegionalOrAbove, isDirectorRole, getRoleLabel } from "@/lib/userProfile";
+import { getUserProfile, isRegionalOrAbove, isDirectorRole, isTechRole, getRoleLabel } from "@/lib/userProfile";
 import {
   loadCQIMeeting,
   saveCQIMeeting,
@@ -462,6 +462,7 @@ export default function CQIMeeting() {
   const isViewer = profile ? isRegionalOrAbove(profile.role) : false;
 
   const isDirectorOrAbove = profile ? isDirectorRole(profile.role) : false;
+  const isTech = profile ? isTechRole(profile.role) : false;
   const canEdit = isDirectorOrAbove;
 
   const [record, setRecord] = useState<CQIMeetingRecord | null>(null);
@@ -611,45 +612,59 @@ export default function CQIMeeting() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <StatusBadge status={record.status} />
-          {canEdit && (
-            <Button
-              variant="outline"
-              onClick={handleSave}
-              disabled={isSaving}
-              data-testid="cqi-save-btn"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {isSaving ? "Saving…" : "Save"}
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={handleExportPDF}
-            disabled={isExporting}
-            data-testid="cqi-export-btn"
-          >
-            <FileDown className="w-4 h-4 mr-2" />
-            {isExporting ? "Exporting…" : "Export PDF"}
-          </Button>
-        </div>
+        {!isTech && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <StatusBadge status={record.status} />
+            {canEdit && (
+              <Button
+                variant="outline"
+                onClick={handleSave}
+                disabled={isSaving}
+                data-testid="cqi-save-btn"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? "Saving…" : "Save"}
+              </Button>
+            )}
+            {canEdit && (
+              <Button
+                variant="outline"
+                onClick={handleExportPDF}
+                disabled={isExporting}
+                data-testid="cqi-export-btn"
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                {isExporting ? "Exporting…" : "Export PDF"}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Site label */}
-      {profile && (
+      {profile && !isTech && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="cqi-site-label">
           <Building2 className="w-4 h-4" />
           <span>{profile.siteName} — Site {profile.siteId}</span>
         </div>
       )}
 
-      {/* Read-only notice for non-editors */}
-      {!canEdit && !isViewer && (
+      {/* Read-only notice for non-editors (non-tech, non-director staff) */}
+      {!canEdit && !isViewer && !isTech && (
         <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3" data-testid="cqi-readonly-notice">
           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <p className="text-sm text-amber-800">
             You can sign the attendance list below. Only directors can edit the rest of the form.
+          </p>
+        </div>
+      )}
+
+      {/* Tech-role notice */}
+      {isTech && (
+        <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-3 flex items-start gap-3" data-testid="cqi-tech-notice">
+          <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-blue-800">
+            Please sign the attendance list to confirm your participation in this CQI-QRE meeting.
           </p>
         </div>
       )}
