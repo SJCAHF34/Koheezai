@@ -120,240 +120,262 @@ function StatusBadge({ status }: { status: CQIMeetingRecord["status"] }) {
   );
 }
 
-// ── PDF print layout (hidden div) ────────────────────────────────────────────
+// ── Shared PDF page styles ───────────────────────────────────────────────────
 
-function PrintLayout({
-  record,
-  printRef,
-}: {
-  record: CQIMeetingRecord;
-  printRef: React.RefObject<HTMLDivElement>;
-}) {
-  const quarterLabel =
-    record.selectedQuarter === "Other"
-      ? `Other: ${record.otherDate}`
-      : record.selectedQuarter || "—";
+const PAGE_STYLE: React.CSSProperties = {
+  position: "absolute",
+  left: "-9999px",
+  top: 0,
+  width: "816px",
+  minHeight: "1056px",
+  fontFamily: "Arial, sans-serif",
+  fontSize: "12px",
+  color: "#000",
+  background: "#fff",
+  padding: "40px",
+  boxSizing: "border-box",
+};
 
+const SECTION_HEADER: React.CSSProperties = {
+  fontWeight: "bold",
+  fontSize: "13px",
+  backgroundColor: "#eff6ff",
+  padding: "6px 10px",
+  marginBottom: "8px",
+  borderLeft: "3px solid #1e40af",
+};
+
+function PageHeader({ record }: { record: CQIMeetingRecord }) {
   return (
-    <div
-      ref={printRef}
-      style={{
-        position: "absolute",
-        left: "-9999px",
-        top: 0,
-        width: "816px",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "12px",
-        color: "#000",
-        background: "#fff",
-        padding: "40px",
-        boxSizing: "border-box",
-      }}
-    >
-      {/* Page 1 */}
-      <div style={{ minHeight: "1056px" }}>
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "24px" }}>
-          <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1e40af" }}>
-            AHF / Pharmacy4Humanity
-          </div>
-          <div style={{ fontSize: "16px", fontWeight: "bold", marginTop: "4px" }}>
-            CQI-QRE Quarterly Meeting Form
-          </div>
-          <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "2px" }}>
-            Continuous Quality Improvement — Quality-Related Event Documentation
-          </div>
+    <>
+      <div style={{ textAlign: "center", marginBottom: "24px" }}>
+        <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1e40af" }}>
+          AHF / Pharmacy4Humanity
         </div>
-
-        <div style={{ borderBottom: "2px solid #1e40af", marginBottom: "20px" }} />
-
-        {/* Pharmacy info */}
-        <table style={{ width: "100%", marginBottom: "20px", borderCollapse: "collapse" }}>
-          <tbody>
-            <tr>
-              <td style={{ width: "50%", paddingRight: "16px", paddingBottom: "8px" }}>
-                <span style={{ fontWeight: "bold" }}>Pharmacy Location: </span>
-                <span style={{ borderBottom: "1px solid #000", display: "inline-block", minWidth: "160px", paddingBottom: "2px" }}>
-                  {record.pharmacyLocation || ""}
-                </span>
-              </td>
-              <td style={{ width: "50%" }}>
-                <span style={{ fontWeight: "bold" }}>PIC: </span>
-                <span style={{ borderBottom: "1px solid #000", display: "inline-block", minWidth: "160px", paddingBottom: "2px" }}>
-                  {record.pic || ""}
-                </span>
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={2} style={{ paddingBottom: "8px" }}>
-                <span style={{ fontWeight: "bold" }}>Date (Quarter): </span>
-                {(["Q1", "Q2", "Q3", "Q4", "Other"] as QuarterOption[]).filter(q => q !== "").map((q) => (
-                  <span key={q} style={{ marginRight: "16px" }}>
-                    <span style={{
-                      display: "inline-block",
-                      width: "12px",
-                      height: "12px",
-                      border: "1px solid #000",
-                      borderRadius: "2px",
-                      backgroundColor: record.selectedQuarter === q ? "#1e40af" : "transparent",
-                      verticalAlign: "middle",
-                      marginRight: "4px",
-                    }} />
-                    {q}
-                  </span>
-                ))}
-                {record.selectedQuarter === "Other" && record.otherDate && (
-                  <span style={{ marginLeft: "4px" }}>({record.otherDate})</span>
-                )}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* Safety checks */}
-        <div style={{ marginBottom: "20px" }}>
-          <div style={{ fontWeight: "bold", fontSize: "13px", backgroundColor: "#eff6ff", padding: "6px 10px", marginBottom: "8px", borderLeft: "3px solid #1e40af" }}>
-            Safety Checks
-          </div>
-          {[
-            { key: "fireExtinguisher", label: "Fire Extinguisher Expiration Date Checked" },
-            { key: "smokeDetector", label: "Smoke Detector Expiration Date Checked" },
-            { key: "evacuationPlan", label: "Evacuation Plan Reviewed" },
-          ].map(({ key, label }) => (
-            <div key={key} style={{ display: "flex", alignItems: "center", marginBottom: "6px", paddingLeft: "10px" }}>
-              <span style={{
-                display: "inline-block",
-                width: "14px",
-                height: "14px",
-                border: "1px solid #000",
-                borderRadius: "2px",
-                backgroundColor: record.safetyChecks[key as keyof typeof record.safetyChecks] ? "#1e40af" : "transparent",
-                marginRight: "8px",
-                flexShrink: 0,
-              }} />
-              <span>{label}</span>
-            </div>
-          ))}
+        <div style={{ fontSize: "16px", fontWeight: "bold", marginTop: "4px" }}>
+          CQI-QRE Quarterly Meeting Form
         </div>
-
-        {/* Agenda items */}
-        <div style={{ marginBottom: "20px" }}>
-          <div style={{ fontWeight: "bold", fontSize: "13px", backgroundColor: "#eff6ff", padding: "6px 10px", marginBottom: "8px", borderLeft: "3px solid #1e40af" }}>
-            Agenda Items
-          </div>
-          {[
-            { key: "regulatoryUpdates", label: "Regulatory Updates / Issues" },
-            { key: "workflowUpdates", label: "Workflow Updates / Issues" },
-            { key: "qreIssues", label: "QRE Issues" },
-            { key: "policyUpdates", label: "Policy and Procedure Updates" },
-            { key: "qmcMeetingMinutes", label: "QMC Meeting Minutes and Reports" },
-          ].map(({ key, label }) => (
-            <div key={key} style={{ display: "flex", alignItems: "center", marginBottom: "6px", paddingLeft: "10px" }}>
-              <span style={{
-                display: "inline-block",
-                width: "14px",
-                height: "14px",
-                border: "1px solid #000",
-                borderRadius: "2px",
-                backgroundColor: record.agendaItems[key as keyof typeof record.agendaItems] ? "#1e40af" : "transparent",
-                marginRight: "8px",
-                flexShrink: 0,
-              }} />
-              <span>{label}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* QRE issues discussed */}
-        <div style={{ marginBottom: "20px" }}>
-          <div style={{ fontWeight: "bold", fontSize: "13px", backgroundColor: "#eff6ff", padding: "6px 10px", marginBottom: "8px", borderLeft: "3px solid #1e40af" }}>
-            QRE Issues Discussed
-          </div>
-          <div style={{
-            border: "1px solid #d1d5db",
-            borderRadius: "4px",
-            minHeight: "80px",
-            padding: "8px 12px",
-            whiteSpace: "pre-wrap",
-            lineHeight: "1.5",
-            color: record.qreIssues ? "#000" : "#9ca3af",
-          }}>
-            {record.qreIssues || "No issues documented."}
-          </div>
-        </div>
-
-        {/* Action plan */}
-        <div style={{ marginBottom: "24px" }}>
-          <div style={{ fontWeight: "bold", fontSize: "13px", backgroundColor: "#eff6ff", padding: "6px 10px", marginBottom: "8px", borderLeft: "3px solid #1e40af" }}>
-            QRE Action Plan / Process Changes / Suggestions from Staff
-          </div>
-          <div style={{
-            border: "1px solid #d1d5db",
-            borderRadius: "4px",
-            minHeight: "80px",
-            padding: "8px 12px",
-            whiteSpace: "pre-wrap",
-            lineHeight: "1.5",
-            color: record.actionPlan ? "#000" : "#9ca3af",
-          }}>
-            {record.actionPlan || "No action plan documented."}
-          </div>
-        </div>
-
-        <div style={{ borderBottom: "1px dashed #d1d5db", marginBottom: "24px" }} />
-
-        {/* Attendance table */}
-        <div>
-          <div style={{ fontWeight: "bold", fontSize: "13px", backgroundColor: "#eff6ff", padding: "6px 10px", marginBottom: "8px", borderLeft: "3px solid #1e40af" }}>
-            Meeting Attendance
-          </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ backgroundColor: "#dbeafe" }}>
-                <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "5%" }}>#</th>
-                <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "30%" }}>Print Name</th>
-                <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "20%" }}>Role</th>
-                <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "30%" }}>Signature</th>
-                <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "15%" }}>Date/Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {record.attendees.length > 0 ? (
-                record.attendees.map((att, idx) => (
-                  <tr key={att.id} style={{ backgroundColor: idx % 2 === 0 ? "#fff" : "#f9fafb" }}>
-                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }}>{idx + 1}</td>
-                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", fontWeight: "500" }}>{att.printName}</td>
-                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", color: "#6b7280", fontSize: "11px" }}>{formatRole(att.role)}</td>
-                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", fontStyle: "italic", fontFamily: "Georgia, serif", fontSize: "14px", color: "#1e3a8a" }}>
-                      {att.signatureName}
-                    </td>
-                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", color: "#6b7280", fontSize: "10px" }}>
-                      {new Date(att.signedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                      <br />
-                      {new Date(att.signedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                Array.from({ length: 8 }).map((_, idx) => (
-                  <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? "#fff" : "#f9fafb" }}>
-                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", color: "#9ca3af" }}>{idx + 1}</td>
-                    <td style={{ border: "1px solid #d1d5db", padding: "24px 12px" }} />
-                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }} />
-                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }} />
-                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }} />
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer */}
-        <div style={{ marginTop: "32px", borderTop: "1px solid #d1d5db", paddingTop: "12px", textAlign: "center", color: "#9ca3af", fontSize: "10px" }}>
-          Generated by Koheez.ai · {record.quarter} · Site {record.siteId} · {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+        <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "2px" }}>
+          Continuous Quality Improvement — Quality-Related Event Documentation
         </div>
       </div>
+      <div style={{ borderBottom: "2px solid #1e40af", marginBottom: "20px" }} />
+    </>
+  );
+}
+
+function PageFooter({ record, page }: { record: CQIMeetingRecord; page: number }) {
+  return (
+    <div style={{ marginTop: "32px", borderTop: "1px solid #d1d5db", paddingTop: "12px", display: "flex", justifyContent: "space-between", color: "#9ca3af", fontSize: "10px" }}>
+      <span>Generated by Koheez.ai · {record.quarter} · Site {record.siteId}</span>
+      <span>{new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} · Page {page} of 2</span>
+    </div>
+  );
+}
+
+// ── PDF Page 1: form details ──────────────────────────────────────────────────
+
+function PrintPage1({
+  record,
+  page1Ref,
+}: {
+  record: CQIMeetingRecord;
+  page1Ref: React.RefObject<HTMLDivElement>;
+}) {
+  return (
+    <div ref={page1Ref} style={PAGE_STYLE}>
+      <PageHeader record={record} />
+
+      {/* Pharmacy info */}
+      <table style={{ width: "100%", marginBottom: "20px", borderCollapse: "collapse" }}>
+        <tbody>
+          <tr>
+            <td style={{ width: "50%", paddingRight: "16px", paddingBottom: "8px" }}>
+              <span style={{ fontWeight: "bold" }}>Pharmacy Location: </span>
+              <span style={{ borderBottom: "1px solid #000", display: "inline-block", minWidth: "160px", paddingBottom: "2px" }}>
+                {record.pharmacyLocation || ""}
+              </span>
+            </td>
+            <td style={{ width: "50%" }}>
+              <span style={{ fontWeight: "bold" }}>PIC: </span>
+              <span style={{ borderBottom: "1px solid #000", display: "inline-block", minWidth: "160px", paddingBottom: "2px" }}>
+                {record.pic || ""}
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td colSpan={2} style={{ paddingBottom: "8px" }}>
+              <span style={{ fontWeight: "bold" }}>Date (Quarter): </span>
+              {(["Q1", "Q2", "Q3", "Q4", "Other"] as const).map((q) => (
+                <span key={q} style={{ marginRight: "16px" }}>
+                  <span style={{
+                    display: "inline-block",
+                    width: "12px",
+                    height: "12px",
+                    border: "1px solid #000",
+                    borderRadius: "2px",
+                    backgroundColor: record.selectedQuarter === q ? "#1e40af" : "transparent",
+                    verticalAlign: "middle",
+                    marginRight: "4px",
+                  }} />
+                  {q}
+                </span>
+              ))}
+              {record.selectedQuarter === "Other" && record.otherDate && (
+                <span style={{ marginLeft: "4px" }}>({record.otherDate})</span>
+              )}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Safety checks */}
+      <div style={{ marginBottom: "20px" }}>
+        <div style={SECTION_HEADER}>Safety Checks</div>
+        {[
+          { key: "fireExtinguisher" as const, label: "Fire Extinguisher Expiration Date Checked" },
+          { key: "smokeDetector" as const, label: "Smoke Detector Expiration Date Checked" },
+          { key: "evacuationPlan" as const, label: "Evacuation Plan Reviewed" },
+        ].map(({ key, label }) => (
+          <div key={key} style={{ display: "flex", alignItems: "center", marginBottom: "6px", paddingLeft: "10px" }}>
+            <span style={{
+              display: "inline-block",
+              width: "14px",
+              height: "14px",
+              border: "1px solid #000",
+              borderRadius: "2px",
+              backgroundColor: record.safetyChecks[key] ? "#1e40af" : "transparent",
+              marginRight: "8px",
+              flexShrink: 0,
+            }} />
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Agenda items */}
+      <div style={{ marginBottom: "20px" }}>
+        <div style={SECTION_HEADER}>Agenda Items</div>
+        {[
+          { key: "regulatoryUpdates" as const, label: "Regulatory Updates / Issues" },
+          { key: "workflowUpdates" as const, label: "Workflow Updates / Issues" },
+          { key: "qreIssues" as const, label: "QRE Issues" },
+          { key: "policyUpdates" as const, label: "Policy and Procedure Updates" },
+          { key: "qmcMeetingMinutes" as const, label: "QMC Meeting Minutes and Reports" },
+        ].map(({ key, label }) => (
+          <div key={key} style={{ display: "flex", alignItems: "center", marginBottom: "6px", paddingLeft: "10px" }}>
+            <span style={{
+              display: "inline-block",
+              width: "14px",
+              height: "14px",
+              border: "1px solid #000",
+              borderRadius: "2px",
+              backgroundColor: record.agendaItems[key] ? "#1e40af" : "transparent",
+              marginRight: "8px",
+              flexShrink: 0,
+            }} />
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* QRE issues */}
+      <div style={{ marginBottom: "20px" }}>
+        <div style={SECTION_HEADER}>QRE Issues Discussed</div>
+        <div style={{
+          border: "1px solid #d1d5db",
+          borderRadius: "4px",
+          minHeight: "100px",
+          padding: "8px 12px",
+          whiteSpace: "pre-wrap",
+          lineHeight: "1.5",
+          color: record.qreIssues ? "#000" : "#9ca3af",
+        }}>
+          {record.qreIssues || "No issues documented."}
+        </div>
+      </div>
+
+      {/* Action plan */}
+      <div style={{ marginBottom: "24px" }}>
+        <div style={SECTION_HEADER}>QRE Action Plan / Process Changes / Suggestions from Staff</div>
+        <div style={{
+          border: "1px solid #d1d5db",
+          borderRadius: "4px",
+          minHeight: "100px",
+          padding: "8px 12px",
+          whiteSpace: "pre-wrap",
+          lineHeight: "1.5",
+          color: record.actionPlan ? "#000" : "#9ca3af",
+        }}>
+          {record.actionPlan || "No action plan documented."}
+        </div>
+      </div>
+
+      <PageFooter record={record} page={1} />
+    </div>
+  );
+}
+
+// ── PDF Page 2: attendance ───────────────────────────────────────────────────
+
+function PrintPage2({
+  record,
+  page2Ref,
+}: {
+  record: CQIMeetingRecord;
+  page2Ref: React.RefObject<HTMLDivElement>;
+}) {
+  const blankRows = Math.max(0, 12 - record.attendees.length);
+  return (
+    <div ref={page2Ref} style={PAGE_STYLE}>
+      <PageHeader record={record} />
+
+      <div style={{ marginBottom: "8px", fontSize: "13px", color: "#374151" }}>
+        <span style={{ fontWeight: "bold" }}>Pharmacy: </span>{record.pharmacyLocation || "—"}
+        <span style={{ marginLeft: "24px", fontWeight: "bold" }}>Quarter: </span>{record.selectedQuarter || "—"}
+      </div>
+
+      <div style={SECTION_HEADER}>Meeting Attendance — Print Name &amp; Signature</div>
+
+      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "8px" }}>
+        <thead>
+          <tr style={{ backgroundColor: "#dbeafe" }}>
+            <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "5%" }}>#</th>
+            <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "28%" }}>Print Name</th>
+            <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "18%" }}>Role</th>
+            <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "32%" }}>Signature</th>
+            <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "17%" }}>Date / Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {record.attendees.map((att, idx) => (
+            <tr key={att.id} style={{ backgroundColor: idx % 2 === 0 ? "#fff" : "#f9fafb" }}>
+              <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }}>{idx + 1}</td>
+              <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", fontWeight: "500" }}>{att.printName}</td>
+              <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", color: "#6b7280", fontSize: "11px" }}>{formatRole(att.role)}</td>
+              <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", fontStyle: "italic", fontFamily: "Georgia, serif", fontSize: "14px", color: "#1e3a8a" }}>
+                {att.signatureName}
+              </td>
+              <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", color: "#6b7280", fontSize: "10px" }}>
+                {new Date(att.signedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                {" · "}
+                {new Date(att.signedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+              </td>
+            </tr>
+          ))}
+          {Array.from({ length: blankRows }).map((_, idx) => (
+            <tr key={`blank-${idx}`} style={{ backgroundColor: (record.attendees.length + idx) % 2 === 0 ? "#fff" : "#f9fafb" }}>
+              <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", color: "#9ca3af" }}>{record.attendees.length + idx + 1}</td>
+              <td style={{ border: "1px solid #d1d5db", padding: "22px 12px" }} />
+              <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }} />
+              <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }} />
+              <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <PageFooter record={record} page={2} />
     </div>
   );
 }
@@ -456,7 +478,8 @@ export default function CQIMeeting() {
   const [signModalOpen, setSignModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
+  const page1Ref = useRef<HTMLDivElement>(null);
+  const page2Ref = useRef<HTMLDivElement>(null);
 
   // Load or initialise record
   useEffect(() => {
@@ -527,44 +550,34 @@ export default function CQIMeeting() {
     toast({ title: "Signed", description: "Your attendance has been recorded." });
   }
 
-  // ── PDF export ──
+  // ── PDF export (two-page controlled layout) ──
 
   async function handleExportPDF() {
-    if (!record || !printRef.current) return;
+    if (!record || !page1Ref.current || !page2Ref.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(printRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const canvasOpts = { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false };
+      const [canvas1, canvas2] = await Promise.all([
+        html2canvas(page1Ref.current, canvasOpts),
+        html2canvas(page2Ref.current, canvasOpts),
+      ]);
+
       const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height / canvas.width) * imgWidth;
 
-      let yPos = 0;
-      let remainingHeight = imgHeight;
+      const addCanvasToPage = (canvas: HTMLCanvasElement) => {
+        const imgData = canvas.toDataURL("image/jpeg", 0.95);
+        const imgAspect = canvas.height / canvas.width;
+        const imgWidth = pageWidth;
+        const imgHeight = imgAspect * imgWidth;
+        const yOffset = Math.max(0, (pageHeight - imgHeight) / 2);
+        pdf.addImage(imgData, "JPEG", 0, yOffset, imgWidth, Math.min(imgHeight, pageHeight));
+      };
 
-      while (remainingHeight > 0) {
-        const sliceHeight = Math.min(remainingHeight, pageHeight);
-        if (yPos > 0) pdf.addPage();
-
-        pdf.addImage(
-          imgData,
-          "JPEG",
-          0,
-          -yPos,
-          imgWidth,
-          imgHeight
-        );
-
-        yPos += pageHeight;
-        remainingHeight -= sliceHeight;
-      }
+      addCanvasToPage(canvas1);
+      pdf.addPage();
+      addCanvasToPage(canvas2);
 
       const filename = `CQI-QRE-Meeting-${record.quarter}-${record.siteId}.pdf`;
       pdf.save(filename);
@@ -591,8 +604,9 @@ export default function CQIMeeting() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6" data-testid="cqi-meeting-page">
 
-      {/* Hidden print layout for PDF export */}
-      <PrintLayout record={record} printRef={printRef} />
+      {/* Hidden two-page print layout for PDF export */}
+      <PrintPage1 record={record} page1Ref={page1Ref} />
+      <PrintPage2 record={record} page2Ref={page2Ref} />
 
       {/* Page header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
