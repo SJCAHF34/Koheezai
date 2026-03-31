@@ -300,7 +300,7 @@ export const TASKS: PharmacyTask[] = [
   },
   {
     id: "pv2-d-008",
-    title: "Check 35-day report",
+    title: "Retention Risk Report",
     description: "Review patient profiles for stale unprocessed prescriptions. Call patients or process orders. Confirm ERP enrollment.",
     role: "pv2_tech",
     frequency: "daily",

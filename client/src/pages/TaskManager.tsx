@@ -19,6 +19,7 @@ import {
   type PharmacyTask,
   type TaskRole,
   type TaskFrequency,
+  type TaskCategory,
 } from "@/lib/taskData";
 import { findStore } from "@/lib/storeDirectory";
 import {
@@ -38,10 +39,17 @@ import {
   getTodayDateKey,
   getTomorrowDateKey,
   purgeStaleHandoffNotes,
+  loadRetentionRisk,
+  saveRetentionRisk,
+  loadRoster,
+  saveRoster,
   type TaskAssignment,
   type TaskPriority,
   type HandoffNote,
   type HandoffItem,
+  type RetentionRiskEntry,
+  type StaffMember,
+  type SiteRoster,
 } from "@/lib/taskStorage";
 import {
   Check,
@@ -60,6 +68,12 @@ import {
   Plus,
   ClipboardCheck,
   ArrowUpRight,
+  Users,
+  BarChart3,
+  Filter,
+  Minus,
+  Save,
+  Pencil,
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -76,7 +90,8 @@ type ViewingRole = TaskRole | "own" | "all";
 function getVisibleTasks(
   frequency: TaskFrequency,
   userRole: UserRole,
-  viewingRole: ViewingRole
+  viewingRole: ViewingRole,
+  extraRoles?: string[]
 ): PharmacyTask[] {
   const byFreq = TASKS.filter((t) => t.frequency === frequency);
   if (isDirectorRole(userRole)) {
@@ -85,7 +100,8 @@ function getVisibleTasks(
       return byFreq.filter((t) => t.role === "director" || t.role === "all_staff");
     return byFreq.filter((t) => t.role === viewingRole || t.role === "all_staff");
   }
-  return byFreq.filter((t) => t.role === userRole || t.role === "all_staff");
+  const allRoles = extraRoles && extraRoles.length > 0 ? extraRoles : [userRole];
+  return byFreq.filter((t) => (allRoles as string[]).includes(t.role) || t.role === "all_staff");
 }
 
 /** Group tasks into role buckets → task-group buckets, respecting defined orders.
@@ -251,6 +267,7 @@ function TaskRow({
   canPrioritize,
   isPrioritized,
   readOnly,
+  siteId,
   onToggle,
   onAssign,
   onPrioritize,
@@ -263,6 +280,7 @@ function TaskRow({
   canPrioritize: boolean;
   isPrioritized: boolean;
   readOnly?: boolean;
+  siteId?: string;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
@@ -339,6 +357,10 @@ function TaskRow({
             {assignment.note ? ` · ${assignment.note}` : ""}
           </p>
         )}
+
+        {task.id === "pv2-d-008" && siteId && (
+          <RetentionRiskPanel siteId={siteId} />
+        )}
       </div>
 
       {/* Category badge — right-aligned */}
@@ -391,6 +413,7 @@ function TaskGroupSection({
   canAssign,
   canPrioritize,
   readOnly,
+  siteId,
   onToggle,
   onAssign,
   onPrioritize,
@@ -404,6 +427,7 @@ function TaskGroupSection({
   canAssign: boolean;
   canPrioritize: boolean;
   readOnly?: boolean;
+  siteId?: string;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
@@ -449,6 +473,7 @@ function TaskGroupSection({
               canPrioritize={canPrioritize}
               isPrioritized={priorities.has(task.id)}
               readOnly={readOnly}
+              siteId={siteId}
               onToggle={onToggle}
               onAssign={onAssign}
               onPrioritize={onPrioritize}
@@ -472,6 +497,7 @@ function RoleSection({
   canAssign,
   canPrioritize,
   readOnly,
+  siteId,
   onToggle,
   onAssign,
   onPrioritize,
@@ -485,6 +511,7 @@ function RoleSection({
   canAssign: boolean;
   canPrioritize: boolean;
   readOnly?: boolean;
+  siteId?: string;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
@@ -546,6 +573,7 @@ function RoleSection({
         <div className="bg-white">
           {groups.map(({ groupName, tasks }) => (
             <TaskGroupSection
+              siteId={siteId}
               key={groupName}
               groupName={groupName}
               tasks={tasks}
@@ -624,6 +652,415 @@ function SiteOverviewPanel({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// ── Retention Risk Panel ──────────────────────────────────────────────────────
+
+function RetentionRiskPanel({ siteId }: { siteId: string }) {
+  const date = getTodayDateKey();
+  const existing = loadRetentionRisk(siteId, date);
+  const [controllable, setControllable] = useState(String(existing?.controllable ?? ""));
+  const [partial, setPartial] = useState(String(existing?.partiallyControllable ?? ""));
+  const [nonControllable, setNonControllable] = useState(String(existing?.nonControllable ?? ""));
+  const [saved, setSaved] = useState(false);
+
+  const total =
+    (Number(controllable) || 0) +
+    (Number(partial) || 0) +
+    (Number(nonControllable) || 0);
+
+  function handleSave() {
+    const entry: RetentionRiskEntry = {
+      siteId,
+      date,
+      controllable: Number(controllable) || 0,
+      partiallyControllable: Number(partial) || 0,
+      nonControllable: Number(nonControllable) || 0,
+      updatedAt: new Date().toISOString(),
+    };
+    saveRetentionRisk(entry);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2200);
+  }
+
+  return (
+    <div
+      data-testid="retention-risk-panel"
+      className="mt-2 mb-1 bg-amber-50 border border-amber-200 rounded-md p-3 space-y-3"
+    >
+      <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">
+        Retention Risk Patient Counts
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { label: "Controllable", value: controllable, set: setControllable, testId: "input-rr-controllable" },
+          { label: "Partially Controllable", value: partial, set: setPartial, testId: "input-rr-partial" },
+          { label: "Non-Controllable", value: nonControllable, set: setNonControllable, testId: "input-rr-non" },
+        ].map(({ label, value, set, testId }) => (
+          <div key={label}>
+            <p className="text-[10px] font-semibold text-amber-700 mb-1 leading-tight">{label}</p>
+            <input
+              data-testid={testId}
+              type="number"
+              min="0"
+              value={value}
+              onChange={(e) => set(e.target.value)}
+              placeholder="0"
+              className="w-full text-sm rounded border border-amber-200 bg-white px-2 py-1.5 text-center font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        {total > 0 ? (
+          <p className="text-xs text-amber-700">
+            <span className="font-bold">{total}</span> total patients at risk today
+          </p>
+        ) : (
+          <p className="text-xs text-amber-500">Enter today's patient counts</p>
+        )}
+        <button
+          data-testid="button-save-retention-risk"
+          onClick={handleSave}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 transition-colors"
+        >
+          {saved ? (
+            <>
+              <Check className="w-3.5 h-3.5" /> Saved
+            </>
+          ) : (
+            <>
+              <Save className="w-3.5 h-3.5" /> Save
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Category Overview Panel (directors) ───────────────────────────────────────
+
+const CATEGORY_ORDER_TM: TaskCategory[] = ["operations", "achc", "state_board", "retention"];
+const CATEGORY_COLORS_TM: Record<
+  TaskCategory,
+  { progress: string; active: string; ring: string }
+> = {
+  operations: { progress: "bg-slate-500", active: "border-slate-400 bg-slate-50", ring: "ring-slate-200" },
+  achc: { progress: "bg-blue-500", active: "border-blue-400 bg-blue-50", ring: "ring-blue-200" },
+  state_board: { progress: "bg-emerald-500", active: "border-emerald-400 bg-emerald-50", ring: "ring-emerald-200" },
+  retention: { progress: "bg-amber-500", active: "border-amber-400 bg-amber-50", ring: "ring-amber-200" },
+};
+
+function CategoryOverviewPanel({
+  siteId,
+  frequency,
+  categoryFilter,
+  onFilter,
+}: {
+  siteId: string;
+  frequency: TaskFrequency;
+  categoryFilter: TaskCategory | "all";
+  onFilter: (c: TaskCategory | "all") => void;
+}) {
+  const allCompletions = loadCompletions(siteId, frequency);
+
+  return (
+    <div>
+      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+        <BarChart3 className="w-3.5 h-3.5" />
+        Category Performance
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {CATEGORY_ORDER_TM.map((cat) => {
+          const cfg = CATEGORY_CONFIG[cat];
+          const colors = CATEGORY_COLORS_TM[cat];
+          const catTasks = TASKS.filter((t) => t.frequency === frequency && t.category === cat);
+          const done = catTasks.filter((t) => allCompletions.has(t.id)).length;
+          const total = catTasks.length;
+          const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+          const isActive = categoryFilter === cat;
+          return (
+            <button
+              key={cat}
+              data-testid={`category-overview-${cat}`}
+              onClick={() => onFilter(isActive ? "all" : cat)}
+              className={`text-left bg-white border rounded-md px-4 py-3 transition-all hover-elevate ${
+                isActive ? `${colors.active} ring-1 ${colors.ring}` : "border-slate-100"
+              }`}
+            >
+              <p className="text-xs font-semibold text-slate-500 mb-1 truncate">{cfg.label}</p>
+              <div className="flex items-end gap-1.5">
+                <span className="text-xl font-bold text-slate-800">{pct}%</span>
+                <span className="text-xs text-slate-400 mb-0.5">{done}/{total}</span>
+              </div>
+              <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    pct === 100 ? "bg-green-500" : colors.progress
+                  }`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              {isActive && (
+                <p className="text-[10px] font-semibold text-slate-400 mt-1">Click to clear filter</p>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Staff Roster Panel (directors) ────────────────────────────────────────────
+
+const TECH_ROLE_OPTIONS: { value: string; label: string }[] = [
+  { value: "data_entry_tech", label: "Data Entry Tech" },
+  { value: "pv2_tech", label: "PV2 Tech" },
+  { value: "delivery_tech", label: "Delivery Tech" },
+  { value: "pharmacist", label: "Pharmacist" },
+  { value: "director", label: "Director" },
+];
+
+function generateId(): string {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+function StaffRosterPanel({ siteId }: { siteId: string }) {
+  const [roster, setRoster] = useState<SiteRoster>(loadRoster(siteId));
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formRoles, setFormRoles] = useState<string[]>(["data_entry_tech"]);
+
+  function handleQuickSetup(techCount: number) {
+    const members: StaffMember[] = [];
+    if (techCount === 1) {
+      members.push({ id: generateId(), name: "Tech 1", roles: ["data_entry_tech", "pv2_tech", "delivery_tech"] });
+    } else if (techCount === 2) {
+      members.push({ id: generateId(), name: "Tech 1", roles: ["data_entry_tech", "pv2_tech"] });
+      members.push({ id: generateId(), name: "Tech 2", roles: ["delivery_tech"] });
+    } else if (techCount >= 3) {
+      members.push({ id: generateId(), name: "DE Tech", roles: ["data_entry_tech"] });
+      members.push({ id: generateId(), name: "PV2 Tech", roles: ["pv2_tech"] });
+      members.push({ id: generateId(), name: "Delivery Tech", roles: ["delivery_tech"] });
+    }
+    members.push({ id: generateId(), name: "Pharmacist", roles: ["pharmacist"] });
+    members.push({ id: generateId(), name: "Director", roles: ["director"] });
+    const newRoster: SiteRoster = { siteId, members };
+    saveRoster(newRoster);
+    setRoster(newRoster);
+    setShowAddForm(false);
+    setEditingId(null);
+  }
+
+  function openAdd() {
+    setFormName("");
+    setFormRoles(["data_entry_tech"]);
+    setEditingId(null);
+    setShowAddForm(true);
+  }
+
+  function openEdit(member: StaffMember) {
+    setFormName(member.name);
+    setFormRoles(member.roles);
+    setEditingId(member.id);
+    setShowAddForm(true);
+  }
+
+  function handleSaveMember() {
+    if (!formName.trim() || formRoles.length === 0) return;
+    let updatedMembers: StaffMember[];
+    if (editingId) {
+      updatedMembers = roster.members.map((m) =>
+        m.id === editingId ? { ...m, name: formName.trim(), roles: formRoles } : m
+      );
+    } else {
+      updatedMembers = [
+        ...roster.members,
+        { id: generateId(), name: formName.trim(), roles: formRoles },
+      ];
+    }
+    const newRoster: SiteRoster = { siteId, members: updatedMembers };
+    saveRoster(newRoster);
+    setRoster(newRoster);
+    setShowAddForm(false);
+    setEditingId(null);
+  }
+
+  function handleRemoveMember(id: string) {
+    const updatedMembers = roster.members.filter((m) => m.id !== id);
+    const newRoster: SiteRoster = { siteId, members: updatedMembers };
+    saveRoster(newRoster);
+    setRoster(newRoster);
+  }
+
+  function toggleFormRole(roleVal: string) {
+    setFormRoles((prev) =>
+      prev.includes(roleVal) ? prev.filter((r) => r !== roleVal) : [...prev, roleVal]
+    );
+  }
+
+  return (
+    <div
+      data-testid="staff-roster-panel"
+      className="bg-white border border-slate-200 rounded-md overflow-hidden"
+    >
+      {/* Header */}
+      <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+        <Users className="w-4 h-4 text-slate-500 shrink-0" />
+        <span className="text-sm font-bold text-slate-700 flex-1">Team Configuration</span>
+        <button
+          data-testid="button-add-staff"
+          onClick={openAdd}
+          className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-white transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" /> Add Staff
+        </button>
+      </div>
+
+      {/* Quick-setup presets */}
+      {roster.members.length === 0 && !showAddForm && (
+        <div className="px-4 py-4 space-y-3">
+          <p className="text-xs text-slate-500">
+            Configure your team to automatically distribute task responsibilities.
+          </p>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Quick Setup — Number of Techs</p>
+            <div className="flex flex-wrap gap-2">
+              {[1, 2, 3].map((n) => (
+                <button
+                  key={n}
+                  data-testid={`quick-setup-${n}-tech`}
+                  onClick={() => handleQuickSetup(n)}
+                  className="px-3 py-1.5 rounded-md text-xs font-bold border border-slate-200 text-slate-600 hover:border-purple-300 hover:text-purple-700 hover:bg-purple-50 transition-all"
+                >
+                  {n} Tech{n > 1 ? "s" : ""}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Member list */}
+      {roster.members.length > 0 && !showAddForm && (
+        <div className="divide-y divide-slate-100">
+          {roster.members.map((member) => (
+            <div
+              key={member.id}
+              data-testid={`roster-member-${member.id}`}
+              className="flex items-center gap-3 px-4 py-3 group"
+            >
+              <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                <span className="text-xs font-bold text-slate-500">
+                  {member.name.slice(0, 2).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-800">{member.name}</p>
+                <div className="flex flex-wrap gap-1 mt-0.5">
+                  {member.roles.map((r) => {
+                    const roleOpt = TECH_ROLE_OPTIONS.find((o) => o.value === r);
+                    return (
+                      <span
+                        key={r}
+                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600"
+                      >
+                        {roleOpt?.label ?? r}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 invisible group-hover:visible">
+                <button
+                  onClick={() => openEdit(member)}
+                  className="p-1.5 rounded text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                  title="Edit member"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => handleRemoveMember(member.id)}
+                  className="p-1.5 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  title="Remove member"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+          <div className="px-4 py-2 flex justify-end">
+            <button
+              onClick={openAdd}
+              className="text-xs font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" /> Add member
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit form */}
+      {showAddForm && (
+        <div className="px-4 py-4 space-y-4">
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+              Staff Name
+            </p>
+            <input
+              data-testid="input-roster-name"
+              type="text"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="e.g., Alex M. or Tech 1"
+              className="w-full text-sm rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700 placeholder:text-slate-400"
+            />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+              Task Roles (select all that apply)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {TECH_ROLE_OPTIONS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  data-testid={`roster-role-${value}`}
+                  onClick={() => toggleFormRole(value)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${
+                    formRoles.includes(value)
+                      ? "border-purple-400 bg-purple-50 text-purple-700"
+                      : "border-slate-200 text-slate-500 hover:border-slate-300"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 justify-end pt-1">
+            <button
+              onClick={() => { setShowAddForm(false); setEditingId(null); }}
+              className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              data-testid="button-save-roster-member"
+              onClick={handleSaveMember}
+              disabled={!formName.trim() || formRoles.length === 0}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {editingId ? "Update" : "Add Member"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1148,6 +1585,8 @@ export default function TaskManager() {
 
   const [frequency, setFrequency] = useState<TaskFrequency>("daily");
   const [viewingRole, setViewingRole] = useState<ViewingRole>(urlSiteId ? "all" : "own");
+  const [categoryFilter, setCategoryFilter] = useState<TaskCategory | "all">("all");
+  const [showRoster, setShowRoster] = useState(false);
   const [completions, setCompletions] = useState<Set<string>>(new Set());
   const [animating, setAnimating] = useState<Set<string>>(new Set());
   const [assignments, setAssignments] = useState<Map<string, TaskAssignment>>(new Map());
@@ -1256,10 +1695,14 @@ export default function TaskManager() {
     : null;
   const displaySiteName = drillSite?.name ?? profile.siteName;
 
-  const visible = getVisibleTasks(frequency, profile.role, viewingRole);
-  const roleGroups = buildRoleGroups(visible, viewingRole, profile.role);
-  const totalTasks = visible.length;
-  const doneTasks = visible.filter((t) => completions.has(t.id)).length;
+  const extraRoles = profile.taskRoles as string[] | undefined;
+  const visible = getVisibleTasks(frequency, profile.role, viewingRole, extraRoles);
+  const filteredVisible = categoryFilter === "all"
+    ? visible
+    : visible.filter((t) => t.category === categoryFilter);
+  const roleGroups = buildRoleGroups(filteredVisible, viewingRole, profile.role);
+  const totalTasks = filteredVisible.length;
+  const doneTasks = filteredVisible.filter((t) => completions.has(t.id)).length;
   const overallPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
   const today = new Date().toLocaleDateString("en-US", {
@@ -1381,6 +1824,42 @@ export default function TaskManager() {
           ))}
         </div>
 
+        {/* Category filter chips */}
+        <div>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <Filter className="w-3 h-3" /> Filter by Category
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {([
+              { value: "all" as const, label: "All Categories" },
+              { value: "operations" as const, label: "Operations" },
+              { value: "achc" as const, label: "ACHC Compliance" },
+              { value: "state_board" as const, label: "State Board" },
+              { value: "retention" as const, label: "Retention" },
+            ]).map((item) => {
+              const isActive = categoryFilter === item.value;
+              const catCfg = item.value !== "all" ? CATEGORY_CONFIG[item.value] : null;
+              return (
+                <button
+                  key={item.value}
+                  data-testid={`cat-filter-${item.value}`}
+                  onClick={() => setCategoryFilter(item.value)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${
+                    isActive
+                      ? "border-purple-400 bg-purple-50 text-purple-700"
+                      : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                  }`}
+                >
+                  {item.label}
+                  {catCfg && isActive && (
+                    <span className="ml-1 opacity-60">·</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Director role-view selector */}
         {isDir && !readOnly && (
           <div>
@@ -1413,7 +1892,7 @@ export default function TaskManager() {
           </div>
         )}
 
-        {/* Director site overview cards */}
+        {/* Director site overview cards (by role) */}
         {isDir && !readOnly && (
           <SiteOverviewPanel
             siteId={siteId}
@@ -1421,6 +1900,35 @@ export default function TaskManager() {
             onSelectRole={setViewingRole}
             viewingRole={viewingRole}
           />
+        )}
+
+        {/* Director category performance overview */}
+        {isDir && !readOnly && (
+          <CategoryOverviewPanel
+            siteId={siteId}
+            frequency={frequency}
+            categoryFilter={categoryFilter}
+            onFilter={setCategoryFilter}
+          />
+        )}
+
+        {/* Director staff roster */}
+        {isDir && !readOnly && (
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" /> Team Configuration
+              </p>
+              <button
+                data-testid="button-toggle-roster"
+                onClick={() => setShowRoster((v) => !v)}
+                className="text-xs font-semibold text-purple-600 hover:text-purple-800 flex items-center gap-1"
+              >
+                {showRoster ? "Hide" : "Configure Team"}
+              </button>
+            </div>
+            {showRoster && <StaffRosterPanel siteId={siteId} />}
+          </div>
         )}
 
         {/* Handoff tasks from yesterday — daily view only, store users only */}
@@ -1453,6 +1961,7 @@ export default function TaskManager() {
                 canAssign={isDir}
                 canPrioritize={canPrioritize}
                 readOnly={readOnly}
+                siteId={siteId}
                 onToggle={toggleCompletion}
                 onAssign={setAssigningTask}
                 onPrioritize={setPrioritizingTask}

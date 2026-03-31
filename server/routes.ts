@@ -18,11 +18,13 @@ declare module "express-session" {
 }
 
 const DEMO_USERS = [
-  { email: "cpo@koheez.ai", password: "KohezCPO1", name: "Chief Pharmacy Officer" },
-  { email: "test@koheez.ai", password: "Koheez1", name: "Test User" },
-  { email: "jrockwoodpharmd@gmail.com", password: "hollywood", name: "Jason Rockwood" },
-  { email: "director@koheez.ai", password: "Director1", name: "Pharmacy Director" },
-  { email: "tech@koheez.ai", password: "Tech1", name: "Data Entry Tech" },
+  { email: "cpo@koheez.ai", password: "AHF1", name: "Chief Pharmacy Officer" },
+  { email: "regionaldirector@koheez.ai", password: "AHF1", name: "Regional Pharmacy Director" },
+  { email: "director@koheez.ai", password: "AHF1", name: "Pharmacy Director" },
+  { email: "techs@koheez.ai", password: "AHF1", name: "Pharmacy Technician" },
+  { email: "test@koheez.ai", password: "AHF1", name: "Test User" },
+  { email: "jrockwoodpharmd@gmail.com", password: "AHF1", name: "Jason Rockwood" },
+  { email: "tech@koheez.ai", password: "AHF1", name: "Data Entry Tech" },
 ];
 
 const inMemoryUsers: Array<{ email: string; password: string; name: string }> = [];

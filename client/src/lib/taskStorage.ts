@@ -385,3 +385,75 @@ export function getWorkbookStatus(siteId: string, quarter: string): WorkbookStat
   const record = loadWorkbook(siteId, quarter);
   return record?.status ?? "not_started";
 }
+
+// ── Retention Risk Report ────────────────────────────────────────────────────
+
+const RETENTION_RISK_KEY = "koheez_retention_risk";
+
+export interface RetentionRiskEntry {
+  siteId: string;
+  date: string;
+  controllable: number;
+  partiallyControllable: number;
+  nonControllable: number;
+  updatedAt: string;
+}
+
+function readRetentionRisk(): RetentionRiskEntry[] {
+  try {
+    const raw = localStorage.getItem(RETENTION_RISK_KEY);
+    return raw ? (JSON.parse(raw) as RetentionRiskEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function loadRetentionRisk(siteId: string, date: string): RetentionRiskEntry | null {
+  return readRetentionRisk().find((r) => r.siteId === siteId && r.date === date) ?? null;
+}
+
+export function saveRetentionRisk(entry: RetentionRiskEntry): void {
+  try {
+    const all = readRetentionRisk().filter(
+      (r) => !(r.siteId === entry.siteId && r.date === entry.date)
+    );
+    all.push({ ...entry, updatedAt: new Date().toISOString() });
+    localStorage.setItem(RETENTION_RISK_KEY, JSON.stringify(all));
+  } catch {}
+}
+
+// ── Staff Roster ─────────────────────────────────────────────────────────────
+
+const STAFF_ROSTER_KEY = "koheez_staff_roster";
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  roles: string[];
+}
+
+export interface SiteRoster {
+  siteId: string;
+  members: StaffMember[];
+}
+
+function readRosters(): SiteRoster[] {
+  try {
+    const raw = localStorage.getItem(STAFF_ROSTER_KEY);
+    return raw ? (JSON.parse(raw) as SiteRoster[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function loadRoster(siteId: string): SiteRoster {
+  return readRosters().find((r) => r.siteId === siteId) ?? { siteId, members: [] };
+}
+
+export function saveRoster(roster: SiteRoster): void {
+  try {
+    const all = readRosters().filter((r) => r.siteId !== roster.siteId);
+    all.push(roster);
+    localStorage.setItem(STAFF_ROSTER_KEY, JSON.stringify(all));
+  } catch {}
+}

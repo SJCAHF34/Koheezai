@@ -14,14 +14,21 @@ export interface UserProfile {
   siteId: string;
   siteName: string;
   region?: string;
+  taskRoles?: UserRole[];
 }
 
-const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteName" | "region">> = {
+const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteName" | "region" | "taskRoles">> = {
   "cpo@koheez.ai": {
     role: "chief_pharmacy_officer",
     siteId: "ALL",
     siteName: "All Regions",
     region: "all",
+  },
+  "regionaldirector@koheez.ai": {
+    role: "regional_pharmacy_director",
+    siteId: "1417",
+    siteName: "Western Region",
+    region: "Western Region",
   },
   "test@koheez.ai": {
     role: "regional_pharmacy_director",
@@ -39,10 +46,17 @@ const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteNam
     siteId: "1417",
     siteName: "RX Pike Street",
   },
+  "techs@koheez.ai": {
+    role: "data_entry_tech",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+    taskRoles: ["data_entry_tech", "pv2_tech", "delivery_tech"],
+  },
   "tech@koheez.ai": {
     role: "data_entry_tech",
     siteId: "1417",
     siteName: "RX Pike Street",
+    taskRoles: ["data_entry_tech", "pv2_tech", "delivery_tech"],
   },
 };
 
