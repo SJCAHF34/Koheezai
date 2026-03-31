@@ -61,7 +61,7 @@ function buildEmptyRecord(siteId: string, quarter: string, pharmacyLocation: str
       policyUpdates: false,
       qmcMeetingMinutes: false,
     },
-    qreIssuesDiscussed: "",
+    qreIssues: "",
     actionPlan: "",
     attendees: [],
     status: "not_started",
@@ -77,7 +77,7 @@ function computeStatus(record: CQIMeetingRecord): CQIMeetingRecord["status"] {
     record.pic.trim() !== "" ||
     Object.values(record.safetyChecks).some(Boolean) ||
     Object.values(record.agendaItems).some(Boolean) ||
-    record.qreIssuesDiscussed.trim() !== "" ||
+    record.qreIssues.trim() !== "" ||
     record.actionPlan.trim() !== "" ||
     record.attendees.length > 0;
   return hasAny ? "in_progress" : "not_started";
@@ -276,9 +276,9 @@ function PrintLayout({
             padding: "8px 12px",
             whiteSpace: "pre-wrap",
             lineHeight: "1.5",
-            color: record.qreIssuesDiscussed ? "#000" : "#9ca3af",
+            color: record.qreIssues ? "#000" : "#9ca3af",
           }}>
-            {record.qreIssuesDiscussed || "No issues documented."}
+            {record.qreIssues || "No issues documented."}
           </div>
         </div>
 
@@ -450,7 +450,7 @@ export default function CQIMeeting() {
   const isViewer = profile ? isRegionalOrAbove(profile.role) : false;
 
   const isDirectorOrAbove = profile ? isDirectorRole(profile.role) : false;
-  const canEdit = isDirectorOrAbove && !isViewer;
+  const canEdit = isDirectorOrAbove;
 
   const [record, setRecord] = useState<CQIMeetingRecord | null>(null);
   const [signModalOpen, setSignModalOpen] = useState(false);
@@ -566,7 +566,7 @@ export default function CQIMeeting() {
         remainingHeight -= sliceHeight;
       }
 
-      const filename = `CQI-QRE-Meeting-${record.quarter}-Site${record.siteId}.pdf`;
+      const filename = `CQI-QRE-Meeting-${record.quarter}-${record.siteId}.pdf`;
       pdf.save(filename);
       toast({ title: "PDF exported", description: `Saved as ${filename}` });
     } catch (err) {
@@ -796,8 +796,8 @@ export default function CQIMeeting() {
             </Label>
             <Textarea
               id="qre-issues"
-              value={record.qreIssuesDiscussed}
-              onChange={(e) => setField("qreIssuesDiscussed", e.target.value)}
+              value={record.qreIssues}
+              onChange={(e) => setField("qreIssues", e.target.value)}
               readOnly={!canEdit}
               placeholder={canEdit ? "Describe quality-related events discussed during this meeting…" : "No issues documented."}
               className="text-sm resize-none min-h-[96px]"

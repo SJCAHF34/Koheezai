@@ -514,7 +514,7 @@ export interface CQIMeetingRecord {
     policyUpdates: boolean;
     qmcMeetingMinutes: boolean;
   };
-  qreIssuesDiscussed: string;
+  qreIssues: string;
   actionPlan: string;
   attendees: CQIAttendee[];
   status: "not_started" | "in_progress" | "submitted";
