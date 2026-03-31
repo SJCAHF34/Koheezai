@@ -336,15 +336,18 @@ const WORKBOOK_KEY = "koheez_achc_workbook";
 
 export type WorkbookStatus = "not_started" | "in_progress" | "submitted";
 
+export type WorkbookItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
+
 export interface WorkbookItemResponse {
   itemId: string;
-  checked: boolean;
+  status: WorkbookItemStatus;
+  notes: string;
 }
 
 export interface WorkbookSectionResponse {
   sectionId: string;
   items: WorkbookItemResponse[];
-  notes: string;
+  sectionNotes: string;
 }
 
 export interface WorkbookRecord {
