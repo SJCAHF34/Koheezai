@@ -114,7 +114,7 @@ export function loadAllSiteCompletions(
  * YYYY-MM-DD date string. Used by the director history calendar.
  * When siteId is "ALL", returns completions across every site.
  */
-export function loadSiteCompletionsHistory(
+export function loadSiteCompletions(
   siteId: string
 ): Record<string, TaskCompletion[]> {
   const all = readCompletions();
@@ -129,6 +129,9 @@ export function loadSiteCompletionsHistory(
   }
   return byDate;
 }
+
+/** Alias kept for backwards-compat; prefer `loadSiteCompletions`. */
+export const loadSiteCompletionsHistory = loadSiteCompletions;
 
 export function saveCompletion(
   taskId: string,

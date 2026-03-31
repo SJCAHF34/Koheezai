@@ -7,6 +7,7 @@ import {
   isRegionalOrAbove,
   isPharmacyDirector,
   isTechRole,
+  getRoleLabel,
   type UserRole,
 } from "@/lib/userProfile";
 import {
@@ -43,7 +44,7 @@ import {
   saveRetentionRisk,
   loadRoster,
   saveRoster,
-  loadSiteCompletionsHistory,
+  loadSiteCompletions,
   type TaskCompletion,
   type TaskAssignment,
   type TaskPriority,
@@ -1089,7 +1090,7 @@ function TaskHistoryCalendar({ siteId }: { siteId: string }) {
   const [month, setMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
-  const history = loadSiteCompletionsHistory(siteId);
+  const history = loadSiteCompletions(siteId);
 
   // Build a Set of Date objects that have at least one completion
   const datesWithCompletions: Date[] = Object.keys(history).map((dateStr) => {
@@ -1205,6 +1206,8 @@ function TaskHistoryCalendar({ siteId }: { siteId: string }) {
                       hour: "numeric",
                       minute: "2-digit",
                     });
+                    const completerProfile = getUserProfile(c.userEmail, "");
+                    const displayName = completerProfile.name || c.userEmail;
                     return (
                       <div
                         key={`${c.taskId}-${i}`}
@@ -1220,7 +1223,10 @@ function TaskHistoryCalendar({ siteId }: { siteId: string }) {
                             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
                               {roleLabel}
                             </span>
-                            <span className="text-[10px] text-slate-400">{c.userEmail}</span>
+                            <span className="text-[10px] text-slate-500 font-medium">{displayName}</span>
+                            {displayName !== c.userEmail && (
+                              <span className="text-[10px] text-slate-300">{c.userEmail}</span>
+                            )}
                             <span className="text-[10px] text-slate-300">{completedTime}</span>
                           </div>
                         </div>
