@@ -58,6 +58,40 @@ const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteNam
     siteName: "RX Pike Street",
     taskRoles: ["data_entry_tech", "pv2_tech", "delivery_tech"],
   },
+  "claire.wood@aidshealth.org": {
+    role: "data_entry_tech",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+    region: "Western",
+    taskRoles: ["data_entry_tech"],
+  },
+  "pairiss.wilcox@aidshealth.org": {
+    role: "data_entry_tech",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+    region: "Western",
+    taskRoles: ["data_entry_tech"],
+  },
+  "anh.do@aidshealth.org": {
+    role: "data_entry_tech",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+    region: "Western",
+    taskRoles: ["data_entry_tech"],
+  },
+  "debbie.nguyen@aidshealth.org": {
+    role: "pharmacist",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+    region: "Western",
+    taskRoles: ["pharmacist"],
+  },
+  "seth.collins@aidshealth.org": {
+    role: "pharmacy_director",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+    region: "Western",
+  },
 };
 
 const DEFAULT_PROFILE: Pick<UserProfile, "role" | "siteId" | "siteName"> = {

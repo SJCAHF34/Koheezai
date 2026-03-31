@@ -25,6 +25,11 @@ const DEMO_USERS = [
   { email: "test@koheez.ai", password: "AHF1", name: "Test User" },
   { email: "jrockwoodpharmd@gmail.com", password: "AHF1", name: "Jason Rockwood" },
   { email: "tech@koheez.ai", password: "AHF1", name: "Data Entry Tech" },
+  { email: "claire.wood@aidshealth.org", password: "AHF1", name: "Claire Wood" },
+  { email: "pairiss.wilcox@aidshealth.org", password: "AHF1", name: "Pairiss Wilcox" },
+  { email: "anh.do@aidshealth.org", password: "AHF1", name: "Anh Do" },
+  { email: "debbie.nguyen@aidshealth.org", password: "AHF1", name: "Debbie Nguyen" },
+  { email: "seth.collins@aidshealth.org", password: "AHF1", name: "Seth Collins" },
 ];
 
 const inMemoryUsers: Array<{ email: string; password: string; name: string }> = [];
