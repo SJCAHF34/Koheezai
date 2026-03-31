@@ -852,7 +852,7 @@ export default function CQIMeeting() {
             data-testid="cqi-sign-btn"
           >
             <PenLine className="w-4 h-4 mr-2" />
-            {signed ? "Already Signed" : "Add My Signature"}
+            {signed ? "Already Signed" : "Sign Attendance"}
           </Button>
         </div>
 
@@ -867,7 +867,7 @@ export default function CQIMeeting() {
           <div className="rounded-md border border-dashed p-8 text-center text-muted-foreground" data-testid="cqi-attendance-empty">
             <UserCheck className="w-7 h-7 mx-auto mb-2 opacity-40" />
             <p className="text-sm">No attendees have signed yet.</p>
-            <p className="text-xs mt-1">Staff can click "Add My Signature" to sign the attendance list.</p>
+            <p className="text-xs mt-1">Staff can click "Sign Attendance" to add their signature.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
