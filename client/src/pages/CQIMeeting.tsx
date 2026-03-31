@@ -525,13 +525,14 @@ export default function CQIMeeting() {
 
   function alreadySigned(): boolean {
     if (!record || !user) return false;
-    return record.attendees.some((a) => a.printName === (profile?.name ?? user.name));
+    return record.attendees.some((a) => a.userEmail === user.email);
   }
 
   function handleSign(fullName: string) {
-    if (!record || !profile) return;
+    if (!record || !profile || !user) return;
     const newAttendee: CQIAttendee = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      userEmail: user.email,
       printName: fullName,
       signatureName: fullName,
       role: profile.role,

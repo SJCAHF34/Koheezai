@@ -992,15 +992,6 @@ export const TASKS: PharmacyTask[] = [
     taskGroup: "Quarterly",
   },
   {
-    id: "achc-q-005",
-    title: "Conduct CQI meeting",
-    description: "Facilitate the quarterly Continuous Quality Improvement (CQI) meeting. Prepare agenda covering adverse events, medication errors, patient outcomes, and process gaps identified since the last meeting. Document all attendees, discussion points, and assigned action items with target resolution dates. File meeting minutes per ACHC accreditation requirements.",
-    role: "director",
-    frequency: "quarterly",
-    category: "achc",
-    taskGroup: "Quarterly",
-  },
-  {
     id: "cqi-q-001",
     title: "CQI-QRE Quarterly Meeting",
     description: "Complete the CQI-QRE Quarterly Meeting form including safety checks, agenda items, QRE issues discussed, action plans, and staff attendance signatures. Generate and file the completed PDF per ACHC accreditation requirements.",

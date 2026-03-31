@@ -489,6 +489,7 @@ const CQI_MEETINGS_KEY = "koheez_cqi_meetings";
 
 export interface CQIAttendee {
   id: string;
+  userEmail: string;
   printName: string;
   signatureName: string;
   role: string;
