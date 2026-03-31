@@ -192,12 +192,19 @@ const ROLE_STYLE: Record<
     labelColor: "text-cyan-800",
     badgeColor: "bg-cyan-100 text-cyan-700",
   },
-  pharmacist: {
+  pharmacist_1: {
     border: "border-purple-300",
     bg: "bg-purple-50",
-    label: "Pharmacist",
+    label: "Pharmacist 1",
     labelColor: "text-purple-800",
     badgeColor: "bg-purple-100 text-purple-700",
+  },
+  pharmacist_2: {
+    border: "border-indigo-300",
+    bg: "bg-indigo-50",
+    label: "Pharmacist 2",
+    labelColor: "text-indigo-800",
+    badgeColor: "bg-indigo-100 text-indigo-700",
   },
   director: {
     border: "border-rose-300",
@@ -614,11 +621,12 @@ function SiteOverviewPanel({
     { role: "data_entry_tech", label: "DE Tech" },
     { role: "pv2_tech", label: "PV2 Tech" },
     { role: "delivery_tech", label: "Delivery" },
-    { role: "pharmacist", label: "Pharmacist" },
+    { role: "pharmacist_1", label: "RPh 1" },
+    { role: "pharmacist_2", label: "RPh 2" },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2">
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-2">
       {roleCards.map(({ role, label }) => {
         const roleCompletions = loadCompletions(siteId, frequency, role);
         const roleTasks = TASKS.filter(
@@ -823,7 +831,8 @@ const TECH_ROLE_OPTIONS: { value: string; label: string }[] = [
   { value: "data_entry_tech", label: "Data Entry Tech" },
   { value: "pv2_tech", label: "PV2 Tech" },
   { value: "delivery_tech", label: "Delivery Tech" },
-  { value: "pharmacist", label: "Pharmacist" },
+  { value: "pharmacist_1", label: "Pharmacist 1" },
+  { value: "pharmacist_2", label: "Pharmacist 2" },
   { value: "director", label: "Director" },
 ];
 
@@ -850,7 +859,8 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
       members.push({ id: generateId(), name: "PV2 Tech", roles: ["pv2_tech"] });
       members.push({ id: generateId(), name: "Delivery Tech", roles: ["delivery_tech"] });
     }
-    members.push({ id: generateId(), name: "Pharmacist", roles: ["pharmacist"] });
+    members.push({ id: generateId(), name: "Pharmacist 1", roles: ["pharmacist_1"] });
+    members.push({ id: generateId(), name: "Pharmacist 2", roles: ["pharmacist_2"] });
     members.push({ id: generateId(), name: "Director", roles: ["director"] });
     const newRoster: SiteRoster = { siteId, members };
     saveRoster(newRoster);
@@ -1082,7 +1092,7 @@ function AssignDialog({
   onSave: (a: TaskAssignment) => void;
   onClose: () => void;
 }) {
-  const [selectedRole, setSelectedRole] = useState<string>("pharmacist");
+  const [selectedRole, setSelectedRole] = useState<string>("pharmacist_1");
   const [specificPerson, setSpecificPerson] = useState("");
   const [note, setNote] = useState("");
 
@@ -1663,9 +1673,9 @@ export default function TaskManager() {
   const [todayHandoff, setTodayHandoff] = useState<HandoffNote | null>(null);
 
   const siteId = urlSiteId ?? profile?.siteId ?? "1417";
-  const isDir = isDirectorRole(profile?.role ?? "pharmacist");
+  const isDir = isDirectorRole(profile?.role ?? "pharmacist_1");
   const isPharmDir = profile ? isPharmacyDirector(profile.role) : false;
-  const canPrioritize = isDir && !isTechRole(profile?.role ?? "pharmacist");
+  const canPrioritize = isDir && !isTechRole(profile?.role ?? "pharmacist_1");
 
   useEffect(() => {
     if (!profile) return;
@@ -1938,7 +1948,8 @@ export default function TaskManager() {
                 { value: "data_entry_tech" as ViewingRole, label: "DE Tech" },
                 { value: "pv2_tech" as ViewingRole, label: "PV2 Tech" },
                 { value: "delivery_tech" as ViewingRole, label: "Delivery Tech" },
-                { value: "pharmacist" as ViewingRole, label: "Pharmacist" },
+                { value: "pharmacist_1" as ViewingRole, label: "Pharmacist 1" },
+                { value: "pharmacist_2" as ViewingRole, label: "Pharmacist 2" },
                 { value: "all" as ViewingRole, label: "All Roles" },
               ].map((item) => (
                 <button

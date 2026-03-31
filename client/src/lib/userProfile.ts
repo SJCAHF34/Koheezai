@@ -2,7 +2,8 @@ export type UserRole =
   | "data_entry_tech"
   | "pv2_tech"
   | "delivery_tech"
-  | "pharmacist"
+  | "pharmacist_1"
+  | "pharmacist_2"
   | "pharmacy_director"
   | "regional_pharmacy_director"
   | "chief_pharmacy_officer";
@@ -80,11 +81,11 @@ const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteNam
     taskRoles: ["data_entry_tech"],
   },
   "debbie.nguyen@aidshealth.org": {
-    role: "pharmacist",
+    role: "pharmacist_1",
     siteId: "1417",
     siteName: "RX Pike Street",
     region: "Western",
-    taskRoles: ["pharmacist"],
+    taskRoles: ["pharmacist_1"],
   },
   "seth.collins@aidshealth.org": {
     role: "pharmacy_director",
@@ -95,7 +96,7 @@ const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteNam
 };
 
 const DEFAULT_PROFILE: Pick<UserProfile, "role" | "siteId" | "siteName"> = {
-  role: "pharmacist",
+  role: "pharmacist_1",
   siteId: "1417",
   siteName: "RX Pike Street",
 };
@@ -130,7 +131,8 @@ export function isTechRole(role: UserRole): boolean {
     role === "data_entry_tech" ||
     role === "pv2_tech" ||
     role === "delivery_tech" ||
-    role === "pharmacist"
+    role === "pharmacist_1" ||
+    role === "pharmacist_2"
   );
 }
 
@@ -145,7 +147,8 @@ export function getRoleLabel(role: UserRole): string {
     data_entry_tech: "Data Entry Tech",
     pv2_tech: "PV2 Tech",
     delivery_tech: "Delivery Tech",
-    pharmacist: "Pharmacist",
+    pharmacist_1: "Pharmacist 1",
+    pharmacist_2: "Pharmacist 2",
     pharmacy_director: "Pharmacy Director",
     regional_pharmacy_director: "Regional Pharmacy Director",
     chief_pharmacy_officer: "Chief Pharmacy Officer",
