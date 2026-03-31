@@ -15,6 +15,7 @@ import TaskManager from "@/pages/TaskManager";
 import RegionalDashboard from "@/pages/RegionalDashboard";
 import CategoryReport from "@/pages/CategoryReport";
 import AchcWorkbook from "@/pages/AchcWorkbook";
+import CQIMeeting from "@/pages/CQIMeeting";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole } from "@/lib/userProfile";
@@ -224,6 +225,9 @@ function Router() {
       </Route>
       <Route path="/app/achc-workbook">
         <Protected component={AchcWorkbook} />
+      </Route>
+      <Route path="/app/cqi-meeting">
+        <Protected component={CQIMeeting} />
       </Route>
       <Route component={NotFound} />
     </Switch>

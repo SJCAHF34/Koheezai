@@ -350,13 +350,24 @@ function TaskRow({
           </p>
         )}
 
-        {task.category === "achc" && task.frequency === "quarterly" && (
+        {task.category === "achc" && task.frequency === "quarterly" && task.id !== "cqi-q-001" && (
           <Link
             href="/app/achc-workbook"
             className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 hover:text-blue-800 mt-1"
             data-testid={`link-achc-workbook-${task.id}`}
           >
             Open ACHC Workbook
+            <ArrowUpRight className="w-3 h-3" />
+          </Link>
+        )}
+
+        {task.id === "cqi-q-001" && (
+          <Link
+            href="/app/cqi-meeting"
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 hover:text-blue-800 mt-1"
+            data-testid={`link-cqi-meeting-${task.id}`}
+          >
+            Open CQI Meeting Form
             <ArrowUpRight className="w-3 h-3" />
           </Link>
         )}

@@ -1000,6 +1000,15 @@ export const TASKS: PharmacyTask[] = [
     category: "achc",
     taskGroup: "Quarterly",
   },
+  {
+    id: "cqi-q-001",
+    title: "CQI-QRE Quarterly Meeting",
+    description: "Complete the CQI-QRE Quarterly Meeting form including safety checks, agenda items, QRE issues discussed, action plans, and staff attendance signatures. Generate and file the completed PDF per ACHC accreditation requirements.",
+    role: "director",
+    frequency: "quarterly",
+    category: "achc",
+    taskGroup: "Quarterly",
+  },
   // State Board
   {
     id: "sb-q-001",

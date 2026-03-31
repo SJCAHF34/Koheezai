@@ -1,0 +1,912 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useAuth } from "@/App";
+import { getUserProfile, isRegionalOrAbove, isDirectorRole } from "@/lib/userProfile";
+import {
+  loadCQIMeeting,
+  saveCQIMeeting,
+  getCurrentQuarter,
+  type CQIMeetingRecord,
+  type CQIAttendee,
+} from "@/lib/taskStorage";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  CheckCircle2,
+  ClipboardList,
+  Building2,
+  FileDown,
+  Save,
+  UserCheck,
+  PenLine,
+  AlertCircle,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+type QuarterOption = "Q1" | "Q2" | "Q3" | "Q4" | "Other" | "";
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function buildEmptyRecord(siteId: string, quarter: string, pharmacyLocation: string, pic: string): CQIMeetingRecord {
+  return {
+    siteId,
+    quarter,
+    pharmacyLocation,
+    pic,
+    selectedQuarter: "",
+    otherDate: "",
+    safetyChecks: {
+      fireExtinguisher: false,
+      smokeDetector: false,
+      evacuationPlan: false,
+    },
+    agendaItems: {
+      regulatoryUpdates: false,
+      workflowUpdates: false,
+      qreIssues: false,
+      policyUpdates: false,
+      qmcMeetingMinutes: false,
+    },
+    qreIssuesDiscussed: "",
+    actionPlan: "",
+    attendees: [],
+    status: "not_started",
+    lastUpdatedAt: new Date().toISOString(),
+  };
+}
+
+function computeStatus(record: CQIMeetingRecord): CQIMeetingRecord["status"] {
+  if (record.status === "submitted") return "submitted";
+  const hasAny =
+    record.selectedQuarter !== "" ||
+    record.pharmacyLocation.trim() !== "" ||
+    record.pic.trim() !== "" ||
+    Object.values(record.safetyChecks).some(Boolean) ||
+    Object.values(record.agendaItems).some(Boolean) ||
+    record.qreIssuesDiscussed.trim() !== "" ||
+    record.actionPlan.trim() !== "" ||
+    record.attendees.length > 0;
+  return hasAny ? "in_progress" : "not_started";
+}
+
+function formatRole(role: string): string {
+  const MAP: Record<string, string> = {
+    director: "Director",
+    pharmacist_1: "Pharmacist (PharmD)",
+    pharmacist_2: "Pharmacist",
+    data_entry_tech: "Pharmacy Technician",
+    dispense_tech: "Dispense Technician",
+    technician: "Technician",
+    regional_pharmacy_director: "Regional Pharmacy Director",
+    cpo: "Chief Pharmacy Officer",
+  };
+  return MAP[role] ?? role;
+}
+
+function StatusBadge({ status }: { status: CQIMeetingRecord["status"] }) {
+  if (status === "submitted") {
+    return (
+      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200" data-testid="cqi-status-badge">
+        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+        Submitted
+      </Badge>
+    );
+  }
+  if (status === "in_progress") {
+    return (
+      <Badge className="bg-amber-100 text-amber-800 border-amber-200" data-testid="cqi-status-badge">
+        In Progress
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="secondary" data-testid="cqi-status-badge">
+      Not Started
+    </Badge>
+  );
+}
+
+// ── PDF print layout (hidden div) ────────────────────────────────────────────
+
+function PrintLayout({
+  record,
+  printRef,
+}: {
+  record: CQIMeetingRecord;
+  printRef: React.RefObject<HTMLDivElement>;
+}) {
+  const quarterLabel =
+    record.selectedQuarter === "Other"
+      ? `Other: ${record.otherDate}`
+      : record.selectedQuarter || "—";
+
+  return (
+    <div
+      ref={printRef}
+      style={{
+        position: "absolute",
+        left: "-9999px",
+        top: 0,
+        width: "816px",
+        fontFamily: "Arial, sans-serif",
+        fontSize: "12px",
+        color: "#000",
+        background: "#fff",
+        padding: "40px",
+        boxSizing: "border-box",
+      }}
+    >
+      {/* Page 1 */}
+      <div style={{ minHeight: "1056px" }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1e40af" }}>
+            AHF / Pharmacy4Humanity
+          </div>
+          <div style={{ fontSize: "16px", fontWeight: "bold", marginTop: "4px" }}>
+            CQI-QRE Quarterly Meeting Form
+          </div>
+          <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "2px" }}>
+            Continuous Quality Improvement — Quality-Related Event Documentation
+          </div>
+        </div>
+
+        <div style={{ borderBottom: "2px solid #1e40af", marginBottom: "20px" }} />
+
+        {/* Pharmacy info */}
+        <table style={{ width: "100%", marginBottom: "20px", borderCollapse: "collapse" }}>
+          <tbody>
+            <tr>
+              <td style={{ width: "50%", paddingRight: "16px", paddingBottom: "8px" }}>
+                <span style={{ fontWeight: "bold" }}>Pharmacy Location: </span>
+                <span style={{ borderBottom: "1px solid #000", display: "inline-block", minWidth: "160px", paddingBottom: "2px" }}>
+                  {record.pharmacyLocation || ""}
+                </span>
+              </td>
+              <td style={{ width: "50%" }}>
+                <span style={{ fontWeight: "bold" }}>PIC: </span>
+                <span style={{ borderBottom: "1px solid #000", display: "inline-block", minWidth: "160px", paddingBottom: "2px" }}>
+                  {record.pic || ""}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td colSpan={2} style={{ paddingBottom: "8px" }}>
+                <span style={{ fontWeight: "bold" }}>Date (Quarter): </span>
+                {(["Q1", "Q2", "Q3", "Q4", "Other"] as QuarterOption[]).filter(q => q !== "").map((q) => (
+                  <span key={q} style={{ marginRight: "16px" }}>
+                    <span style={{
+                      display: "inline-block",
+                      width: "12px",
+                      height: "12px",
+                      border: "1px solid #000",
+                      borderRadius: "2px",
+                      backgroundColor: record.selectedQuarter === q ? "#1e40af" : "transparent",
+                      verticalAlign: "middle",
+                      marginRight: "4px",
+                    }} />
+                    {q}
+                  </span>
+                ))}
+                {record.selectedQuarter === "Other" && record.otherDate && (
+                  <span style={{ marginLeft: "4px" }}>({record.otherDate})</span>
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Safety checks */}
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{ fontWeight: "bold", fontSize: "13px", backgroundColor: "#eff6ff", padding: "6px 10px", marginBottom: "8px", borderLeft: "3px solid #1e40af" }}>
+            Safety Checks
+          </div>
+          {[
+            { key: "fireExtinguisher", label: "Fire Extinguisher Expiration Date Checked" },
+            { key: "smokeDetector", label: "Smoke Detector Expiration Date Checked" },
+            { key: "evacuationPlan", label: "Evacuation Plan Reviewed" },
+          ].map(({ key, label }) => (
+            <div key={key} style={{ display: "flex", alignItems: "center", marginBottom: "6px", paddingLeft: "10px" }}>
+              <span style={{
+                display: "inline-block",
+                width: "14px",
+                height: "14px",
+                border: "1px solid #000",
+                borderRadius: "2px",
+                backgroundColor: record.safetyChecks[key as keyof typeof record.safetyChecks] ? "#1e40af" : "transparent",
+                marginRight: "8px",
+                flexShrink: 0,
+              }} />
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Agenda items */}
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{ fontWeight: "bold", fontSize: "13px", backgroundColor: "#eff6ff", padding: "6px 10px", marginBottom: "8px", borderLeft: "3px solid #1e40af" }}>
+            Agenda Items
+          </div>
+          {[
+            { key: "regulatoryUpdates", label: "Regulatory Updates / Issues" },
+            { key: "workflowUpdates", label: "Workflow Updates / Issues" },
+            { key: "qreIssues", label: "QRE Issues" },
+            { key: "policyUpdates", label: "Policy and Procedure Updates" },
+            { key: "qmcMeetingMinutes", label: "QMC Meeting Minutes and Reports" },
+          ].map(({ key, label }) => (
+            <div key={key} style={{ display: "flex", alignItems: "center", marginBottom: "6px", paddingLeft: "10px" }}>
+              <span style={{
+                display: "inline-block",
+                width: "14px",
+                height: "14px",
+                border: "1px solid #000",
+                borderRadius: "2px",
+                backgroundColor: record.agendaItems[key as keyof typeof record.agendaItems] ? "#1e40af" : "transparent",
+                marginRight: "8px",
+                flexShrink: 0,
+              }} />
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* QRE issues discussed */}
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{ fontWeight: "bold", fontSize: "13px", backgroundColor: "#eff6ff", padding: "6px 10px", marginBottom: "8px", borderLeft: "3px solid #1e40af" }}>
+            QRE Issues Discussed
+          </div>
+          <div style={{
+            border: "1px solid #d1d5db",
+            borderRadius: "4px",
+            minHeight: "80px",
+            padding: "8px 12px",
+            whiteSpace: "pre-wrap",
+            lineHeight: "1.5",
+            color: record.qreIssuesDiscussed ? "#000" : "#9ca3af",
+          }}>
+            {record.qreIssuesDiscussed || "No issues documented."}
+          </div>
+        </div>
+
+        {/* Action plan */}
+        <div style={{ marginBottom: "24px" }}>
+          <div style={{ fontWeight: "bold", fontSize: "13px", backgroundColor: "#eff6ff", padding: "6px 10px", marginBottom: "8px", borderLeft: "3px solid #1e40af" }}>
+            QRE Action Plan / Process Changes / Suggestions from Staff
+          </div>
+          <div style={{
+            border: "1px solid #d1d5db",
+            borderRadius: "4px",
+            minHeight: "80px",
+            padding: "8px 12px",
+            whiteSpace: "pre-wrap",
+            lineHeight: "1.5",
+            color: record.actionPlan ? "#000" : "#9ca3af",
+          }}>
+            {record.actionPlan || "No action plan documented."}
+          </div>
+        </div>
+
+        <div style={{ borderBottom: "1px dashed #d1d5db", marginBottom: "24px" }} />
+
+        {/* Attendance table */}
+        <div>
+          <div style={{ fontWeight: "bold", fontSize: "13px", backgroundColor: "#eff6ff", padding: "6px 10px", marginBottom: "8px", borderLeft: "3px solid #1e40af" }}>
+            Meeting Attendance
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ backgroundColor: "#dbeafe" }}>
+                <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "5%" }}>#</th>
+                <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "30%" }}>Print Name</th>
+                <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "20%" }}>Role</th>
+                <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "30%" }}>Signature</th>
+                <th style={{ border: "1px solid #93c5fd", padding: "8px 12px", textAlign: "left", width: "15%" }}>Date/Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {record.attendees.length > 0 ? (
+                record.attendees.map((att, idx) => (
+                  <tr key={att.id} style={{ backgroundColor: idx % 2 === 0 ? "#fff" : "#f9fafb" }}>
+                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }}>{idx + 1}</td>
+                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", fontWeight: "500" }}>{att.printName}</td>
+                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", color: "#6b7280", fontSize: "11px" }}>{formatRole(att.role)}</td>
+                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", fontStyle: "italic", fontFamily: "Georgia, serif", fontSize: "14px", color: "#1e3a8a" }}>
+                      {att.signatureName}
+                    </td>
+                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", color: "#6b7280", fontSize: "10px" }}>
+                      {new Date(att.signedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      <br />
+                      {new Date(att.signedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                Array.from({ length: 8 }).map((_, idx) => (
+                  <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? "#fff" : "#f9fafb" }}>
+                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px", color: "#9ca3af" }}>{idx + 1}</td>
+                    <td style={{ border: "1px solid #d1d5db", padding: "24px 12px" }} />
+                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }} />
+                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }} />
+                    <td style={{ border: "1px solid #d1d5db", padding: "7px 12px" }} />
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer */}
+        <div style={{ marginTop: "32px", borderTop: "1px solid #d1d5db", paddingTop: "12px", textAlign: "center", color: "#9ca3af", fontSize: "10px" }}>
+          Generated by Koheez.ai · {record.quarter} · Site {record.siteId} · {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Sign Attendance Modal ─────────────────────────────────────────────────────
+
+function SignAttendanceModal({
+  open,
+  onClose,
+  onSign,
+  defaultName,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSign: (name: string) => void;
+  defaultName: string;
+}) {
+  const [name, setName] = useState(defaultName);
+
+  useEffect(() => {
+    if (open) setName(defaultName);
+  }, [open, defaultName]);
+
+  function handleConfirm() {
+    if (!name.trim()) return;
+    onSign(name.trim());
+    onClose();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md" data-testid="sign-modal" aria-describedby="sign-modal-desc">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <PenLine className="w-4 h-4 text-blue-600" />
+            Sign Meeting Attendance
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <p id="sign-modal-desc" className="text-sm text-muted-foreground leading-relaxed">
+            By typing your full name below and clicking <strong>Confirm Signature</strong>, you
+            are electronically signing the CQI-QRE Quarterly Meeting attendance record. This
+            constitutes your consent and attestation of attendance.
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="sign-name" className="text-sm font-medium">
+              Full Name (as it should appear on record)
+            </Label>
+            <Input
+              id="sign-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your full name"
+              onKeyDown={(e) => { if (e.key === "Enter") handleConfirm(); }}
+              data-testid="sign-name-input"
+            />
+          </div>
+          {name.trim() && (
+            <div className="rounded-md border bg-muted/30 px-4 py-3">
+              <p className="text-xs text-muted-foreground mb-1">Signature preview</p>
+              <p className="text-lg italic" style={{ fontFamily: "Georgia, serif", color: "#1e3a8a" }}>
+                {name.trim()}
+              </p>
+            </div>
+          )}
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} data-testid="sign-cancel-btn">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={!name.trim()}
+            data-testid="sign-confirm-btn"
+          >
+            <UserCheck className="w-4 h-4 mr-2" />
+            Confirm Signature
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Main page ────────────────────────────────────────────────────────────────
+
+export default function CQIMeeting() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
+
+  const quarter = getCurrentQuarter();
+  const siteId = profile?.siteId ?? "";
+  const isViewer = profile ? isRegionalOrAbove(profile.role) : false;
+
+  const isDirectorOrAbove = profile ? isDirectorRole(profile.role) : false;
+  const canEdit = isDirectorOrAbove && !isViewer;
+
+  const [record, setRecord] = useState<CQIMeetingRecord | null>(null);
+  const [signModalOpen, setSignModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
+
+  // Load or initialise record
+  useEffect(() => {
+    if (!siteId) return;
+    const existing = loadCQIMeeting(siteId, quarter);
+    if (existing) {
+      setRecord(existing);
+    } else {
+      setRecord(buildEmptyRecord(
+        siteId,
+        quarter,
+        profile?.siteName ?? "",
+        profile?.name ?? ""
+      ));
+    }
+  }, [siteId, quarter]);
+
+  const persist = useCallback((updated: CQIMeetingRecord) => {
+    const withStatus = { ...updated, status: computeStatus(updated) };
+    setRecord(withStatus);
+    saveCQIMeeting(withStatus);
+  }, []);
+
+  // ── Field handlers ──
+
+  function setField<K extends keyof CQIMeetingRecord>(key: K, val: CQIMeetingRecord[K]) {
+    if (!record || !canEdit) return;
+    persist({ ...record, [key]: val });
+  }
+
+  function setSafetyCheck(key: keyof CQIMeetingRecord["safetyChecks"], val: boolean) {
+    if (!record || !canEdit) return;
+    persist({ ...record, safetyChecks: { ...record.safetyChecks, [key]: val } });
+  }
+
+  function setAgendaItem(key: keyof CQIMeetingRecord["agendaItems"], val: boolean) {
+    if (!record || !canEdit) return;
+    persist({ ...record, agendaItems: { ...record.agendaItems, [key]: val } });
+  }
+
+  function handleSave() {
+    if (!record) return;
+    setIsSaving(true);
+    saveCQIMeeting(record);
+    setTimeout(() => {
+      setIsSaving(false);
+      toast({ title: "Saved", description: "Meeting form saved successfully." });
+    }, 400);
+  }
+
+  // ── Sign attendance ──
+
+  function alreadySigned(): boolean {
+    if (!record || !user) return false;
+    return record.attendees.some((a) => a.printName === (profile?.name ?? user.name));
+  }
+
+  function handleSign(fullName: string) {
+    if (!record || !profile) return;
+    const newAttendee: CQIAttendee = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      printName: fullName,
+      signatureName: fullName,
+      role: profile.role,
+      signedAt: new Date().toISOString(),
+    };
+    persist({ ...record, attendees: [...record.attendees, newAttendee] });
+    toast({ title: "Signed", description: "Your attendance has been recorded." });
+  }
+
+  // ── PDF export ──
+
+  async function handleExportPDF() {
+    if (!record || !printRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "letter" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height / canvas.width) * imgWidth;
+
+      let yPos = 0;
+      let remainingHeight = imgHeight;
+
+      while (remainingHeight > 0) {
+        const sliceHeight = Math.min(remainingHeight, pageHeight);
+        if (yPos > 0) pdf.addPage();
+
+        pdf.addImage(
+          imgData,
+          "JPEG",
+          0,
+          -yPos,
+          imgWidth,
+          imgHeight
+        );
+
+        yPos += pageHeight;
+        remainingHeight -= sliceHeight;
+      }
+
+      const filename = `CQI-QRE-Meeting-${record.quarter}-Site${record.siteId}.pdf`;
+      pdf.save(filename);
+      toast({ title: "PDF exported", description: `Saved as ${filename}` });
+    } catch (err) {
+      console.error("PDF export error:", err);
+      toast({ title: "Export failed", description: "Could not generate PDF. Please try again.", variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  if (!record) {
+    return (
+      <div className="flex items-center justify-center h-48 text-muted-foreground" data-testid="cqi-loading">
+        <ClipboardList className="w-5 h-5 mr-2 animate-pulse" />
+        Loading…
+      </div>
+    );
+  }
+
+  const signed = alreadySigned();
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6" data-testid="cqi-meeting-page">
+
+      {/* Hidden print layout for PDF export */}
+      <PrintLayout record={record} printRef={printRef} />
+
+      {/* Page header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-md bg-blue-50">
+            <ClipboardList className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">CQI-QRE Quarterly Meeting</h1>
+            <p className="text-sm text-muted-foreground">
+              Continuous Quality Improvement — {quarter}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <StatusBadge status={record.status} />
+          {canEdit && (
+            <Button
+              variant="outline"
+              onClick={handleSave}
+              disabled={isSaving}
+              data-testid="cqi-save-btn"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isSaving ? "Saving…" : "Save"}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            data-testid="cqi-export-btn"
+          >
+            <FileDown className="w-4 h-4 mr-2" />
+            {isExporting ? "Exporting…" : "Export PDF"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Site label */}
+      {profile && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="cqi-site-label">
+          <Building2 className="w-4 h-4" />
+          <span>{profile.siteName} — Site {profile.siteId}</span>
+        </div>
+      )}
+
+      {/* Read-only notice for non-editors */}
+      {!canEdit && !isViewer && (
+        <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3" data-testid="cqi-readonly-notice">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800">
+            You can sign the attendance list below. Only directors can edit the rest of the form.
+          </p>
+        </div>
+      )}
+
+      {/* ── Section 1: Header info ── */}
+      {(canEdit || isViewer) && (
+        <div className="rounded-md border p-5 space-y-4" data-testid="cqi-header-section">
+          <h2 className="text-sm font-semibold text-foreground">Meeting Information</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="pharmacy-location" className="text-xs text-muted-foreground">
+                Pharmacy Location
+              </Label>
+              <Input
+                id="pharmacy-location"
+                value={record.pharmacyLocation}
+                onChange={(e) => setField("pharmacyLocation", e.target.value)}
+                readOnly={!canEdit}
+                placeholder="e.g. AHF Pharmacy — Hollywood"
+                data-testid="cqi-pharmacy-location"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="cqi-pic" className="text-xs text-muted-foreground">
+                PIC (Pharmacist-in-Charge)
+              </Label>
+              <Input
+                id="cqi-pic"
+                value={record.pic}
+                onChange={(e) => setField("pic", e.target.value)}
+                readOnly={!canEdit}
+                placeholder="Pharmacist full name"
+                data-testid="cqi-pic"
+              />
+            </div>
+          </div>
+
+          {/* Quarter selection */}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Quarter / Period</Label>
+            <div className="flex flex-wrap gap-2">
+              {(["Q1", "Q2", "Q3", "Q4", "Other"] as QuarterOption[]).map((q) => (
+                <Button
+                  key={q}
+                  type="button"
+                  variant={record.selectedQuarter === q ? "default" : "outline"}
+                  onClick={() => canEdit && setField("selectedQuarter", q as QuarterOption)}
+                  disabled={!canEdit}
+                  data-testid={`cqi-quarter-${q}`}
+                  aria-pressed={record.selectedQuarter === q}
+                >
+                  {q}
+                </Button>
+              ))}
+            </div>
+            {record.selectedQuarter === "Other" && (
+              <div className="mt-2 max-w-xs space-y-1.5">
+                <Label htmlFor="other-date" className="text-xs text-muted-foreground">
+                  Specify date / period
+                </Label>
+                <Input
+                  id="other-date"
+                  value={record.otherDate}
+                  onChange={(e) => setField("otherDate", e.target.value)}
+                  readOnly={!canEdit}
+                  placeholder="e.g. January 15, 2026"
+                  data-testid="cqi-other-date"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Section 2: Safety Checks ── */}
+      {(canEdit || isViewer) && (
+        <div className="rounded-md border p-5 space-y-4" data-testid="cqi-safety-section">
+          <h2 className="text-sm font-semibold text-foreground">Safety Checks</h2>
+          <div className="space-y-3">
+            {[
+              { key: "fireExtinguisher" as const, label: "Fire Extinguisher Expiration Date Checked" },
+              { key: "smokeDetector" as const, label: "Smoke Detector Expiration Date Checked" },
+              { key: "evacuationPlan" as const, label: "Evacuation Plan Reviewed" },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex items-center gap-3" data-testid={`cqi-safety-${key}`}>
+                <Checkbox
+                  id={`safety-${key}`}
+                  checked={record.safetyChecks[key]}
+                  disabled={!canEdit}
+                  onCheckedChange={(val) => setSafetyCheck(key, !!val)}
+                  data-testid={`cqi-safety-checkbox-${key}`}
+                />
+                <Label
+                  htmlFor={`safety-${key}`}
+                  className={`text-sm select-none ${!canEdit ? "cursor-default" : "cursor-pointer"} ${
+                    record.safetyChecks[key] ? "line-through text-muted-foreground" : "text-foreground"
+                  }`}
+                >
+                  {label}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Section 3: Agenda Items ── */}
+      {(canEdit || isViewer) && (
+        <div className="rounded-md border p-5 space-y-4" data-testid="cqi-agenda-section">
+          <h2 className="text-sm font-semibold text-foreground">Agenda Items</h2>
+          <div className="space-y-3">
+            {[
+              { key: "regulatoryUpdates" as const, label: "Regulatory Updates / Issues" },
+              { key: "workflowUpdates" as const, label: "Workflow Updates / Issues" },
+              { key: "qreIssues" as const, label: "QRE Issues" },
+              { key: "policyUpdates" as const, label: "Policy and Procedure Updates" },
+              { key: "qmcMeetingMinutes" as const, label: "QMC Meeting Minutes and Reports" },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex items-center gap-3" data-testid={`cqi-agenda-${key}`}>
+                <Checkbox
+                  id={`agenda-${key}`}
+                  checked={record.agendaItems[key]}
+                  disabled={!canEdit}
+                  onCheckedChange={(val) => setAgendaItem(key, !!val)}
+                  data-testid={`cqi-agenda-checkbox-${key}`}
+                />
+                <Label
+                  htmlFor={`agenda-${key}`}
+                  className={`text-sm select-none ${!canEdit ? "cursor-default" : "cursor-pointer"} ${
+                    record.agendaItems[key] ? "line-through text-muted-foreground" : "text-foreground"
+                  }`}
+                >
+                  {label}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Section 4: QRE Documentation ── */}
+      {(canEdit || isViewer) && (
+        <div className="rounded-md border p-5 space-y-4" data-testid="cqi-qre-section">
+          <h2 className="text-sm font-semibold text-foreground">QRE Documentation</h2>
+          <div className="space-y-1.5">
+            <Label htmlFor="qre-issues" className="text-xs text-muted-foreground">
+              QRE Issues Discussed
+            </Label>
+            <Textarea
+              id="qre-issues"
+              value={record.qreIssuesDiscussed}
+              onChange={(e) => setField("qreIssuesDiscussed", e.target.value)}
+              readOnly={!canEdit}
+              placeholder={canEdit ? "Describe quality-related events discussed during this meeting…" : "No issues documented."}
+              className="text-sm resize-none min-h-[96px]"
+              data-testid="cqi-qre-issues"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="action-plan" className="text-xs text-muted-foreground">
+              QRE Action Plan / Process Changes / Suggestions from Staff
+            </Label>
+            <Textarea
+              id="action-plan"
+              value={record.actionPlan}
+              onChange={(e) => setField("actionPlan", e.target.value)}
+              readOnly={!canEdit}
+              placeholder={canEdit ? "Describe action plans, process changes, and staff suggestions…" : "No action plan documented."}
+              className="text-sm resize-none min-h-[96px]"
+              data-testid="cqi-action-plan"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Section 5: Meeting Attendance ── */}
+      <div className="rounded-md border p-5 space-y-4" data-testid="cqi-attendance-section">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold text-foreground">Meeting Attendance</h2>
+          <Button
+            variant={signed ? "outline" : "default"}
+            onClick={() => setSignModalOpen(true)}
+            disabled={signed}
+            data-testid="cqi-sign-btn"
+          >
+            <PenLine className="w-4 h-4 mr-2" />
+            {signed ? "Already Signed" : "Add My Signature"}
+          </Button>
+        </div>
+
+        {signed && (
+          <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2" data-testid="cqi-already-signed-notice">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            Your signature has been recorded for this meeting.
+          </div>
+        )}
+
+        {record.attendees.length === 0 ? (
+          <div className="rounded-md border border-dashed p-8 text-center text-muted-foreground" data-testid="cqi-attendance-empty">
+            <UserCheck className="w-7 h-7 mx-auto mb-2 opacity-40" />
+            <p className="text-sm">No attendees have signed yet.</p>
+            <p className="text-xs mt-1">Staff can click "Add My Signature" to sign the attendance list.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="cqi-attendance-table">
+              <thead>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-8">#</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Print Name</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Role</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Signature</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Signed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {record.attendees.map((att, idx) => (
+                  <tr
+                    key={att.id}
+                    className="border-b last:border-0 hover-elevate"
+                    data-testid={`cqi-attendee-row-${att.id}`}
+                  >
+                    <td className="px-3 py-2.5 text-muted-foreground text-xs">{idx + 1}</td>
+                    <td className="px-3 py-2.5 font-medium text-foreground">{att.printName}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground text-xs">{formatRole(att.role)}</td>
+                    <td className="px-3 py-2.5">
+                      <span
+                        className="text-base text-blue-900"
+                        style={{ fontFamily: "Georgia, serif", fontStyle: "italic" }}
+                        data-testid={`cqi-signature-${att.id}`}
+                      >
+                        {att.signatureName}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(att.signedAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                      {" · "}
+                      {new Date(att.signedAt).toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Sign Modal */}
+      <SignAttendanceModal
+        open={signModalOpen}
+        onClose={() => setSignModalOpen(false)}
+        onSign={handleSign}
+        defaultName={profile?.name ?? ""}
+      />
+    </div>
+  );
+}
