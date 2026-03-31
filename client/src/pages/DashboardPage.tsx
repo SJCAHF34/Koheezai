@@ -180,7 +180,7 @@ function TechDashboard({ userEmail, userName }: { userEmail: string; userName: s
             {roleLabel} · {profile.siteName}
           </p>
           <h1 className="text-3xl font-bold text-slate-900">
-            <GradientText>Technician</GradientText> Dashboard
+            <GradientText>Pharmacy</GradientText> Dashboard
           </h1>
           <p className="text-slate-500 mt-2 text-base">
             Welcome back, {firstName}. Here's your task overview for today.
