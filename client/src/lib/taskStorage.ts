@@ -109,6 +109,27 @@ export function loadAllSiteCompletions(
   return bySite;
 }
 
+/**
+ * Returns all daily completions for a site across all dates, grouped by
+ * YYYY-MM-DD date string. Used by the director history calendar.
+ * When siteId is "ALL", returns completions across every site.
+ */
+export function loadSiteCompletionsHistory(
+  siteId: string
+): Record<string, TaskCompletion[]> {
+  const all = readCompletions();
+  const filtered = siteId === "ALL" ? all : all.filter((c) => c.siteId === siteId);
+  const byDate: Record<string, TaskCompletion[]> = {};
+  for (const c of filtered) {
+    // Only include daily completions — they have YYYY-MM-DD period keys
+    if (/^\d{4}-\d{2}-\d{2}$/.test(c.period)) {
+      if (!byDate[c.period]) byDate[c.period] = [];
+      byDate[c.period].push(c);
+    }
+  }
+  return byDate;
+}
+
 export function saveCompletion(
   taskId: string,
   taskRole: string,

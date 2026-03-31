@@ -43,6 +43,8 @@ import {
   saveRetentionRisk,
   loadRoster,
   saveRoster,
+  loadSiteCompletionsHistory,
+  type TaskCompletion,
   type TaskAssignment,
   type TaskPriority,
   type HandoffNote,
@@ -51,6 +53,7 @@ import {
   type StaffMember,
   type SiteRoster,
 } from "@/lib/taskStorage";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Check,
   UserPlus,
@@ -76,6 +79,7 @@ import {
   Pencil,
   CalendarDays,
   ShieldAlert,
+  History,
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -1077,6 +1081,162 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
   );
 }
 
+// ── Task History Calendar (directors) ─────────────────────────────────────────
+
+const TASK_LOOKUP: Map<string, PharmacyTask> = new Map(TASKS.map((t) => [t.id, t]));
+
+function TaskHistoryCalendar({ siteId }: { siteId: string }) {
+  const [month, setMonth] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  const history = loadSiteCompletionsHistory(siteId);
+
+  // Build a Set of Date objects that have at least one completion
+  const datesWithCompletions: Date[] = Object.keys(history).map((dateStr) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  });
+
+  // Completions for the selected day
+  const selectedDateKey = selectedDate
+    ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
+    : null;
+  const selectedCompletions: TaskCompletion[] = selectedDateKey ? (history[selectedDateKey] ?? []) : [];
+
+  const ROLE_LABEL: Record<string, string> = {
+    data_entry_tech: "DE Tech",
+    pv2_tech: "PV2 Tech",
+    delivery_tech: "Delivery Tech",
+    pharmacist_1: "Pharmacist 1",
+    pharmacist_2: "Pharmacist 2",
+    director: "Director",
+    all_staff: "All Staff",
+  };
+
+  const selectedDateLabel = selectedDate
+    ? selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+    : null;
+
+  return (
+    <div
+      data-testid="task-history-calendar"
+      className="bg-white border border-slate-200 rounded-md overflow-hidden"
+    >
+      {/* Panel header */}
+      <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+        <History className="w-4 h-4 text-slate-500 shrink-0" />
+        <span className="text-sm font-bold text-slate-700 flex-1">Task Completion History</span>
+        <span className="text-xs text-slate-400">Click a highlighted day to view completions</span>
+      </div>
+
+      <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+        {/* Calendar */}
+        <div className="sm:w-72 shrink-0">
+          <Calendar
+            mode="single"
+            month={month}
+            onMonthChange={setMonth}
+            selected={selectedDate}
+            onSelect={setSelectedDate}
+            modifiers={{ hasCompletions: datesWithCompletions }}
+            modifiersClassNames={{
+              hasCompletions: "has-completions",
+            }}
+            className="p-4"
+            classNames={{
+              day_today: "bg-accent text-accent-foreground font-semibold",
+            }}
+            components={{
+              DayContent: ({ date }) => {
+                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+                const count = history[key]?.length ?? 0;
+                return (
+                  <div className="relative flex items-center justify-center w-full h-full">
+                    <span>{date.getDate()}</span>
+                    {count > 0 && (
+                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-purple-500" />
+                    )}
+                  </div>
+                );
+              },
+            }}
+          />
+          {datesWithCompletions.length === 0 && (
+            <p className="px-4 pb-4 text-xs text-slate-400 text-center">
+              No historical completions recorded yet. Complete tasks and they will appear here.
+            </p>
+          )}
+        </div>
+
+        {/* Detail panel */}
+        <div className="flex-1 min-w-0">
+          {!selectedDate ? (
+            <div className="flex flex-col items-center justify-center h-full py-10 px-6 text-center gap-2">
+              <CalendarDays className="w-8 h-8 text-slate-200" />
+              <p className="text-sm font-medium text-slate-400">Select a day on the calendar</p>
+              <p className="text-xs text-slate-300">
+                Days with a purple dot have recorded completions.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col h-full">
+              {/* Day header */}
+              <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
+                <p className="text-sm font-bold text-slate-800">{selectedDateLabel}</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {selectedCompletions.length === 0
+                    ? "No completions recorded"
+                    : `${selectedCompletions.length} task${selectedCompletions.length !== 1 ? "s" : ""} completed`}
+                </p>
+              </div>
+
+              {/* Completion list */}
+              {selectedCompletions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center flex-1 py-8 gap-2">
+                  <p className="text-sm text-slate-400">No tasks were completed on this day.</p>
+                </div>
+              ) : (
+                <div className="overflow-y-auto max-h-72 divide-y divide-slate-50">
+                  {selectedCompletions.map((c, i) => {
+                    const task = TASK_LOOKUP.get(c.taskId);
+                    const taskTitle = task?.title ?? c.taskId;
+                    const roleLabel = ROLE_LABEL[c.taskRole] ?? c.taskRole;
+                    const completedTime = new Date(c.completedAt).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    });
+                    return (
+                      <div
+                        key={`${c.taskId}-${i}`}
+                        data-testid={`history-entry-${c.taskId}`}
+                        className="flex items-start gap-3 px-4 py-3"
+                      >
+                        <div className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                          <Check className="w-3 h-3 text-green-600" strokeWidth={3} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 leading-snug">{taskTitle}</p>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                              {roleLabel}
+                            </span>
+                            <span className="text-[10px] text-slate-400">{c.userEmail}</span>
+                            <span className="text-[10px] text-slate-300">{completedTime}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Assign Dialog ─────────────────────────────────────────────────────────────
 
 function AssignDialog({
@@ -1663,6 +1823,7 @@ export default function TaskManager() {
   const [viewingRole, setViewingRole] = useState<ViewingRole>(urlSiteId ? "all" : "own");
   const [categoryFilter, setCategoryFilter] = useState<TaskCategory | "all">("all");
   const [showRoster, setShowRoster] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [completions, setCompletions] = useState<Set<string>>(new Set());
   const [animating, setAnimating] = useState<Set<string>>(new Set());
   const [assignments, setAssignments] = useState<Map<string, TaskAssignment>>(new Map());
@@ -1989,22 +2150,37 @@ export default function TaskManager() {
           />
         )}
 
-        {/* Director staff roster */}
+        {/* Director staff roster + history */}
         {isDir && !readOnly && (
           <div>
-            <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" /> Team Configuration
               </p>
-              <button
-                data-testid="button-toggle-roster"
-                onClick={() => setShowRoster((v) => !v)}
-                className="text-xs font-semibold text-purple-600 hover:text-purple-800 flex items-center gap-1"
-              >
-                {showRoster ? "Hide" : "Configure Team"}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  data-testid="button-toggle-history"
+                  onClick={() => { setShowHistory((v) => !v); setShowRoster(false); }}
+                  className={`text-xs font-semibold flex items-center gap-1 transition-colors ${
+                    showHistory
+                      ? "text-purple-800"
+                      : "text-purple-600 hover:text-purple-800"
+                  }`}
+                >
+                  <History className="w-3.5 h-3.5" />
+                  {showHistory ? "Hide History" : "History"}
+                </button>
+                <button
+                  data-testid="button-toggle-roster"
+                  onClick={() => { setShowRoster((v) => !v); setShowHistory(false); }}
+                  className="text-xs font-semibold text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                >
+                  {showRoster ? "Hide" : "Configure Team"}
+                </button>
+              </div>
             </div>
             {showRoster && <StaffRosterPanel siteId={siteId} />}
+            {showHistory && <TaskHistoryCalendar siteId={siteId} />}
           </div>
         )}
 
