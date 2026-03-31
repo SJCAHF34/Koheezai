@@ -74,6 +74,7 @@ import {
   Minus,
   Save,
   Pencil,
+  CalendarDays,
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -1365,7 +1366,17 @@ function CustomTasksSection({
   );
 }
 
-// ── Handoff Panel (write notes for tomorrow) ──────────────────────────────────
+// ── Handoff Panel (write notes for a future date) ─────────────────────────────
+function formatHandoffDate(dateKey: string, tomorrowKey: string): string {
+  if (dateKey === tomorrowKey) return "Tomorrow";
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function HandoffPanel({
   siteId,
   authorName,
@@ -1376,14 +1387,28 @@ function HandoffPanel({
   authorRole: string;
 }) {
   const tomorrow = getTomorrowDateKey();
-  const existing = loadHandoffForDate(siteId, tomorrow);
 
-  const [rawText, setRawText] = useState("");
+  const [targetDate, setTargetDate] = useState(tomorrow);
+
+  // Reload note whenever the target date changes
+  const existing = loadHandoffForDate(siteId, targetDate);
+
+  const [rawText, setRawText] = useState(existing?.rawText ?? "");
   const [items, setItems] = useState<HandoffItem[]>(existing?.items ?? []);
   const [newItemText, setNewItemText] = useState("");
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(!!existing);
   const [error, setError] = useState("");
+
+  // When the user picks a different date, load whatever was saved for that date
+  const handleDateChange = (newDate: string) => {
+    setTargetDate(newDate);
+    const note = loadHandoffForDate(siteId, newDate);
+    setRawText(note?.rawText ?? "");
+    setItems(note?.items ?? []);
+    setSaved(!!note);
+    setError("");
+  };
 
   const handleGenerate = async () => {
     if (!rawText.trim()) return;
@@ -1431,11 +1456,11 @@ function HandoffPanel({
   const handleSave = () => {
     if (items.length === 0) return;
     saveHandoffNote({
-      id: `${siteId}-${tomorrow}`,
+      id: `${siteId}-${targetDate}`,
       siteId,
       rawText,
       items,
-      forDate: tomorrow,
+      forDate: targetDate,
       createdAt: new Date().toISOString(),
       createdBy: authorName,
       createdByRole: authorRole,
@@ -1443,32 +1468,61 @@ function HandoffPanel({
     setSaved(true);
   };
 
+  const dateLabel = formatHandoffDate(targetDate, tomorrow);
+
   return (
     <div
       data-testid="handoff-panel"
       className="bg-white border border-slate-200 rounded-md overflow-hidden"
     >
-      <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+      <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2 flex-wrap">
         <ClipboardCheck className="w-4 h-4 text-purple-600 shrink-0" />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-slate-800">Handoff Notes</p>
-          <p className="text-xs text-slate-400">Leave tasks for tomorrow's team</p>
+          <p className="text-xs text-slate-400">Schedule tasks for a future date</p>
         </div>
         {saved && items.length > 0 && (
           <span
             data-testid="handoff-saved-badge"
             className="text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-md"
           >
-            Saved for tomorrow
+            Saved for {dateLabel}
           </span>
         )}
       </div>
 
       <div className="px-5 py-4 space-y-4">
+        {/* Date picker */}
+        <div>
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block flex items-center gap-1.5">
+            <CalendarDays className="w-3.5 h-3.5" /> Schedule for
+          </label>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              data-testid="handoff-date-input"
+              type="date"
+              value={targetDate}
+              min={tomorrow}
+              onChange={(e) => e.target.value && handleDateChange(e.target.value)}
+              className="text-sm rounded-md border border-slate-200 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700"
+            />
+            <span className="text-xs text-slate-500 font-medium">{dateLabel}</span>
+            {targetDate !== tomorrow && (
+              <button
+                data-testid="handoff-date-reset"
+                onClick={() => handleDateChange(tomorrow)}
+                className="text-xs text-purple-600 hover:text-purple-800 font-semibold"
+              >
+                Reset to tomorrow
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Raw text input */}
         <div>
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">
-            What needs attention tomorrow?
+            What needs attention on {dateLabel}?
           </label>
           <textarea
             data-testid="handoff-textarea"
@@ -1498,7 +1552,7 @@ function HandoffPanel({
         {items.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-              Tasks for tomorrow ({items.length})
+              Tasks for {dateLabel} ({items.length})
             </p>
             <ul className="space-y-1.5">
               {items.map((item) => (
@@ -1554,7 +1608,7 @@ function HandoffPanel({
             className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
           >
             <ClipboardCheck className="w-4 h-4" />
-            Save for Tomorrow
+            Save for {dateLabel}
           </button>
         </div>
       </div>
