@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/App";
-import { getUserProfile, isRegionalOrAbove, isDirectorRole } from "@/lib/userProfile";
+import { getUserProfile, isRegionalOrAbove, isDirectorRole, getRoleLabel } from "@/lib/userProfile";
 import {
   loadCQIMeeting,
   saveCQIMeeting,
@@ -84,17 +84,7 @@ function computeStatus(record: CQIMeetingRecord): CQIMeetingRecord["status"] {
 }
 
 function formatRole(role: string): string {
-  const MAP: Record<string, string> = {
-    director: "Director",
-    pharmacist_1: "Pharmacist (PharmD)",
-    pharmacist_2: "Pharmacist",
-    data_entry_tech: "Pharmacy Technician",
-    dispense_tech: "Dispense Technician",
-    technician: "Technician",
-    regional_pharmacy_director: "Regional Pharmacy Director",
-    cpo: "Chief Pharmacy Officer",
-  };
-  return MAP[role] ?? role;
+  return getRoleLabel(role as Parameters<typeof getRoleLabel>[0]);
 }
 
 function StatusBadge({ status }: { status: CQIMeetingRecord["status"] }) {
