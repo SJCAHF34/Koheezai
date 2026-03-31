@@ -446,8 +446,21 @@ function readRosters(): SiteRoster[] {
   }
 }
 
+const DEFAULT_ROSTERS: Record<string, SiteRoster> = {
+  "1417": {
+    siteId: "1417",
+    members: [
+      { id: "s1417-001", name: "Seth Collins",   roles: ["director"] },
+      { id: "s1417-002", name: "Debbie Nguyen",  roles: ["pharmacist"] },
+      { id: "s1417-003", name: "Claire Wood",    roles: ["data_entry_tech"] },
+      { id: "s1417-004", name: "Pairiss Wilcox", roles: ["data_entry_tech"] },
+      { id: "s1417-005", name: "Anh Do",         roles: ["data_entry_tech"] },
+    ],
+  },
+};
+
 export function loadRoster(siteId: string): SiteRoster {
-  return readRosters().find((r) => r.siteId === siteId) ?? { siteId, members: [] };
+  return readRosters().find((r) => r.siteId === siteId) ?? DEFAULT_ROSTERS[siteId] ?? { siteId, members: [] };
 }
 
 export function saveRoster(roster: SiteRoster): void {
