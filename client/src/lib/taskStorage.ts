@@ -301,6 +301,8 @@ export function getTodayDateKey(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/** @deprecated Pre-role semantics: returns first match by (siteId, date) ignoring forRole.
+ *  Use loadHandoffNoteForRoleAndDate or loadHandoffNotesForRole for role-aware flows. */
 export function loadHandoffForDate(siteId: string, date: string): HandoffNote | null {
   return readHandoffNotes().find((n) => n.siteId === siteId && n.forDate === date) ?? null;
 }
