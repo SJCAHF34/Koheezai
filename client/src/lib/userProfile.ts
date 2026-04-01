@@ -93,6 +93,13 @@ const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteNam
     siteName: "RX Pike Street",
     region: "Western",
   },
+  "elizabeth.camper@aidshealth.org": {
+    role: "pharmacist_1",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+    region: "Western",
+    taskRoles: ["pharmacist_1"],
+  },
 };
 
 const DEFAULT_PROFILE: Pick<UserProfile, "role" | "siteId" | "siteName"> = {
