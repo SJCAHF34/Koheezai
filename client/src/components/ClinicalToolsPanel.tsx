@@ -32,9 +32,10 @@ type BrowserTool = {
   icon: LucideIcon;
   iconColor: string;
   iconBg: string;
+  loginViaTab?: boolean;
 };
 
-type FrameStatus = "checking" | "frameable" | "blocked" | "error";
+type FrameStatus = "checking" | "frameable" | "blocked" | "error" | "cookie-required";
 
 const browserTools: BrowserTool[] = [
   {
@@ -52,6 +53,7 @@ const browserTools: BrowserTool[] = [
     icon: BookOpen,
     iconColor: "text-green-600",
     iconBg: "bg-green-100 dark:bg-green-900/40",
+    loginViaTab: true,
   },
   {
     id: "uptodate",
@@ -104,6 +106,13 @@ export function ClinicalToolsPanel() {
   // Check if the active tool's URL can be framed
   useEffect(() => {
     if (!open) return;
+
+    // Tools that require cookies for login can't authenticate inside an iframe
+    if (activeTool.loginViaTab) {
+      setFrameStatus("cookie-required");
+      setFrameReason("");
+      return;
+    }
 
     const cached = statusCacheRef.current[activeId];
     if (cached) {
@@ -339,6 +348,36 @@ export function ClinicalToolsPanel() {
               <p className="text-sm text-muted-foreground">
                 Connecting to {activeTool.label}…
               </p>
+            </div>
+          )}
+
+          {/* ── Cookie-required state (login needs a real browser tab) ── */}
+          {frameStatus === "cookie-required" && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-5 bg-background px-8 text-center">
+              <div className={cn("p-4 rounded-full", activeTool.iconBg)}>
+                <Lock className={cn("w-8 h-8", activeTool.iconColor)} />
+              </div>
+              <div className="space-y-2 max-w-xs">
+                <p className="text-base font-semibold text-foreground">
+                  Log in to {activeTool.label} in a new tab
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Browsers block cookies when sites are embedded, which prevents
+                  login from working here. Open {activeTool.label} in a full tab to
+                  sign in — your session will stay active as long as that tab is open.
+                </p>
+              </div>
+              <a
+                href={activeTool.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid={`link-cookie-open-${activeId}`}
+              >
+                <Button className="gap-2" size="lg">
+                  Open {activeTool.label} in New Tab
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              </a>
             </div>
           )}
 
