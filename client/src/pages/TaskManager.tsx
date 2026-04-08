@@ -1064,7 +1064,7 @@ function RetentionSection({
 
       {showForm && (
         <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50 space-y-2">
-          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">New Patient</p>
+          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Patient Info</p>
 
           {/* Initials + Primary Phone — always shown */}
           <div className="grid grid-cols-2 gap-2">
