@@ -471,6 +471,63 @@ export function saveRetentionRisk(entry: RetentionRiskEntry): void {
   } catch {}
 }
 
+// ── Retention Patient Tracker ─────────────────────────────────────────────────
+
+const RETENTION_PATIENTS_KEY = "koheez_retention_patients";
+
+export type RetentionIssueType = "lost_contact" | "insurance_lockout" | "out_of_state";
+export type RetentionStatus = "active" | "resolved" | "referred_out";
+
+export interface RetentionPatient {
+  id: string;
+  siteId: string;
+  initials: string;
+  issueType: RetentionIssueType;
+  dateAdded: string;
+  attemptCount: number;
+  lastAttemptDate: string | null;
+  notes: string;
+  status: RetentionStatus;
+  resolvedDate: string | null;
+  phone1: string;
+  phone2: string;
+  email: string;
+  caseManagerContact: string;
+}
+
+function readRetentionPatients(): RetentionPatient[] {
+  try {
+    const raw = localStorage.getItem(RETENTION_PATIENTS_KEY);
+    return raw ? (JSON.parse(raw) as RetentionPatient[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function loadRetentionPatients(siteId: string): RetentionPatient[] {
+  return readRetentionPatients().filter((p) => p.siteId === siteId);
+}
+
+export function addRetentionPatient(patient: Omit<RetentionPatient, "id">): RetentionPatient {
+  const all = readRetentionPatients();
+  const newPatient: RetentionPatient = {
+    ...patient,
+    id: `rp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  };
+  all.push(newPatient);
+  try {
+    localStorage.setItem(RETENTION_PATIENTS_KEY, JSON.stringify(all));
+  } catch {}
+  return newPatient;
+}
+
+export function updateRetentionPatient(updated: RetentionPatient): void {
+  try {
+    const all = readRetentionPatients().map((p) => (p.id === updated.id ? updated : p));
+    localStorage.setItem(RETENTION_PATIENTS_KEY, JSON.stringify(all));
+  } catch {}
+}
+
 // ── Staff Roster ─────────────────────────────────────────────────────────────
 
 const STAFF_ROSTER_KEY = "koheez_staff_roster";

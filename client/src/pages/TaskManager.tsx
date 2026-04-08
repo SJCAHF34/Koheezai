@@ -43,6 +43,9 @@ import {
   purgeStaleHandoffNotes,
   loadRetentionRisk,
   saveRetentionRisk,
+  loadRetentionPatients,
+  addRetentionPatient,
+  updateRetentionPatient,
   loadRoster,
   saveRoster,
   loadSiteCompletions,
@@ -52,6 +55,9 @@ import {
   type HandoffNote,
   type HandoffItem,
   type RetentionRiskEntry,
+  type RetentionPatient,
+  type RetentionIssueType,
+  type RetentionStatus,
   type StaffMember,
   type SiteRoster,
 } from "@/lib/taskStorage";
@@ -82,6 +88,12 @@ import {
   CalendarDays,
   ShieldAlert,
   History,
+  Phone,
+  Mail,
+  Contact,
+  ChevronUp,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -385,7 +397,7 @@ function TaskRow({
         )}
 
         {task.id === "pv2-d-008" && siteId && (
-          <RetentionRiskPanel siteId={siteId} />
+          <PatientRetentionTracker siteId={siteId} />
         )}
       </div>
 
@@ -683,7 +695,454 @@ function SiteOverviewPanel({
   );
 }
 
-// ── Retention Risk Panel ──────────────────────────────────────────────────────
+// ── Patient Retention Tracker ─────────────────────────────────────────────────
+
+const ISSUE_CONFIG: Record<
+  RetentionIssueType,
+  { label: string; color: string; headerBg: string; borderColor: string; badgeBg: string; badgeText: string }
+> = {
+  lost_contact: {
+    label: "Lost Contact",
+    color: "red",
+    headerBg: "bg-red-50 border-red-200",
+    borderColor: "border-red-200",
+    badgeBg: "bg-red-100",
+    badgeText: "text-red-800",
+  },
+  insurance_lockout: {
+    label: "Insurance Lockout",
+    color: "yellow",
+    headerBg: "bg-yellow-50 border-yellow-200",
+    borderColor: "border-yellow-200",
+    badgeBg: "bg-yellow-100",
+    badgeText: "text-yellow-800",
+  },
+  out_of_state: {
+    label: "Out of State",
+    color: "blue",
+    headerBg: "bg-blue-50 border-blue-200",
+    borderColor: "border-blue-200",
+    badgeBg: "bg-blue-100",
+    badgeText: "text-blue-800",
+  },
+};
+
+const STATUS_CONFIG: Record<RetentionStatus, { label: string; bg: string; text: string }> = {
+  active: { label: "Active", bg: "bg-green-100", text: "text-green-800" },
+  resolved: { label: "Resolved", bg: "bg-slate-100", text: "text-slate-600" },
+  referred_out: { label: "Referred Out", bg: "bg-purple-100", text: "text-purple-800" },
+};
+
+function daysSince(dateStr: string): number {
+  const added = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now.getTime() - added.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+interface AddPatientFormState {
+  initials: string;
+  phone1: string;
+  phone2: string;
+  email: string;
+  caseManagerContact: string;
+  notes: string;
+}
+
+const EMPTY_FORM: AddPatientFormState = {
+  initials: "",
+  phone1: "",
+  phone2: "",
+  email: "",
+  caseManagerContact: "",
+  notes: "",
+};
+
+function PatientCard({
+  patient,
+  onUpdate,
+}: {
+  patient: RetentionPatient;
+  onUpdate: (p: RetentionPatient) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const today = getTodayDateKey();
+  const days = daysSince(patient.dateAdded);
+
+  function logAttempt() {
+    const updated: RetentionPatient = {
+      ...patient,
+      attemptCount: patient.attemptCount + 1,
+      lastAttemptDate: today,
+    };
+    updateRetentionPatient(updated);
+    onUpdate(updated);
+  }
+
+  function resolve() {
+    const updated: RetentionPatient = {
+      ...patient,
+      status: "resolved",
+      resolvedDate: today,
+    };
+    updateRetentionPatient(updated);
+    onUpdate(updated);
+  }
+
+  function referOut() {
+    const updated: RetentionPatient = {
+      ...patient,
+      status: "referred_out",
+      resolvedDate: today,
+    };
+    updateRetentionPatient(updated);
+    onUpdate(updated);
+  }
+
+  const statusCfg = STATUS_CONFIG[patient.status];
+  const isActive = patient.status === "active";
+
+  return (
+    <div
+      data-testid={`card-retention-patient-${patient.id}`}
+      className="rounded-md border border-slate-200 bg-white"
+    >
+      <div className="flex items-start justify-between gap-2 p-3">
+        <div className="flex items-start gap-2 min-w-0">
+          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
+            <span className="text-xs font-bold text-slate-700">{patient.initials}</span>
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span data-testid={`text-initials-${patient.id}`} className="text-sm font-semibold text-slate-800">
+                {patient.initials}
+              </span>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${statusCfg.bg} ${statusCfg.text}`}>
+                {statusCfg.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+              <span className="text-xs text-slate-500">{days === 0 ? "Added today" : `${days}d ago`}</span>
+              <span className="text-xs text-slate-500">
+                {patient.attemptCount} attempt{patient.attemptCount !== 1 ? "s" : ""}
+              </span>
+              {patient.lastAttemptDate && (
+                <span className="text-xs text-slate-500">Last: {formatDate(patient.lastAttemptDate)}</span>
+              )}
+              {!isActive && patient.resolvedDate && (
+                <span className="text-xs text-slate-400">Closed: {formatDate(patient.resolvedDate)}</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <button
+          data-testid={`button-expand-${patient.id}`}
+          onClick={() => setExpanded((v) => !v)}
+          className="flex-shrink-0 p-1 rounded text-slate-400 hover-elevate"
+          aria-label="Toggle details"
+        >
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="border-t border-slate-100 px-3 pb-3 pt-2 space-y-2">
+          <div className="grid grid-cols-1 gap-1.5 text-xs">
+            {patient.phone1 && (
+              <div className="flex items-center gap-1.5 text-slate-600">
+                <Phone className="w-3 h-3 flex-shrink-0 text-slate-400" />
+                <span className="font-medium text-slate-500 w-20 flex-shrink-0">Primary:</span>
+                <span data-testid={`text-phone1-${patient.id}`}>{patient.phone1}</span>
+              </div>
+            )}
+            {patient.phone2 && (
+              <div className="flex items-center gap-1.5 text-slate-600">
+                <Phone className="w-3 h-3 flex-shrink-0 text-slate-400" />
+                <span className="font-medium text-slate-500 w-20 flex-shrink-0">Emergency:</span>
+                <span data-testid={`text-phone2-${patient.id}`}>{patient.phone2}</span>
+              </div>
+            )}
+            {patient.email && (
+              <div className="flex items-center gap-1.5 text-slate-600">
+                <Mail className="w-3 h-3 flex-shrink-0 text-slate-400" />
+                <span className="font-medium text-slate-500 w-20 flex-shrink-0">Email:</span>
+                <span data-testid={`text-email-${patient.id}`}>{patient.email}</span>
+              </div>
+            )}
+            {patient.caseManagerContact && (
+              <div className="flex items-center gap-1.5 text-slate-600">
+                <Contact className="w-3 h-3 flex-shrink-0 text-slate-400" />
+                <span className="font-medium text-slate-500 w-20 flex-shrink-0">Case Mgr:</span>
+                <span data-testid={`text-case-manager-${patient.id}`}>{patient.caseManagerContact}</span>
+              </div>
+            )}
+            {patient.notes && (
+              <div className="mt-1 p-2 rounded bg-slate-50 text-slate-600">
+                <span className="font-medium text-slate-500">Notes: </span>
+                {patient.notes}
+              </div>
+            )}
+          </div>
+
+          {isActive && (
+            <div className="flex items-center gap-2 flex-wrap pt-1">
+              <button
+                data-testid={`button-log-attempt-${patient.id}`}
+                onClick={logAttempt}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover-elevate"
+              >
+                <History className="w-3 h-3" /> Log Attempt
+              </button>
+              <button
+                data-testid={`button-resolve-${patient.id}`}
+                onClick={resolve}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-800 hover-elevate"
+              >
+                <Check className="w-3 h-3" /> Resolve
+              </button>
+              <button
+                data-testid={`button-refer-out-${patient.id}`}
+                onClick={referOut}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-100 text-purple-800 hover-elevate"
+              >
+                <ArrowUpRight className="w-3 h-3" /> Refer Out
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RetentionSection({
+  issueType,
+  patients,
+  siteId,
+  onPatientsChange,
+}: {
+  issueType: RetentionIssueType;
+  patients: RetentionPatient[];
+  siteId: string;
+  onPatientsChange: () => void;
+}) {
+  const cfg = ISSUE_CONFIG[issueType];
+  const [showForm, setShowForm] = useState(false);
+  const [showResolved, setShowResolved] = useState(false);
+  const [form, setForm] = useState<AddPatientFormState>(EMPTY_FORM);
+
+  const active = patients.filter((p) => p.status === "active");
+  const resolved = patients.filter((p) => p.status !== "active");
+
+  function handleAdd() {
+    if (!form.initials.trim()) return;
+    addRetentionPatient({
+      siteId,
+      initials: form.initials.trim().toUpperCase(),
+      issueType,
+      dateAdded: getTodayDateKey(),
+      attemptCount: 0,
+      lastAttemptDate: null,
+      notes: form.notes.trim(),
+      status: "active",
+      resolvedDate: null,
+      phone1: form.phone1.trim(),
+      phone2: form.phone2.trim(),
+      email: form.email.trim(),
+      caseManagerContact: form.caseManagerContact.trim(),
+    });
+    setForm(EMPTY_FORM);
+    setShowForm(false);
+    onPatientsChange();
+  }
+
+  function handlePatientUpdate() {
+    onPatientsChange();
+  }
+
+  return (
+    <div className={`rounded-md border ${cfg.borderColor} overflow-hidden`}>
+      <div className={`flex items-center justify-between px-3 py-2 ${cfg.headerBg} gap-2`}>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-bold uppercase tracking-wide ${cfg.badgeText}`}>{cfg.label}</span>
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${cfg.badgeBg} ${cfg.badgeText}`}>
+            {active.length} active
+          </span>
+          {resolved.length > 0 && (
+            <span className="text-[10px] font-medium text-slate-400">{resolved.length} resolved</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          {resolved.length > 0 && (
+            <button
+              data-testid={`button-show-resolved-${issueType}`}
+              onClick={() => setShowResolved((v) => !v)}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-500 hover-elevate"
+            >
+              {showResolved ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+              {showResolved ? "Hide" : "Show"} Resolved
+            </button>
+          )}
+          <button
+            data-testid={`button-add-patient-${issueType}`}
+            onClick={() => setShowForm((v) => !v)}
+            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${cfg.badgeBg} ${cfg.badgeText} hover-elevate`}
+          >
+            <Plus className="w-3 h-3" /> Add
+          </button>
+        </div>
+      </div>
+
+      {showForm && (
+        <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50 space-y-2">
+          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">New Patient</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Initials *</label>
+              <input
+                data-testid={`input-initials-${issueType}`}
+                type="text"
+                maxLength={6}
+                value={form.initials}
+                onChange={(e) => setForm((f) => ({ ...f, initials: e.target.value }))}
+                placeholder="e.g. J.D."
+                className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Primary Phone</label>
+              <input
+                data-testid={`input-phone1-${issueType}`}
+                type="tel"
+                value={form.phone1}
+                onChange={(e) => setForm((f) => ({ ...f, phone1: e.target.value }))}
+                placeholder="(555) 000-0000"
+                className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Emergency Phone</label>
+              <input
+                data-testid={`input-phone2-${issueType}`}
+                type="tel"
+                value={form.phone2}
+                onChange={(e) => setForm((f) => ({ ...f, phone2: e.target.value }))}
+                placeholder="(555) 000-0000"
+                className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Email</label>
+              <input
+                data-testid={`input-email-${issueType}`}
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="patient@email.com"
+                className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Case Manager Contact</label>
+            <input
+              data-testid={`input-case-manager-${issueType}`}
+              type="text"
+              value={form.caseManagerContact}
+              onChange={(e) => setForm((f) => ({ ...f, caseManagerContact: e.target.value }))}
+              placeholder="Name, phone or email"
+              className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Notes (optional)</label>
+            <textarea
+              data-testid={`input-notes-${issueType}`}
+              rows={2}
+              value={form.notes}
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              placeholder="Any relevant context…"
+              className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 resize-none"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              data-testid={`button-submit-patient-${issueType}`}
+              onClick={handleAdd}
+              disabled={!form.initials.trim()}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold text-white bg-slate-700 hover-elevate disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <UserPlus className="w-3 h-3" /> Add Patient
+            </button>
+            <button
+              data-testid={`button-cancel-add-${issueType}`}
+              onClick={() => { setForm(EMPTY_FORM); setShowForm(false); }}
+              className="px-3 py-1.5 rounded-md text-xs font-semibold text-slate-500 hover-elevate"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="p-2 space-y-2">
+        {active.length === 0 && !showResolved && (
+          <p className="text-xs text-slate-400 text-center py-2">No active patients — use Add to track one.</p>
+        )}
+        {active.map((p) => (
+          <PatientCard key={p.id} patient={p} onUpdate={handlePatientUpdate} />
+        ))}
+        {showResolved && resolved.length > 0 && (
+          <div className="space-y-2 pt-1 border-t border-slate-100">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-1">Resolved / Referred</p>
+            {resolved.map((p) => (
+              <PatientCard key={p.id} patient={p} onUpdate={handlePatientUpdate} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PatientRetentionTracker({ siteId }: { siteId: string }) {
+  const [patients, setPatients] = useState<RetentionPatient[]>(() => loadRetentionPatients(siteId));
+
+  function refresh() {
+    setPatients(loadRetentionPatients(siteId));
+  }
+
+  const byType = (type: RetentionIssueType) => patients.filter((p) => p.issueType === type);
+
+  return (
+    <div data-testid="patient-retention-tracker" className="mt-3 mb-1 space-y-3">
+      <div className="flex items-start gap-2 px-3 py-2 rounded-md bg-amber-50 border border-amber-200">
+        <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-amber-800">
+          <span className="font-bold">PHI Notice:</span> Enter patient initials only — PHI integration pending Aptible setup.
+        </p>
+      </div>
+
+      <p className="text-xs font-bold text-slate-700 uppercase tracking-wide px-0.5">Patient Retention Tracker</p>
+
+      {(["lost_contact", "insurance_lockout", "out_of_state"] as RetentionIssueType[]).map((type) => (
+        <RetentionSection
+          key={type}
+          issueType={type}
+          patients={byType(type)}
+          siteId={siteId}
+          onPatientsChange={refresh}
+        />
+      ))}
+
+      <RetentionRiskPanel siteId={siteId} />
+    </div>
+  );
+}
 
 function RetentionRiskPanel({ siteId }: { siteId: string }) {
   const date = getTodayDateKey();
