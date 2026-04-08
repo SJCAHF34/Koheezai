@@ -23,6 +23,7 @@ import {
   type TaskCategory,
 } from "@/lib/taskData";
 import { findStore } from "@/lib/storeDirectory";
+import { findAhfLocations, US_STATES, type AhfLocation } from "@/lib/ahfLocations";
 import {
   loadCompletions,
   saveCompletion,
@@ -94,6 +95,10 @@ import {
   ChevronUp,
   EyeOff,
   Eye,
+  Search,
+  AlertCircle,
+  MapPin,
+  Building2,
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -751,6 +756,16 @@ interface AddPatientFormState {
   email: string;
   caseManagerContact: string;
   notes: string;
+  // insurance lockout
+  bin: string;
+  pcn: string;
+  rxgrp: string;
+  insuranceId: string;
+  // out of state
+  city: string;
+  state: string;
+  zip: string;
+  ahfLocationMatch: string;
 }
 
 const EMPTY_FORM: AddPatientFormState = {
@@ -760,6 +775,14 @@ const EMPTY_FORM: AddPatientFormState = {
   email: "",
   caseManagerContact: "",
   notes: "",
+  bin: "",
+  pcn: "",
+  rxgrp: "",
+  insuranceId: "",
+  city: "",
+  state: "",
+  zip: "",
+  ahfLocationMatch: "",
 };
 
 function PatientCard({
@@ -880,6 +903,39 @@ function PatientCard({
                 <span data-testid={`text-case-manager-${patient.id}`}>{patient.caseManagerContact}</span>
               </div>
             )}
+
+            {/* Insurance plan fields */}
+            {patient.issueType === "insurance_lockout" && (patient.bin || patient.pcn || patient.rxgrp || patient.insuranceId) && (
+              <div className="mt-1 p-2 rounded-md bg-yellow-50 border border-yellow-100 space-y-1">
+                <p className="text-[10px] font-bold text-yellow-700 uppercase tracking-wide">Insurance Plan</p>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                  {patient.bin && <div><span className="text-yellow-600 font-medium">BIN:</span> {patient.bin}</div>}
+                  {patient.pcn && <div><span className="text-yellow-600 font-medium">PCN:</span> {patient.pcn}</div>}
+                  {patient.rxgrp && <div><span className="text-yellow-600 font-medium">RXGRP:</span> {patient.rxgrp}</div>}
+                  {patient.insuranceId && <div><span className="text-yellow-600 font-medium">Member ID:</span> {patient.insuranceId}</div>}
+                </div>
+              </div>
+            )}
+
+            {/* Out of state fields */}
+            {patient.issueType === "out_of_state" && (patient.city || patient.state || patient.zip) && (
+              <div className="mt-1 p-2 rounded-md bg-blue-50 border border-blue-100 space-y-1">
+                <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wide">New Location</p>
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                  <span data-testid={`text-location-${patient.id}`}>
+                    {[patient.city, patient.state, patient.zip].filter(Boolean).join(", ")}
+                  </span>
+                </div>
+                {patient.ahfLocationMatch && (
+                  <div className="flex items-start gap-1.5 text-blue-700">
+                    <Building2 className="w-3 h-3 flex-shrink-0 mt-0.5 text-blue-400" />
+                    <span className="font-medium">{patient.ahfLocationMatch}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {patient.notes && (
               <div className="mt-1 p-2 rounded bg-slate-50 text-slate-600">
                 <span className="font-medium text-slate-500">Notes: </span>
@@ -934,6 +990,8 @@ function RetentionSection({
   const [showForm, setShowForm] = useState(false);
   const [showResolved, setShowResolved] = useState(false);
   const [form, setForm] = useState<AddPatientFormState>(EMPTY_FORM);
+  const [ahfResults, setAhfResults] = useState<AhfLocation[]>([]);
+  const [ahfSearched, setAhfSearched] = useState(false);
 
   const active = patients.filter((p) => p.status === "active");
   const resolved = patients.filter((p) => p.status !== "active");
@@ -954,6 +1012,14 @@ function RetentionSection({
       phone2: form.phone2.trim(),
       email: form.email.trim(),
       caseManagerContact: form.caseManagerContact.trim(),
+      bin: form.bin.trim(),
+      pcn: form.pcn.trim(),
+      rxgrp: form.rxgrp.trim(),
+      insuranceId: form.insuranceId.trim(),
+      city: form.city.trim(),
+      state: form.state.trim(),
+      zip: form.zip.trim(),
+      ahfLocationMatch: form.ahfLocationMatch.trim(),
     });
     setForm(EMPTY_FORM);
     setShowForm(false);
@@ -1000,6 +1066,8 @@ function RetentionSection({
       {showForm && (
         <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50 space-y-2">
           <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">New Patient</p>
+
+          {/* Initials + Primary Phone — always shown */}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Initials *</label>
@@ -1058,6 +1126,138 @@ function RetentionSection({
               className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
             />
           </div>
+
+          {/* ── Insurance Lockout: BIN / PCN / RXGRP / Member ID ── */}
+          {issueType === "insurance_lockout" && (
+            <div className="space-y-1.5 pt-1">
+              <p className="text-[10px] font-semibold text-yellow-700 uppercase tracking-wide">Insurance Plan Details</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "BIN", key: "bin" as const, placeholder: "e.g. 610591" },
+                  { label: "PCN", key: "pcn" as const, placeholder: "e.g. NPDP" },
+                  { label: "RXGRP", key: "rxgrp" as const, placeholder: "e.g. RX7000" },
+                  { label: "Member ID", key: "insuranceId" as const, placeholder: "e.g. ABC123456789" },
+                ].map(({ label, key, placeholder }) => (
+                  <div key={key}>
+                    <label className="text-[10px] font-medium text-slate-500 block mb-0.5">{label}</label>
+                    <input
+                      data-testid={`input-ins-${key}-${issueType}`}
+                      type="text"
+                      value={form[key]}
+                      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                      placeholder={placeholder}
+                      className="w-full text-xs rounded border border-yellow-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Out of State: City / State / Zip + AHF Finder ── */}
+          {issueType === "out_of_state" && (
+            <div className="space-y-1.5 pt-1">
+              <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide">New Location</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <label className="text-[10px] font-medium text-slate-500 block mb-0.5">City</label>
+                  <input
+                    data-testid="input-oos-city"
+                    type="text"
+                    value={form.city}
+                    onChange={(e) => { setForm((f) => ({ ...f, city: e.target.value })); setAhfSearched(false); setAhfResults([]); }}
+                    placeholder="e.g. Atlanta"
+                    className="w-full text-xs rounded border border-blue-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Zip</label>
+                  <input
+                    data-testid="input-oos-zip"
+                    type="text"
+                    maxLength={5}
+                    value={form.zip}
+                    onChange={(e) => setForm((f) => ({ ...f, zip: e.target.value }))}
+                    placeholder="00000"
+                    className="w-full text-xs rounded border border-blue-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-medium text-slate-500 block mb-0.5">State</label>
+                <select
+                  data-testid="input-oos-state"
+                  value={form.state}
+                  onChange={(e) => { setForm((f) => ({ ...f, state: e.target.value, ahfLocationMatch: "" })); setAhfSearched(false); setAhfResults([]); }}
+                  className="w-full text-xs rounded border border-blue-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                >
+                  <option value="">Select state…</option>
+                  {US_STATES.map((s) => (
+                    <option key={s.abbr} value={s.abbr}>{s.abbr} — {s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* AHF Location Finder */}
+              {form.state && (
+                <div className="space-y-1.5">
+                  <button
+                    data-testid="button-ahf-search"
+                    type="button"
+                    onClick={() => {
+                      const results = findAhfLocations(form.state, form.city);
+                      setAhfResults(results);
+                      setAhfSearched(true);
+                      setForm((f) => ({ ...f, ahfLocationMatch: "" }));
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-100 text-blue-800 hover-elevate"
+                  >
+                    <Search className="w-3 h-3" /> Find AHF Location
+                  </button>
+
+                  {ahfSearched && ahfResults.length === 0 && (
+                    <div className="flex items-start gap-1.5 p-2 rounded-md bg-red-50 border border-red-200">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-700">
+                        No AHF Healthcare Center found in {US_STATES.find(s => s.abbr === form.state)?.name || form.state}.{" "}
+                        <a href="https://hivcare.org/locations/" target="_blank" rel="noopener noreferrer" className="underline">Visit hivcare.org/locations</a> to confirm.
+                      </p>
+                    </div>
+                  )}
+
+                  {ahfResults.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide">
+                        {ahfResults.length} location{ahfResults.length !== 1 ? "s" : ""} found — select to save
+                      </p>
+                      {ahfResults.map((loc) => (
+                        <div
+                          key={loc.name}
+                          data-testid={`ahf-result-${loc.name.replace(/\s+/g, "-").toLowerCase()}`}
+                          onClick={() => setForm((f) => ({ ...f, ahfLocationMatch: f.ahfLocationMatch === loc.name ? "" : loc.name }))}
+                          className={`cursor-pointer rounded-md border p-2 text-xs transition-colors ${
+                            form.ahfLocationMatch === loc.name
+                              ? "border-blue-400 bg-blue-50"
+                              : "border-slate-200 bg-white hover-elevate"
+                          }`}
+                        >
+                          <div className="font-semibold text-slate-800">{loc.name}</div>
+                          <div className="text-slate-500">{loc.address}, {loc.city}, {loc.state} {loc.zip}</div>
+                          <div className="text-slate-500">{loc.phone}</div>
+                          {form.ahfLocationMatch === loc.name && (
+                            <div className="mt-0.5 flex items-center gap-1 text-blue-700 font-medium">
+                              <Check className="w-3 h-3" /> Selected
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Notes (optional)</label>
             <textarea
@@ -1080,7 +1280,7 @@ function RetentionSection({
             </button>
             <button
               data-testid={`button-cancel-add-${issueType}`}
-              onClick={() => { setForm(EMPTY_FORM); setShowForm(false); }}
+              onClick={() => { setForm(EMPTY_FORM); setShowForm(false); setAhfResults([]); setAhfSearched(false); }}
               className="px-3 py-1.5 rounded-md text-xs font-semibold text-slate-500 hover-elevate"
             >
               Cancel

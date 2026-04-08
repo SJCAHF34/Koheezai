@@ -493,12 +493,47 @@ export interface RetentionPatient {
   phone2: string;
   email: string;
   caseManagerContact: string;
+  // Insurance lockout fields
+  bin: string;
+  pcn: string;
+  rxgrp: string;
+  insuranceId: string;
+  // Out of state fields
+  city: string;
+  state: string;
+  zip: string;
+  ahfLocationMatch: string;
+}
+
+function normalizeRetentionPatient(p: Partial<RetentionPatient> & Pick<RetentionPatient, "id" | "siteId" | "initials" | "issueType">): RetentionPatient {
+  return {
+    dateAdded: "",
+    attemptCount: 0,
+    lastAttemptDate: null,
+    notes: "",
+    status: "active",
+    resolvedDate: null,
+    phone1: "",
+    phone2: "",
+    email: "",
+    caseManagerContact: "",
+    bin: "",
+    pcn: "",
+    rxgrp: "",
+    insuranceId: "",
+    city: "",
+    state: "",
+    zip: "",
+    ahfLocationMatch: "",
+    ...p,
+  } as RetentionPatient;
 }
 
 function readRetentionPatients(): RetentionPatient[] {
   try {
     const raw = localStorage.getItem(RETENTION_PATIENTS_KEY);
-    return raw ? (JSON.parse(raw) as RetentionPatient[]) : [];
+    if (!raw) return [];
+    return (JSON.parse(raw) as RetentionPatient[]).map(normalizeRetentionPatient);
   } catch {
     return [];
   }
