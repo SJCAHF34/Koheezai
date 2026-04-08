@@ -3,7 +3,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { drugClasses, getDrugsByClass } from "@/lib/hivDrugs";
+import { drugClasses, getDrugsByClass, prepDrugs } from "@/lib/hivDrugs";
 import { cn } from "@/lib/utils";
 
 type RegimenMode = "new" | "change";
@@ -15,6 +15,7 @@ type TreatmentRegimenBuilderProps = {
   onRegimenModeChange: (mode: RegimenMode) => void;
   onDrugsChange: (drugs: string[]) => void;
   onCurrentDrugsChange: (drugs: string[]) => void;
+  prepMode?: boolean;
 };
 
 function DrugPicker({
@@ -101,6 +102,57 @@ function DrugPicker({
   );
 }
 
+function PrepDrugPicker({
+  selectedDrugs,
+  onDrugsChange,
+}: {
+  selectedDrugs: string[];
+  onDrugsChange: (drugs: string[]) => void;
+}) {
+  const toggle = (drugId: string) => {
+    if (selectedDrugs.includes(drugId)) {
+      onDrugsChange(selectedDrugs.filter(id => id !== drugId));
+    } else {
+      onDrugsChange([...selectedDrugs, drugId]);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+      {prepDrugs.map((drug) => {
+        const inputId = `prep-${drug.id}`;
+        const selected = selectedDrugs.includes(drug.id);
+        return (
+          <label
+            key={drug.id}
+            htmlFor={inputId}
+            className={cn(
+              "flex flex-col gap-2 rounded-md border p-4 cursor-pointer transition-colors",
+              selected ? "border-primary bg-primary/5" : "border-border hover-elevate"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id={inputId}
+                checked={selected}
+                onCheckedChange={() => toggle(drug.id)}
+                data-testid={`checkbox-prep-drug-${drug.id}`}
+              />
+              <span className="text-sm font-semibold">{drug.brandName}</span>
+            </div>
+            <p className="text-xs text-muted-foreground pl-7 font-mono leading-snug">
+              {drug.name}
+            </p>
+            <p className="text-xs text-muted-foreground pl-7 font-mono">
+              {drug.dosage}
+            </p>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function TreatmentRegimenBuilder({
   regimenMode,
   selectedDrugs,
@@ -108,7 +160,27 @@ export default function TreatmentRegimenBuilder({
   onRegimenModeChange,
   onDrugsChange,
   onCurrentDrugsChange,
+  prepMode = false,
 }: TreatmentRegimenBuilderProps) {
+  if (prepMode) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">PrEP Medication</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Select the PrEP regimen for this patient
+          </p>
+        </CardHeader>
+        <CardContent>
+          <PrepDrugPicker
+            selectedDrugs={selectedDrugs}
+            onDrugsChange={onDrugsChange}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>

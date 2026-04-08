@@ -330,3 +330,27 @@ export const drugClasses = [
 export function getDrugsByClass(drugClass: string): HIVDrug[] {
   return hivDrugs.filter(drug => drug.class === drugClass);
 }
+
+export const prepDrugs: HIVDrug[] = [
+  {
+    id: "truvada",
+    name: "Emtricitabine / Tenofovir DF",
+    brandName: "Truvada",
+    dosage: "200 mg / 300 mg QD",
+    class: "PrEP",
+  },
+  {
+    id: "descovy",
+    name: "Emtricitabine / Tenofovir AF",
+    brandName: "Descovy",
+    dosage: "200 mg / 25 mg QD",
+    class: "PrEP",
+  },
+  {
+    id: "yeztugo",
+    name: "Lenacapavir",
+    brandName: "Yeztugo",
+    dosage: "927 mg SC every 6 months",
+    class: "PrEP",
+  },
+];

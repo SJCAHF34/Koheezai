@@ -123,7 +123,7 @@ function StepsSidebar({ activeStep }: { activeStep: number }) {
   );
 }
 
-// ── Build OpenEvidence Prompt ─────────────────────────────────────────────
+// ── Build OpenEvidence Prompt (HIV) ──────────────────────────────────────
 function buildOePrompt(p: {
   age?: number;
   pregnancy?: string;
@@ -174,6 +174,52 @@ function buildOePrompt(p: {
   return lines.join("\n");
 }
 
+// ── Build OpenEvidence Prompt (PrEP) ─────────────────────────────────────
+function buildPrepOePrompt(p: {
+  age?: number;
+  pregnancy?: string;
+  egfr?: number;
+  hepaticFunction?: string;
+  selectedDrugs: string[];
+  concomitantMeds: string[];
+}): string {
+  const lines: string[] = [];
+  lines.push(
+    "I am a pharmacist reviewing an HIV-negative patient being assessed for PrEP (pre-exposure prophylaxis). Please evaluate the following:"
+  );
+  lines.push("");
+  lines.push(
+    `Patient: ${p.age ? `${p.age}-year-old` : "Adult"}, ${
+      p.pregnancy === "yes"
+        ? "pregnant"
+        : p.pregnancy === "no"
+        ? "not pregnant"
+        : "pregnancy status unknown"
+    }`
+  );
+  if (p.egfr !== undefined) lines.push(`eGFR: ${p.egfr} mL/min/1.73m²`);
+  if (p.hepaticFunction && p.hepaticFunction !== "normal")
+    lines.push(`Hepatic Function: ${p.hepaticFunction} impairment`);
+  lines.push("");
+  lines.push(
+    `Proposed PrEP Regimen: ${p.selectedDrugs.length > 0 ? p.selectedDrugs.join(", ") : "None specified"}`
+  );
+  lines.push(
+    `Concomitant Medications: ${p.concomitantMeds.length > 0 ? p.concomitantMeds.join(", ") : "None"}`
+  );
+  lines.push("");
+  lines.push("Please address:");
+  lines.push("1. Is this PrEP regimen appropriate for this patient's clinical profile?");
+  lines.push(
+    "2. Are there any clinically significant drug-drug interactions between the PrEP regimen and concomitant medications?"
+  );
+  lines.push(
+    "3. Are any dose adjustments or contraindications present given the patient's renal or hepatic function?"
+  );
+  lines.push("4. Are there any safety concerns, monitoring requirements, or counseling points specific to this PrEP regimen?");
+  return lines.join("\n");
+}
+
 function buildPatientContext(p: {
   age?: number;
   pregnancy?: string;
@@ -186,19 +232,27 @@ function buildPatientContext(p: {
   selectedDrugs: string[];
   concomitantMeds: string[];
   geneticResistanceNotes?: string;
+  prepMode?: boolean;
 }): string {
   const lines: string[] = [];
+  lines.push(`Assessment Type: ${p.prepMode ? "PrEP" : "HIV Treatment"}`);
   lines.push(`Age: ${p.age ?? "Not specified"}`);
   lines.push(`Pregnancy: ${p.pregnancy ?? "unknown"}`);
-  lines.push(`HLA-B*5701: ${p.hlab5701 ?? "unknown"}`);
-  lines.push(`Treatment Status: ${p.treatmentStatus ?? "unknown"}`);
-  if (p.cd4Count !== undefined) lines.push(`CD4 Count: ${p.cd4Count} cells/µL`);
-  if (p.viralLoad !== undefined) lines.push(`Viral Load: ${p.viralLoad} copies/mL`);
+  if (!p.prepMode) {
+    lines.push(`HLA-B*5701: ${p.hlab5701 ?? "unknown"}`);
+    lines.push(`Treatment Status: ${p.treatmentStatus ?? "unknown"}`);
+    if (p.cd4Count !== undefined) lines.push(`CD4 Count: ${p.cd4Count} cells/µL`);
+    if (p.viralLoad !== undefined) lines.push(`Viral Load: ${p.viralLoad} copies/mL`);
+  }
   if (p.egfr !== undefined) lines.push(`eGFR: ${p.egfr} mL/min/1.73m²`);
   lines.push(`Hepatic Function: ${p.hepaticFunction ?? "normal"}`);
-  lines.push(`ARV Regimen: ${p.selectedDrugs.join(" + ") || "None"}`);
+  if (p.prepMode) {
+    lines.push(`PrEP Regimen: ${p.selectedDrugs.join(", ") || "None"}`);
+  } else {
+    lines.push(`ARV Regimen: ${p.selectedDrugs.join(" + ") || "None"}`);
+  }
   lines.push(`Concomitant Medications: ${p.concomitantMeds.join(", ") || "None"}`);
-  if (p.geneticResistanceNotes) lines.push(`Genetic/Resistance Notes: ${p.geneticResistanceNotes}`);
+  if (!p.prepMode && p.geneticResistanceNotes) lines.push(`Genetic/Resistance Notes: ${p.geneticResistanceNotes}`);
   return lines.join("\n");
 }
 
@@ -210,6 +264,22 @@ export default function AssessmentForm() {
   const [waiverAccepted, setWaiverAccepted] = useState(() =>
     localStorage.getItem("koheez_waiver_accepted") === "true"
   );
+
+  // ── HIV / PrEP mode ────────────────────────────────────────────────────
+  const [mode, setMode] = useState<"hiv" | "prep">("hiv");
+  const prepMode = mode === "prep";
+
+  const handleModeSwitch = (next: "hiv" | "prep") => {
+    if (next === mode) return;
+    setMode(next);
+    setSelectedDrugs([]);
+    setCurrentDrugs([]);
+    setCd4Count(undefined);
+    setViralLoad(undefined);
+    setAssessmentResult(null);
+    setOeResponse("");
+    setComprehensiveNote(null);
+  };
 
   // ── Patient ID ─────────────────────────────────────────────────────────
   const urlPatientId = new URLSearchParams(search).get("patientId");
@@ -344,10 +414,16 @@ export default function AssessmentForm() {
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleCreateQuery = () => {
     if (selectedDrugs.length === 0) {
-      toast({ title: "Missing Information", description: "Please select at least one HIV medication.", variant: "destructive" });
+      toast({
+        title: "Missing Information",
+        description: prepMode
+          ? "Please select a PrEP medication."
+          : "Please select at least one HIV medication.",
+        variant: "destructive",
+      });
       return;
     }
-    if (regimenMode === "change" && currentDrugs.length === 0) {
+    if (!prepMode && regimenMode === "change" && currentDrugs.length === 0) {
       toast({ title: "Missing Information", description: "Please select at least one medication from the current regimen.", variant: "destructive" });
       return;
     }
@@ -360,15 +436,15 @@ export default function AssessmentForm() {
       pregnancy,
       hlab5701,
       treatmentStatus,
-      viralLoad,
-      cd4Count,
+      viralLoad: prepMode ? undefined : viralLoad,
+      cd4Count: prepMode ? undefined : cd4Count,
       egfr,
       hepaticFunction,
       selectedDrugs,
       concomitantMeds: concomitantMeds.flat(),
-      geneticResistanceNotes,
-      regimenType: regimenMode,
-      currentDrugs: regimenMode === "change" ? currentDrugs : undefined,
+      geneticResistanceNotes: prepMode ? undefined : geneticResistanceNotes,
+      regimenType: prepMode ? "new" : regimenMode,
+      currentDrugs: !prepMode && regimenMode === "change" ? currentDrugs : undefined,
     });
   };
 
@@ -378,13 +454,16 @@ export default function AssessmentForm() {
       return;
     }
     const patientCtx = buildPatientContext({
-      age, pregnancy, hlab5701, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction,
-      selectedDrugs, concomitantMeds, geneticResistanceNotes,
+      age, pregnancy, hlab5701, treatmentStatus,
+      cd4Count: prepMode ? undefined : cd4Count,
+      viralLoad: prepMode ? undefined : viralLoad,
+      egfr, hepaticFunction, selectedDrugs, concomitantMeds,
+      geneticResistanceNotes: prepMode ? undefined : geneticResistanceNotes,
+      prepMode,
     });
-    const oeQuery = buildOePrompt({
-      age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction,
-      selectedDrugs, concomitantMeds,
-    });
+    const oeQuery = prepMode
+      ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds })
+      : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds });
     noteMutation.mutate({
       patientContext: patientCtx,
       oeQuery,
@@ -394,7 +473,9 @@ export default function AssessmentForm() {
   };
 
   const handleCopyPrompt = () => {
-    const prompt = buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds });
+    const prompt = prepMode
+      ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds })
+      : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds });
     navigator.clipboard.writeText(prompt).then(() => {
       setPromptCopied(true);
       setTimeout(() => setPromptCopied(false), 2000);
@@ -411,7 +492,9 @@ export default function AssessmentForm() {
 
 
 
-  const oePrompt = buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds });
+  const oePrompt = prepMode
+    ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds })
+    : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds });
 
   if (!waiverAccepted) {
     return <AssessorWaiver onAccept={() => setWaiverAccepted(true)} />;
@@ -433,7 +516,6 @@ export default function AssessmentForm() {
                 </svg>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">HIV/PrEP</p>
                 <h1 className="text-xl font-bold text-slate-900">Treatment Assessor</h1>
                 <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
                   <span
@@ -451,15 +533,50 @@ export default function AssessmentForm() {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => { persistNow(); toast({ title: "Saved", description: `Patient ${patientId} saved to dashboard.` }); }}
-              data-testid="button-save-assessment"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-md transition-opacity hover:opacity-90"
-              style={{ backgroundImage: GRADIENT }}
-            >
-              <Save className="w-4 h-4" />
-              Save
-            </button>
+            <div className="flex items-center gap-3">
+              {/* HIV / PrEP mode toggle */}
+              <div
+                className="flex rounded-md border overflow-hidden shrink-0"
+                role="group"
+                aria-label="Assessment mode"
+                data-testid="toggle-mode-group"
+              >
+                <button
+                  type="button"
+                  data-testid="toggle-mode-hiv"
+                  onClick={() => handleModeSwitch("hiv")}
+                  className={`px-4 py-2 text-sm font-semibold transition-colors ${
+                    mode === "hiv"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-foreground hover-elevate"
+                  }`}
+                >
+                  HIV
+                </button>
+                <button
+                  type="button"
+                  data-testid="toggle-mode-prep"
+                  onClick={() => handleModeSwitch("prep")}
+                  className={`px-4 py-2 text-sm font-semibold transition-colors border-l ${
+                    mode === "prep"
+                      ? "bg-primary text-primary-foreground border-l-primary"
+                      : "bg-background text-foreground hover-elevate"
+                  }`}
+                >
+                  PrEP
+                </button>
+              </div>
+
+              <button
+                onClick={() => { persistNow(); toast({ title: "Saved", description: `Patient ${patientId} saved to dashboard.` }); }}
+                data-testid="button-save-assessment"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-md transition-opacity hover:opacity-90"
+                style={{ backgroundImage: GRADIENT }}
+              >
+                <Save className="w-4 h-4" />
+                Save
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -497,6 +614,7 @@ export default function AssessmentForm() {
                     onCd4CountChange={setCd4Count}
                     onEgfrChange={setEgfr}
                     onHepaticFunctionChange={setHepaticFunction}
+                    prepMode={prepMode}
                   />
                 </div>
                 <TreatmentRegimenBuilder
@@ -506,16 +624,19 @@ export default function AssessmentForm() {
                   onRegimenModeChange={setRegimenMode}
                   onDrugsChange={setSelectedDrugs}
                   onCurrentDrugsChange={setCurrentDrugs}
+                  prepMode={prepMode}
                 />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <ConcomitantMedications
                     medications={concomitantMeds}
                     onMedicationsChange={setConcomitantMeds}
                   />
-                  <GeneticResistanceNotes
-                    notes={geneticResistanceNotes}
-                    onNotesChange={setGeneticResistanceNotes}
-                  />
+                  {!prepMode && (
+                    <GeneticResistanceNotes
+                      notes={geneticResistanceNotes}
+                      onNotesChange={setGeneticResistanceNotes}
+                    />
+                  )}
                 </div>
               </div>
             </section>
