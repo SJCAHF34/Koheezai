@@ -10,7 +10,6 @@ import TreatmentRegimenBuilder from "@/components/TreatmentRegimenBuilder";
 import ClinicalParameters from "@/components/ClinicalParameters";
 import ConcomitantMedications from "@/components/ConcomitantMedications";
 import GeneticResistanceNotes from "@/components/GeneticResistanceNotes";
-import PharmacistIntake from "@/components/PharmacistIntake";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { type AssessmentResult } from "@shared/schema";
@@ -44,12 +43,6 @@ const STEPS = [
   },
   {
     num: 4,
-    title: "Initial Intake Assessment",
-    tooltip:
-      "Complete the patient intake assessment — insurance details, yes/no intake questions, and counseling checklist — to capture the full consultation context.",
-  },
-  {
-    num: 5,
     title: "Generate Comprehensive Note",
     tooltip:
       "Click 'Generate Comprehensive Note' to compile all clinical details, OpenEvidence findings, and intake responses into a formatted pharmacy documentation note ready for your EHR.",
@@ -314,7 +307,7 @@ export default function AssessmentForm() {
   const [noteCopied, setNoteCopied] = useState(false);
 
   // ── Active step ────────────────────────────────────────────────────────
-  const activeStep = !assessmentResult ? 1 : !oeResponse.trim() ? 3 : !comprehensiveNote ? 4 : 5;
+  const activeStep = !assessmentResult ? 1 : !oeResponse.trim() ? 3 : 4;
 
   // ── Auto-save (debounced 800 ms) ───────────────────────────────────────
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -822,17 +815,9 @@ export default function AssessmentForm() {
               </div>
             </section>
 
-            {/* ── STEP 4: Initial Intake Assessment ── */}
+            {/* ── STEP 4: Generate Comprehensive Note (always visible at bottom) ── */}
             <section>
-              <SectionLabel num={4} label="Initial Intake Assessment" active={activeStep === 4} />
-              <div className="mt-4">
-                <PharmacistIntake />
-              </div>
-            </section>
-
-            {/* ── STEP 5: Generate Comprehensive Note (always visible at bottom) ── */}
-            <section>
-              <SectionLabel num={5} label="Generate Comprehensive Note" active={activeStep >= 4} />
+              <SectionLabel num={4} label="Generate Comprehensive Note" active={activeStep >= 4} />
               <div className="mt-4 flex justify-start">
                 <button
                   onClick={handleGenerateNote}
