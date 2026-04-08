@@ -1055,7 +1055,7 @@ function RetentionSection({
           )}
           <button
             data-testid={`button-add-patient-${issueType}`}
-            onClick={() => setShowForm((v) => !v)}
+            onClick={() => { setShowForm((v) => { if (v) { setAhfResults([]); setAhfSearched(false); setForm(EMPTY_FORM); } return !v; }); }}
             className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${cfg.badgeBg} ${cfg.badgeText} hover-elevate`}
           >
             <Plus className="w-3 h-3" /> Add
@@ -1219,8 +1219,8 @@ function RetentionSection({
                     <div className="flex items-start gap-1.5 p-2 rounded-md bg-red-50 border border-red-200">
                       <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
                       <p className="text-xs text-red-700">
-                        No AHF Healthcare Center found in {US_STATES.find(s => s.abbr === form.state)?.name || form.state}.{" "}
-                        <a href="https://hivcare.org/locations/" target="_blank" rel="noopener noreferrer" className="underline">Visit hivcare.org/locations</a> to confirm.
+                        No AHF Healthcare Center found in {US_STATES.find(s => s.abbr === form.state)?.name || form.state} &mdash;{" "}
+                        visit{" "}<a href="https://hivcare.org/locations/" target="_blank" rel="noopener noreferrer" className="underline">hivcare.org/locations</a>{" "}to confirm.
                       </p>
                     </div>
                   )}
