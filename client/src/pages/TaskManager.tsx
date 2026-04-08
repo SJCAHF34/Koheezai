@@ -1219,8 +1219,8 @@ function RetentionSection({
                     <div className="flex items-start gap-1.5 p-2 rounded-md bg-red-50 border border-red-200">
                       <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
                       <p className="text-xs text-red-700">
-                        No AHF Healthcare Center found in {US_STATES.find(s => s.abbr === form.state)?.name || form.state} &mdash;{" "}
-                        visit{" "}<a href="https://hivcare.org/locations/" target="_blank" rel="noopener noreferrer" className="underline">hivcare.org/locations</a>{" "}to confirm.
+                        No AHF Pharmacy found in {US_STATES.find(s => s.abbr === form.state)?.name || form.state} &mdash;{" "}
+                        visit{" "}<a href="https://ahfpharmacy.org/locations/" target="_blank" rel="noopener noreferrer" className="underline">ahfpharmacy.org/locations</a>{" "}to confirm.
                       </p>
                     </div>
                   )}
