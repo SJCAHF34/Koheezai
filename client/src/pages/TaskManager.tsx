@@ -813,9 +813,9 @@ const EMPTY_FORM: AddPatientFormState = {
 };
 
 const OUTREACH_STEPS = [
-  { day: 1, label: "Day 1 — SMS to patient" },
-  { day: 2, label: "Day 2 — SMS reminder" },
-  { day: 3, label: "Day 3 — Email to patient" },
+  { day: 1, label: "Day 1 — Primary SMS to patient" },
+  { day: 2, label: "Day 2 — Email to patient" },
+  { day: 3, label: "Day 3 — Secondary SMS to patient" },
   { day: 4, label: "Day 4 — Email to case manager" },
 ];
 

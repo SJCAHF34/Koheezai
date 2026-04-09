@@ -5,7 +5,7 @@ import { sendEmail } from "./outlookClient";
 import type { RetentionPatient } from "@shared/schema";
 
 const DAY1_SMS = "This is AHF Pharmacy. Please call us at your earliest convenience regarding your prescription. Reply STOP to opt out.";
-const DAY2_SMS = "Reminder from AHF Pharmacy. Please contact us today regarding your prescription. Reply STOP to opt out.";
+const DAY3_SMS = "Reminder from AHF Pharmacy. Please contact us today regarding your prescription. Reply STOP to opt out.";
 
 function todayISO(): string {
   return new Date().toISOString().split("T")[0];
@@ -36,20 +36,16 @@ async function processPatient(patient: RetentionPatient): Promise<void> {
 
   try {
     if (nextDay === 1) {
+      // Step 1: Primary SMS
       if (!patient.phone1) {
         console.log(`[Outreach] Patient ${patient.id} skipped Day 1 — no phone1`);
         return;
       }
       sent = await sendSms(patient.phone1, DAY1_SMS);
     } else if (nextDay === 2) {
-      if (!patient.phone1) {
-        console.log(`[Outreach] Patient ${patient.id} skipped Day 2 — no phone1`);
-        return;
-      }
-      sent = await sendSms(patient.phone1, DAY2_SMS);
-    } else if (nextDay === 3) {
+      // Step 2: Email
       if (!patient.email) {
-        console.log(`[Outreach] Patient ${patient.id} skipped Day 3 — no email`);
+        console.log(`[Outreach] Patient ${patient.id} skipped Day 2 — no email`);
         return;
       }
       sent = await sendEmail(
@@ -57,7 +53,15 @@ async function processPatient(patient: RetentionPatient): Promise<void> {
         "AHF Pharmacy — Prescription Follow-Up",
         "Dear Patient,\n\nThis is AHF Pharmacy following up regarding your prescription. Please contact us at your earliest convenience so we can assist you.\n\nThis message is sent via encrypted delivery per our privacy policy.\n\nThank you,\nAHF Pharmacy Team"
       );
+    } else if (nextDay === 3) {
+      // Step 3: Secondary SMS
+      if (!patient.phone2) {
+        console.log(`[Outreach] Patient ${patient.id} skipped Day 3 — no phone2`);
+        return;
+      }
+      sent = await sendSms(patient.phone2, DAY3_SMS);
     } else if (nextDay === 4) {
+      // Step 4: Case Manager
       if (!patient.caseManagerContact) {
         console.log(`[Outreach] Patient ${patient.id} skipped Day 4 — no caseManagerContact`);
         return;
