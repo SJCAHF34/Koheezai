@@ -11,6 +11,7 @@ import { checkLiverpoolInteractions, isConfigured as liverpoolConfigured } from 
 import { hivDrugs } from "../client/src/lib/hivDrugs";
 import { storage } from "./storage";
 import { runOutreachNow } from "./lib/outreachScheduler";
+import { logRetentionEvent } from "./lib/salesforceClient";
 
 declare module "express-session" {
   interface SessionData {
@@ -512,13 +513,25 @@ Write in professional clinical language for medical record documentation. Be spe
     }
   });
 
-  // ── Retention Patient API (session auth required) ─────────────────────────
+  // ── Retention Patient API ──────────────────────────────────────────────────
 
   function requireAuth(req: any, res: any, next: any) {
     if (!req.session?.user) {
       return res.status(401).json({ message: "Not authenticated" });
     }
     return next();
+  }
+
+  function requireApiKeyOrAuth(req: any, res: any, next: any) {
+    const authHeader: string = req.headers["authorization"] ?? "";
+    const importKey = process.env.IMPORT_API_KEY;
+    if (importKey && authHeader === `Bearer ${importKey}`) return next();
+    if (req.session?.user) return next();
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  function fireSalesforce(phone: string, initials: string, event: string, detail: string) {
+    if (phone) logRetentionEvent(phone, initials, event, detail).catch(() => {});
   }
 
   app.get("/api/retention/patients/:siteId", requireAuth, async (req, res) => {
@@ -564,6 +577,8 @@ Write in professional clinical language for medical record documentation. Be spe
         lastOutreachDate: body.lastOutreachDate ?? null,
         outreachComplete: body.outreachComplete ?? false,
       });
+      fireSalesforce(patient.phone1, patient.initials, "Patient Added to Retention Tracker",
+        `Issue type: ${patient.issueType}`);
       return res.status(201).json(patient);
     } catch (err) {
       return res.status(500).json({ message: "Failed to add patient" });
@@ -576,7 +591,17 @@ Write in professional clinical language for medical record documentation. Be spe
       if (!body.id || body.id !== req.params.id) {
         return res.status(400).json({ message: "Patient id mismatch" });
       }
+      const existing = (await storage.getPatients(body.siteId ?? "")).find((p) => p.id === body.id);
       const updated = await storage.updatePatient(body);
+      if (existing) {
+        if (updated.attemptCount > existing.attemptCount) {
+          fireSalesforce(updated.phone1, updated.initials, "Call Attempt Logged",
+            `Attempt #${updated.attemptCount}`);
+        } else if (updated.status !== existing.status) {
+          fireSalesforce(updated.phone1, updated.initials, "Status Changed",
+            `${existing.status} → ${updated.status}`);
+        }
+      }
       return res.json(updated);
     } catch (err) {
       return res.status(500).json({ message: "Failed to update patient" });
@@ -585,7 +610,12 @@ Write in professional clinical language for medical record documentation. Be spe
 
   app.delete("/api/retention/patients/:id", requireAuth, async (req, res) => {
     try {
+      const toDelete = await storage.getPatient(req.params.id);
       await storage.deletePatient(req.params.id);
+      if (toDelete) {
+        fireSalesforce(toDelete.phone1, toDelete.initials, "Patient Removed from Tracker",
+          `Status was: ${toDelete.status}`);
+      }
       return res.status(204).send();
     } catch (err) {
       return res.status(500).json({ message: "Failed to delete patient" });
@@ -598,6 +628,94 @@ Write in professional clinical language for medical record documentation. Be spe
       return res.json({ message: "Outreach pass completed" });
     } catch (err) {
       return res.status(500).json({ message: "Outreach run failed" });
+    }
+  });
+
+  // ── SSRS Import endpoint (accepts session auth OR IMPORT_API_KEY) ──────────
+
+  function normalizeIssueType(raw: string): "lost_contact" | "insurance_lockout" | "out_of_state" {
+    const v = raw.toLowerCase().replace(/\s+/g, "_");
+    if (v.includes("insurance") || v.includes("lockout")) return "insurance_lockout";
+    if (v.includes("state") || v.includes("transfer")) return "out_of_state";
+    return "lost_contact";
+  }
+
+  app.post("/api/retention/import", requireApiKeyOrAuth, async (req, res) => {
+    try {
+      const { siteId, patients } = req.body as {
+        siteId: string;
+        patients: Array<{
+          initials?: string;
+          phone1?: string;
+          phone2?: string;
+          issueType?: string;
+        }>;
+      };
+
+      if (!siteId || !Array.isArray(patients)) {
+        return res.status(400).json({ message: "siteId and patients array are required" });
+      }
+
+      const existing = await storage.getPatients(siteId);
+      const existingKeys = new Set(
+        existing.map((p) => `${p.initials.trim().toUpperCase()}|${p.siteId}`)
+      );
+
+      let imported = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+
+      for (const row of patients) {
+        const initials = (row.initials ?? "").trim().toUpperCase();
+        if (!initials) {
+          errors.push("Row skipped: missing initials");
+          continue;
+        }
+        const key = `${initials}|${siteId}`;
+        if (existingKeys.has(key)) {
+          skipped++;
+          continue;
+        }
+        const issueType = normalizeIssueType(row.issueType ?? "");
+        try {
+          await storage.addPatient({
+            siteId,
+            initials,
+            issueType,
+            dateAdded: new Date().toISOString().split("T")[0],
+            attemptCount: 0,
+            lastAttemptDate: null,
+            notes: "",
+            status: "active",
+            resolvedDate: null,
+            phone1: row.phone1 ?? "",
+            phone2: row.phone2 ?? "",
+            email: "",
+            caseManagerContact: "",
+            bin: "",
+            pcn: "",
+            rxgrp: "",
+            insuranceId: "",
+            city: "",
+            state: "",
+            zip: "",
+            ahfLocationMatch: "",
+            sequenceActive: false,
+            sequenceDay: 0,
+            sequenceStartDate: null,
+            lastOutreachDate: null,
+            outreachComplete: false,
+          });
+          existingKeys.add(key);
+          imported++;
+        } catch (e) {
+          errors.push(`Failed to import ${initials}: ${e instanceof Error ? e.message : "unknown error"}`);
+        }
+      }
+
+      return res.json({ imported, skipped, errors });
+    } catch (err) {
+      return res.status(500).json({ message: "Import failed" });
     }
   });
 

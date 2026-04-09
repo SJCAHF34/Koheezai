@@ -14,6 +14,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getPatients(siteId: string): Promise<RetentionPatient[]>;
+  getPatient(id: string): Promise<RetentionPatient | undefined>;
   getAllActivePatients(): Promise<RetentionPatient[]>;
   addPatient(p: Omit<RetentionPatient, "id">): Promise<RetentionPatient>;
   updatePatient(p: RetentionPatient): Promise<RetentionPatient>;
@@ -48,6 +49,10 @@ export class MemStorage implements IStorage {
 
   async getPatients(siteId: string): Promise<RetentionPatient[]> {
     return Array.from(this.patients.values()).filter((p) => p.siteId === siteId);
+  }
+
+  async getPatient(id: string): Promise<RetentionPatient | undefined> {
+    return this.patients.get(id);
   }
 
   async getAllActivePatients(): Promise<RetentionPatient[]> {

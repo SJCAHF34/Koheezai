@@ -100,6 +100,8 @@ import {
   Send,
   CheckCircle2,
   Clock,
+  Upload,
+  FileUp,
 } from "lucide-react";
 
 // ── API helpers for retention patients ───────────────────────────────────────
@@ -1412,8 +1414,32 @@ function RetentionSection({
   );
 }
 
+function parseRetentionCsv(text: string): Array<{ initials: string; phone1: string; phone2: string; issueType: string }> {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length === 0) return [];
+  const rows: Array<{ initials: string; phone1: string; phone2: string; issueType: string }> = [];
+  const start = lines[0].toLowerCase().includes("initials") ? 1 : 0;
+  for (let i = start; i < lines.length; i++) {
+    const cols = lines[i].split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+    const initials = (cols[0] ?? "").toUpperCase();
+    if (!initials) continue;
+    rows.push({
+      initials,
+      phone1: cols[1] ?? "",
+      phone2: cols[2] ?? "",
+      issueType: cols[3] ?? "lost_contact",
+    });
+  }
+  return rows;
+}
+
 function PatientRetentionTracker({ siteId }: { siteId: string }) {
   const [patients, setPatients] = useState<RetentionPatient[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importPreview, setImportPreview] = useState<Array<{ initials: string; phone1: string; phone2: string; issueType: string }>>([]);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
 
   useEffect(() => {
     apiLoadRetentionPatients(siteId).then(setPatients);
@@ -1425,6 +1451,42 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
 
   const byType = (type: RetentionIssueType) => patients.filter((p) => p.issueType === type);
 
+  function handleCsvChange(text: string) {
+    setImportText(text);
+    setImportPreview(parseRetentionCsv(text));
+    setImportResult(null);
+  }
+
+  function handleFileRead(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => handleCsvChange(ev.target?.result as string ?? "");
+    reader.readAsText(file);
+  }
+
+  async function handleImport() {
+    if (importPreview.length === 0) return;
+    setImportLoading(true);
+    setImportResult(null);
+    try {
+      const result = await apiRequest<{ imported: number; skipped: number; errors: string[] }>(
+        "/api/retention/import",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ siteId, patients: importPreview }),
+        }
+      );
+      setImportResult(result);
+      if (result.imported > 0) refresh();
+    } catch {
+      setImportResult({ imported: 0, skipped: 0, errors: ["Request failed — check your session and try again."] });
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
   return (
     <div data-testid="patient-retention-tracker" className="mt-3 mb-1 space-y-3">
       <div className="flex items-start gap-2 px-3 py-2 rounded-md bg-amber-50 border border-amber-200">
@@ -1434,7 +1496,18 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
         </p>
       </div>
 
-      <p className="text-xs font-bold text-slate-700 uppercase tracking-wide px-0.5">Patient Retention Tracker</p>
+      <div className="flex items-center justify-between gap-2 px-0.5">
+        <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">Patient Retention Tracker</p>
+        <button
+          data-testid="button-import-ssrs"
+          type="button"
+          onClick={() => { setImportOpen(true); setImportText(""); setImportPreview([]); setImportResult(null); }}
+          className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover-elevate rounded px-2 py-1 border border-blue-200 bg-blue-50"
+        >
+          <FileUp className="w-3 h-3" />
+          Import from SSRS
+        </button>
+      </div>
 
       {(["lost_contact", "insurance_lockout", "out_of_state"] as RetentionIssueType[]).map((type) => (
         <RetentionSection
@@ -1447,6 +1520,116 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
       ))}
 
       <RetentionRiskPanel siteId={siteId} />
+
+      {importOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div
+            data-testid="dialog-import-ssrs"
+            className="bg-white rounded-md shadow-lg w-full max-w-lg mx-4 p-5 space-y-4"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Upload className="w-4 h-4 text-blue-600" />
+                <p className="text-sm font-bold text-slate-800">Import from SSRS Report</p>
+              </div>
+              <button type="button" onClick={() => setImportOpen(false)} className="text-slate-400 hover-elevate rounded px-1">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs text-slate-500">
+                Expected CSV columns: <span className="font-mono font-semibold">Initials, Primary Phone, Secondary Phone, Issue Type</span>
+              </p>
+              <p className="text-xs text-slate-400">
+                Issue Type values: <span className="font-mono">lost_contact</span>, <span className="font-mono">insurance_lockout</span>, <span className="font-mono">out_of_state</span> (or blank → defaults to lost_contact)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="inline-flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 hover-elevate">
+                <FileUp className="w-3.5 h-3.5" />
+                Choose CSV file
+                <input
+                  data-testid="input-import-csv-file"
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="sr-only"
+                  onChange={handleFileRead}
+                />
+              </label>
+              <p className="text-[10px] text-slate-400">or paste CSV below</p>
+              <textarea
+                data-testid="input-import-csv-text"
+                className="w-full text-xs font-mono border border-slate-200 rounded-md p-2 h-28 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
+                placeholder={"Initials,Primary Phone,Secondary Phone,Issue Type\nJD,555-1234,555-5678,lost_contact"}
+                value={importText}
+                onChange={(e) => handleCsvChange(e.target.value)}
+              />
+            </div>
+
+            {importPreview.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-slate-700">Preview ({importPreview.length} rows)</p>
+                <div className="border border-slate-200 rounded-md overflow-auto max-h-36">
+                  <table className="w-full text-[10px]">
+                    <thead className="bg-slate-50 border-b border-slate-200">
+                      <tr>
+                        <th className="text-left px-2 py-1 font-semibold text-slate-600">Initials</th>
+                        <th className="text-left px-2 py-1 font-semibold text-slate-600">Phone 1</th>
+                        <th className="text-left px-2 py-1 font-semibold text-slate-600">Phone 2</th>
+                        <th className="text-left px-2 py-1 font-semibold text-slate-600">Issue Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importPreview.slice(0, 10).map((row, i) => (
+                        <tr key={i} className="border-b border-slate-100 last:border-0">
+                          <td className="px-2 py-1 font-mono font-bold text-slate-800">{row.initials}</td>
+                          <td className="px-2 py-1 text-slate-600">{row.phone1 || "—"}</td>
+                          <td className="px-2 py-1 text-slate-600">{row.phone2 || "—"}</td>
+                          <td className="px-2 py-1 text-slate-500">{row.issueType || "lost_contact"}</td>
+                        </tr>
+                      ))}
+                      {importPreview.length > 10 && (
+                        <tr><td colSpan={4} className="px-2 py-1 text-slate-400 italic">+{importPreview.length - 10} more…</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {importResult && (
+              <div className={`rounded-md px-3 py-2 text-xs ${importResult.errors.length > 0 ? "bg-red-50 border border-red-200 text-red-700" : "bg-green-50 border border-green-200 text-green-700"}`}>
+                <p className="font-semibold">
+                  {importResult.imported} imported · {importResult.skipped} already existed
+                </p>
+                {importResult.errors.map((e, i) => <p key={i} className="mt-0.5">{e}</p>)}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setImportOpen(false)}
+                className="text-xs text-slate-500 hover-elevate rounded px-3 py-1.5 border border-slate-200"
+              >
+                Close
+              </button>
+              <button
+                data-testid="button-import-csv-confirm"
+                type="button"
+                onClick={handleImport}
+                disabled={importPreview.length === 0 || importLoading}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 text-white rounded-md px-3 py-1.5 disabled:opacity-40"
+              >
+                {importLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                Import {importPreview.length > 0 ? `${importPreview.length} patients` : ""}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

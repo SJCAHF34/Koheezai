@@ -31,6 +31,38 @@ The backend is powered by Express.js with Node.js and TypeScript, providing a RE
 ### Data Storage Solutions
 User data is managed in-memory for non-persistence across restarts. Drizzle ORM is configured for PostgreSQL with schema definitions, utilizing Drizzle Kit for migrations, and is prepared for integration with Neon serverless databases. Express session with a PostgreSQL session store handles persistent session management.
 
+## SSRS → Koheez → Salesforce Pipeline (Task #23)
+
+### SSRS Inbound (patient import)
+- **`POST /api/retention/import`** — accepts JSON `{ siteId, patients[] }` with fields `initials, phone1, phone2, issueType`; upserts by `initials+siteId` key (existing patients skipped); secured by session auth OR `IMPORT_API_KEY` bearer token
+- **CSV Import modal** in the Patient Retention Tracker UI — "Import from SSRS" button opens a modal with file picker or paste area, CSV preview table, and import confirmation
+- **`scripts/ssrs-sync/`** — standalone Node.js script for AHF IT to schedule on the `ahfbi` network via Windows Task Scheduler; queries SQL Server via `MSSQL_QUERY`, maps columns, POSTs to Koheez import API; includes `README.md` with full setup instructions
+
+### Salesforce Outbound (activity logging)
+- **`server/lib/salesforceClient.ts`** — OAuth2 username-password flow to get access token; finds Salesforce Contact by phone1; creates Task/Activity record for each retention event
+- Events logged: Patient Added, Call Attempt, Status Changed, Patient Removed, each Outreach Step Sent
+- Fire-and-forget (does not block API responses); logs to console on success/failure
+- **Env vars required**: `SF_CLIENT_ID`, `SF_CLIENT_SECRET`, `SF_USERNAME`, `SF_PASSWORD`, `SF_SECURITY_TOKEN` (optional), `SF_INSTANCE_URL`
+- Salesforce → DOMO pipeline remains unchanged (no DOMO changes required)
+
+### Env Vars for Task #23
+| Variable | Purpose |
+|---|---|
+| `IMPORT_API_KEY` | Secures the import endpoint for the ssrs-sync script |
+| `SF_CLIENT_ID` | Salesforce Connected App client ID |
+| `SF_CLIENT_SECRET` | Salesforce Connected App client secret |
+| `SF_USERNAME` | Salesforce user login email |
+| `SF_PASSWORD` | Salesforce user password |
+| `SF_SECURITY_TOKEN` | Salesforce security token (appended to password) |
+| `SF_INSTANCE_URL` | e.g. `https://ahf.my.salesforce.com` |
+| `MSSQL_SERVER` | SQL Server hostname (ahfbi), for sync script |
+| `MSSQL_DB` | Database name |
+| `MSSQL_USER` | SQL login |
+| `MSSQL_PASSWORD` | SQL password |
+| `MSSQL_QUERY` | SQL SELECT for Retention Risk Report rows |
+| `KOHEEZ_URL` | Public Koheez URL (for sync script) |
+| `KOHEEZ_SITE_ID` | Site ID to import patients under |
+
 ## Automated Outreach Sequence (Task #22)
 
 ### Architecture

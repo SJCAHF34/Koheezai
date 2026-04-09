@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { storage } from "../storage";
 import { sendSms } from "./clerkchatClient";
 import { sendEmail } from "./outlookClient";
+import { logRetentionEvent } from "./salesforceClient";
 import type { RetentionPatient } from "@shared/schema";
 
 const DAY1_SMS = "This is AHF Pharmacy. Please call us at your earliest convenience regarding your prescription. Reply STOP to opt out.";
@@ -93,6 +94,12 @@ async function processPatient(patient: RetentionPatient): Promise<void> {
     sequenceStartDate: patient.sequenceStartDate ?? today,
   };
   await storage.updatePatient(updated);
+  logRetentionEvent(
+    patient.phone1,
+    patient.initials,
+    `Outreach Step ${nextDay} Sent`,
+    `Day ${nextDay} of 4${isComplete ? " — sequence complete" : ""}`
+  ).catch(() => {});
   console.log(`[Outreach] Patient ${patient.id} (${patient.initials}) — Day ${nextDay} sent and recorded${isComplete ? " (sequence complete)" : ""}`);
 }
 
