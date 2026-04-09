@@ -638,11 +638,19 @@ Write in professional clinical language for medical record documentation. Be spe
 
   // ── SSRS Import endpoint (accepts session auth OR IMPORT_API_KEY) ──────────
 
-  function normalizeIssueType(raw: string): "undesignated" | "lost_contact" | "insurance_lockout" | "out_of_state" {
-    const v = raw.toLowerCase().replace(/\s+/g, "_");
-    if (v.includes("insurance") || v.includes("lockout")) return "insurance_lockout";
-    if (v.includes("state") || v.includes("transfer")) return "out_of_state";
-    if (v.includes("lost") || v.includes("contact")) return "lost_contact";
+  function normalizeIssueType(raw: string): import("@shared/schema").RetentionIssueType {
+    const v = raw.toLowerCase();
+    if (v.includes("appointment") || v.includes("lab")) return "appointment_lab";
+    if (v.includes("communication") || v.includes("barrier")) return "communication_barriers";
+    if (v.includes("transfer")) return "transfer_out";
+    if (v.includes("coverage")) return "insurance_coverage";
+    if (v.includes("one-time") || v.includes("one time") || v.includes("limited treatment")) return "one_time_limited";
+    if (v.includes("restriction")) return "insurance_restrictions";
+    if (v.includes("patient status") || v.includes("status change")) return "patient_status_change";
+    if (v.includes("clinical") || v.includes("medication")) return "clinical_medication";
+    if (v.includes("insurance") || v.includes("lockout")) return "insurance_restrictions";
+    if (v.includes("state") || v.includes("out of state")) return "patient_status_change";
+    if (v.includes("lost") || v.includes("contact")) return "communication_barriers";
     return "undesignated";
   }
 

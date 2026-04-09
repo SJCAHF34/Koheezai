@@ -751,29 +751,69 @@ const ISSUE_CONFIG: Record<
     badgeBg: "bg-slate-100",
     badgeText: "text-slate-700",
   },
-  lost_contact: {
-    label: "Lost Contact",
+  appointment_lab: {
+    label: "Appointment or Lab Issues",
+    color: "orange",
+    headerBg: "bg-orange-50 border-orange-200",
+    borderColor: "border-orange-200",
+    badgeBg: "bg-orange-100",
+    badgeText: "text-orange-800",
+  },
+  communication_barriers: {
+    label: "Communication Barriers",
     color: "red",
     headerBg: "bg-red-50 border-red-200",
     borderColor: "border-red-200",
     badgeBg: "bg-red-100",
     badgeText: "text-red-800",
   },
-  insurance_lockout: {
-    label: "Insurance Lockout",
+  transfer_out: {
+    label: "Transfer out",
+    color: "blue",
+    headerBg: "bg-blue-50 border-blue-200",
+    borderColor: "border-blue-200",
+    badgeBg: "bg-blue-100",
+    badgeText: "text-blue-800",
+  },
+  insurance_coverage: {
+    label: "Insurance or Coverage Issues",
     color: "yellow",
     headerBg: "bg-yellow-50 border-yellow-200",
     borderColor: "border-yellow-200",
     badgeBg: "bg-yellow-100",
     badgeText: "text-yellow-800",
   },
-  out_of_state: {
-    label: "Out of State",
-    color: "blue",
-    headerBg: "bg-blue-50 border-blue-200",
-    borderColor: "border-blue-200",
-    badgeBg: "bg-blue-100",
-    badgeText: "text-blue-800",
+  one_time_limited: {
+    label: "One-Time or Limited Treatment Use",
+    color: "purple",
+    headerBg: "bg-purple-50 border-purple-200",
+    borderColor: "border-purple-200",
+    badgeBg: "bg-purple-100",
+    badgeText: "text-purple-800",
+  },
+  insurance_restrictions: {
+    label: "Insurance Restrictions",
+    color: "amber",
+    headerBg: "bg-amber-50 border-amber-200",
+    borderColor: "border-amber-200",
+    badgeBg: "bg-amber-100",
+    badgeText: "text-amber-800",
+  },
+  patient_status_change: {
+    label: "Patient Status Change",
+    color: "teal",
+    headerBg: "bg-teal-50 border-teal-200",
+    borderColor: "border-teal-200",
+    badgeBg: "bg-teal-100",
+    badgeText: "text-teal-800",
+  },
+  clinical_medication: {
+    label: "Clinical or Medication-Specific Exceptions",
+    color: "green",
+    headerBg: "bg-green-50 border-green-200",
+    borderColor: "border-green-200",
+    badgeBg: "bg-green-100",
+    badgeText: "text-green-800",
   },
 };
 
@@ -1010,9 +1050,14 @@ function PatientCard({
                 className="flex-1 text-xs border border-slate-300 rounded-md px-2 py-1 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
               >
                 <option value="" disabled>— Pick a category —</option>
-                <option value="lost_contact">Lost Contact</option>
-                <option value="insurance_lockout">Insurance Lockout</option>
-                <option value="out_of_state">Out of State</option>
+                <option value="appointment_lab">Appointment or Lab Issues</option>
+                <option value="communication_barriers">Communication Barriers</option>
+                <option value="transfer_out">Transfer out</option>
+                <option value="insurance_coverage">Insurance or Coverage Issues</option>
+                <option value="one_time_limited">One-Time or Limited Treatment Use</option>
+                <option value="insurance_restrictions">Insurance Restrictions</option>
+                <option value="patient_status_change">Patient Status Change</option>
+                <option value="clinical_medication">Clinical or Medication-Specific Exceptions</option>
               </select>
             </div>
           )}
@@ -1048,7 +1093,7 @@ function PatientCard({
             )}
 
             {/* Insurance plan fields */}
-            {patient.issueType === "insurance_lockout" && (patient.bin || patient.pcn || patient.rxgrp || patient.insuranceId) && (
+            {(patient.issueType === "insurance_restrictions" || patient.issueType === "insurance_coverage") && (patient.bin || patient.pcn || patient.rxgrp || patient.insuranceId) && (
               <div className="mt-1 p-2 rounded-md bg-yellow-50 border border-yellow-100 space-y-1">
                 <p className="text-[10px] font-bold text-yellow-700 uppercase tracking-wide">Insurance Plan</p>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
@@ -1060,8 +1105,8 @@ function PatientCard({
               </div>
             )}
 
-            {/* Out of state fields */}
-            {patient.issueType === "out_of_state" && (patient.city || patient.state || patient.zip) && (
+            {/* Location fields (transfer or status change) */}
+            {(patient.issueType === "patient_status_change" || patient.issueType === "transfer_out") && (patient.city || patient.state || patient.zip) && (
               <div className="mt-1 p-2 rounded-md bg-blue-50 border border-blue-100 space-y-1">
                 <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wide">New Location</p>
                 <div className="flex items-center gap-1.5">
@@ -1377,8 +1422,8 @@ function RetentionSection({
             />
           </div>
 
-          {/* ── Insurance Lockout: BIN / PCN / RXGRP / Member ID ── */}
-          {issueType === "insurance_lockout" && (
+          {/* ── Insurance fields: BIN / PCN / RXGRP / Member ID ── */}
+          {(issueType === "insurance_restrictions" || issueType === "insurance_coverage") && (
             <div className="space-y-1.5 pt-1">
               <p className="text-[10px] font-semibold text-yellow-700 uppercase tracking-wide">Insurance Plan Details</p>
               <div className="grid grid-cols-2 gap-2">
@@ -1404,8 +1449,8 @@ function RetentionSection({
             </div>
           )}
 
-          {/* ── Out of State: AHF Pharmacy Live Search ── */}
-          {issueType === "out_of_state" && (() => {
+          {/* ── AHF Pharmacy Live Search (transfer or status change) ── */}
+          {(issueType === "patient_status_change" || issueType === "transfer_out") && (() => {
             const q = ahfSearchQuery.trim().toLowerCase();
             const ahfResults = q.length >= 2
               ? AHF_LOCATIONS.filter((loc) => {
@@ -1678,7 +1723,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
         </button>
       </div>
 
-      {(["undesignated", "lost_contact", "insurance_lockout", "out_of_state"] as RetentionIssueType[]).map((type) => (
+      {(["undesignated", "appointment_lab", "communication_barriers", "transfer_out", "insurance_coverage", "one_time_limited", "insurance_restrictions", "patient_status_change", "clinical_medication"] as RetentionIssueType[]).map((type) => (
         <RetentionSection
           key={type}
           issueType={type}
@@ -1741,7 +1786,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
               <textarea
                 data-testid="input-import-csv-text"
                 className="w-full text-xs font-mono border border-slate-200 rounded-md p-2 h-28 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
-                placeholder={"Initials,Primary Phone,Secondary Phone,Issue Type\nJD,555-1234,555-5678,lost_contact"}
+                placeholder={"Initials,Primary Phone,Secondary Phone,Issue Type\nJD,555-1234,555-5678,communication_barriers"}
                 value={importText}
                 onChange={(e) => handleCsvChange(e.target.value)}
               />

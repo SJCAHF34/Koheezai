@@ -2,7 +2,16 @@ import { z } from "zod";
 
 // ── Retention Patient ────────────────────────────────────────────────────────
 
-export type RetentionIssueType = "undesignated" | "lost_contact" | "insurance_lockout" | "out_of_state";
+export type RetentionIssueType =
+  | "undesignated"
+  | "appointment_lab"
+  | "communication_barriers"
+  | "transfer_out"
+  | "insurance_coverage"
+  | "one_time_limited"
+  | "insurance_restrictions"
+  | "patient_status_change"
+  | "clinical_medication";
 export type RetentionStatus = "active" | "resolved" | "referred_out";
 
 export interface AttemptLogEntry {
