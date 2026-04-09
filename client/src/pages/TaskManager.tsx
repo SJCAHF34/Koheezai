@@ -1746,7 +1746,12 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
                           <td className="px-2 py-1 font-mono font-bold text-slate-800">{row.initials}</td>
                           <td className="px-2 py-1 text-slate-600">{row.phone1 || "—"}</td>
                           <td className="px-2 py-1 text-slate-600">{row.phone2 || "—"}</td>
-                          <td className="px-2 py-1 text-slate-500">{importCategory || row.issueType || "—"}</td>
+                          <td className="px-2 py-1 text-slate-500">
+                            {importCategory === "lost_contact" ? "Lost Contact"
+                              : importCategory === "insurance_lockout" ? "Insurance Lockout"
+                              : importCategory === "out_of_state" ? "Out of State"
+                              : row.issueType || "—"}
+                          </td>
                         </tr>
                       ))}
                       {importPreview.length > 10 && (
