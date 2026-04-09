@@ -387,15 +387,23 @@ function TaskRow({
           </p>
         </div>
 
-        {task.description && (
-          <p
-            className={`text-xs mt-0.5 leading-relaxed ${
-              completed ? "text-slate-300 line-through" : "text-slate-400"
-            }`}
-          >
-            {task.description}
-          </p>
-        )}
+        {task.description && (() => {
+          const lines = task.description.split("\n").map((l) => l.trim()).filter(Boolean);
+          return lines.length > 1 ? (
+            <ul className={`text-xs mt-1 space-y-0.5 ${completed ? "text-slate-300 line-through" : "text-slate-400"}`}>
+              {lines.map((line, i) => (
+                <li key={i} className="flex items-start gap-1 leading-relaxed">
+                  <span className="shrink-0 select-none">•</span>
+                  <span>{line.replace(/^[•\-]\s*/, "")}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={`text-xs mt-0.5 leading-relaxed ${completed ? "text-slate-300 line-through" : "text-slate-400"}`}>
+              {task.description}
+            </p>
+          );
+        })()}
 
         {task.category === "achc" && task.frequency === "quarterly" && task.id !== "cqi-q-001" && (
           <Link
