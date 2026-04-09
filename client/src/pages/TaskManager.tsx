@@ -56,7 +56,7 @@ import {
   type StaffMember,
   type SiteRoster,
 } from "@/lib/taskStorage";
-import type { RetentionPatient, RetentionIssueType, RetentionStatus } from "@shared/schema";
+import type { RetentionPatient, RetentionIssueType, RetentionStatus, AttemptLogEntry } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -829,6 +829,17 @@ const OUTREACH_STEPS = [
   { day: 4, label: "Day 4 — Email to case manager" },
 ];
 
+function formatAttemptTs(ts: string): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const todayStr = now.toDateString();
+  const yesterdayStr = new Date(now.getTime() - 86400000).toDateString();
+  const timeStr = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (d.toDateString() === todayStr) return `Today ${timeStr}`;
+  if (d.toDateString() === yesterdayStr) return `Yesterday ${timeStr}`;
+  return `${d.toLocaleDateString([], { month: "short", day: "numeric" })} · ${timeStr}`;
+}
+
 function PatientCard({
   patient,
   onUpdate,
@@ -837,21 +848,39 @@ function PatientCard({
   onUpdate: (p: RetentionPatient) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [loggingAttempt, setLoggingAttempt] = useState(false);
+  const [attemptBy, setAttemptBy] = useState("");
   const today = getTodayDateKey();
   const days = daysSince(patient.dateAdded);
 
   async function logAttempt() {
+    const by = attemptBy.trim().toUpperCase();
+    if (!by) return;
+    const entry: AttemptLogEntry = { ts: new Date().toISOString(), by };
     const updated: RetentionPatient = {
       ...patient,
       attemptCount: patient.attemptCount + 1,
       lastAttemptDate: today,
+      attemptLog: [...(patient.attemptLog ?? []), entry],
     };
+    setLoggingAttempt(false);
+    setAttemptBy("");
     try {
       const saved = await apiUpdateRetentionPatient(updated);
       onUpdate(saved);
     } catch {
       onUpdate(updated);
     }
+  }
+
+  function startLogAttempt() {
+    setLoggingAttempt(true);
+    setAttemptBy("");
+  }
+
+  function cancelLogAttempt() {
+    setLoggingAttempt(false);
+    setAttemptBy("");
   }
 
   async function resolve() {
@@ -1076,28 +1105,74 @@ function PatientCard({
           )}
 
           {isActive && (
-            <div className="flex items-center gap-2 flex-wrap pt-1">
-              <button
-                data-testid={`button-log-attempt-${patient.id}`}
-                onClick={logAttempt}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover-elevate"
-              >
-                <History className="w-3 h-3" /> Log Attempt
-              </button>
-              <button
-                data-testid={`button-resolve-${patient.id}`}
-                onClick={resolve}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-800 hover-elevate"
-              >
-                <Check className="w-3 h-3" /> Resolve
-              </button>
-              <button
-                data-testid={`button-refer-out-${patient.id}`}
-                onClick={referOut}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-100 text-purple-800 hover-elevate"
-              >
-                <ArrowUpRight className="w-3 h-3" /> Refer Out
-              </button>
+            <div className="space-y-2 pt-1">
+              {loggingAttempt ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    data-testid={`input-attempt-by-${patient.id}`}
+                    autoFocus
+                    type="text"
+                    maxLength={4}
+                    placeholder="Your initials"
+                    value={attemptBy}
+                    onChange={(e) => setAttemptBy(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => { if (e.key === "Enter") logAttempt(); if (e.key === "Escape") cancelLogAttempt(); }}
+                    className="w-28 px-2 py-1 rounded-md border border-slate-300 text-xs font-mono font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400 uppercase placeholder:normal-case placeholder:font-normal placeholder:text-slate-400"
+                  />
+                  <button
+                    data-testid={`button-log-attempt-confirm-${patient.id}`}
+                    onClick={logAttempt}
+                    disabled={!attemptBy.trim()}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-700 text-white disabled:opacity-40"
+                  >
+                    <History className="w-3 h-3" /> Log
+                  </button>
+                  <button
+                    data-testid={`button-log-attempt-cancel-${patient.id}`}
+                    onClick={cancelLogAttempt}
+                    className="px-2 py-1 rounded-md text-xs text-slate-500 hover-elevate border border-slate-200"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    data-testid={`button-log-attempt-${patient.id}`}
+                    onClick={startLogAttempt}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover-elevate"
+                  >
+                    <History className="w-3 h-3" /> Log Attempt
+                  </button>
+                  <button
+                    data-testid={`button-resolve-${patient.id}`}
+                    onClick={resolve}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-800 hover-elevate"
+                  >
+                    <Check className="w-3 h-3" /> Resolve
+                  </button>
+                  <button
+                    data-testid={`button-refer-out-${patient.id}`}
+                    onClick={referOut}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-100 text-purple-800 hover-elevate"
+                  >
+                    <ArrowUpRight className="w-3 h-3" /> Refer Out
+                  </button>
+                </div>
+              )}
+
+              {(patient.attemptLog ?? []).length > 0 && (
+                <div className="rounded-md border border-slate-100 bg-slate-50 px-2.5 py-2 space-y-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Attempt Log</p>
+                  {[...(patient.attemptLog ?? [])].reverse().map((entry, i) => (
+                    <div key={i} className="flex items-center gap-2 text-[11px] text-slate-600">
+                      <Clock className="w-3 h-3 flex-shrink-0 text-slate-400" />
+                      <span>{formatAttemptTs(entry.ts)}</span>
+                      <span className="font-bold text-slate-800">{entry.by}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

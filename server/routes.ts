@@ -557,6 +557,7 @@ Write in professional clinical language for medical record documentation. Be spe
         dateAdded: body.dateAdded || new Date().toISOString().split("T")[0],
         attemptCount: body.attemptCount ?? 0,
         lastAttemptDate: body.lastAttemptDate ?? null,
+        attemptLog: body.attemptLog ?? [],
         notes: body.notes ?? "",
         status: body.status ?? "active",
         resolvedDate: body.resolvedDate ?? null,
@@ -596,8 +597,10 @@ Write in professional clinical language for medical record documentation. Be spe
       const updated = await storage.updatePatient(body);
       if (existing) {
         if (updated.attemptCount > existing.attemptCount) {
+          const lastEntry = updated.attemptLog?.[updated.attemptLog.length - 1];
+          const byNote = lastEntry?.by ? ` by ${lastEntry.by}` : "";
           fireSalesforce(updated.phone1, updated.initials, "Call Attempt Logged",
-            `Attempt #${updated.attemptCount}`);
+            `Attempt #${updated.attemptCount}${byNote}`);
         }
         if (updated.status !== existing.status) {
           fireSalesforce(updated.phone1, updated.initials, "Status Changed",
@@ -756,6 +759,7 @@ Write in professional clinical language for medical record documentation. Be spe
               dateAdded: new Date().toISOString().split("T")[0],
               attemptCount: 0,
               lastAttemptDate: null,
+              attemptLog: [],
               notes: "",
               status: "active",
               resolvedDate: null,

@@ -5,6 +5,11 @@ import { z } from "zod";
 export type RetentionIssueType = "lost_contact" | "insurance_lockout" | "out_of_state";
 export type RetentionStatus = "active" | "resolved" | "referred_out";
 
+export interface AttemptLogEntry {
+  ts: string;
+  by: string;
+}
+
 export interface RetentionPatient {
   id: string;
   siteId: string;
@@ -13,6 +18,7 @@ export interface RetentionPatient {
   dateAdded: string;
   attemptCount: number;
   lastAttemptDate: string | null;
+  attemptLog: AttemptLogEntry[];
   notes: string;
   status: RetentionStatus;
   resolvedDate: string | null;
