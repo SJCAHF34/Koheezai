@@ -642,16 +642,58 @@ Write in professional clinical language for medical record documentation. Be spe
     return "lost_contact";
   }
 
+  function parseCsvLine(line: string): string[] {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    for (const ch of line) {
+      if (ch === '"') { inQuotes = !inQuotes; }
+      else if (ch === "," && !inQuotes) { result.push(current.trim()); current = ""; }
+      else { current += ch; }
+    }
+    result.push(current.trim());
+    return result;
+  }
+
   function parseCsvText(text: string): Array<{ initials: string; phone1: string; phone2: string; issueType: string }> {
     const lines = text.split(/\r?\n/).filter((l) => l.trim());
     if (lines.length === 0) return [];
-    const start = lines[0].toLowerCase().includes("initials") ? 1 : 0;
+    const headerCols = parseCsvLine(lines[0]).map((c) => c.toLowerCase().trim());
+    const col = (name: string) => headerCols.findIndex((c) => c === name.toLowerCase());
+
+    const isSSRS = headerCols.some((c) => c === "first name" || c === "first_name");
+    if (isSSRS) {
+      const firstNameIdx = col("first name");
+      const lastNameIdx  = col("last name");
+      const phonesIdx    = col("phones");
+      const cellIdx      = col("cellphone");
+      const workIdx      = col("work phone");
+      const altIdx       = col("alt phone");
+      const reasonIdx    = col("reason description");
+      const categoryIdx  = col("category");
+      const rows: Array<{ initials: string; phone1: string; phone2: string; issueType: string }> = [];
+      for (let i = 1; i < lines.length; i++) {
+        const c = parseCsvLine(lines[i]);
+        const fn = (c[firstNameIdx] ?? "").trim();
+        const ln = (c[lastNameIdx]  ?? "").trim();
+        if (!fn && !ln) continue;
+        const initials = ((fn[0] ?? "") + (ln[0] ?? "")).toUpperCase();
+        if (!initials) continue;
+        const phone1    = (phonesIdx >= 0 ? c[phonesIdx] : "") || (cellIdx >= 0 ? c[cellIdx] : "") || "";
+        const phone2    = (workIdx   >= 0 ? c[workIdx]   : "") || (altIdx  >= 0 ? c[altIdx]  : "") || "";
+        const issueType = (reasonIdx >= 0 ? c[reasonIdx] : "") || (categoryIdx >= 0 ? c[categoryIdx] : "") || "";
+        rows.push({ initials, phone1: phone1.trim(), phone2: phone2.trim(), issueType: issueType.trim() });
+      }
+      return rows;
+    }
+
+    const start = headerCols.some((c) => c.includes("initials")) ? 1 : 0;
     const rows: Array<{ initials: string; phone1: string; phone2: string; issueType: string }> = [];
     for (let i = start; i < lines.length; i++) {
-      const cols = lines[i].split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
-      const initials = (cols[0] ?? "").toUpperCase();
+      const c = parseCsvLine(lines[i]);
+      const initials = (c[0] ?? "").toUpperCase();
       if (!initials) continue;
-      rows.push({ initials, phone1: cols[1] ?? "", phone2: cols[2] ?? "", issueType: cols[3] ?? "" });
+      rows.push({ initials, phone1: c[1] ?? "", phone2: c[2] ?? "", issueType: c[3] ?? "" });
     }
     return rows;
   }
