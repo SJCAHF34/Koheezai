@@ -44,8 +44,20 @@ async function getAccessToken(): Promise<string | null> {
   }
 }
 
+/**
+ * Sanitize a phone value for safe SOQL interpolation.
+ * Strips everything except digits, spaces, +, -, (, and ) to prevent injection.
+ * Then escapes any remaining single quotes as \' (SOQL string escaping).
+ */
+function sanitizePhoneForSoql(phone: string): string {
+  const stripped = phone.replace(/[^0-9 +\-().]/g, "");
+  return stripped.replace(/'/g, "\\'");
+}
+
 async function findContactIdByPhone(token: string, phone: string): Promise<string | null> {
-  const query = encodeURIComponent(`SELECT Id FROM Contact WHERE Phone = '${phone}' LIMIT 1`);
+  const safePhone = sanitizePhoneForSoql(phone);
+  if (!safePhone) return null;
+  const query = encodeURIComponent(`SELECT Id FROM Contact WHERE Phone = '${safePhone}' LIMIT 1`);
   try {
     const res = await fetch(
       `${process.env.SF_INSTANCE_URL}/services/data/v58.0/query/?q=${query}`,
