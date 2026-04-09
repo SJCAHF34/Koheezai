@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
+import type { RetentionPatient } from "@shared/schema";
 import OpenAI from "openai";
 import { checkDrugInteractions } from "./lib/drugInteractions";
 import { checkRenalFunction } from "./lib/renalValidation";
@@ -597,7 +598,8 @@ Write in professional clinical language for medical record documentation. Be spe
         if (updated.attemptCount > existing.attemptCount) {
           fireSalesforce(updated.phone1, updated.initials, "Call Attempt Logged",
             `Attempt #${updated.attemptCount}`);
-        } else if (updated.status !== existing.status) {
+        }
+        if (updated.status !== existing.status) {
           fireSalesforce(updated.phone1, updated.initials, "Status Changed",
             `${existing.status} → ${updated.status}`);
         }
