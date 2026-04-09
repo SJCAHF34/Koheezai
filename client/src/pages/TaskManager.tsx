@@ -1558,6 +1558,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importPreview, setImportPreview] = useState<Array<{ initials: string; phone1: string; phone2: string; issueType: string }>>([]);
+  const [importCategory, setImportCategory] = useState<RetentionIssueType | "">("");
   const [importLoading, setImportLoading] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -1599,7 +1600,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
   }
 
   async function handleImport() {
-    if (importPreview.length === 0) return;
+    if (importPreview.length === 0 || !importCategory) return;
     setImportLoading(true);
     setImportResult(null);
     try {
@@ -1608,7 +1609,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ siteId, patients: importPreview }),
+          body: JSON.stringify({ siteId, patients: importPreview, issueTypeOverride: importCategory }),
         }
       );
       setImportResult(result);
@@ -1634,7 +1635,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
         <button
           data-testid="button-import-ssrs"
           type="button"
-          onClick={() => { setImportOpen(true); setImportText(""); setImportPreview([]); setImportResult(null); }}
+          onClick={() => { setImportOpen(true); setImportText(""); setImportPreview([]); setImportCategory(""); setImportResult(null); }}
           className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover-elevate rounded px-2 py-1 border border-blue-200 bg-blue-50"
         >
           <FileUp className="w-3 h-3" />
@@ -1670,13 +1671,26 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
               </button>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-2">
               <p className="text-xs text-slate-500">
-                Expected CSV columns: <span className="font-mono font-semibold">Initials, Primary Phone, Secondary Phone, Issue Type</span>
+                Accepts SSRS exports or a manual CSV with columns: <span className="font-mono font-semibold">Initials, Primary Phone, Secondary Phone</span>
               </p>
-              <p className="text-xs text-slate-400">
-                Issue Type values: <span className="font-mono">lost_contact</span>, <span className="font-mono">insurance_lockout</span>, <span className="font-mono">out_of_state</span> (or blank → defaults to lost_contact)
-              </p>
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Category <span className="text-red-500">*</span>
+                </label>
+                <select
+                  data-testid="select-import-category"
+                  value={importCategory}
+                  onChange={(e) => setImportCategory(e.target.value as RetentionIssueType | "")}
+                  className="w-full text-xs border border-slate-300 rounded-md px-2 py-1.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                >
+                  <option value="">— Select a category —</option>
+                  <option value="lost_contact">Lost Contact</option>
+                  <option value="insurance_lockout">Insurance Lockout</option>
+                  <option value="out_of_state">Out of State</option>
+                </select>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -1732,7 +1746,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
                           <td className="px-2 py-1 font-mono font-bold text-slate-800">{row.initials}</td>
                           <td className="px-2 py-1 text-slate-600">{row.phone1 || "—"}</td>
                           <td className="px-2 py-1 text-slate-600">{row.phone2 || "—"}</td>
-                          <td className="px-2 py-1 text-slate-500">{row.issueType || "lost_contact"}</td>
+                          <td className="px-2 py-1 text-slate-500">{importCategory || row.issueType || "—"}</td>
                         </tr>
                       ))}
                       {importPreview.length > 10 && (
@@ -1765,7 +1779,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
                 data-testid="button-import-csv-confirm"
                 type="button"
                 onClick={handleImport}
-                disabled={importPreview.length === 0 || importLoading}
+                disabled={importPreview.length === 0 || !importCategory || importLoading}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 text-white rounded-md px-3 py-1.5 disabled:opacity-40"
               >
                 {importLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}

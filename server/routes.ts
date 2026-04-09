@@ -706,15 +706,18 @@ Write in professional clinical language for medical record documentation. Be spe
       let siteId: string;
       let patientRows: Array<{ initials?: string; phone1?: string; phone2?: string; issueType?: string }>;
 
+      let issueTypeOverride: string | undefined;
       const ct = req.headers["content-type"] ?? "";
       if (ct.includes("text/csv") || ct.includes("text/plain")) {
         const raw = req.body as string;
         const qs = req.query as Record<string, string>;
         siteId = qs.siteId ?? "";
+        issueTypeOverride = qs.issueTypeOverride;
         patientRows = parseCsvText(raw);
       } else {
-        const body = req.body as { siteId?: string; patients?: unknown[] };
+        const body = req.body as { siteId?: string; patients?: unknown[]; issueTypeOverride?: string };
         siteId = body.siteId ?? "";
+        issueTypeOverride = body.issueTypeOverride;
         patientRows = Array.isArray(body.patients) ? body.patients as typeof patientRows : [];
       }
 
@@ -738,7 +741,7 @@ Write in professional clinical language for medical record documentation. Be spe
           continue;
         }
         const key = `${initials}|${siteId}`;
-        const issueType = normalizeIssueType(row.issueType ?? "");
+        const issueType = normalizeIssueType(issueTypeOverride ?? row.issueType ?? "");
         const phone1 = row.phone1 ?? "";
         const phone2 = row.phone2 ?? "";
         const existing = existingMap.get(key);
