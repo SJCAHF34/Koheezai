@@ -1823,7 +1823,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
         />
       ))}
 
-      <RetentionRiskPanel siteId={siteId} />
+      <RetentionRiskPanel siteId={siteId} patients={patients} />
 
       {importOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -1948,13 +1948,23 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
   );
 }
 
-function RetentionRiskPanel({ siteId }: { siteId: string }) {
+function RetentionRiskPanel({ siteId, patients }: { siteId: string; patients: RetentionPatient[] }) {
   const date = getTodayDateKey();
   const existing = loadRetentionRisk(siteId, date);
   const [controllable, setControllable] = useState(String(existing?.controllable ?? ""));
   const [partial, setPartial] = useState(String(existing?.partiallyControllable ?? ""));
   const [nonControllable, setNonControllable] = useState(String(existing?.nonControllable ?? ""));
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const active = patients.filter((p) => p.status === "active" && p.issueType !== "undesignated");
+    const ctrl = active.filter((p) => ISSUE_CONFIG[p.issueType]?.group === "controllable").length;
+    const part = active.filter((p) => ISSUE_CONFIG[p.issueType]?.group === "partially_controllable").length;
+    const nonCtrl = active.filter((p) => ISSUE_CONFIG[p.issueType]?.group === "non_controllable").length;
+    setControllable(String(ctrl));
+    setPartial(String(part));
+    setNonControllable(String(nonCtrl));
+  }, [patients]);
 
   const total =
     (Number(controllable) || 0) +
