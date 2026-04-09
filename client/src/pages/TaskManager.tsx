@@ -1440,6 +1440,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
   const [importPreview, setImportPreview] = useState<Array<{ initials: string; phone1: string; phone2: string; issueType: string }>>([]);
   const [importLoading, setImportLoading] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     apiLoadRetentionPatients(siteId).then(setPatients);
@@ -1457,12 +1458,24 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
     setImportResult(null);
   }
 
-  function handleFileRead(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function readFileAsText(file: File) {
     const reader = new FileReader();
     reader.onload = (ev) => handleCsvChange(ev.target?.result as string ?? "");
     reader.readAsText(file);
+  }
+
+  function handleFileRead(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    readFileAsText(file);
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    readFileAsText(file);
   }
 
   async function handleImport() {
@@ -1547,17 +1560,29 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
             </div>
 
             <div className="space-y-2">
-              <label className="inline-flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 hover-elevate">
-                <FileUp className="w-3.5 h-3.5" />
-                Choose CSV file
-                <input
-                  data-testid="input-import-csv-file"
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="sr-only"
-                  onChange={handleFileRead}
-                />
-              </label>
+              <div
+                data-testid="dropzone-import-csv"
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed rounded-md px-4 py-5 cursor-pointer transition-colors ${dragOver ? "border-blue-400 bg-blue-50" : "border-slate-200 bg-slate-50"}`}
+              >
+                <FileUp className={`w-5 h-5 ${dragOver ? "text-blue-500" : "text-slate-400"}`} />
+                <p className="text-xs text-slate-500 font-medium">
+                  Drag & drop a CSV file here, or
+                  <label className="ml-1 text-blue-600 cursor-pointer underline underline-offset-2">
+                    browse
+                    <input
+                      data-testid="input-import-csv-file"
+                      type="file"
+                      accept=".csv,text/csv"
+                      className="sr-only"
+                      onChange={handleFileRead}
+                    />
+                  </label>
+                </p>
+                {importText && <p className="text-[10px] text-green-600 font-semibold">{importPreview.length} rows loaded</p>}
+              </div>
               <p className="text-[10px] text-slate-400">or paste CSV below</p>
               <textarea
                 data-testid="input-import-csv-text"

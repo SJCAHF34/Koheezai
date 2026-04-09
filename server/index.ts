@@ -28,6 +28,7 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: false }));
+app.use(express.text({ type: ["text/csv", "text/plain"], limit: "1mb" }));
 
 app.use((req, res, next) => {
   const start = Date.now();

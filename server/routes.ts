@@ -640,74 +640,101 @@ Write in professional clinical language for medical record documentation. Be spe
     return "lost_contact";
   }
 
+  function parseCsvText(text: string): Array<{ initials: string; phone1: string; phone2: string; issueType: string }> {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    if (lines.length === 0) return [];
+    const start = lines[0].toLowerCase().includes("initials") ? 1 : 0;
+    const rows: Array<{ initials: string; phone1: string; phone2: string; issueType: string }> = [];
+    for (let i = start; i < lines.length; i++) {
+      const cols = lines[i].split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+      const initials = (cols[0] ?? "").toUpperCase();
+      if (!initials) continue;
+      rows.push({ initials, phone1: cols[1] ?? "", phone2: cols[2] ?? "", issueType: cols[3] ?? "" });
+    }
+    return rows;
+  }
+
   app.post("/api/retention/import", requireApiKeyOrAuth, async (req, res) => {
     try {
-      const { siteId, patients } = req.body as {
-        siteId: string;
-        patients: Array<{
-          initials?: string;
-          phone1?: string;
-          phone2?: string;
-          issueType?: string;
-        }>;
-      };
+      let siteId: string;
+      let patientRows: Array<{ initials?: string; phone1?: string; phone2?: string; issueType?: string }>;
 
-      if (!siteId || !Array.isArray(patients)) {
+      const ct = req.headers["content-type"] ?? "";
+      if (ct.includes("text/csv") || ct.includes("text/plain")) {
+        const raw = req.body as string;
+        const qs = req.query as Record<string, string>;
+        siteId = qs.siteId ?? "";
+        patientRows = parseCsvText(raw);
+      } else {
+        const body = req.body as { siteId?: string; patients?: unknown[] };
+        siteId = body.siteId ?? "";
+        patientRows = Array.isArray(body.patients) ? body.patients as typeof patientRows : [];
+      }
+
+      if (!siteId || !Array.isArray(patientRows)) {
         return res.status(400).json({ message: "siteId and patients array are required" });
       }
 
       const existing = await storage.getPatients(siteId);
-      const existingKeys = new Set(
-        existing.map((p) => `${p.initials.trim().toUpperCase()}|${p.siteId}`)
+      const existingMap = new Map<string, RetentionPatient>(
+        existing.map((p) => [`${p.initials.trim().toUpperCase()}|${p.siteId}`, p])
       );
 
       let imported = 0;
       let skipped = 0;
       const errors: string[] = [];
 
-      for (const row of patients) {
+      for (const row of patientRows) {
         const initials = (row.initials ?? "").trim().toUpperCase();
         if (!initials) {
           errors.push("Row skipped: missing initials");
           continue;
         }
         const key = `${initials}|${siteId}`;
-        if (existingKeys.has(key)) {
-          skipped++;
-          continue;
-        }
         const issueType = normalizeIssueType(row.issueType ?? "");
+        const phone1 = row.phone1 ?? "";
+        const phone2 = row.phone2 ?? "";
+        const existing = existingMap.get(key);
         try {
-          await storage.addPatient({
-            siteId,
-            initials,
-            issueType,
-            dateAdded: new Date().toISOString().split("T")[0],
-            attemptCount: 0,
-            lastAttemptDate: null,
-            notes: "",
-            status: "active",
-            resolvedDate: null,
-            phone1: row.phone1 ?? "",
-            phone2: row.phone2 ?? "",
-            email: "",
-            caseManagerContact: "",
-            bin: "",
-            pcn: "",
-            rxgrp: "",
-            insuranceId: "",
-            city: "",
-            state: "",
-            zip: "",
-            ahfLocationMatch: "",
-            sequenceActive: false,
-            sequenceDay: 0,
-            sequenceStartDate: null,
-            lastOutreachDate: null,
-            outreachComplete: false,
-          });
-          existingKeys.add(key);
-          imported++;
+          if (existing) {
+            const changed = existing.phone1 !== phone1 || existing.phone2 !== phone2 || existing.issueType !== issueType;
+            if (changed) {
+              await storage.updatePatient({ ...existing, phone1, phone2, issueType });
+              imported++;
+            } else {
+              skipped++;
+            }
+          } else {
+            await storage.addPatient({
+              siteId,
+              initials,
+              issueType,
+              dateAdded: new Date().toISOString().split("T")[0],
+              attemptCount: 0,
+              lastAttemptDate: null,
+              notes: "",
+              status: "active",
+              resolvedDate: null,
+              phone1,
+              phone2,
+              email: "",
+              caseManagerContact: "",
+              bin: "",
+              pcn: "",
+              rxgrp: "",
+              insuranceId: "",
+              city: "",
+              state: "",
+              zip: "",
+              ahfLocationMatch: "",
+              sequenceActive: false,
+              sequenceDay: 0,
+              sequenceStartDate: null,
+              lastOutreachDate: null,
+              outreachComplete: false,
+            });
+            imported++;
+          }
         } catch (e) {
           errors.push(`Failed to import ${initials}: ${e instanceof Error ? e.message : "unknown error"}`);
         }
