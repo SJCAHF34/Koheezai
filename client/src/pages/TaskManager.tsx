@@ -2704,17 +2704,6 @@ function HandoffPanel({
       </div>
 
       <div className="px-5 py-4 space-y-4">
-        {/* PHI Warning */}
-        <div
-          data-testid="handoff-phi-warning"
-          className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-md px-4 py-3"
-        >
-          <ShieldAlert className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-          <p className="text-xs font-semibold text-red-700 leading-relaxed">
-            <span className="uppercase tracking-wide">Critical:</span> Do not include patient PHI (names, DOB, address, or other identifiers) in handoff notes. Use <span className="font-bold">RX#</span> only to reference prescriptions.
-          </p>
-        </div>
-
         {/* Role designation chips */}
         <div>
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
