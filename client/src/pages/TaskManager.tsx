@@ -44,9 +44,6 @@ import {
   purgeStaleHandoffNotes,
   loadRetentionRisk,
   saveRetentionRisk,
-  loadRetentionPatients,
-  addRetentionPatient,
-  updateRetentionPatient,
   loadRoster,
   saveRoster,
   loadSiteCompletions,
@@ -56,12 +53,11 @@ import {
   type HandoffNote,
   type HandoffItem,
   type RetentionRiskEntry,
-  type RetentionPatient,
-  type RetentionIssueType,
-  type RetentionStatus,
   type StaffMember,
   type SiteRoster,
 } from "@/lib/taskStorage";
+import type { RetentionPatient, RetentionIssueType, RetentionStatus } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Check,
@@ -99,7 +95,38 @@ import {
   AlertCircle,
   MapPin,
   Building2,
+  ToggleLeft,
+  ToggleRight,
+  Send,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
+
+// ── API helpers for retention patients ───────────────────────────────────────
+
+async function apiLoadRetentionPatients(siteId: string): Promise<RetentionPatient[]> {
+  try {
+    return await apiRequest<RetentionPatient[]>(`/api/retention/patients/${siteId}`);
+  } catch {
+    return [];
+  }
+}
+
+async function apiAddRetentionPatient(patient: Omit<RetentionPatient, "id">): Promise<RetentionPatient> {
+  return apiRequest<RetentionPatient>("/api/retention/patients", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patient),
+  });
+}
+
+async function apiUpdateRetentionPatient(patient: RetentionPatient): Promise<RetentionPatient> {
+  return apiRequest<RetentionPatient>(`/api/retention/patients/${patient.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patient),
+  });
+}
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -785,6 +812,13 @@ const EMPTY_FORM: AddPatientFormState = {
   ahfLocationMatch: "",
 };
 
+const OUTREACH_STEPS = [
+  { day: 1, label: "Day 1 — SMS to patient" },
+  { day: 2, label: "Day 2 — SMS reminder" },
+  { day: 3, label: "Day 3 — Email to patient" },
+  { day: 4, label: "Day 4 — Email to case manager" },
+];
+
 function PatientCard({
   patient,
   onUpdate,
@@ -796,38 +830,72 @@ function PatientCard({
   const today = getTodayDateKey();
   const days = daysSince(patient.dateAdded);
 
-  function logAttempt() {
+  async function logAttempt() {
     const updated: RetentionPatient = {
       ...patient,
       attemptCount: patient.attemptCount + 1,
       lastAttemptDate: today,
     };
-    updateRetentionPatient(updated);
-    onUpdate(updated);
+    try {
+      const saved = await apiUpdateRetentionPatient(updated);
+      onUpdate(saved);
+    } catch {
+      onUpdate(updated);
+    }
   }
 
-  function resolve() {
+  async function resolve() {
     const updated: RetentionPatient = {
       ...patient,
       status: "resolved",
       resolvedDate: today,
     };
-    updateRetentionPatient(updated);
-    onUpdate(updated);
+    try {
+      const saved = await apiUpdateRetentionPatient(updated);
+      onUpdate(saved);
+    } catch {
+      onUpdate(updated);
+    }
   }
 
-  function referOut() {
+  async function referOut() {
     const updated: RetentionPatient = {
       ...patient,
       status: "referred_out",
       resolvedDate: today,
     };
-    updateRetentionPatient(updated);
-    onUpdate(updated);
+    try {
+      const saved = await apiUpdateRetentionPatient(updated);
+      onUpdate(saved);
+    } catch {
+      onUpdate(updated);
+    }
+  }
+
+  async function toggleOutreach() {
+    const nowActive = !patient.sequenceActive;
+    const updated: RetentionPatient = {
+      ...patient,
+      sequenceActive: nowActive,
+      sequenceStartDate: nowActive && !patient.sequenceStartDate ? today : patient.sequenceStartDate,
+      outreachComplete: nowActive ? false : patient.outreachComplete,
+    };
+    try {
+      const saved = await apiUpdateRetentionPatient(updated);
+      onUpdate(saved);
+    } catch {
+      onUpdate(updated);
+    }
   }
 
   const statusCfg = STATUS_CONFIG[patient.status];
   const isActive = patient.status === "active";
+  const hasContactInfo = patient.phone1 || patient.email;
+  const outreachStatusLabel = patient.outreachComplete
+    ? "Complete"
+    : patient.sequenceDay === 0
+    ? "Awaiting start"
+    : `Day ${patient.sequenceDay} of 4 — Last sent ${patient.lastOutreachDate ? formatDate(patient.lastOutreachDate) : "—"}`;
 
   return (
     <div
@@ -944,6 +1012,59 @@ function PatientCard({
             )}
           </div>
 
+          {/* Outreach Sequence Section */}
+          {isActive && hasContactInfo && (
+            <div className="mt-2 p-2.5 rounded-md bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Send className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Automated Outreach</span>
+                </div>
+                <button
+                  data-testid={`button-toggle-outreach-${patient.id}`}
+                  onClick={toggleOutreach}
+                  className="flex items-center gap-1 text-xs font-medium text-slate-600 hover-elevate rounded px-1"
+                  aria-label="Toggle outreach sequence"
+                >
+                  {patient.sequenceActive
+                    ? <ToggleRight className="w-5 h-5 text-green-600" />
+                    : <ToggleLeft className="w-5 h-5 text-slate-400" />}
+                  {patient.sequenceActive ? "Enabled" : "Disabled"}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-[11px]">
+                {patient.outreachComplete
+                  ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                  : patient.sequenceActive
+                  ? <Clock className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                  : <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+                <span
+                  data-testid={`text-outreach-status-${patient.id}`}
+                  className={`font-medium ${patient.outreachComplete ? "text-green-700" : patient.sequenceActive ? "text-amber-700" : "text-slate-500"}`}
+                >
+                  {outreachStatusLabel}
+                </span>
+              </div>
+
+              {patient.sequenceActive && patient.sequenceDay > 0 && (
+                <div className="space-y-1 pt-0.5">
+                  {OUTREACH_STEPS.map((step) => {
+                    const done = patient.sequenceDay >= step.day;
+                    return (
+                      <div key={step.day} className="flex items-center gap-1.5 text-[11px]">
+                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 ${done ? "bg-green-500" : "bg-slate-200"}`}>
+                          {done && <Check className="w-2 h-2 text-white" />}
+                        </div>
+                        <span className={done ? "text-green-700 line-through" : "text-slate-500"}>{step.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {isActive && (
             <div className="flex items-center gap-2 flex-wrap pt-1">
               <button
@@ -995,31 +1116,40 @@ function RetentionSection({
   const active = patients.filter((p) => p.status === "active");
   const resolved = patients.filter((p) => p.status !== "active");
 
-  function handleAdd() {
+  async function handleAdd() {
     if (!form.initials.trim()) return;
-    addRetentionPatient({
-      siteId,
-      initials: form.initials.trim().toUpperCase(),
-      issueType,
-      dateAdded: getTodayDateKey(),
-      attemptCount: 0,
-      lastAttemptDate: null,
-      notes: form.notes.trim(),
-      status: "active",
-      resolvedDate: null,
-      phone1: form.phone1.trim(),
-      phone2: form.phone2.trim(),
-      email: form.email.trim(),
-      caseManagerContact: form.caseManagerContact.trim(),
-      bin: form.bin.trim(),
-      pcn: form.pcn.trim(),
-      rxgrp: form.rxgrp.trim(),
-      insuranceId: form.insuranceId.trim(),
-      city: form.city.trim(),
-      state: form.state.trim(),
-      zip: form.zip.trim(),
-      ahfLocationMatch: form.ahfLocationMatch.trim(),
-    });
+    try {
+      await apiAddRetentionPatient({
+        siteId,
+        initials: form.initials.trim().toUpperCase(),
+        issueType,
+        dateAdded: getTodayDateKey(),
+        attemptCount: 0,
+        lastAttemptDate: null,
+        notes: form.notes.trim(),
+        status: "active",
+        resolvedDate: null,
+        phone1: form.phone1.trim(),
+        phone2: form.phone2.trim(),
+        email: form.email.trim(),
+        caseManagerContact: form.caseManagerContact.trim(),
+        bin: form.bin.trim(),
+        pcn: form.pcn.trim(),
+        rxgrp: form.rxgrp.trim(),
+        insuranceId: form.insuranceId.trim(),
+        city: form.city.trim(),
+        state: form.state.trim(),
+        zip: form.zip.trim(),
+        ahfLocationMatch: form.ahfLocationMatch.trim(),
+        sequenceActive: false,
+        sequenceDay: 0,
+        sequenceStartDate: null,
+        lastOutreachDate: null,
+        outreachComplete: false,
+      });
+    } catch (err) {
+      console.error("Failed to add patient:", err);
+    }
     setForm(EMPTY_FORM);
     setShowForm(false);
     onPatientsChange();
@@ -1283,10 +1413,14 @@ function RetentionSection({
 }
 
 function PatientRetentionTracker({ siteId }: { siteId: string }) {
-  const [patients, setPatients] = useState<RetentionPatient[]>(() => loadRetentionPatients(siteId));
+  const [patients, setPatients] = useState<RetentionPatient[]>([]);
+
+  useEffect(() => {
+    apiLoadRetentionPatients(siteId).then(setPatients);
+  }, [siteId]);
 
   function refresh() {
-    setPatients(loadRetentionPatients(siteId));
+    apiLoadRetentionPatients(siteId).then(setPatients);
   }
 
   const byType = (type: RetentionIssueType) => patients.filter((p) => p.issueType === type);

@@ -1,5 +1,41 @@
 import { z } from "zod";
 
+// ── Retention Patient ────────────────────────────────────────────────────────
+
+export type RetentionIssueType = "lost_contact" | "insurance_lockout" | "out_of_state";
+export type RetentionStatus = "active" | "resolved" | "referred_out";
+
+export interface RetentionPatient {
+  id: string;
+  siteId: string;
+  initials: string;
+  issueType: RetentionIssueType;
+  dateAdded: string;
+  attemptCount: number;
+  lastAttemptDate: string | null;
+  notes: string;
+  status: RetentionStatus;
+  resolvedDate: string | null;
+  phone1: string;
+  phone2: string;
+  email: string;
+  caseManagerContact: string;
+  bin: string;
+  pcn: string;
+  rxgrp: string;
+  insuranceId: string;
+  city: string;
+  state: string;
+  zip: string;
+  ahfLocationMatch: string;
+  sequenceActive: boolean;
+  sequenceDay: number;
+  sequenceStartDate: string | null;
+  lastOutreachDate: string | null;
+  outreachComplete: boolean;
+}
+
+
 export const assessmentSchema = z.object({
   age: z.number().min(0).max(120),
   pregnancy: z.enum(["yes", "no", "unknown"]),

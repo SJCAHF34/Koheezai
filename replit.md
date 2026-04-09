@@ -31,6 +31,39 @@ The backend is powered by Express.js with Node.js and TypeScript, providing a RE
 ### Data Storage Solutions
 User data is managed in-memory for non-persistence across restarts. Drizzle ORM is configured for PostgreSQL with schema definitions, utilizing Drizzle Kit for migrations, and is prepared for integration with Neon serverless databases. Express session with a PostgreSQL session store handles persistent session management.
 
+## Automated Outreach Sequence (Task #22)
+
+### Architecture
+- **Retention patients** are now stored server-side in-memory (`server/storage.ts`) rather than browser `localStorage`
+- **REST API** endpoints at `/api/retention/patients/:siteId`, POST/PUT/DELETE manage patient data
+- **Daily cron scheduler** (`server/lib/outreachScheduler.ts`) runs at 9:00 AM (configurable via `OUTREACH_CRON` env var) and executes a 4-day contact sequence per patient
+- **PatientCard UI** shows an "Automated Outreach" toggle and step timeline when a patient has `phone1` or `email` filled in
+
+### Sequence Steps
+| Day | Channel | Notes |
+|-----|---------|-------|
+| 1 | SMS (Clerkchat) | "Please call us..." |
+| 2 | SMS (Clerkchat) | Reminder SMS |
+| 3 | Email (Outlook) | To patient email, marked confidential |
+| 4 | Email (Outlook) | To caseManagerContact |
+
+### Environment Variables Required
+- `CLERKCHAT_API_KEY` — Clerkchat bearer token (user must add via Secrets tab)
+- `CLERKCHAT_CHANNEL_ID` — Clerkchat sending channel ID (user must add via Secrets tab)
+- **Outlook email**: The Microsoft Outlook connector (`connector:ccfg_outlook_01K4BBCKRJKP82N3PYQPZQ6DAK`) was NOT connected (user dismissed the OAuth flow). To enable email outreach (Days 3 & 4), the user must either:
+  1. Re-propose the Outlook integration and complete OAuth, then add the integration to the project, OR
+  2. Provide a valid `OUTLOOK_ACCESS_TOKEN` secret manually
+  Until one of these is done, email steps will be skipped with a console warning.
+
+### New Files
+- `server/lib/clerkchatClient.ts` — Clerkchat SMS helper
+- `server/lib/outlookClient.ts` — Microsoft Graph email helper (uses `OUTLOOK_ACCESS_TOKEN` secret or Replit connector token)
+- `server/lib/outreachScheduler.ts` — `node-cron`-based daily scheduler
+- Package added: `node-cron`, `@types/node-cron`
+
+### Manual Trigger
+POST `/api/retention/outreach/run` — runs the scheduler pass immediately (for testing)
+
 ## External Dependencies
 
 -   **OpenAI API**: Used for generating AI-powered clinical summaries and consultation questions.

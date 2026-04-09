@@ -9,6 +9,8 @@ import { generateClinicalRecommendations } from "./lib/clinicalRecommendations";
 import { openEvidenceClient } from "./lib/openEvidence";
 import { checkLiverpoolInteractions, isConfigured as liverpoolConfigured } from "./lib/liverpoolDDI";
 import { hivDrugs } from "../client/src/lib/hivDrugs";
+import { storage } from "./storage";
+import { runOutreachNow } from "./lib/outreachScheduler";
 
 declare module "express-session" {
   interface SessionData {
@@ -507,6 +509,95 @@ Write in professional clinical language for medical record documentation. Be spe
         reason: "Connection failed",
         detail: error instanceof Error ? error.message : "Unknown error",
       });
+    }
+  });
+
+  // ── Retention Patient API (session auth required) ─────────────────────────
+
+  function requireAuth(req: any, res: any, next: any) {
+    if (!req.session?.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    return next();
+  }
+
+  app.get("/api/retention/patients/:siteId", requireAuth, async (req, res) => {
+    try {
+      const patients = await storage.getPatients(req.params.siteId);
+      return res.json(patients);
+    } catch (err) {
+      return res.status(500).json({ message: "Failed to fetch patients" });
+    }
+  });
+
+  app.post("/api/retention/patients", requireAuth, async (req, res) => {
+    try {
+      const body = req.body;
+      if (!body.siteId || !body.initials || !body.issueType) {
+        return res.status(400).json({ message: "siteId, initials, and issueType are required" });
+      }
+      const patient = await storage.addPatient({
+        siteId: body.siteId,
+        initials: body.initials,
+        issueType: body.issueType,
+        dateAdded: body.dateAdded || new Date().toISOString().split("T")[0],
+        attemptCount: body.attemptCount ?? 0,
+        lastAttemptDate: body.lastAttemptDate ?? null,
+        notes: body.notes ?? "",
+        status: body.status ?? "active",
+        resolvedDate: body.resolvedDate ?? null,
+        phone1: body.phone1 ?? "",
+        phone2: body.phone2 ?? "",
+        email: body.email ?? "",
+        caseManagerContact: body.caseManagerContact ?? "",
+        bin: body.bin ?? "",
+        pcn: body.pcn ?? "",
+        rxgrp: body.rxgrp ?? "",
+        insuranceId: body.insuranceId ?? "",
+        city: body.city ?? "",
+        state: body.state ?? "",
+        zip: body.zip ?? "",
+        ahfLocationMatch: body.ahfLocationMatch ?? "",
+        sequenceActive: body.sequenceActive ?? false,
+        sequenceDay: body.sequenceDay ?? 0,
+        sequenceStartDate: body.sequenceStartDate ?? null,
+        lastOutreachDate: body.lastOutreachDate ?? null,
+        outreachComplete: body.outreachComplete ?? false,
+      });
+      return res.status(201).json(patient);
+    } catch (err) {
+      return res.status(500).json({ message: "Failed to add patient" });
+    }
+  });
+
+  app.put("/api/retention/patients/:id", requireAuth, async (req, res) => {
+    try {
+      const body = req.body;
+      if (!body.id || body.id !== req.params.id) {
+        return res.status(400).json({ message: "Patient id mismatch" });
+      }
+      const updated = await storage.updatePatient(body);
+      return res.json(updated);
+    } catch (err) {
+      return res.status(500).json({ message: "Failed to update patient" });
+    }
+  });
+
+  app.delete("/api/retention/patients/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deletePatient(req.params.id);
+      return res.status(204).send();
+    } catch (err) {
+      return res.status(500).json({ message: "Failed to delete patient" });
+    }
+  });
+
+  app.post("/api/retention/outreach/run", requireAuth, async (req, res) => {
+    try {
+      await runOutreachNow();
+      return res.json({ message: "Outreach pass completed" });
+    } catch (err) {
+      return res.status(500).json({ message: "Outreach run failed" });
     }
   });
 
