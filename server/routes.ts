@@ -578,6 +578,7 @@ Write in professional clinical language for medical record documentation. Be spe
         sequenceStartDate: body.sequenceStartDate ?? null,
         lastOutreachDate: body.lastOutreachDate ?? null,
         outreachComplete: body.outreachComplete ?? false,
+        retentionReason: body.retentionReason ?? "",
       });
       fireSalesforce(patient.phone1, patient.initials, "Patient Added to Retention Tracker",
         `Issue type: ${patient.issueType}`);
@@ -792,6 +793,7 @@ Write in professional clinical language for medical record documentation. Be spe
               sequenceStartDate: null,
               lastOutreachDate: null,
               outreachComplete: false,
+              retentionReason: "",
             });
             imported++;
           }

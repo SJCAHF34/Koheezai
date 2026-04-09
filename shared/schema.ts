@@ -48,6 +48,7 @@ export interface RetentionPatient {
   sequenceStartDate: string | null;
   lastOutreachDate: string | null;
   outreachComplete: boolean;
+  retentionReason?: string;
 }
 
 

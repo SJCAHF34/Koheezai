@@ -102,6 +102,7 @@ import {
   Clock,
   Upload,
   FileUp,
+  Tag,
 } from "lucide-react";
 
 // ── API helpers for retention patients ───────────────────────────────────────
@@ -739,9 +740,17 @@ function SiteOverviewPanel({
 
 // ── Patient Retention Tracker ─────────────────────────────────────────────────
 
+type RetentionGroup = "controllable" | "partially_controllable" | "non_controllable";
+
+const GROUP_CONFIG: Record<RetentionGroup, { label: string; badgeBg: string; badgeText: string }> = {
+  controllable: { label: "Controllable", badgeBg: "bg-green-100", badgeText: "text-green-800" },
+  partially_controllable: { label: "Partially Controllable", badgeBg: "bg-yellow-100", badgeText: "text-yellow-800" },
+  non_controllable: { label: "Non-Controllable", badgeBg: "bg-slate-100", badgeText: "text-slate-600" },
+};
+
 const ISSUE_CONFIG: Record<
   RetentionIssueType,
-  { label: string; color: string; headerBg: string; borderColor: string; badgeBg: string; badgeText: string }
+  { label: string; color: string; headerBg: string; borderColor: string; badgeBg: string; badgeText: string; group?: RetentionGroup; reasons: string[] }
 > = {
   undesignated: {
     label: "Undesignated Queue",
@@ -750,6 +759,7 @@ const ISSUE_CONFIG: Record<
     borderColor: "border-slate-200",
     badgeBg: "bg-slate-100",
     badgeText: "text-slate-700",
+    reasons: [],
   },
   appointment_lab: {
     label: "Appointment or Lab Issues",
@@ -758,6 +768,8 @@ const ISSUE_CONFIG: Record<
     borderColor: "border-orange-200",
     badgeBg: "bg-orange-100",
     badgeText: "text-orange-800",
+    group: "controllable",
+    reasons: ["Needs Appt", "MD Refusal", "PrEP Labs"],
   },
   communication_barriers: {
     label: "Communication Barriers",
@@ -766,6 +778,8 @@ const ISSUE_CONFIG: Record<
     borderColor: "border-red-200",
     badgeBg: "bg-red-100",
     badgeText: "text-red-800",
+    group: "controllable",
+    reasons: ["Unable to Reach", "Can't Locate", "Left Message"],
   },
   transfer_out: {
     label: "Transfer out",
@@ -774,6 +788,8 @@ const ISSUE_CONFIG: Record<
     borderColor: "border-blue-200",
     badgeBg: "bg-blue-100",
     badgeText: "text-blue-800",
+    group: "controllable",
+    reasons: ["Left AHF", "Transferred Out to Competitor"],
   },
   insurance_coverage: {
     label: "Insurance or Coverage Issues",
@@ -782,6 +798,8 @@ const ISSUE_CONFIG: Record<
     borderColor: "border-yellow-200",
     badgeBg: "bg-yellow-100",
     badgeText: "text-yellow-800",
+    group: "partially_controllable",
+    reasons: ["Insurance Expired", "ADAP Expired/Issue", "RW Expired"],
   },
   one_time_limited: {
     label: "One-Time or Limited Treatment Use",
@@ -790,6 +808,8 @@ const ISSUE_CONFIG: Record<
     borderColor: "border-purple-200",
     badgeBg: "bg-purple-100",
     badgeText: "text-purple-800",
+    group: "non_controllable",
+    reasons: ["PEP/PAP", "Off-Label PrEP (On Demand, Lifestyle Change)"],
   },
   insurance_restrictions: {
     label: "Insurance Restrictions",
@@ -798,6 +818,8 @@ const ISSUE_CONFIG: Record<
     borderColor: "border-amber-200",
     badgeBg: "bg-amber-100",
     badgeText: "text-amber-800",
+    group: "non_controllable",
+    reasons: ["ADAP (cannot participate)", "Mail Order", "Out of Network"],
   },
   patient_status_change: {
     label: "Patient Status Change",
@@ -806,6 +828,8 @@ const ISSUE_CONFIG: Record<
     borderColor: "border-teal-200",
     badgeBg: "bg-teal-100",
     badgeText: "text-teal-800",
+    group: "non_controllable",
+    reasons: ["Deceased", "Incarcerated", "Moved (no local AHF)"],
   },
   clinical_medication: {
     label: "Clinical or Medication-Specific Exceptions",
@@ -814,6 +838,8 @@ const ISSUE_CONFIG: Record<
     borderColor: "border-green-200",
     badgeBg: "bg-green-100",
     badgeText: "text-green-800",
+    group: "non_controllable",
+    reasons: ["Med Surplus", "Injectables 6+ months (e.g., Sunlenca, Yetzugo)", "Clinical Trial"],
   },
 };
 
@@ -841,12 +867,13 @@ interface AddPatientFormState {
   email: string;
   caseManagerContact: string;
   notes: string;
-  // insurance lockout
+  retentionReason: string;
+  // insurance
   bin: string;
   pcn: string;
   rxgrp: string;
   insuranceId: string;
-  // out of state
+  // location
   city: string;
   state: string;
   zip: string;
@@ -860,6 +887,7 @@ const EMPTY_FORM: AddPatientFormState = {
   email: "",
   caseManagerContact: "",
   notes: "",
+  retentionReason: "",
   bin: "",
   pcn: "",
   rxgrp: "",
@@ -898,6 +926,8 @@ function PatientCard({
   const [expanded, setExpanded] = useState(false);
   const [loggingAttempt, setLoggingAttempt] = useState(false);
   const [attemptBy, setAttemptBy] = useState("");
+  const [pendingCategory, setPendingCategory] = useState<RetentionIssueType | "">("");
+  const [pendingReason, setPendingReason] = useState("");
   const today = getTodayDateKey();
   const days = daysSince(patient.dateAdded);
 
@@ -931,8 +961,11 @@ function PatientCard({
     setAttemptBy("");
   }
 
-  async function categorizeAs(newType: RetentionIssueType) {
-    const updated: RetentionPatient = { ...patient, issueType: newType };
+  async function confirmCategorize() {
+    if (!pendingCategory) return;
+    const updated: RetentionPatient = { ...patient, issueType: pendingCategory, retentionReason: pendingReason };
+    setPendingCategory("");
+    setPendingReason("");
     try {
       const saved = await apiUpdateRetentionPatient(updated);
       onUpdate(saved);
@@ -1041,24 +1074,49 @@ function PatientCard({
         <div className="border-t border-slate-100 px-3 pb-3 pt-2 space-y-2">
 
           {patient.issueType === "undesignated" && isActive && (
-            <div className="flex items-center gap-2 p-2.5 rounded-md bg-slate-100 border border-slate-200">
-              <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">Categorize as:</span>
-              <select
-                data-testid={`select-categorize-${patient.id}`}
-                defaultValue=""
-                onChange={(e) => { if (e.target.value) categorizeAs(e.target.value as RetentionIssueType); }}
-                className="flex-1 text-xs border border-slate-300 rounded-md px-2 py-1 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-              >
-                <option value="" disabled>— Pick a category —</option>
-                <option value="appointment_lab">Appointment or Lab Issues</option>
-                <option value="communication_barriers">Communication Barriers</option>
-                <option value="transfer_out">Transfer out</option>
-                <option value="insurance_coverage">Insurance or Coverage Issues</option>
-                <option value="one_time_limited">One-Time or Limited Treatment Use</option>
-                <option value="insurance_restrictions">Insurance Restrictions</option>
-                <option value="patient_status_change">Patient Status Change</option>
-                <option value="clinical_medication">Clinical or Medication-Specific Exceptions</option>
-              </select>
+            <div className="p-2.5 rounded-md bg-slate-100 border border-slate-200 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-600 whitespace-nowrap flex-shrink-0">Categorize as:</span>
+                <select
+                  data-testid={`select-categorize-${patient.id}`}
+                  value={pendingCategory}
+                  onChange={(e) => { setPendingCategory(e.target.value as RetentionIssueType); setPendingReason(""); }}
+                  className="flex-1 text-xs border border-slate-300 rounded-md px-2 py-1 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                >
+                  <option value="" disabled>— Pick a category —</option>
+                  <option value="appointment_lab">Appointment or Lab Issues</option>
+                  <option value="communication_barriers">Communication Barriers</option>
+                  <option value="transfer_out">Transfer out</option>
+                  <option value="insurance_coverage">Insurance or Coverage Issues</option>
+                  <option value="one_time_limited">One-Time or Limited Treatment Use</option>
+                  <option value="insurance_restrictions">Insurance Restrictions</option>
+                  <option value="patient_status_change">Patient Status Change</option>
+                  <option value="clinical_medication">Clinical or Medication-Specific Exceptions</option>
+                </select>
+              </div>
+              {pendingCategory && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-600 whitespace-nowrap flex-shrink-0">Reason:</span>
+                  <select
+                    data-testid={`select-categorize-reason-${patient.id}`}
+                    value={pendingReason}
+                    onChange={(e) => setPendingReason(e.target.value)}
+                    className="flex-1 text-xs border border-slate-300 rounded-md px-2 py-1 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  >
+                    <option value="">— Optional reason —</option>
+                    {ISSUE_CONFIG[pendingCategory].reasons.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                  <button
+                    data-testid={`button-confirm-categorize-${patient.id}`}
+                    onClick={confirmCategorize}
+                    className="flex-shrink-0 text-xs font-semibold px-2 py-1 rounded-md bg-slate-700 text-white hover-elevate"
+                  >
+                    Move
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -1089,6 +1147,13 @@ function PatientCard({
                 <Contact className="w-3 h-3 flex-shrink-0 text-slate-400" />
                 <span className="font-medium text-slate-500 w-20 flex-shrink-0">Case Mgr:</span>
                 <span data-testid={`text-case-manager-${patient.id}`}>{patient.caseManagerContact}</span>
+              </div>
+            )}
+            {patient.retentionReason && (
+              <div className="flex items-center gap-1.5 text-slate-600">
+                <Tag className="w-3 h-3 flex-shrink-0 text-slate-400" />
+                <span className="font-medium text-slate-500 w-20 flex-shrink-0">Reason:</span>
+                <span data-testid={`text-reason-${patient.id}`}>{patient.retentionReason}</span>
               </div>
             )}
 
@@ -1292,6 +1357,7 @@ function RetentionSection({
         dateAdded: getTodayDateKey(),
         attemptCount: 0,
         lastAttemptDate: null,
+        attemptLog: [],
         notes: form.notes.trim(),
         status: "active",
         resolvedDate: null,
@@ -1312,6 +1378,7 @@ function RetentionSection({
         sequenceStartDate: null,
         lastOutreachDate: null,
         outreachComplete: false,
+        retentionReason: form.retentionReason.trim(),
       });
     } catch (err) {
       console.error("Failed to add patient:", err);
@@ -1328,8 +1395,13 @@ function RetentionSection({
   return (
     <div className={`rounded-md border ${cfg.borderColor} overflow-hidden`}>
       <div className={`flex items-center justify-between px-3 py-2 ${cfg.headerBg} gap-2`}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className={`text-xs font-bold uppercase tracking-wide ${cfg.badgeText}`}>{cfg.label}</span>
+          {cfg.group && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${GROUP_CONFIG[cfg.group].badgeBg} ${GROUP_CONFIG[cfg.group].badgeText}`}>
+              {GROUP_CONFIG[cfg.group].label}
+            </span>
+          )}
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${cfg.badgeBg} ${cfg.badgeText}`}>
             {active.length} active
           </span>
@@ -1421,6 +1493,24 @@ function RetentionSection({
               className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
             />
           </div>
+
+          {/* ── Reason dropdown (for categories that have approved reasons) ── */}
+          {ISSUE_CONFIG[issueType].reasons.length > 0 && (
+            <div>
+              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Reason (optional)</label>
+              <select
+                data-testid={`select-reason-${issueType}`}
+                value={form.retentionReason}
+                onChange={(e) => setForm((f) => ({ ...f, retentionReason: e.target.value }))}
+                className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              >
+                <option value="">— Select reason —</option>
+                {ISSUE_CONFIG[issueType].reasons.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* ── Insurance fields: BIN / PCN / RXGRP / Member ID ── */}
           {(issueType === "insurance_restrictions" || issueType === "insurance_coverage") && (
