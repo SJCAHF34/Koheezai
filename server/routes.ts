@@ -638,11 +638,12 @@ Write in professional clinical language for medical record documentation. Be spe
 
   // ── SSRS Import endpoint (accepts session auth OR IMPORT_API_KEY) ──────────
 
-  function normalizeIssueType(raw: string): "lost_contact" | "insurance_lockout" | "out_of_state" {
+  function normalizeIssueType(raw: string): "undesignated" | "lost_contact" | "insurance_lockout" | "out_of_state" {
     const v = raw.toLowerCase().replace(/\s+/g, "_");
     if (v.includes("insurance") || v.includes("lockout")) return "insurance_lockout";
     if (v.includes("state") || v.includes("transfer")) return "out_of_state";
-    return "lost_contact";
+    if (v.includes("lost") || v.includes("contact")) return "lost_contact";
+    return "undesignated";
   }
 
   function parseCsvLine(line: string): string[] {

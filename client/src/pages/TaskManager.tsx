@@ -743,6 +743,14 @@ const ISSUE_CONFIG: Record<
   RetentionIssueType,
   { label: string; color: string; headerBg: string; borderColor: string; badgeBg: string; badgeText: string }
 > = {
+  undesignated: {
+    label: "Undesignated Queue",
+    color: "slate",
+    headerBg: "bg-slate-50 border-slate-200",
+    borderColor: "border-slate-200",
+    badgeBg: "bg-slate-100",
+    badgeText: "text-slate-700",
+  },
   lost_contact: {
     label: "Lost Contact",
     color: "red",
@@ -883,6 +891,16 @@ function PatientCard({
     setAttemptBy("");
   }
 
+  async function categorizeAs(newType: RetentionIssueType) {
+    const updated: RetentionPatient = { ...patient, issueType: newType };
+    try {
+      const saved = await apiUpdateRetentionPatient(updated);
+      onUpdate(saved);
+    } catch {
+      onUpdate(updated);
+    }
+  }
+
   async function resolve() {
     const updated: RetentionPatient = {
       ...patient,
@@ -981,6 +999,24 @@ function PatientCard({
 
       {expanded && (
         <div className="border-t border-slate-100 px-3 pb-3 pt-2 space-y-2">
+
+          {patient.issueType === "undesignated" && isActive && (
+            <div className="flex items-center gap-2 p-2.5 rounded-md bg-slate-100 border border-slate-200">
+              <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">Categorize as:</span>
+              <select
+                data-testid={`select-categorize-${patient.id}`}
+                defaultValue=""
+                onChange={(e) => { if (e.target.value) categorizeAs(e.target.value as RetentionIssueType); }}
+                className="flex-1 text-xs border border-slate-300 rounded-md px-2 py-1 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              >
+                <option value="" disabled>— Pick a category —</option>
+                <option value="lost_contact">Lost Contact</option>
+                <option value="insurance_lockout">Insurance Lockout</option>
+                <option value="out_of_state">Out of State</option>
+              </select>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-1.5 text-xs">
             {patient.phone1 && (
               <div className="flex items-center gap-1.5 text-slate-600">
@@ -1548,7 +1584,7 @@ function parseRetentionCsv(text: string): Array<{ initials: string; phone1: stri
     const c = parseCsvLine(lines[i]);
     const initials = (c[0] ?? "").toUpperCase();
     if (!initials) continue;
-    rows.push({ initials, phone1: c[1] ?? "", phone2: c[2] ?? "", issueType: c[3] ?? "lost_contact" });
+    rows.push({ initials, phone1: c[1] ?? "", phone2: c[2] ?? "", issueType: c[3] ?? "undesignated" });
   }
   return rows;
 }
@@ -1558,7 +1594,6 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importPreview, setImportPreview] = useState<Array<{ initials: string; phone1: string; phone2: string; issueType: string }>>([]);
-  const [importCategory, setImportCategory] = useState<RetentionIssueType | "">("");
   const [importLoading, setImportLoading] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -1600,7 +1635,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
   }
 
   async function handleImport() {
-    if (importPreview.length === 0 || !importCategory) return;
+    if (importPreview.length === 0) return;
     setImportLoading(true);
     setImportResult(null);
     try {
@@ -1609,7 +1644,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ siteId, patients: importPreview, issueTypeOverride: importCategory }),
+          body: JSON.stringify({ siteId, patients: importPreview }),
         }
       );
       setImportResult(result);
@@ -1635,7 +1670,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
         <button
           data-testid="button-import-ssrs"
           type="button"
-          onClick={() => { setImportOpen(true); setImportText(""); setImportPreview([]); setImportCategory(""); setImportResult(null); }}
+          onClick={() => { setImportOpen(true); setImportText(""); setImportPreview([]); setImportResult(null); }}
           className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover-elevate rounded px-2 py-1 border border-blue-200 bg-blue-50"
         >
           <FileUp className="w-3 h-3" />
@@ -1643,7 +1678,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
         </button>
       </div>
 
-      {(["lost_contact", "insurance_lockout", "out_of_state"] as RetentionIssueType[]).map((type) => (
+      {(["undesignated", "lost_contact", "insurance_lockout", "out_of_state"] as RetentionIssueType[]).map((type) => (
         <RetentionSection
           key={type}
           issueType={type}
@@ -1671,26 +1706,11 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div>
               <p className="text-xs text-slate-500">
                 Accepts SSRS exports or a manual CSV with columns: <span className="font-mono font-semibold">Initials, Primary Phone, Secondary Phone</span>
               </p>
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-700">
-                  Category <span className="text-red-500">*</span>
-                </label>
-                <select
-                  data-testid="select-import-category"
-                  value={importCategory}
-                  onChange={(e) => setImportCategory(e.target.value as RetentionIssueType | "")}
-                  className="w-full text-xs border border-slate-300 rounded-md px-2 py-1.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                >
-                  <option value="">— Select a category —</option>
-                  <option value="lost_contact">Lost Contact</option>
-                  <option value="insurance_lockout">Insurance Lockout</option>
-                  <option value="out_of_state">Out of State</option>
-                </select>
-              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">Imported patients land in the Undesignated Queue — categorize them from there.</p>
             </div>
 
             <div className="space-y-2">
@@ -1746,12 +1766,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
                           <td className="px-2 py-1 font-mono font-bold text-slate-800">{row.initials}</td>
                           <td className="px-2 py-1 text-slate-600">{row.phone1 || "—"}</td>
                           <td className="px-2 py-1 text-slate-600">{row.phone2 || "—"}</td>
-                          <td className="px-2 py-1 text-slate-500">
-                            {importCategory === "lost_contact" ? "Lost Contact"
-                              : importCategory === "insurance_lockout" ? "Insurance Lockout"
-                              : importCategory === "out_of_state" ? "Out of State"
-                              : row.issueType || "—"}
-                          </td>
+                          <td className="px-2 py-1 text-slate-500">Undesignated</td>
                         </tr>
                       ))}
                       {importPreview.length > 10 && (
@@ -1784,7 +1799,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
                 data-testid="button-import-csv-confirm"
                 type="button"
                 onClick={handleImport}
-                disabled={importPreview.length === 0 || !importCategory || importLoading}
+                disabled={importPreview.length === 0 || importLoading}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 text-white rounded-md px-3 py-1.5 disabled:opacity-40"
               >
                 {importLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
