@@ -330,6 +330,7 @@ function TaskRow({
   isPrioritized,
   readOnly,
   siteId,
+  highlighted,
   onToggle,
   onAssign,
   onPrioritize,
@@ -343,6 +344,7 @@ function TaskRow({
   isPrioritized: boolean;
   readOnly?: boolean;
   siteId?: string;
+  highlighted?: boolean;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
@@ -350,9 +352,12 @@ function TaskRow({
   const cat = CATEGORY_CONFIG[task.category];
   return (
     <div
+      id={`task-row-${task.id}`}
       data-testid={`task-row-${task.id}`}
       className={`flex items-start gap-3 px-4 py-3 group transition-all duration-300 ${
-        animating ? "bg-green-50" : completed ? "opacity-55" : "hover:bg-slate-50/70"
+        highlighted
+          ? "bg-amber-50 ring-2 ring-inset ring-amber-400"
+          : animating ? "bg-green-50" : completed ? "opacity-55" : "hover:bg-slate-50/70"
       }`}
     >
       <TaskCheckbox
@@ -495,6 +500,7 @@ function TaskGroupSection({
   canPrioritize,
   readOnly,
   siteId,
+  highlightTaskId,
   onToggle,
   onAssign,
   onPrioritize,
@@ -509,6 +515,7 @@ function TaskGroupSection({
   canPrioritize: boolean;
   readOnly?: boolean;
   siteId?: string;
+  highlightTaskId?: string | null;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
@@ -555,6 +562,7 @@ function TaskGroupSection({
               isPrioritized={priorities.has(task.id)}
               readOnly={readOnly}
               siteId={siteId}
+              highlighted={task.id === highlightTaskId}
               onToggle={onToggle}
               onAssign={onAssign}
               onPrioritize={onPrioritize}
@@ -579,6 +587,7 @@ function RoleSection({
   canPrioritize,
   readOnly,
   siteId,
+  highlightTaskId,
   onToggle,
   onAssign,
   onPrioritize,
@@ -593,6 +602,7 @@ function RoleSection({
   canPrioritize: boolean;
   readOnly?: boolean;
   siteId?: string;
+  highlightTaskId?: string | null;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
@@ -665,6 +675,7 @@ function RoleSection({
               canAssign={canAssign}
               canPrioritize={canPrioritize}
               readOnly={readOnly}
+              highlightTaskId={highlightTaskId}
               onToggle={onToggle}
               onAssign={onAssign}
               onPrioritize={onPrioritize}
@@ -3160,11 +3171,14 @@ export default function TaskManager() {
   const { user } = useAuth();
   const profile = user ? getUserProfile(user.email, user.name) : null;
 
-  // Optional URL params from regional dashboard drill-down
+  // Optional URL params from regional dashboard drill-down or trouble-spot click-through
   const searchParams = new URLSearchParams(
     typeof window !== "undefined" ? window.location.search : ""
   );
   const rawUrlSiteId = searchParams.get("siteId");
+  const rawHighlightId = searchParams.get("highlight") ?? null;
+  // Find the highlighted task so we can seed the correct frequency tab
+  const highlightedTask = rawHighlightId ? TASKS.find((t) => t.id === rawHighlightId) ?? null : null;
 
   // Regional/CPO directors can drill into any site via URL param and retain full access.
   const isRegionalDir = profile ? isRegionalOrAbove(profile.role) : false;
@@ -3175,7 +3189,10 @@ export default function TaskManager() {
     effectiveRawSiteId && isRegionalDir ? effectiveRawSiteId : null;
   const readOnly = false;
 
-  const [frequency, setFrequency] = useState<TaskFrequency>("daily");
+  const [frequency, setFrequency] = useState<TaskFrequency>(
+    highlightedTask ? highlightedTask.frequency : "daily"
+  );
+  const [highlightTaskId, setHighlightTaskId] = useState<string | null>(rawHighlightId);
   const [viewingRole, setViewingRole] = useState<ViewingRole>(urlSiteId ? "all" : "own");
   const [categoryFilter, setCategoryFilter] = useState<TaskCategory | "all">("all");
   const [showRoster, setShowRoster] = useState(false);
@@ -3214,6 +3231,21 @@ export default function TaskManager() {
     purgeStaleHandoffNotes();
     setTodayHandoffs(loadHandoffNotesForRole(siteId, getTodayDateKey(), profile.role));
   }, [frequency, siteId, profile?.email, viewingRole]);
+
+  // Scroll to and highlight the task coming from a trouble-spot click-through
+  useEffect(() => {
+    if (!highlightTaskId) return;
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`task-row-${highlightTaskId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      // Auto-clear highlight after 4 s
+      const clear = setTimeout(() => setHighlightTaskId(null), 4000);
+      return () => clearTimeout(clear);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [highlightTaskId]);
 
   const toggleCompletion = useCallback(
     (task: PharmacyTask) => {
@@ -3574,6 +3606,7 @@ export default function TaskManager() {
                 canPrioritize={canPrioritize}
                 readOnly={readOnly}
                 siteId={siteId}
+                highlightTaskId={highlightTaskId}
                 onToggle={toggleCompletion}
                 onAssign={setAssigningTask}
                 onPrioritize={setPrioritizingTask}

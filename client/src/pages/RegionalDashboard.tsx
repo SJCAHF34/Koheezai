@@ -692,7 +692,7 @@ export default function RegionalDashboard() {
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             Trouble Spots
             <span className="text-xs font-normal text-slate-400 ml-1">
-              — Individual tasks below 50% completion over 7 days (cross-site)
+              — Individual tasks below 50% completion over 7 days (cross-site) — click to view
             </span>
           </h2>
           <div className="bg-white border border-slate-200 rounded-md divide-y divide-slate-100">
@@ -705,10 +705,11 @@ export default function RegionalDashboard() {
                 const cfg = CATEGORY_CONFIG[spot.task.category];
                 const isCritical = spot.avgCompletionPct < 30;
                 return (
-                  <div
+                  <button
                     key={spot.task.id}
                     data-testid={`trouble-spot-task-${spot.task.id}`}
-                    className="flex items-start gap-4 px-5 py-3.5 flex-wrap"
+                    onClick={() => navigate(`/app/tasks?highlight=${spot.task.id}`)}
+                    className="w-full flex items-start gap-4 px-5 py-3.5 flex-wrap text-left hover:bg-amber-50 transition-colors group cursor-pointer"
                   >
                     {/* Task + category */}
                     <div className="flex-1 min-w-0">
@@ -737,7 +738,7 @@ export default function RegionalDashboard() {
                       ))}
                     </div>
 
-                    {/* Avg badge */}
+                    {/* Avg badge + nav arrow */}
                     <div className="flex items-center gap-2 shrink-0">
                       <span
                         className={`text-sm font-bold ${
@@ -751,8 +752,9 @@ export default function RegionalDashboard() {
                           Critical
                         </span>
                       )}
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors shrink-0" />
                     </div>
-                  </div>
+                  </button>
                 );
               })
             )}
