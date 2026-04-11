@@ -693,10 +693,11 @@ export function saveStoreDoc(doc: StoreDocRecord): void {
   writeStoreDocs(all);
 }
 
-/** Save (replace) all store docs for a given site. Plural alias for bulk ops. */
+/** Save (replace) all store docs for a given site. Plural alias for bulk ops. Rejects non-http(s) URLs. */
 export function saveStoreDocs(siteId: string, docs: StoreDocRecord[]): void {
   const others = readStoreDocs().filter((d) => d.siteId !== siteId);
-  writeStoreDocs([...others, ...docs.map((d) => ({ ...d, uploadedAt: d.uploadedAt || new Date().toISOString() }))]);
+  const valid = docs.filter((d) => isHttpUrl(d.url)).map((d) => ({ ...d, uploadedAt: d.uploadedAt || new Date().toISOString() }));
+  writeStoreDocs([...others, ...valid]);
 }
 
 /** Remove a store-specific doc record by id. */
