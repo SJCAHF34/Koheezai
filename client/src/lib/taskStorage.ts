@@ -670,8 +670,14 @@ export function loadStoreDocs(siteId: string): StoreDocRecord[] {
   return readStoreDocs().filter((d) => d.siteId === siteId);
 }
 
-/** Save (upsert) a store-specific doc record by id. */
+/** Validate URL scheme as http(s) only. Returns false for javascript:, data:, etc. */
+function isHttpUrl(url: string): boolean {
+  try { return /^https?:\/\//i.test(new URL(url).href); } catch { return false; }
+}
+
+/** Save (upsert) a store-specific doc record by id. Rejects non-http(s) URLs. */
 export function saveStoreDoc(doc: StoreDocRecord): void {
+  if (!isHttpUrl(doc.url)) return;
   const all = readStoreDocs().filter((d) => d.id !== doc.id);
   all.push({ ...doc, uploadedAt: new Date().toISOString() });
   writeStoreDocs(all);

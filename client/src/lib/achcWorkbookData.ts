@@ -34,6 +34,17 @@ export interface FoundationDocTemplate {
   description: string;
 }
 
+/** A store-specific document attached by a Pharmacy Director for their site. */
+export interface StoreDoc {
+  id: string;
+  siteId: string;
+  itemId: string;
+  label: string;
+  url: string;
+  uploadedBy: string;
+  uploadedAt: string;
+}
+
 /** Pre-populated list of all 24 foundation-wide documents mapped to their DRX item IDs. */
 export const FOUNDATION_DOC_TEMPLATES: FoundationDocTemplate[] = [
   // Section 1 — Org & Administration

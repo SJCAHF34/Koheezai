@@ -275,6 +275,12 @@ function StaffInterviewPrepView() {
   );
 }
 
+// ── URL validation helper ─────────────────────────────────────────────────────
+
+function isValidHttpUrl(url: string): boolean {
+  try { return /^https?:\/\//i.test(new URL(url).href); } catch { return false; }
+}
+
 // ── Document Section component ────────────────────────────────────────────────
 
 interface DocumentSectionProps {
@@ -340,13 +346,9 @@ function DocumentSection({
     setSavedFd(null);
   }
 
-  function isValidUrl(url: string): boolean {
-    try { return /^https?:\/\//i.test(new URL(url).href); } catch { return false; }
-  }
-
   function commitFdUrl(template: FoundationDocTemplate) {
     const trimmed = fdUrlDraft.trim();
-    if (trimmed && isValidUrl(trimmed)) {
+    if (trimmed && isValidHttpUrl(trimmed)) {
       onFoundationDocSaved({
         id: template.id,
         itemId: template.itemId,
@@ -362,7 +364,7 @@ function DocumentSection({
       onFoundationDocRemoved(template.id);
     }
     // if invalid URL, stay in editing mode
-    if (!trimmed || isValidUrl(trimmed)) {
+    if (!trimmed || isValidHttpUrl(trimmed)) {
       setEditingFd(null);
       setFdUrlDraft("");
     }
@@ -371,7 +373,7 @@ function DocumentSection({
   function commitStoreDoc() {
     const label = newStoreLabel.trim();
     const url = newStoreUrl.trim();
-    if (!label || !url) return;
+    if (!label || !url || !isValidHttpUrl(url)) return;
     const id = `sd-${siteId}-${itemId}-${Date.now()}`;
     onStoreDocSaved({
       id,
@@ -397,7 +399,7 @@ function DocumentSection({
   function commitStoreEdit(doc: StoreDocRecord) {
     const label = editStoreLabel.trim();
     const url = editStoreUrl.trim();
-    if (!label || !url) return;
+    if (!label || !url || !isValidHttpUrl(url)) return;
     onStoreDocSaved({ ...doc, label, url, uploadedBy: editorName, uploadedAt: new Date().toISOString() });
     setSavedSd(doc.id);
     setTimeout(() => setSavedSd(null), 2000);
