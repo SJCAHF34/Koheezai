@@ -311,14 +311,22 @@ function DocumentSection({
   const myTemplates = foundationTemplates.filter((t) => t.itemId === itemId);
   const myStoreDocs = storeDocs.filter((d) => d.itemId === itemId);
 
-  // editing state: which foundation doc id is in edit mode
+  // Foundation doc editing: which template id is currently in edit mode
   const [editingFd, setEditingFd] = useState<string | null>(null);
   const [fdUrlDraft, setFdUrlDraft] = useState("");
+  // Saved confirmation flash
+  const [savedFd, setSavedFd] = useState<string | null>(null);
 
-  // store doc add form
+  // Store doc add form
   const [addingStore, setAddingStore] = useState(false);
   const [newStoreLabel, setNewStoreLabel] = useState("");
   const [newStoreUrl, setNewStoreUrl] = useState("");
+
+  // Store doc editing: which store doc id is being edited
+  const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
+  const [editStoreLabel, setEditStoreLabel] = useState("");
+  const [editStoreUrl, setEditStoreUrl] = useState("");
+  const [savedSd, setSavedSd] = useState<string | null>(null);
 
   function getFoundationRecord(templateId: string): FoundationDocRecord | undefined {
     return foundationDocs.find((d) => d.id === templateId);
@@ -329,6 +337,7 @@ function DocumentSection({
     const existing = getFoundationRecord(template.id);
     setFdUrlDraft(existing?.url ?? "");
     setEditingFd(template.id);
+    setSavedFd(null);
   }
 
   function commitFdUrl(template: FoundationDocTemplate) {
@@ -343,6 +352,8 @@ function DocumentSection({
         addedBy: editorName,
         addedAt: new Date().toISOString(),
       });
+      setSavedFd(template.id);
+      setTimeout(() => setSavedFd(null), 2000);
     } else {
       onFoundationDocRemoved(template.id);
     }
@@ -369,6 +380,25 @@ function DocumentSection({
     setAddingStore(false);
   }
 
+  function startEditStoreDoc(doc: StoreDocRecord) {
+    setEditingStoreId(doc.id);
+    setEditStoreLabel(doc.label);
+    setEditStoreUrl(doc.url);
+    setSavedSd(null);
+  }
+
+  function commitStoreEdit(doc: StoreDocRecord) {
+    const label = editStoreLabel.trim();
+    const url = editStoreUrl.trim();
+    if (!label || !url) return;
+    onStoreDocSaved({ ...doc, label, url, uploadedBy: editorName, uploadedAt: new Date().toISOString() });
+    setSavedSd(doc.id);
+    setTimeout(() => setSavedSd(null), 2000);
+    setEditingStoreId(null);
+    setEditStoreLabel("");
+    setEditStoreUrl("");
+  }
+
   const hasAnyDocs = myTemplates.some((t) => !!getFoundationRecord(t.id)?.url) || myStoreDocs.length > 0;
 
   return (
@@ -380,40 +410,49 @@ function DocumentSection({
             const record = getFoundationRecord(template.id);
             const hasUrl = !!record?.url;
             const isEditing = editingFd === template.id;
+            const justSaved = savedFd === template.id;
 
             return (
-              <div key={template.id} className="flex flex-wrap items-start gap-2" data-testid={`workbook-fd-${template.id}`}>
-                <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
-                <span className="text-xs text-foreground flex-1 min-w-0" title={template.description}>{template.label}</span>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {hasUrl && !isEditing && (
-                    <a
-                      href={record!.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
-                      data-testid={`workbook-fd-view-${template.id}`}
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      View
-                    </a>
-                  )}
-                  {canEditFoundation && !isEditing && (
-                    <button
-                      type="button"
-                      onClick={() => startEditFd(template)}
-                      className="text-xs text-muted-foreground hover:text-foreground underline"
-                      data-testid={`workbook-fd-edit-${template.id}`}
-                    >
-                      {hasUrl ? "Edit URL" : "Add URL"}
-                    </button>
-                  )}
-                  {!hasUrl && !canEditFoundation && (
-                    <span className="text-xs text-muted-foreground italic">No URL yet</span>
-                  )}
+              <div key={template.id} className="space-y-1" data-testid={`workbook-fd-${template.id}`}>
+                <div className="flex flex-wrap items-start gap-2">
+                  <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="text-xs text-foreground" title={template.description}>{template.label}</span>
+                    <span className="text-xs text-muted-foreground">Foundation</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {justSaved && (
+                      <span className="text-xs text-emerald-600 font-medium" data-testid={`workbook-fd-saved-${template.id}`}>Saved</span>
+                    )}
+                    {hasUrl && !isEditing && !justSaved && (
+                      <a
+                        href={record!.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        data-testid={`workbook-fd-view-${template.id}`}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        View
+                      </a>
+                    )}
+                    {canEditFoundation && !isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => startEditFd(template)}
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                        data-testid={`workbook-fd-edit-${template.id}`}
+                      >
+                        {hasUrl ? "Edit URL" : "Add URL"}
+                      </button>
+                    )}
+                    {!hasUrl && !canEditFoundation && (
+                      <span className="text-xs text-muted-foreground italic">No URL yet</span>
+                    )}
+                  </div>
                 </div>
                 {isEditing && (
-                  <div className="w-full flex items-center gap-1.5 mt-1" data-testid={`workbook-fd-editor-${template.id}`}>
+                  <div className="flex items-center gap-1.5 pl-5" data-testid={`workbook-fd-editor-${template.id}`}>
                     <Input
                       type="url"
                       placeholder="Paste SharePoint / Box / Dropbox URL…"
@@ -423,14 +462,15 @@ function DocumentSection({
                         if (e.key === "Enter") commitFdUrl(template);
                         if (e.key === "Escape") { setEditingFd(null); setFdUrlDraft(""); }
                       }}
+                      onBlur={() => commitFdUrl(template)}
                       className="text-xs h-7 flex-1 min-w-0"
                       autoFocus
                       data-testid={`workbook-fd-url-input-${template.id}`}
                     />
                     <Button
                       size="sm"
-                      className="h-7 text-xs px-2"
-                      onClick={() => commitFdUrl(template)}
+                      className="h-7 text-xs px-2 shrink-0"
+                      onMouseDown={(e) => { e.preventDefault(); commitFdUrl(template); }}
                       data-testid={`workbook-fd-save-${template.id}`}
                     >
                       Save
@@ -438,8 +478,8 @@ function DocumentSection({
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-7 w-7"
-                      onClick={() => { setEditingFd(null); setFdUrlDraft(""); }}
+                      className="h-7 w-7 shrink-0"
+                      onMouseDown={(e) => { e.preventDefault(); setEditingFd(null); setFdUrlDraft(""); }}
                       data-testid={`workbook-fd-cancel-${template.id}`}
                     >
                       <X className="w-3 h-3" />
@@ -455,34 +495,102 @@ function DocumentSection({
       {/* Store-specific docs */}
       {myStoreDocs.length > 0 && (
         <div className="space-y-1.5">
-          {myStoreDocs.map((doc) => (
-            <div key={doc.id} className="flex flex-wrap items-start gap-2" data-testid={`workbook-sd-${doc.id}`}>
-              <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-              <span className="text-xs text-foreground flex-1 min-w-0">{doc.label}</span>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <a
-                  href={doc.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
-                  data-testid={`workbook-sd-view-${doc.id}`}
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  View
-                </a>
-                {canEditStore && (
-                  <button
-                    type="button"
-                    onClick={() => onStoreDocRemoved(doc.id)}
-                    className="text-xs text-red-500 hover:text-red-700"
-                    data-testid={`workbook-sd-remove-${doc.id}`}
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+          {myStoreDocs.map((doc) => {
+            const isEditingThis = editingStoreId === doc.id;
+            const justSaved = savedSd === doc.id;
+            return (
+              <div key={doc.id} className="space-y-1" data-testid={`workbook-sd-${doc.id}`}>
+                <div className="flex flex-wrap items-start gap-2">
+                  <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="text-xs text-foreground">{doc.label}</span>
+                    <span className="text-xs text-muted-foreground">Store — {doc.uploadedBy}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {justSaved && (
+                      <span className="text-xs text-emerald-600 font-medium" data-testid={`workbook-sd-saved-${doc.id}`}>Saved</span>
+                    )}
+                    {!isEditingThis && !justSaved && (
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        data-testid={`workbook-sd-view-${doc.id}`}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        View
+                      </a>
+                    )}
+                    {canEditStore && !isEditingThis && (
+                      <button
+                        type="button"
+                        onClick={() => startEditStoreDoc(doc)}
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                        data-testid={`workbook-sd-edit-${doc.id}`}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {canEditStore && !isEditingThis && (
+                      <button
+                        type="button"
+                        onClick={() => onStoreDocRemoved(doc.id)}
+                        className="text-xs text-red-500 hover:text-red-700"
+                        data-testid={`workbook-sd-remove-${doc.id}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {isEditingThis && (
+                  <div className="space-y-1.5 pl-5" data-testid={`workbook-sd-edit-form-${doc.id}`}>
+                    <div className="flex gap-1.5">
+                      <Input
+                        type="text"
+                        placeholder="Label…"
+                        value={editStoreLabel}
+                        onChange={(e) => setEditStoreLabel(e.target.value)}
+                        className="text-xs h-7 flex-1"
+                        data-testid={`workbook-sd-edit-label-${doc.id}`}
+                      />
+                      <Input
+                        type="url"
+                        placeholder="URL…"
+                        value={editStoreUrl}
+                        onChange={(e) => setEditStoreUrl(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") commitStoreEdit(doc); if (e.key === "Escape") setEditingStoreId(null); }}
+                        onBlur={() => { if (editStoreLabel.trim() && editStoreUrl.trim()) commitStoreEdit(doc); }}
+                        className="text-xs h-7 flex-1"
+                        data-testid={`workbook-sd-edit-url-${doc.id}`}
+                      />
+                    </div>
+                    <div className="flex gap-1.5">
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs px-2"
+                        onClick={() => commitStoreEdit(doc)}
+                        disabled={!editStoreLabel.trim() || !editStoreUrl.trim()}
+                        data-testid={`workbook-sd-edit-save-${doc.id}`}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs px-2"
+                        onClick={() => { setEditingStoreId(null); setEditStoreLabel(""); setEditStoreUrl(""); }}
+                        data-testid={`workbook-sd-edit-cancel-${doc.id}`}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -520,6 +628,7 @@ function DocumentSection({
               value={newStoreUrl}
               onChange={(e) => setNewStoreUrl(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") commitStoreDoc(); }}
+              onBlur={() => { if (newStoreLabel.trim() && newStoreUrl.trim()) commitStoreDoc(); }}
               className="text-xs h-7 flex-1"
               data-testid={`workbook-sd-url-input-${itemId}`}
             />
