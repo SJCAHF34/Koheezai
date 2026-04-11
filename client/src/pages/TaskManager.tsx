@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/App";
 import {
@@ -22,7 +22,13 @@ import {
   type TaskFrequency,
   type TaskCategory,
 } from "@/lib/taskData";
-import { findStore } from "@/lib/storeDirectory";
+import { findStore, findStoreRegion } from "@/lib/storeDirectory";
+import {
+  generateSiteTrendsForPeriod,
+  TREND_CATEGORIES,
+  SPARKLINE_COLORS,
+  type SiteTrend,
+} from "@/lib/trendData";
 import { AHF_LOCATIONS, US_STATES, type AhfLocation } from "@/lib/ahfLocations";
 import {
   loadCompletions,
@@ -84,6 +90,8 @@ import {
   BarChart3,
   Filter,
   Minus,
+  TrendingUp,
+  TrendingDown,
   Save,
   Pencil,
   CalendarDays,
@@ -3223,6 +3231,60 @@ function HandoffPanel({
   );
 }
 
+// ── Store Performance Panel helpers ──────────────────────────────────────────
+
+function perfTextColor(pct: number) {
+  return pct >= 80 ? "text-green-600" : pct >= 65 ? "text-amber-600" : pct >= 50 ? "text-orange-500" : "text-red-500";
+}
+
+function perfBarColor(pct: number) {
+  return pct >= 80 ? "bg-green-500" : pct >= 65 ? "bg-amber-400" : pct >= 50 ? "bg-orange-400" : "bg-red-400";
+}
+
+function perfTierLabel(pct: number) {
+  if (pct >= 80) return { label: "Top", bg: "bg-green-50 text-green-700 border-green-200" };
+  if (pct >= 65) return { label: "Good", bg: "bg-amber-50 text-amber-700 border-amber-200" };
+  if (pct >= 50) return { label: "At Risk", bg: "bg-orange-50 text-orange-700 border-orange-200" };
+  return { label: "Critical", bg: "bg-red-50 text-red-600 border-red-200" };
+}
+
+function PerfSparkline({ data, color = "#8b5cf6", width = 120, height = 36 }: { data: number[]; color?: string; width?: number; height?: number }) {
+  if (data.length < 2) return null;
+  const pad = 4;
+  const innerW = width - pad * 2;
+  const innerH = height - pad * 2;
+  const pts = data.map((v, i) => {
+    const x = pad + (i / (data.length - 1)) * innerW;
+    const y = pad + innerH - (v / 100) * innerH;
+    return [x, y] as [number, number];
+  });
+  const polyPoints = pts.map(([x, y]) => `${x},${y}`).join(" ");
+  const areaPoints = [`${pts[0][0]},${height - pad}`, ...pts.map(([x, y]) => `${x},${y}`), `${pts[pts.length - 1][0]},${height - pad}`].join(" ");
+  const last = pts[pts.length - 1];
+  const gradId = `pg-${color.replace(/[^a-z0-9]/gi, "")}`;
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <polygon points={areaPoints} fill={`url(#${gradId})`} />
+      <polyline points={polyPoints} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={last[0]} cy={last[1]} r={3} fill={color} />
+    </svg>
+  );
+}
+
+function PerfTrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
+  if (trend === "up") return <TrendingUp className="w-3.5 h-3.5 text-green-500" />;
+  if (trend === "down") return <TrendingDown className="w-3.5 h-3.5 text-red-500" />;
+  return <Minus className="w-3.5 h-3.5 text-slate-400" />;
+}
+
+const PERF_CAT_ORDER: TaskCategory[] = ["achc", "state_board", "operations", "retention"];
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function TaskManager() {
@@ -3390,6 +3452,29 @@ export default function TaskManager() {
     }
   }, [profile, urlSiteId, urgentIds]);
 
+  // ── Store performance data — always computed (hooks must be unconditional) ──
+  const drillStoreInfo = findStore(siteId);
+  const drillStoreRegion = findStoreRegion(siteId);
+  const perfTrend7d: SiteTrend = useMemo(
+    () => generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", "7d"),
+    [siteId, drillStoreInfo?.name, drillStoreRegion?.region]
+  );
+  const perfCatStats = useMemo(() => {
+    const comps = loadCompletions(siteId, "daily");
+    const dailyTasks = TASKS.filter((t) => t.frequency === "daily");
+    const stats: Record<string, { done: number; total: number; pct: number }> = {};
+    for (const cat of TREND_CATEGORIES) {
+      const catTasks = dailyTasks.filter((t) => t.category === cat);
+      const done = catTasks.filter((t) => comps.has(t.id)).length;
+      stats[cat] = {
+        done,
+        total: catTasks.length,
+        pct: catTasks.length > 0 ? Math.round((done / catTasks.length) * 100) : 0,
+      };
+    }
+    return stats;
+  }, [siteId, completions]);
+
   if (!profile) return null;
 
   const showHandoff = !isRegionalOrAbove(profile.role) && !urlSiteId;
@@ -3521,6 +3606,96 @@ export default function TaskManager() {
 
       {/* Main content */}
       <div className="max-w-4xl mx-auto px-6 py-6 space-y-5">
+        {/* ── Store Performance Panel — shown when CPO/Regional drills into a store ── */}
+        {isRegionalDir && urlSiteId && (() => {
+          const dailyTasks = TASKS.filter((t) => t.frequency === "daily");
+          const completedCount = dailyTasks.filter((t) => completions.has(t.id)).length;
+          const totalCount = dailyTasks.length;
+          const todayPct = Math.round(
+            TREND_CATEGORIES.reduce((s, cat) => s + (perfCatStats[cat]?.pct ?? 0), 0) / TREND_CATEGORIES.length
+          );
+          const avg7d = perfTrend7d.overallAvg;
+          const tier = perfTierLabel(avg7d);
+          return (
+            <div data-testid="store-perf-panel" className="space-y-4">
+              <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-purple-600" />
+                Store Performance
+              </h2>
+
+              {/* KPI tiles */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div data-testid="kpi-today" className="bg-white border border-slate-200 rounded-md px-4 py-3">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Today's Rate</p>
+                  <p className={`text-3xl font-bold ${perfTextColor(todayPct)}`}>{todayPct}%</p>
+                  <p className="text-xs text-slate-400 mt-0.5">avg across 4 categories</p>
+                </div>
+                <div data-testid="kpi-7d" className="bg-white border border-slate-200 rounded-md px-4 py-3">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">7-Day Average</p>
+                  <p className={`text-3xl font-bold ${perfTextColor(avg7d)}`}>{avg7d}%</p>
+                  <p className="text-xs text-slate-400 mt-0.5">rolling compliance</p>
+                </div>
+                <div data-testid="kpi-tasks" className="bg-white border border-slate-200 rounded-md px-4 py-3">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Tasks Today</p>
+                  <p className="text-3xl font-bold text-slate-900">{completedCount}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">of {totalCount} tasks done</p>
+                </div>
+                <div data-testid="kpi-tier" className="bg-white border border-slate-200 rounded-md px-4 py-3">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Compliance Tier</p>
+                  <span className={`inline-block mt-1 text-xs font-bold px-2.5 py-1 rounded-full border ${tier.bg}`}>
+                    {tier.label}
+                  </span>
+                  <p className="text-xs text-slate-400 mt-1.5">based on 7d avg</p>
+                </div>
+              </div>
+
+              {/* Category Performance */}
+              <div>
+                <p className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1.5">
+                  <BarChart3 className="w-3.5 h-3.5 text-purple-500" />
+                  Category Performance
+                </p>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {PERF_CAT_ORDER.map((cat) => {
+                    const cfg = CATEGORY_CONFIG[cat];
+                    const color = SPARKLINE_COLORS[cat];
+                    const catTrend = perfTrend7d.categories[cat];
+                    const sparkData = catTrend.days.map((d) => d.pct);
+                    const stat = perfCatStats[cat] ?? { done: 0, total: 0, pct: 0 };
+                    return (
+                      <div
+                        key={cat}
+                        data-testid={`perf-cat-card-${cat}`}
+                        className="bg-white border border-slate-200 rounded-md p-4"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-semibold text-slate-500 truncate pr-2">{cfg.label}</p>
+                          <PerfTrendIcon trend={catTrend.trend} />
+                        </div>
+                        <div className="flex items-end gap-1.5 mb-1">
+                          <p className={`text-2xl font-bold ${perfTextColor(catTrend.avg7d)}`}>{catTrend.avg7d}%</p>
+                          <p className="text-[10px] text-slate-400 mb-1">7d avg</p>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mb-3">
+                          {stat.done}/{stat.total} tasks done today
+                        </p>
+                        <PerfSparkline data={sparkData} color={color} width={120} height={36} />
+                        <div className="mt-2.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${perfBarColor(stat.pct)}`}
+                            style={{ width: `${stat.pct}%` }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1">{stat.pct}% today</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Frequency tabs */}
         <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1">
           {FREQUENCY_TABS.map((tab) => (
