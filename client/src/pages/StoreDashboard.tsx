@@ -597,7 +597,8 @@ export default function StoreDashboard() {
           </div>
         </section>
 
-        {/* ── Raw task data ─────────────────────────────────────────────── */}
+        {/* ── Raw task data — hidden for Regional/CPO viewers ──────────── */}
+        {!isRegionalOrAbove(safeProfile.role) && (
         <section>
           <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
             <button
@@ -723,6 +724,7 @@ export default function StoreDashboard() {
             </div>
           )}
         </section>
+        )}
       </div>
     </div>
   );
