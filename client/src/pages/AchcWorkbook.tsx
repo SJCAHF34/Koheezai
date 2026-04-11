@@ -948,14 +948,14 @@ export default function AchcWorkbook() {
     return { complete, gap, inProg, total };
   }
 
-  // Section-level document completion counters
+  // Section-level document completion counters (foundation templates only — fixed denominator).
+  // Store docs are additive extras visible in rows but not counted in the section header total
+  // to avoid impossible ratios (e.g. 5/2 docs).
   function sectionDocStats(section: WorkbookSection) {
     const sectionItemIds = section.items.map((i) => i.id);
     const sectionTemplates = FOUNDATION_DOC_TEMPLATES.filter((t) => sectionItemIds.includes(t.itemId));
-    const fdWithUrl = sectionTemplates.filter((t) => foundationDocs.some((d) => d.id === t.id && d.url));
-    const sectionStoreDocs = storeDocs.filter((d) => sectionItemIds.includes(d.itemId));
-    const attached = fdWithUrl.length + sectionStoreDocs.length;
     const total = sectionTemplates.length;
+    const attached = sectionTemplates.filter((t) => foundationDocs.some((d) => d.id === t.id && d.url)).length;
     return { attached, total };
   }
 
