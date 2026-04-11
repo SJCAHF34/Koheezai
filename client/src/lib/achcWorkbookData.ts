@@ -26,9 +26,11 @@ export interface WorkbookSection {
 // ── Document vault types ─────────────────────────────────────────────────────
 
 /** A foundation-wide AHF document that maps to one DRX workbook item.
- *  The `url` is blank until CPO/RPD pastes in the actual link. */
+ *  The `url` is blank until CPO/RPD pastes in the actual link.
+ *  `itemId` corresponds to `drxItemId` in the task specification. */
 export interface FoundationDocTemplate {
   id: string;
+  /** DRX workbook row identifier (same field as `drxItemId` in spec terminology). */
   itemId: string;
   label: string;
   description: string;
