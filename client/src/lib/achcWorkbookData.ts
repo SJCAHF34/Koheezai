@@ -23,6 +23,49 @@ export interface WorkbookSection {
   items: WorkbookCheckItem[];
 }
 
+// ── Document vault types ─────────────────────────────────────────────────────
+
+/** A foundation-wide AHF document that maps to one DRX workbook item.
+ *  The `url` is blank until CPO/RPD pastes in the actual link. */
+export interface FoundationDocTemplate {
+  id: string;
+  itemId: string;
+  label: string;
+  description: string;
+}
+
+/** Pre-populated list of all 24 foundation-wide documents mapped to their DRX item IDs. */
+export const FOUNDATION_DOC_TEMPLATES: FoundationDocTemplate[] = [
+  // Section 1 — Org & Administration
+  { id: "fd-01", itemId: "s1-1", label: "Articles of Incorporation", description: "AHF legal authority to operate" },
+  { id: "fd-02", itemId: "s1-2", label: "Governing Body Bylaws / Ownership Documentation", description: "AHF governing body authority and duties" },
+  { id: "fd-03", itemId: "s1-3", label: "AHF Conflict of Interest (COI) Policy & Procedures", description: "Foundation-wide COI policy" },
+  { id: "fd-04", itemId: "s1-4", label: "AHF Organizational Chart (Jan 2025)", description: "Current org chart — post in every pharmacy location" },
+  { id: "fd-05", itemId: "s1-6", label: "Pharmacy Policy & Procedure (P&P) Manual", description: "Current P&P manual with last review date" },
+  { id: "fd-06", itemId: "s1-7", label: "Patient Welcome Booklet — English", description: "Covers DMEPOS (pg. 7-10) and Patient Rights (pg. 14-16)" },
+  { id: "fd-07", itemId: "s1-7", label: "Patient Welcome Booklet — Spanish", description: "Spanish-language version for distribution" },
+  { id: "fd-08", itemId: "s1-7", label: "Initial Assessment Form Template", description: "Template with 'provided' checkbox for Welcome Booklet" },
+  // Section 2 — Program / Service Operations
+  { id: "fd-09", itemId: "s2-5", label: "AHF Abuse / Mistreatment Reporting P&P", description: "Policy for reporting neglect, abuse, misappropriation" },
+  { id: "fd-10", itemId: "s2-8", label: "Customer Care Line (CCL) Poster — 855-894-MEDS", description: "Post in public/patient waiting area" },
+  { id: "fd-11", itemId: "s2-9", label: "AHF HIPAA Policy & Procedures", description: "PHI/ePHI securing and release policy" },
+  { id: "fd-12", itemId: "s2-9", label: "Notice of Privacy Practices", description: "Patient-facing NPP — post and distribute" },
+  { id: "fd-13", itemId: "s2-10", label: "Business Associate Agreement (BAA) Template", description: "Executed with all vendors having PHI access" },
+  { id: "fd-14", itemId: "s2-11", label: "AHF Ethics P&P", description: "Policy on ethical issues identification and resolution" },
+  { id: "fd-15", itemId: "s2-12", label: "Language Line Instructions / Poster", description: "Posted instructions — never contact patients directly" },
+  { id: "fd-16", itemId: "s2-13", label: "Cultural Competency P&P", description: "Policy for serving diverse patient populations" },
+  { id: "fd-17", itemId: "s2-14", label: "AHF Compliance Program P&P", description: "Fraud and abuse prevention; Hotline 1-800-243-7448" },
+  { id: "fd-18", itemId: "s2-15", label: "CCL After-Hours Call Routing Policy", description: "24/7 CCL coverage; forwarded to CRC-West" },
+  // Section 3 — Fiscal Management
+  { id: "fd-19", itemId: "s3-1", label: "Annual Budget Documentation", description: "Budget with pharmacy leadership participation records" },
+  // Section 4 — Human Resources
+  { id: "fd-20", itemId: "s4-3", label: "Job Descriptions — All Pharmacy Positions", description: "Current JDs matching org chart roles" },
+  { id: "fd-21", itemId: "s4-5", label: "AHF Employee Handbook", description: "Accessible via AHF Connect Home Page" },
+  { id: "fd-22", itemId: "s4-11", label: "CCL Operational Documentation (24/7 Pharmacist Access)", description: "After-hours pharmacist coverage via CRC-West" },
+  { id: "fd-23", itemId: "s4-12", label: "Pharmacist Supervision P&P", description: "State BOP pharmacist-to-tech ratio requirements" },
+  { id: "fd-24", itemId: "s4-14", label: "UpToDate & Facts & Comparison Subscription Confirmation", description: "Reference library access for all pharmacists/staff" },
+];
+
 export const ACHC_WORKBOOK_SECTIONS: WorkbookSection[] = [
   {
     id: "sec1-org-admin",

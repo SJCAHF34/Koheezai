@@ -585,3 +585,94 @@ export function saveRoster(roster: SiteRoster): void {
     localStorage.setItem(STAFF_ROSTER_KEY, JSON.stringify(all));
   } catch {}
 }
+
+// ── ACHC Document Vault ──────────────────────────────────────────────────────
+
+const FOUNDATION_DOCS_KEY = "koheez_achc_foundation_docs";
+const STORE_DOCS_KEY = "koheez_achc_store_docs";
+
+/** A foundation-wide document record: template info + optional URL set by CPO/RPD */
+export interface FoundationDocRecord {
+  id: string;
+  itemId: string;
+  label: string;
+  description: string;
+  url: string;
+  addedBy: string;
+  addedAt: string;
+}
+
+/** A store-specific document record attached by a Pharmacy Director */
+export interface StoreDocRecord {
+  id: string;
+  siteId: string;
+  itemId: string;
+  label: string;
+  url: string;
+  uploadedBy: string;
+  uploadedAt: string;
+}
+
+function readFoundationDocs(): FoundationDocRecord[] {
+  try {
+    const raw = localStorage.getItem(FOUNDATION_DOCS_KEY);
+    return raw ? (JSON.parse(raw) as FoundationDocRecord[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeFoundationDocs(docs: FoundationDocRecord[]): void {
+  try {
+    localStorage.setItem(FOUNDATION_DOCS_KEY, JSON.stringify(docs));
+  } catch {}
+}
+
+/** Load all foundation-wide doc records (globally, not per-site). */
+export function loadFoundationDocs(): FoundationDocRecord[] {
+  return readFoundationDocs();
+}
+
+/** Save (upsert) a single foundation doc record by id. */
+export function saveFoundationDoc(doc: FoundationDocRecord): void {
+  const all = readFoundationDocs().filter((d) => d.id !== doc.id);
+  all.push({ ...doc, addedAt: new Date().toISOString() });
+  writeFoundationDocs(all);
+}
+
+/** Remove a foundation doc record by id (reverts URL to blank). */
+export function removeFoundationDocUrl(id: string): void {
+  writeFoundationDocs(readFoundationDocs().filter((d) => d.id !== id));
+}
+
+function readStoreDocs(): StoreDocRecord[] {
+  try {
+    const raw = localStorage.getItem(STORE_DOCS_KEY);
+    return raw ? (JSON.parse(raw) as StoreDocRecord[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoreDocs(docs: StoreDocRecord[]): void {
+  try {
+    localStorage.setItem(STORE_DOCS_KEY, JSON.stringify(docs));
+  } catch {}
+}
+
+/** Load all store-specific doc records for a given siteId. */
+export function loadStoreDocs(siteId: string): StoreDocRecord[] {
+  return readStoreDocs().filter((d) => d.siteId === siteId);
+}
+
+/** Save (upsert) a store-specific doc record by id. */
+export function saveStoreDoc(doc: StoreDocRecord): void {
+  const all = readStoreDocs().filter((d) => d.id !== doc.id);
+  all.push({ ...doc, uploadedAt: new Date().toISOString() });
+  writeStoreDocs(all);
+}
+
+/** Remove a store-specific doc record by id. */
+export function removeStoreDoc(id: string): void {
+  writeStoreDocs(readStoreDocs().filter((d) => d.id !== id));
+}

@@ -5,28 +5,40 @@ import {
   isTechRole,
   isRegionalOrAbove,
   isCPO,
+  isPharmacyDirector,
 } from "@/lib/userProfile";
 import {
   ACHC_WORKBOOK_SECTIONS,
+  FOUNDATION_DOC_TEMPLATES,
   STAFF_INTERVIEW_QA,
   type WorkbookSection,
   type WorkbookCheckItem,
+  type FoundationDocTemplate,
 } from "@/lib/achcWorkbookData";
 import {
   loadWorkbook,
   saveWorkbook,
   submitWorkbook,
   getCurrentQuarter,
+  loadFoundationDocs,
+  saveFoundationDoc,
+  removeFoundationDocUrl,
+  loadStoreDocs,
+  saveStoreDoc,
+  removeStoreDoc,
   type WorkbookRecord,
   type WorkbookSectionResponse,
   type WorkbookItemResponse,
   type WorkbookItemStatus,
   type WorkbookStatus,
+  type FoundationDocRecord,
+  type StoreDocRecord,
 } from "@/lib/taskStorage";
 import { ALL_STORES, STORE_REGIONS, findStore } from "@/lib/storeDirectory";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Accordion,
@@ -54,6 +66,13 @@ import {
   MessageSquare,
   BookOpen,
   Users,
+  Globe,
+  MapPin,
+  ExternalLink,
+  Plus,
+  X,
+  Link2,
+  FileText,
 } from "lucide-react";
 
 // ── Status helpers ──────────────────────────────────────────────────────────
@@ -256,6 +275,286 @@ function StaffInterviewPrepView() {
   );
 }
 
+// ── Document Section component ────────────────────────────────────────────────
+
+interface DocumentSectionProps {
+  itemId: string;
+  evidenceHint: string;
+  siteId: string;
+  foundationTemplates: FoundationDocTemplate[];
+  foundationDocs: FoundationDocRecord[];
+  storeDocs: StoreDocRecord[];
+  canEditFoundation: boolean;
+  canEditStore: boolean;
+  editorName: string;
+  onFoundationDocSaved: (doc: FoundationDocRecord) => void;
+  onFoundationDocRemoved: (id: string) => void;
+  onStoreDocSaved: (doc: StoreDocRecord) => void;
+  onStoreDocRemoved: (id: string) => void;
+}
+
+function DocumentSection({
+  itemId,
+  evidenceHint,
+  siteId,
+  foundationTemplates,
+  foundationDocs,
+  storeDocs,
+  canEditFoundation,
+  canEditStore,
+  editorName,
+  onFoundationDocSaved,
+  onFoundationDocRemoved,
+  onStoreDocSaved,
+  onStoreDocRemoved,
+}: DocumentSectionProps) {
+  const myTemplates = foundationTemplates.filter((t) => t.itemId === itemId);
+  const myStoreDocs = storeDocs.filter((d) => d.itemId === itemId);
+
+  // editing state: which foundation doc id is in edit mode
+  const [editingFd, setEditingFd] = useState<string | null>(null);
+  const [fdUrlDraft, setFdUrlDraft] = useState("");
+
+  // store doc add form
+  const [addingStore, setAddingStore] = useState(false);
+  const [newStoreLabel, setNewStoreLabel] = useState("");
+  const [newStoreUrl, setNewStoreUrl] = useState("");
+
+  function getFoundationRecord(templateId: string): FoundationDocRecord | undefined {
+    return foundationDocs.find((d) => d.id === templateId);
+  }
+
+  function startEditFd(template: FoundationDocTemplate) {
+    if (!canEditFoundation) return;
+    const existing = getFoundationRecord(template.id);
+    setFdUrlDraft(existing?.url ?? "");
+    setEditingFd(template.id);
+  }
+
+  function commitFdUrl(template: FoundationDocTemplate) {
+    const trimmed = fdUrlDraft.trim();
+    if (trimmed) {
+      onFoundationDocSaved({
+        id: template.id,
+        itemId: template.itemId,
+        label: template.label,
+        description: template.description,
+        url: trimmed,
+        addedBy: editorName,
+        addedAt: new Date().toISOString(),
+      });
+    } else {
+      onFoundationDocRemoved(template.id);
+    }
+    setEditingFd(null);
+    setFdUrlDraft("");
+  }
+
+  function commitStoreDoc() {
+    const label = newStoreLabel.trim();
+    const url = newStoreUrl.trim();
+    if (!label || !url) return;
+    const id = `sd-${siteId}-${itemId}-${Date.now()}`;
+    onStoreDocSaved({
+      id,
+      siteId,
+      itemId,
+      label,
+      url,
+      uploadedBy: editorName,
+      uploadedAt: new Date().toISOString(),
+    });
+    setNewStoreLabel("");
+    setNewStoreUrl("");
+    setAddingStore(false);
+  }
+
+  const hasAnyDocs = myTemplates.some((t) => !!getFoundationRecord(t.id)?.url) || myStoreDocs.length > 0;
+
+  return (
+    <div className="space-y-2" data-testid={`workbook-item-docs-${itemId}`}>
+      {/* Foundation docs */}
+      {myTemplates.length > 0 && (
+        <div className="space-y-1.5">
+          {myTemplates.map((template) => {
+            const record = getFoundationRecord(template.id);
+            const hasUrl = !!record?.url;
+            const isEditing = editingFd === template.id;
+
+            return (
+              <div key={template.id} className="flex flex-wrap items-start gap-2" data-testid={`workbook-fd-${template.id}`}>
+                <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                <span className="text-xs text-foreground flex-1 min-w-0" title={template.description}>{template.label}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {hasUrl && !isEditing && (
+                    <a
+                      href={record!.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      data-testid={`workbook-fd-view-${template.id}`}
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      View
+                    </a>
+                  )}
+                  {canEditFoundation && !isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => startEditFd(template)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                      data-testid={`workbook-fd-edit-${template.id}`}
+                    >
+                      {hasUrl ? "Edit URL" : "Add URL"}
+                    </button>
+                  )}
+                  {!hasUrl && !canEditFoundation && (
+                    <span className="text-xs text-muted-foreground italic">No URL yet</span>
+                  )}
+                </div>
+                {isEditing && (
+                  <div className="w-full flex items-center gap-1.5 mt-1" data-testid={`workbook-fd-editor-${template.id}`}>
+                    <Input
+                      type="url"
+                      placeholder="Paste SharePoint / Box / Dropbox URL…"
+                      value={fdUrlDraft}
+                      onChange={(e) => setFdUrlDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commitFdUrl(template);
+                        if (e.key === "Escape") { setEditingFd(null); setFdUrlDraft(""); }
+                      }}
+                      className="text-xs h-7 flex-1 min-w-0"
+                      autoFocus
+                      data-testid={`workbook-fd-url-input-${template.id}`}
+                    />
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs px-2"
+                      onClick={() => commitFdUrl(template)}
+                      data-testid={`workbook-fd-save-${template.id}`}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => { setEditingFd(null); setFdUrlDraft(""); }}
+                      data-testid={`workbook-fd-cancel-${template.id}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Store-specific docs */}
+      {myStoreDocs.length > 0 && (
+        <div className="space-y-1.5">
+          {myStoreDocs.map((doc) => (
+            <div key={doc.id} className="flex flex-wrap items-start gap-2" data-testid={`workbook-sd-${doc.id}`}>
+              <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+              <span className="text-xs text-foreground flex-1 min-w-0">{doc.label}</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <a
+                  href={doc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  data-testid={`workbook-sd-view-${doc.id}`}
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  View
+                </a>
+                {canEditStore && (
+                  <button
+                    type="button"
+                    onClick={() => onStoreDocRemoved(doc.id)}
+                    className="text-xs text-red-500 hover:text-red-700"
+                    data-testid={`workbook-sd-remove-${doc.id}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Empty state with hint */}
+      {!hasAnyDocs && !canEditFoundation && !canEditStore && (
+        <p className="text-xs text-muted-foreground italic">No documents attached yet.</p>
+      )}
+
+      {/* Store doc add form */}
+      {canEditStore && !addingStore && (
+        <button
+          type="button"
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          onClick={() => setAddingStore(true)}
+          data-testid={`workbook-sd-add-btn-${itemId}`}
+        >
+          <Plus className="w-3 h-3" />
+          Add store document
+        </button>
+      )}
+      {canEditStore && addingStore && (
+        <div className="space-y-1.5 pt-1" data-testid={`workbook-sd-add-form-${itemId}`}>
+          <div className="flex gap-1.5">
+            <Input
+              type="text"
+              placeholder="Document label…"
+              value={newStoreLabel}
+              onChange={(e) => setNewStoreLabel(e.target.value)}
+              className="text-xs h-7 flex-1"
+              data-testid={`workbook-sd-label-input-${itemId}`}
+            />
+            <Input
+              type="url"
+              placeholder="URL…"
+              value={newStoreUrl}
+              onChange={(e) => setNewStoreUrl(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") commitStoreDoc(); }}
+              className="text-xs h-7 flex-1"
+              data-testid={`workbook-sd-url-input-${itemId}`}
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              className="h-7 text-xs px-2"
+              onClick={commitStoreDoc}
+              disabled={!newStoreLabel.trim() || !newStoreUrl.trim()}
+              data-testid={`workbook-sd-save-btn-${itemId}`}
+            >
+              Save
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs px-2"
+              onClick={() => { setAddingStore(false); setNewStoreLabel(""); setNewStoreUrl(""); }}
+              data-testid={`workbook-sd-cancel-btn-${itemId}`}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Evidence hint */}
+      <p className="text-xs text-muted-foreground leading-relaxed mt-1" data-testid={`workbook-item-evidence-${itemId}`}>
+        <span className="font-medium">Hint:</span> {evidenceHint}
+      </p>
+    </div>
+  );
+}
+
 // ── Workbook item row (director/viewer) ──────────────────────────────────────
 
 interface ItemRowProps {
@@ -266,9 +565,27 @@ interface ItemRowProps {
   submitted: boolean;
   onStatusChange: (sectionId: string, itemId: string, status: WorkbookItemStatus) => void;
   onNotesChange: (sectionId: string, itemId: string, notes: string) => void;
+  // Doc vault
+  siteId: string;
+  foundationTemplates: FoundationDocTemplate[];
+  foundationDocs: FoundationDocRecord[];
+  storeDocs: StoreDocRecord[];
+  canEditFoundation: boolean;
+  canEditStore: boolean;
+  editorName: string;
+  onFoundationDocSaved: (doc: FoundationDocRecord) => void;
+  onFoundationDocRemoved: (id: string) => void;
+  onStoreDocSaved: (doc: StoreDocRecord) => void;
+  onStoreDocRemoved: (id: string) => void;
 }
 
-function ItemRow({ item, itemResp, sectionId, readonly, submitted, onStatusChange, onNotesChange }: ItemRowProps) {
+function ItemRow({
+  item, itemResp, sectionId, readonly, submitted,
+  onStatusChange, onNotesChange,
+  siteId, foundationTemplates, foundationDocs, storeDocs,
+  canEditFoundation, canEditStore, editorName,
+  onFoundationDocSaved, onFoundationDocRemoved, onStoreDocSaved, onStoreDocRemoved,
+}: ItemRowProps) {
   const [notesOpen, setNotesOpen] = useState(false);
 
   const isEditable = !readonly && !submitted;
@@ -311,15 +628,32 @@ function ItemRow({ item, itemResp, sectionId, readonly, submitted, onStatusChang
 
       {/* Item detail rows */}
       <div className="border-t bg-muted/20 px-4 py-3 space-y-2.5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">AHF Required Action</p>
-            <p className="text-xs text-foreground leading-relaxed" data-testid={`workbook-item-action-${item.id}`}>{item.ahfAction}</p>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">AHF Required Action</p>
+          <p className="text-xs text-foreground leading-relaxed" data-testid={`workbook-item-action-${item.id}`}>{item.ahfAction}</p>
+        </div>
+
+        {/* Document vault */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Documents</p>
           </div>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Evidence / Document Needed</p>
-            <p className="text-xs text-foreground leading-relaxed" data-testid={`workbook-item-evidence-${item.id}`}>{item.evidence}</p>
-          </div>
+          <DocumentSection
+            itemId={item.id}
+            evidenceHint={item.evidence}
+            siteId={siteId}
+            foundationTemplates={foundationTemplates}
+            foundationDocs={foundationDocs}
+            storeDocs={storeDocs}
+            canEditFoundation={canEditFoundation}
+            canEditStore={canEditStore && isEditable}
+            editorName={editorName}
+            onFoundationDocSaved={onFoundationDocSaved}
+            onFoundationDocRemoved={onFoundationDocRemoved}
+            onStoreDocSaved={onStoreDocSaved}
+            onStoreDocRemoved={onStoreDocRemoved}
+          />
         </div>
 
         {/* Notes section */}
@@ -378,6 +712,8 @@ export default function AchcWorkbook() {
 
   const isViewer = profile ? isRegionalOrAbove(profile.role) : false;
   const canBrowseAll = profile ? isCPO(profile.role) : false;
+  const canEditFoundation = profile ? isRegionalOrAbove(profile.role) : false;
+  const canEditStore = profile ? isPharmacyDirector(profile.role) : false;
 
   const defaultSiteId = isViewer ? "" : (profile?.siteId ?? "");
   const [selectedSiteId, setSelectedSiteId] = useState<string>(defaultSiteId);
@@ -392,11 +728,46 @@ export default function AchcWorkbook() {
 
   const [record, setRecord] = useState<WorkbookRecord | null>(null);
 
+  // Document vault state
+  const [foundationDocs, setFoundationDocs] = useState<FoundationDocRecord[]>([]);
+  const [storeDocs, setStoreDocs] = useState<StoreDocRecord[]>([]);
+
   useEffect(() => {
     if (!activeSiteId) return;
     const existing = loadWorkbook(activeSiteId, quarter);
     setRecord(existing ?? buildEmptyRecord(activeSiteId, quarter));
   }, [activeSiteId, quarter]);
+
+  // Load doc vault on mount (foundation docs are global; store docs are per-site)
+  useEffect(() => {
+    setFoundationDocs(loadFoundationDocs());
+  }, []);
+
+  useEffect(() => {
+    if (!activeSiteId) return;
+    setStoreDocs(loadStoreDocs(activeSiteId));
+  }, [activeSiteId]);
+
+  // Doc vault handlers
+  const handleFoundationDocSaved = useCallback((doc: FoundationDocRecord) => {
+    saveFoundationDoc(doc);
+    setFoundationDocs(loadFoundationDocs());
+  }, []);
+
+  const handleFoundationDocRemoved = useCallback((id: string) => {
+    removeFoundationDocUrl(id);
+    setFoundationDocs(loadFoundationDocs());
+  }, []);
+
+  const handleStoreDocSaved = useCallback((doc: StoreDocRecord) => {
+    saveStoreDoc(doc);
+    if (activeSiteId) setStoreDocs(loadStoreDocs(activeSiteId));
+  }, [activeSiteId]);
+
+  const handleStoreDocRemoved = useCallback((id: string) => {
+    removeStoreDoc(id);
+    if (activeSiteId) setStoreDocs(loadStoreDocs(activeSiteId));
+  }, [activeSiteId]);
 
   const [attestorName, setAttestorName] = useState(profile?.name ?? "");
   const [submitted, setSubmitted] = useState(false);
@@ -466,6 +837,17 @@ export default function AchcWorkbook() {
     const inProg = secResp.items.filter((i) => i.status === "in_progress").length;
     const total = secResp.items.length;
     return { complete, gap, inProg, total };
+  }
+
+  // Section-level document completion counters
+  function sectionDocStats(section: WorkbookSection) {
+    const sectionItemIds = section.items.map((i) => i.id);
+    const sectionTemplates = FOUNDATION_DOC_TEMPLATES.filter((t) => sectionItemIds.includes(t.itemId));
+    const fdWithUrl = sectionTemplates.filter((t) => foundationDocs.some((d) => d.id === t.id && d.url));
+    const sectionStoreDocs = storeDocs.filter((d) => sectionItemIds.includes(d.itemId));
+    const attached = fdWithUrl.length + sectionStoreDocs.length;
+    const total = sectionTemplates.length;
+    return { attached, total };
   }
 
   return (
@@ -586,6 +968,7 @@ export default function AchcWorkbook() {
           {ACHC_WORKBOOK_SECTIONS.map((section: WorkbookSection) => {
             const secResp = getSectionResponse(record, section.id);
             const stats = sectionStats(record, section.id);
+            const docStats = sectionDocStats(section);
 
             return (
               <AccordionItem
@@ -598,7 +981,18 @@ export default function AchcWorkbook() {
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <span className="text-xs font-semibold text-muted-foreground shrink-0">Sec {section.sectionNumber}</span>
                     <span className="font-medium text-sm text-left">{section.title}</span>
-                    <div className="flex items-center gap-2 ml-auto mr-2 shrink-0">
+                    <div className="flex items-center gap-3 ml-auto mr-2 shrink-0">
+                      {docStats.total > 0 && (
+                        <span
+                          className={`flex items-center gap-1 text-xs font-medium ${
+                            docStats.attached === docStats.total ? "text-emerald-600" : docStats.attached > 0 ? "text-amber-600" : "text-muted-foreground"
+                          }`}
+                          data-testid={`workbook-section-docs-${section.id}`}
+                        >
+                          <Link2 className="w-3 h-3" />
+                          {docStats.attached}/{docStats.total} docs
+                        </span>
+                      )}
                       {stats.gap > 0 && (
                         <span className="text-xs text-red-600 font-medium">{stats.gap} gap{stats.gap !== 1 ? "s" : ""}</span>
                       )}
@@ -629,6 +1023,17 @@ export default function AchcWorkbook() {
                           submitted={submitted}
                           onStatusChange={handleStatusChange}
                           onNotesChange={handleItemNotes}
+                          siteId={activeSiteId}
+                          foundationTemplates={FOUNDATION_DOC_TEMPLATES}
+                          foundationDocs={foundationDocs}
+                          storeDocs={storeDocs}
+                          canEditFoundation={canEditFoundation}
+                          canEditStore={canEditStore}
+                          editorName={profile?.name ?? ""}
+                          onFoundationDocSaved={handleFoundationDocSaved}
+                          onFoundationDocRemoved={handleFoundationDocRemoved}
+                          onStoreDocSaved={handleStoreDocSaved}
+                          onStoreDocRemoved={handleStoreDocRemoved}
                         />
                       );
                     })}
