@@ -235,7 +235,7 @@ function SiteCard({
         </span>
         <span className="text-xs font-semibold text-purple-600 flex items-center gap-1 group-hover:gap-1.5 transition-all">
           <Eye className="w-3 h-3" />
-          View tasks
+          View dashboard
           <ChevronRight className="w-3 h-3" />
         </span>
       </div>
@@ -378,7 +378,7 @@ export default function RegionalDashboard() {
   });
 
   const handleDrillDown = (siteId: string) => {
-    navigate(`/app/tasks?siteId=${siteId}`);
+    navigate(`/app/store/${siteId}`);
   };
 
   return (

@@ -16,6 +16,7 @@ import RegionalDashboard from "@/pages/RegionalDashboard";
 import CategoryReport from "@/pages/CategoryReport";
 import AchcWorkbook from "@/pages/AchcWorkbook";
 import CQIMeeting from "@/pages/CQIMeeting";
+import StoreDashboard from "@/pages/StoreDashboard";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole } from "@/lib/userProfile";
@@ -199,6 +200,23 @@ function RegionalProtected({ component: Component }: { component: () => JSX.Elem
   );
 }
 
+// ── DirectorProtected: allows pharmacy_director and above ───────────────────
+function DirectorProtected({ component: Component }: { component: () => JSX.Element | null }) {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  if (isLoading) return <Spinner />;
+  if (!isAuthenticated) return <Redirect to="/login" />;
+  if (user) {
+    const profile = getUserProfile(user.email, user.name ?? "");
+    if (!isDirectorRole(profile.role)) return <Redirect to="/app/tasks" />;
+  }
+  return (
+    <>
+      <AppNav />
+      <Component />
+    </>
+  );
+}
+
 // ── Main router ────────────────────────────────────────────────────────────
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -237,6 +255,10 @@ function Router() {
       </Route>
       <Route path="/app/cqi-meeting">
         <Protected component={CQIMeeting} />
+      </Route>
+      {/* Store Performance Dashboard — director and above only */}
+      <Route path="/app/store/:siteId">
+        <DirectorProtected component={StoreDashboard} />
       </Route>
       <Route component={NotFound} />
     </Switch>
