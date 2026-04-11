@@ -640,6 +640,11 @@ export function saveFoundationDoc(doc: FoundationDocRecord): void {
   writeFoundationDocs(all);
 }
 
+/** Save (replace) the full collection of foundation doc records. Plural alias for bulk ops. */
+export function saveFoundationDocs(docs: FoundationDocRecord[]): void {
+  writeFoundationDocs(docs.map((d) => ({ ...d, addedAt: d.addedAt || new Date().toISOString() })));
+}
+
 /** Remove a foundation doc record by id (reverts URL to blank). */
 export function removeFoundationDocUrl(id: string): void {
   writeFoundationDocs(readFoundationDocs().filter((d) => d.id !== id));
@@ -670,6 +675,12 @@ export function saveStoreDoc(doc: StoreDocRecord): void {
   const all = readStoreDocs().filter((d) => d.id !== doc.id);
   all.push({ ...doc, uploadedAt: new Date().toISOString() });
   writeStoreDocs(all);
+}
+
+/** Save (replace) all store docs for a given site. Plural alias for bulk ops. */
+export function saveStoreDocs(siteId: string, docs: StoreDocRecord[]): void {
+  const others = readStoreDocs().filter((d) => d.siteId !== siteId);
+  writeStoreDocs([...others, ...docs.map((d) => ({ ...d, uploadedAt: d.uploadedAt || new Date().toISOString() }))]);
 }
 
 /** Remove a store-specific doc record by id. */

@@ -340,9 +340,13 @@ function DocumentSection({
     setSavedFd(null);
   }
 
+  function isValidUrl(url: string): boolean {
+    try { return /^https?:\/\//i.test(new URL(url).href); } catch { return false; }
+  }
+
   function commitFdUrl(template: FoundationDocTemplate) {
     const trimmed = fdUrlDraft.trim();
-    if (trimmed) {
+    if (trimmed && isValidUrl(trimmed)) {
       onFoundationDocSaved({
         id: template.id,
         itemId: template.itemId,
@@ -354,11 +358,14 @@ function DocumentSection({
       });
       setSavedFd(template.id);
       setTimeout(() => setSavedFd(null), 2000);
-    } else {
+    } else if (!trimmed) {
       onFoundationDocRemoved(template.id);
     }
-    setEditingFd(null);
-    setFdUrlDraft("");
+    // if invalid URL, stay in editing mode
+    if (!trimmed || isValidUrl(trimmed)) {
+      setEditingFd(null);
+      setFdUrlDraft("");
+    }
   }
 
   function commitStoreDoc() {
