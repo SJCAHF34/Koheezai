@@ -419,32 +419,97 @@ function RegionCard({
   );
 }
 
-// ── Simple store card (for sites without full trend data) ──────────────────
-function SimpleStoreCard({
+// ── Carousel store card — shows real today stats + optional 7d trend ────────
+function CarouselStoreCard({
   store,
+  realStats,
+  trend,
   onDrillDown,
 }: {
   store: StoreLocation;
+  realStats: SiteRealStats;
+  trend?: SiteTrend;
   onDrillDown: (id: string) => void;
 }) {
+  const orderedCats: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
+  const todayPct = realStats.todayAvg;
+
   return (
     <button
       data-testid={`site-carousel-${store.id}`}
       onClick={() => onDrillDown(store.id)}
-      className="w-full h-full text-left bg-white border border-slate-200 rounded-md px-5 py-4 hover:shadow-md transition-shadow group flex flex-col justify-between"
+      className="w-full text-left bg-white border border-slate-200 rounded-md overflow-hidden hover:shadow-md transition-shadow group"
     >
-      <div>
-        <div className="flex items-center gap-1.5 mb-1">
-          <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-          <p className="text-sm font-bold text-slate-800 truncate">{store.name}</p>
+      {/* Header */}
+      <div className="px-5 pt-4 pb-3 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+            <p className="text-sm font-bold text-slate-800 truncate">{store.name}</p>
+          </div>
+          <p className="text-xs text-slate-400 pl-4">#{store.id}</p>
         </div>
-        <p className="text-xs text-slate-400 pl-4">#{store.id}</p>
+        <div className="text-right shrink-0">
+          <p className={`text-2xl font-bold ${completionTextColor(todayPct)}`}>{todayPct}%</p>
+          <p className="text-[10px] text-slate-400">Today</p>
+        </div>
       </div>
-      <span className="mt-4 text-xs font-semibold text-purple-600 flex items-center gap-1 group-hover:gap-1.5 transition-all">
-        <Eye className="w-3 h-3" />
-        View dashboard
-        <ChevronRight className="w-3 h-3" />
-      </span>
+
+      {/* Per-category bars */}
+      <div className="px-5 pb-3 grid grid-cols-2 gap-x-5 gap-y-3">
+        {orderedCats.map((cat) => {
+          const cfg = CATEGORY_CONFIG[cat];
+          const todayCat = realStats.catPcts[cat];
+          const weekAvgCat = trend?.categories[cat].avg7d;
+          return (
+            <div key={cat}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-slate-500">
+                  {shortLabel(cfg.label)}
+                </span>
+                {trend && <TrendIcon trend={trend.categories[cat].trend} />}
+              </div>
+              {/* Today bar */}
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[9px] text-slate-400 w-7 shrink-0">Today</span>
+                <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${completionBarColor(todayCat)}`}
+                    style={{ width: `${todayCat}%` }}
+                  />
+                </div>
+                <span className={`text-[9px] font-bold w-6 text-right ${completionTextColor(todayCat)}`}>
+                  {todayCat}%
+                </span>
+              </div>
+              {/* 7-day avg bar (only when trend data available) */}
+              {weekAvgCat !== undefined && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-slate-400 w-7 shrink-0">7d</span>
+                  <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 opacity-50 ${completionBarColor(weekAvgCat)}`}
+                      style={{ width: `${weekAvgCat}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] text-slate-400 w-6 text-right font-medium">
+                    {weekAvgCat}%
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div className="px-5 pb-3.5 flex items-center justify-end">
+        <span className="text-xs font-semibold text-purple-600 flex items-center gap-1 group-hover:gap-1.5 transition-all">
+          <Eye className="w-3 h-3" />
+          View dashboard
+          <ChevronRight className="w-3 h-3" />
+        </span>
+      </div>
     </button>
   );
 }
@@ -527,18 +592,20 @@ function SiteBreakdownCarousel({
       >
         {region.stores.map((store) => {
           const trend = allTrends.find((t) => t.siteId === store.id);
-          const realStats = realStatsBySite.get(store.id);
+          // Use pre-computed stats for SITES; compute on-the-fly for all other stores
+          const realStats = realStatsBySite.get(store.id) ?? computeSiteRealStats(store.id);
           return (
             <div
               key={store.id}
               className="shrink-0"
               style={{ width: `${CARD_WIDTH}px`, scrollSnapAlign: "start" }}
             >
-              {trend && realStats ? (
-                <SiteCard trend={trend} realStats={realStats} onDrillDown={onDrillDown} />
-              ) : (
-                <SimpleStoreCard store={store} onDrillDown={onDrillDown} />
-              )}
+              <CarouselStoreCard
+                store={store}
+                realStats={realStats}
+                trend={trend}
+                onDrillDown={onDrillDown}
+              />
             </div>
           );
         })}
