@@ -3283,7 +3283,7 @@ function PerfTrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
   return <Minus className="w-3.5 h-3.5 text-slate-400" />;
 }
 
-const PERF_CAT_ORDER: TaskCategory[] = ["achc", "state_board", "operations", "retention"];
+const PERF_CAT_ORDER: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -3608,9 +3608,9 @@ export default function TaskManager() {
       <div className="max-w-4xl mx-auto px-6 py-6 space-y-5">
         {/* ── Store Performance Panel — shown when CPO/Regional drills into a store ── */}
         {isRegionalDir && urlSiteId && (() => {
-          const dailyTasks = TASKS.filter((t) => t.frequency === "daily");
-          const completedCount = dailyTasks.filter((t) => completions.has(t.id)).length;
-          const totalCount = dailyTasks.length;
+          // Use perfCatStats (loaded from daily completions, independent of frequency tab)
+          const completedCount = TREND_CATEGORIES.reduce((s, cat) => s + (perfCatStats[cat]?.done ?? 0), 0);
+          const totalCount = TREND_CATEGORIES.reduce((s, cat) => s + (perfCatStats[cat]?.total ?? 0), 0);
           const todayPct = Math.round(
             TREND_CATEGORIES.reduce((s, cat) => s + (perfCatStats[cat]?.pct ?? 0), 0) / TREND_CATEGORIES.length
           );
