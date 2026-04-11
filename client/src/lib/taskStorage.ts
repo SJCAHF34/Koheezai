@@ -633,8 +633,14 @@ export function loadFoundationDocs(): FoundationDocRecord[] {
   return readFoundationDocs();
 }
 
-/** Save (upsert) a single foundation doc record by id. */
+/** Validate URL scheme as http(s) only. Returns false for javascript:, data:, etc. */
+function isHttpUrlFd(url: string): boolean {
+  try { return /^https?:\/\//i.test(new URL(url).href); } catch { return false; }
+}
+
+/** Save (upsert) a single foundation doc record by id. Rejects non-http(s) URLs. */
 export function saveFoundationDoc(doc: FoundationDocRecord): void {
+  if (!isHttpUrlFd(doc.url)) return;
   const all = readFoundationDocs().filter((d) => d.id !== doc.id);
   all.push({ ...doc, addedAt: new Date().toISOString() });
   writeFoundationDocs(all);
@@ -642,7 +648,11 @@ export function saveFoundationDoc(doc: FoundationDocRecord): void {
 
 /** Save (replace) the full collection of foundation doc records. Plural alias for bulk ops. */
 export function saveFoundationDocs(docs: FoundationDocRecord[]): void {
-  writeFoundationDocs(docs.map((d) => ({ ...d, addedAt: d.addedAt || new Date().toISOString() })));
+  writeFoundationDocs(
+    docs
+      .filter((d) => isHttpUrlFd(d.url))
+      .map((d) => ({ ...d, addedAt: d.addedAt || new Date().toISOString() }))
+  );
 }
 
 /** Remove a foundation doc record by id (reverts URL to blank). */
