@@ -35,6 +35,9 @@ import {
   dismissPriority,
   removePriority,
   hasPriority,
+  loadUrgentTasks,
+  saveUrgentTask,
+  removeUrgentTask,
   loadHandoffNoteForRoleAndDate,
   loadHandoffNotesForRole,
   saveHandoffNote,
@@ -328,12 +331,15 @@ function TaskRow({
   canAssign,
   canPrioritize,
   isPrioritized,
+  isUrgentFromRegional,
+  canMarkUrgent,
   readOnly,
   siteId,
   highlighted,
   onToggle,
   onAssign,
   onPrioritize,
+  onMarkUrgent,
 }: {
   task: PharmacyTask;
   completed: boolean;
@@ -342,12 +348,15 @@ function TaskRow({
   canAssign: boolean;
   canPrioritize: boolean;
   isPrioritized: boolean;
+  isUrgentFromRegional: boolean;
+  canMarkUrgent: boolean;
   readOnly?: boolean;
   siteId?: string;
   highlighted?: boolean;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
+  onMarkUrgent: (t: PharmacyTask) => void;
 }) {
   const cat = CATEGORY_CONFIG[task.category];
   return (
@@ -357,7 +366,13 @@ function TaskRow({
       className={`flex items-start gap-3 px-4 py-3 group transition-all duration-300 ${
         highlighted
           ? "bg-amber-50 ring-2 ring-inset ring-amber-400"
-          : animating ? "bg-green-50" : completed ? "opacity-55" : "hover:bg-slate-50/70"
+          : animating
+          ? "bg-green-50"
+          : completed
+          ? "bg-green-50"
+          : isUrgentFromRegional
+          ? "bg-red-50"
+          : "hover:bg-slate-50/70"
       }`}
     >
       <TaskCheckbox
@@ -370,8 +385,8 @@ function TaskRow({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          {task.isUrgent && !completed && (
-            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-50 text-red-600">
+          {(task.isUrgent || isUrgentFromRegional) && !completed && (
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-100 text-red-700">
               <AlertTriangle className="w-2.5 h-2.5" />
               Urgent
             </span>
@@ -456,6 +471,22 @@ function TaskRow({
         {cat.label}
       </span>
 
+      {/* Mark Urgent button — regional directors only */}
+      {canMarkUrgent && !readOnly && (
+        <button
+          data-testid={`button-mark-urgent-${task.id}`}
+          onClick={() => onMarkUrgent(task)}
+          title={isUrgentFromRegional ? "Remove urgent flag" : "Mark as urgent for this store"}
+          className={`shrink-0 p-1.5 rounded-md transition-colors ${
+            isUrgentFromRegional
+              ? "text-red-600 bg-red-50 visible"
+              : "invisible group-hover:visible text-slate-400 hover:text-red-600 hover:bg-red-50"
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4" />
+        </button>
+      )}
+
       {/* Priority alert button — directors only */}
       {canPrioritize && !readOnly && (
         <button
@@ -496,14 +527,17 @@ function TaskGroupSection({
   animating,
   assignments,
   priorities,
+  urgentIds,
   canAssign,
   canPrioritize,
+  canMarkUrgent,
   readOnly,
   siteId,
   highlightTaskId,
   onToggle,
   onAssign,
   onPrioritize,
+  onMarkUrgent,
 }: {
   groupName: string;
   tasks: PharmacyTask[];
@@ -511,18 +545,29 @@ function TaskGroupSection({
   animating: Set<string>;
   assignments: Map<string, TaskAssignment>;
   priorities: Set<string>;
+  urgentIds: Set<string>;
   canAssign: boolean;
   canPrioritize: boolean;
+  canMarkUrgent: boolean;
   readOnly?: boolean;
   siteId?: string;
   highlightTaskId?: string | null;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
+  onMarkUrgent: (t: PharmacyTask) => void;
 }) {
   const [open, setOpen] = useState(true);
   const done = tasks.filter((t) => completions.has(t.id)).length;
   const allDone = done === tasks.length;
+
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aUrgent = (a.isUrgent || urgentIds.has(a.id)) && !completions.has(a.id);
+    const bUrgent = (b.isUrgent || urgentIds.has(b.id)) && !completions.has(b.id);
+    if (aUrgent && !bUrgent) return -1;
+    if (!aUrgent && bUrgent) return 1;
+    return 0;
+  });
 
   return (
     <div className="border-b border-slate-100 last:border-b-0">
@@ -550,7 +595,7 @@ function TaskGroupSection({
 
       {open && (
         <div className="divide-y divide-slate-50">
-          {tasks.map((task) => (
+          {sortedTasks.map((task) => (
             <TaskRow
               key={task.id}
               task={task}
@@ -560,12 +605,15 @@ function TaskGroupSection({
               canAssign={canAssign}
               canPrioritize={canPrioritize}
               isPrioritized={priorities.has(task.id)}
+              isUrgentFromRegional={urgentIds.has(task.id)}
+              canMarkUrgent={canMarkUrgent}
               readOnly={readOnly}
               siteId={siteId}
               highlighted={task.id === highlightTaskId}
               onToggle={onToggle}
               onAssign={onAssign}
               onPrioritize={onPrioritize}
+              onMarkUrgent={onMarkUrgent}
             />
           ))}
         </div>
@@ -583,14 +631,17 @@ function RoleSection({
   animating,
   assignments,
   priorities,
+  urgentIds,
   canAssign,
   canPrioritize,
+  canMarkUrgent,
   readOnly,
   siteId,
   highlightTaskId,
   onToggle,
   onAssign,
   onPrioritize,
+  onMarkUrgent,
 }: {
   role: TaskRole;
   groups: Array<{ groupName: string; tasks: PharmacyTask[] }>;
@@ -598,14 +649,17 @@ function RoleSection({
   animating: Set<string>;
   assignments: Map<string, TaskAssignment>;
   priorities: Set<string>;
+  urgentIds: Set<string>;
   canAssign: boolean;
   canPrioritize: boolean;
+  canMarkUrgent: boolean;
   readOnly?: boolean;
   siteId?: string;
   highlightTaskId?: string | null;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
+  onMarkUrgent: (t: PharmacyTask) => void;
 }) {
   const [open, setOpen] = useState(true);
   const style = ROLE_STYLE[role];
@@ -672,13 +726,16 @@ function RoleSection({
               animating={animating}
               assignments={assignments}
               priorities={priorities}
+              urgentIds={urgentIds}
               canAssign={canAssign}
               canPrioritize={canPrioritize}
+              canMarkUrgent={canMarkUrgent}
               readOnly={readOnly}
               highlightTaskId={highlightTaskId}
               onToggle={onToggle}
               onAssign={onAssign}
               onPrioritize={onPrioritize}
+              onMarkUrgent={onMarkUrgent}
             />
           ))}
         </div>
@@ -3204,12 +3261,14 @@ export default function TaskManager() {
   const [prioritizingTask, setPrioritizingTask] = useState<PharmacyTask | null>(null);
   const [activePriorities, setActivePriorities] = useState<TaskPriority[]>([]);
   const [priorityIds, setPriorityIds] = useState<Set<string>>(new Set());
+  const [urgentIds, setUrgentIds] = useState<Set<string>>(new Set());
   const [todayHandoffs, setTodayHandoffs] = useState<HandoffNote[]>([]);
 
   const siteId = urlSiteId ?? profile?.siteId ?? "1417";
   const isDir = isDirectorRole(profile?.role ?? "pharmacist_1");
   const isPharmDir = profile ? isPharmacyDirector(profile.role) : false;
   const canPrioritize = isDir && !isTechRole(profile?.role ?? "pharmacist_1");
+  const canMarkUrgent = isRegionalDir && !!urlSiteId;
 
   useEffect(() => {
     if (!profile) return;
@@ -3227,6 +3286,7 @@ export default function TaskManager() {
     const pList = loadPriorities(siteId);
     setActivePriorities(pList);
     setPriorityIds(new Set(pList.map((p) => p.taskId)));
+    setUrgentIds(loadUrgentTasks(siteId));
     // Load today's handoff tasks and purge stale entries
     purgeStaleHandoffNotes();
     setTodayHandoffs(loadHandoffNotesForRole(siteId, getTodayDateKey(), profile.role));
@@ -3312,6 +3372,22 @@ export default function TaskManager() {
       setTodayHandoffs(loadHandoffNotesForRole(siteId, today, profile.role));
     }
   }, [siteId, profile]);
+
+  const handleMarkUrgent = useCallback((task: PharmacyTask) => {
+    if (!profile || !urlSiteId) return;
+    const isCurrentlyUrgent = urgentIds.has(task.id);
+    if (isCurrentlyUrgent) {
+      removeUrgentTask(urlSiteId, task.id);
+      setUrgentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
+    } else {
+      saveUrgentTask(urlSiteId, task.id, profile.email);
+      setUrgentIds((prev) => new Set([...prev, task.id]));
+    }
+  }, [profile, urlSiteId, urgentIds]);
 
   if (!profile) return null;
 
@@ -3602,14 +3678,17 @@ export default function TaskManager() {
                 animating={animating}
                 assignments={assignments}
                 priorities={priorityIds}
+                urgentIds={urgentIds}
                 canAssign={isDir}
                 canPrioritize={canPrioritize}
+                canMarkUrgent={canMarkUrgent}
                 readOnly={readOnly}
                 siteId={siteId}
                 highlightTaskId={highlightTaskId}
                 onToggle={toggleCompletion}
                 onAssign={setAssigningTask}
                 onPrioritize={setPrioritizingTask}
+                onMarkUrgent={handleMarkUrgent}
               />
             ))}
           </div>

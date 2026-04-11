@@ -251,6 +251,54 @@ export function hasPriority(taskId: string, siteId: string): boolean {
   return readPriorities().some((p) => p.taskId === taskId && p.siteId === siteId && !p.dismissed);
 }
 
+// ── Regional Urgent Tasks ──────────────────────────────────────────────────
+
+export interface UrgentTask {
+  siteId: string;
+  taskId: string;
+  markedBy: string;
+  markedAt: string;
+}
+
+const URGENT_KEY = "koheez_urgent_tasks";
+
+function readUrgentTasks(): UrgentTask[] {
+  try {
+    const raw = localStorage.getItem(URGENT_KEY);
+    return raw ? (JSON.parse(raw) as UrgentTask[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeUrgentTasks(tasks: UrgentTask[]): void {
+  try {
+    localStorage.setItem(URGENT_KEY, JSON.stringify(tasks));
+  } catch {}
+}
+
+export function loadUrgentTasks(siteId: string): Set<string> {
+  return new Set(
+    readUrgentTasks()
+      .filter((t) => t.siteId === siteId)
+      .map((t) => t.taskId)
+  );
+}
+
+export function saveUrgentTask(siteId: string, taskId: string, markedBy: string): void {
+  const all = readUrgentTasks().filter(
+    (t) => !(t.taskId === taskId && t.siteId === siteId)
+  );
+  all.push({ siteId, taskId, markedBy, markedAt: new Date().toISOString() });
+  writeUrgentTasks(all);
+}
+
+export function removeUrgentTask(siteId: string, taskId: string): void {
+  writeUrgentTasks(
+    readUrgentTasks().filter((t) => !(t.taskId === taskId && t.siteId === siteId))
+  );
+}
+
 // ── Handoff Notes ──────────────────────────────────────────────────────────
 
 const HANDOFF_KEY = "koheez_handoff_notes";
