@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/App";
 import { getUserProfile, isCPO, getAssignedRegion, getRoleLabel } from "@/lib/userProfile";
@@ -29,6 +29,7 @@ import {
   Globe,
   BarChart3,
   ChevronRight,
+  ChevronLeft,
   Eye,
   ChevronDown,
   Store,
@@ -418,6 +419,134 @@ function RegionCard({
   );
 }
 
+// ── Simple store card (for sites without full trend data) ──────────────────
+function SimpleStoreCard({
+  store,
+  onDrillDown,
+}: {
+  store: StoreLocation;
+  onDrillDown: (id: string) => void;
+}) {
+  return (
+    <button
+      data-testid={`site-carousel-${store.id}`}
+      onClick={() => onDrillDown(store.id)}
+      className="w-full h-full text-left bg-white border border-slate-200 rounded-md px-5 py-4 hover:shadow-md transition-shadow group flex flex-col justify-between"
+    >
+      <div>
+        <div className="flex items-center gap-1.5 mb-1">
+          <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+          <p className="text-sm font-bold text-slate-800 truncate">{store.name}</p>
+        </div>
+        <p className="text-xs text-slate-400 pl-4">#{store.id}</p>
+      </div>
+      <span className="mt-4 text-xs font-semibold text-purple-600 flex items-center gap-1 group-hover:gap-1.5 transition-all">
+        <Eye className="w-3 h-3" />
+        View dashboard
+        <ChevronRight className="w-3 h-3" />
+      </span>
+    </button>
+  );
+}
+
+// ── Site Breakdown Carousel ─────────────────────────────────────────────────
+function SiteBreakdownCarousel({
+  region,
+  allTrends,
+  realStatsBySite,
+  onDrillDown,
+}: {
+  region: StoreRegion;
+  allTrends: SiteTrend[];
+  realStatsBySite: Map<string, SiteRealStats>;
+  onDrillDown: (siteId: string) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(region.stores.length > 3);
+
+  const CARD_WIDTH = 300; // px
+
+  const scroll = (dir: "left" | "right") => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollBy({ left: dir === "left" ? -CARD_WIDTH : CARD_WIDTH, behavior: "smooth" });
+  };
+
+  const updateScrollState = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
+  return (
+    <section>
+      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-purple-600" />
+          Site Breakdown
+          <span className="text-xs font-normal text-slate-400 ml-1">
+            — {region.stores.length} location{region.stores.length !== 1 ? "s" : ""} in {region.region.replace(" Region", "").replace(" – ", " — ")}
+          </span>
+        </h2>
+        {region.stores.length > 3 && (
+          <div className="flex items-center gap-1">
+            <button
+              data-testid="carousel-prev"
+              onClick={() => scroll("left")}
+              disabled={!canScrollLeft}
+              className={`w-8 h-8 flex items-center justify-center rounded-md border transition-all ${
+                canScrollLeft
+                  ? "border-slate-200 text-slate-700 hover-elevate"
+                  : "border-slate-100 text-slate-300 cursor-default"
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              data-testid="carousel-next"
+              onClick={() => scroll("right")}
+              disabled={!canScrollRight}
+              className={`w-8 h-8 flex items-center justify-center rounded-md border transition-all ${
+                canScrollRight
+                  ? "border-slate-200 text-slate-700 hover-elevate"
+                  : "border-slate-100 text-slate-300 cursor-default"
+              }`}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div
+        ref={scrollRef}
+        onScroll={updateScrollState}
+        className="flex gap-4 overflow-x-auto pb-2"
+        style={{ scrollbarWidth: "none", scrollSnapType: "x mandatory" }}
+      >
+        {region.stores.map((store) => {
+          const trend = allTrends.find((t) => t.siteId === store.id);
+          const realStats = realStatsBySite.get(store.id);
+          return (
+            <div
+              key={store.id}
+              className="shrink-0"
+              style={{ width: `${CARD_WIDTH}px`, scrollSnapAlign: "start" }}
+            >
+              {trend && realStats ? (
+                <SiteCard trend={trend} realStats={realStats} onDrillDown={onDrillDown} />
+              ) : (
+                <SimpleStoreCard store={store} onDrillDown={onDrillDown} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function RegionalDashboard() {
   const { user } = useAuth();
@@ -577,26 +706,21 @@ export default function RegionalDashboard() {
           </section>
         )}
 
-        {/* ── Site cards ──────────────────────────────────────────────── */}
-        <section>
-          <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-purple-600" />
-            Site Breakdown
-            <span className="text-xs font-normal text-slate-400 ml-1">
-              — Click a site to open its store dashboard
-            </span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {allTrends.map((trend) => (
-              <SiteCard
-                key={trend.siteId}
-                trend={trend}
-                realStats={realStatsBySite.get(trend.siteId)!}
-                onDrillDown={handleDrillDown}
-              />
-            ))}
-          </div>
-        </section>
+        {/* ── Site Breakdown Carousel — only when a region is selected ── */}
+        {(() => {
+          const matchedRegion = filterRegion
+            ? STORE_REGIONS.find((r) => r.region === filterRegion)
+            : null;
+          if (!matchedRegion) return null;
+          return (
+            <SiteBreakdownCarousel
+              region={matchedRegion}
+              allTrends={allTrends}
+              realStatsBySite={realStatsBySite}
+              onDrillDown={handleDrillDown}
+            />
+          );
+        })()}
 
         {/* ── Regional trend sparklines ────────────────────────────────── */}
         <section>
