@@ -2,9 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
-import { X, Plus, Search } from "lucide-react";
+import { X, Search, ClipboardPaste, Plus } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 type ConcomitantMedicationsProps = {
@@ -12,153 +13,228 @@ type ConcomitantMedicationsProps = {
   onMedicationsChange: (medications: string[]) => void;
 };
 
+/**
+ * Parses a pharmacy-system med list dump and returns only the drug names.
+ * Section headers (all-caps short labels like VIAL/MAIL, PRN, VIAL) are skipped.
+ * Parenthetical annotations like "(PEP)" are stripped.
+ */
+function parseMedList(raw: string): string[] {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    // Section headers are all-uppercase (possibly with /, -, space) — skip them
+    .filter((line) => !/^[A-Z][A-Z\s\/\-]*$/.test(line))
+    // Strip trailing parenthetical notes, e.g. "doxycycline (PEP)" → "doxycycline"
+    .map((line) => line.replace(/\s*\(.*?\)\s*$/, "").trim())
+    .filter((line) => line.length > 0);
+}
+
 export default function ConcomitantMedications({
   medications,
   onMedicationsChange,
 }: ConcomitantMedicationsProps) {
+  const [pasteText, setPasteText] = useState("");
+  const [parsedPreview, setParsedPreview] = useState<string[]>([]);
+  const [showPaste, setShowPaste] = useState(false);
+
   const [inputValue, setInputValue] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Validate and fix medications array on mount and when it changes
+  // Sanitize medications array on mount
   useEffect(() => {
-    // Check if any element is not a string or is an array
-    const hasInvalidElements = medications.some(
-      (med) => typeof med !== 'string' || Array.isArray(med)
-    );
-    
-    if (hasInvalidElements) {
-      console.warn('Invalid medications array detected, flattening and filtering:', medications);
-      // Flatten and ensure all elements are strings
-      const fixedMeds = medications
-        .flat(Infinity) // Flatten all nested arrays
-        .filter((med): med is string => typeof med === 'string' && med.length > 0);
-      
-      if (JSON.stringify(fixedMeds) !== JSON.stringify(medications)) {
-        onMedicationsChange(fixedMeds);
+    const hasInvalid = medications.some((m) => typeof m !== "string" || Array.isArray(m));
+    if (hasInvalid) {
+      const fixed = (medications as unknown[])
+        .flat(Infinity)
+        .filter((m): m is string => typeof m === "string" && m.length > 0);
+      if (JSON.stringify(fixed) !== JSON.stringify(medications)) {
+        onMedicationsChange(fixed);
       }
     }
   }, [medications, onMedicationsChange]);
 
-  // Fetch medication suggestions from NIH RxTerms API
+  // Live preview while typing in the paste box
   useEffect(() => {
-    // Clear previous timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
+    if (pasteText.trim()) {
+      const parsed = parseMedList(pasteText).filter((d) => !medications.includes(d));
+      setParsedPreview(parsed);
+    } else {
+      setParsedPreview([]);
     }
+  }, [pasteText, medications]);
 
-    // Don't search if input is too short or contains comma (user is entering multiple meds)
-    if (inputValue.length < 2 || inputValue.includes(',')) {
+  // NIH RxTerms autocomplete
+  useEffect(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+    if (inputValue.length < 2 || inputValue.includes(",")) {
       setSuggestions([]);
       setOpen(false);
       return;
     }
 
-    // Debounce API call
     debounceTimerRef.current = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(
+        const res = await fetch(
           `https://clinicaltables.nlm.nih.gov/api/rxterms/v3/search?terms=${encodeURIComponent(inputValue)}&maxList=10`
         );
-        const data = await response.json() as [number, string[], string[], string[], unknown[]];
-        // Response format: [total_count, codes, code_systems, display_names, extra_data]
-        const medicationNames: string[] = data[3] || [];
-        
-        // Filter out duplicates and medications already added
-        const uniqueMeds = Array.from(new Set(medicationNames)).filter(
-          (med) => !medications.includes(med)
-        );
-        
-        setSuggestions(uniqueMeds);
-        setOpen(uniqueMeds.length > 0);
-      } catch (error) {
-        console.error('Error fetching medication suggestions:', error);
+        const data = (await res.json()) as [number, string[], string[], string[], unknown[]];
+        const names: string[] = data[3] || [];
+        const unique = Array.from(new Set(names)).filter((m) => !medications.includes(m));
+        setSuggestions(unique);
+        setOpen(unique.length > 0);
+      } catch {
         setSuggestions([]);
       } finally {
         setIsLoading(false);
       }
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, [inputValue, medications]);
 
-  const addMedication = (medication?: string) => {
-    const valueToAdd = medication || inputValue.trim();
-    if (!valueToAdd) return;
-    
-    // Ensure valueToAdd is a string (defensive check)
-    if (typeof valueToAdd !== 'string') {
-      console.error('Invalid medication value:', valueToAdd);
-      return;
+  const commitParsed = () => {
+    const newMeds = parseMedList(pasteText).filter((d) => !medications.includes(d));
+    if (newMeds.length > 0) {
+      onMedicationsChange([...medications, ...newMeds]);
     }
-    
-    // Parse comma-separated medications if no specific medication provided
-    if (!medication && valueToAdd.includes(',')) {
-      const meds = valueToAdd.split(',').map(m => m.trim()).filter(m => m);
-      const newMeds = meds.filter(m => !medications.includes(m));
-      
-      if (newMeds.length > 0) {
-        // Ensure all meds are strings
-        const validMeds = newMeds.filter(m => typeof m === 'string' && m.length > 0);
-        onMedicationsChange([...medications, ...validMeds]);
-        setInputValue("");
-        setOpen(false);
-      }
-      return;
-    }
-    
-    // Add single medication
-    if (!medications.includes(valueToAdd)) {
-      onMedicationsChange([...medications, valueToAdd]);
-      setInputValue("");
-      setOpen(false);
-    }
+    setPasteText("");
+    setParsedPreview([]);
+    setShowPaste(false);
   };
 
-  const removeMedication = (med: string) => {
-    onMedicationsChange(medications.filter(m => m !== med));
+  const addSingle = (med?: string) => {
+    const val = (med ?? inputValue).trim();
+    if (!val || medications.includes(val)) return;
+    onMedicationsChange([...medications, val]);
+    setInputValue("");
+    setOpen(false);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addMedication();
-    }
-  };
-
-  const handleSelectSuggestion = (medication: string) => {
-    addMedication(medication);
+  const remove = (med: string) => {
+    onMedicationsChange(medications.filter((m) => m !== med));
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Concomitant Medications</CardTitle>
+        <CardTitle className="text-xl">Med List</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Search medications or enter comma-separated list
+          Paste the pharmacy med list or search to add medications individually
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
+
+        {/* ── Paste area toggle ─────────────────────────────────── */}
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid="button-toggle-paste"
+            onClick={() => {
+              setShowPaste((v) => !v);
+              setPasteText("");
+              setParsedPreview([]);
+            }}
+            className="gap-2"
+          >
+            <ClipboardPaste className="w-3.5 h-3.5" />
+            {showPaste ? "Hide paste area" : "Paste med list from pharmacy system"}
+          </Button>
+        </div>
+
+        {showPaste && (
+          <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Copy the full med list from your pharmacy software and paste below.
+              Section labels like <span className="font-mono">VIAL/MAIL</span>, <span className="font-mono">PRN</span>,
+              and <span className="font-mono">VIAL</span> are automatically ignored — only drug names are captured.
+            </p>
+            <Textarea
+              data-testid="textarea-medlist-paste"
+              placeholder={"VIAL/MAIL\n\nVIAL\ntruvada\n\nPRN\ndoxycycline (PEP)"}
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              className="font-mono text-sm resize-y min-h-[120px]"
+            />
+
+            {/* Live preview of parsed drugs */}
+            {parsedPreview.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-slate-600">
+                  Drugs found ({parsedPreview.length}):
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {parsedPreview.map((d) => (
+                    <span
+                      key={d}
+                      className="inline-flex items-center px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-xs font-mono"
+                    >
+                      {d}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {pasteText.trim() && parsedPreview.length === 0 && (
+              <p className="text-xs text-muted-foreground italic">
+                No drug names detected — ensure lines are not all-caps section headers.
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                data-testid="button-add-parsed"
+                disabled={parsedPreview.length === 0}
+                onClick={commitParsed}
+                className="gap-2"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add {parsedPreview.length > 0 ? `${parsedPreview.length} drug${parsedPreview.length !== 1 ? "s" : ""}` : "drugs"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                data-testid="button-cancel-paste"
+                onClick={() => {
+                  setShowPaste(false);
+                  setPasteText("");
+                  setParsedPreview([]);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Manual search ─────────────────────────────────────── */}
         <div className="flex gap-2">
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <div className="relative flex-1">
                 <Input
-                  placeholder="Search medications or enter comma-separated..."
+                  placeholder="Search to add a medication..."
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  onFocus={() => {
-                    if (suggestions.length > 0) {
-                      setOpen(true);
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addSingle();
                     }
+                  }}
+                  onFocus={() => {
+                    if (suggestions.length > 0) setOpen(true);
                   }}
                   data-testid="input-concomitant-med"
                   className="pr-8"
@@ -168,29 +244,29 @@ export default function ConcomitantMedications({
                 )}
               </div>
             </PopoverTrigger>
-            <PopoverContent 
-              className="w-[var(--radix-popover-trigger-width)] p-0" 
+            <PopoverContent
+              className="w-[var(--radix-popover-trigger-width)] p-0"
               align="start"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
               <Command>
                 <CommandList>
                   <CommandEmpty>
-                    {isLoading ? "Searching medications..." : "No medications found"}
+                    {isLoading ? "Searching…" : "No medications found"}
                   </CommandEmpty>
-                  <CommandGroup heading="Suggested Medications">
-                    {suggestions.map((medication) => (
+                  <CommandGroup heading="Suggestions">
+                    {suggestions.map((med) => (
                       <CommandItem
-                        key={medication}
-                        value={medication}
+                        key={med}
+                        value={med}
                         onMouseDown={(e) => {
                           e.preventDefault();
-                          handleSelectSuggestion(medication);
+                          addSingle(med);
                         }}
-                        data-testid={`suggestion-${medication}`}
+                        data-testid={`suggestion-${med}`}
                         className="cursor-pointer"
                       >
-                        <span className="font-mono text-sm">{medication}</span>
+                        <span className="font-mono text-sm">{med}</span>
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -200,22 +276,21 @@ export default function ConcomitantMedications({
           </Popover>
           <Button
             type="button"
-            onClick={() => addMedication()}
+            variant="outline"
+            onClick={() => addSingle()}
             disabled={!inputValue.trim()}
             data-testid="button-add-med"
           >
-            <Plus className="w-4 h-4 mr-2" />
             Add
           </Button>
         </div>
 
+        {/* ── Added medications ─────────────────────────────────── */}
         {medications.length > 0 && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">
-                Added Medications ({medications.length})
-              </p>
-            </div>
+            <p className="text-sm font-medium text-slate-700">
+              Medications ({medications.length})
+            </p>
             <div className="flex flex-wrap gap-2">
               {medications.map((med) => (
                 <Badge
@@ -226,7 +301,7 @@ export default function ConcomitantMedications({
                 >
                   <span className="font-mono text-sm">{med}</span>
                   <button
-                    onClick={() => removeMedication(med)}
+                    onClick={() => remove(med)}
                     className="hover-elevate active-elevate-2 rounded-sm"
                     data-testid={`button-remove-${med}`}
                   >
