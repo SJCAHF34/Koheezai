@@ -137,7 +137,7 @@ function computeSiteRealStats(siteId: string): SiteRealStats {
 }
 
 // ── Site card ──────────────────────────────────────────────────────────────
-// Clicking navigates to the full Task Manager for that site in read-only mode
+// Clicking navigates to the Store Performance Dashboard for that site
 function SiteCard({
   trend,
   realStats,
@@ -451,7 +451,7 @@ export default function RegionalDashboard() {
             <MapPin className="w-4 h-4 text-purple-600" />
             Site Breakdown
             <span className="text-xs font-normal text-slate-400 ml-1">
-              — Click a site to open its full task list
+              — Click a site to open its store dashboard
             </span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
