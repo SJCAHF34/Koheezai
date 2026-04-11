@@ -343,3 +343,47 @@ export function getAverageCategoryDays(cat: TaskCategory, allTrends: SiteTrend[]
     Math.round(allTrends.reduce((s, st) => s + st.categories[cat].days[i].pct, 0) / allTrends.length)
   );
 }
+
+// ── Region-level aggregate performance ──────────────────────────────────────
+
+export interface RegionPerformance {
+  overallAvg: number;
+  catAvgs: Record<TaskCategory, number>;
+  atRiskCount: number;
+  sparkline: number[];
+  trend: "up" | "down" | "stable";
+}
+
+export function computeRegionPerformance(storeIds: string[]): RegionPerformance {
+  if (storeIds.length === 0) {
+    const empty = {} as Record<TaskCategory, number>;
+    for (const cat of TREND_CATEGORIES) empty[cat] = 0;
+    return { overallAvg: 0, catAvgs: empty, atRiskCount: 0, sparkline: [], trend: "stable" };
+  }
+  const adjs = storeIds.map(getSiteAdj);
+  const catAvgs = {} as Record<TaskCategory, number>;
+  for (const cat of TREND_CATEGORIES) {
+    const avg =
+      adjs.reduce((s, adj) => s + Math.min(99, Math.max(0, BASE_RATES[cat] + adj)), 0) /
+      adjs.length;
+    catAvgs[cat] = Math.round(avg);
+  }
+  const overallAvg = Math.round(
+    TREND_CATEGORIES.reduce((s, cat) => s + catAvgs[cat], 0) / TREND_CATEGORIES.length
+  );
+  const atRiskCount = adjs.filter((adj) => {
+    const storeAvg =
+      TREND_CATEGORIES.reduce((s, cat) => s + Math.min(99, Math.max(0, BASE_RATES[cat] + adj)), 0) /
+      TREND_CATEGORIES.length;
+    return storeAvg < 60;
+  }).length;
+  const seed = storeIds.slice(0, 4).join("-");
+  const sparkline: number[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const rng = seededRandom(`reg-spark-${seed}-${i}`);
+    const noise = (rng() - 0.5) * 14;
+    sparkline.push(Math.round(Math.min(99, Math.max(10, overallAvg + noise))));
+  }
+  const trend = calcTrend(sparkline);
+  return { overallAvg, catAvgs, atRiskCount, sparkline, trend };
+}

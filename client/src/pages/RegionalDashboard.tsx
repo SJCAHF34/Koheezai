@@ -10,12 +10,14 @@ import {
   getTroubleSpotTasks,
   getAverageCategoryDays,
   getAverageCategoryPointsForPeriod,
+  computeRegionPerformance,
   TREND_CATEGORIES,
   SPARKLINE_COLORS,
   PERIOD_CONFIG,
   type TrendPeriod,
   type SiteTrend,
   type CategoryTrend,
+  type RegionPerformance,
 } from "@/lib/trendData";
 import { STORE_REGIONS, type StoreRegion, type StoreLocation } from "@/lib/storeDirectory";
 import {
@@ -30,6 +32,8 @@ import {
   Eye,
   ChevronDown,
   Store,
+  X,
+  Layers,
 } from "lucide-react";
 
 const DAILY_TASKS = TASKS.filter((t) => t.frequency === "daily");
@@ -333,6 +337,87 @@ function StoreDirectorySection({
   );
 }
 
+// ── Region Performance Card (CPO only) ─────────────────────────────────────
+function RegionCard({
+  reg,
+  perf,
+  isSelected,
+  onClick,
+}: {
+  reg: StoreRegion;
+  perf: RegionPerformance;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  const orderedCats: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
+  return (
+    <button
+      data-testid={`region-card-${reg.shortName}`}
+      onClick={onClick}
+      className={`w-full text-left rounded-md border transition-all ${
+        isSelected
+          ? "border-purple-400 bg-purple-50 shadow-sm"
+          : "bg-white border-slate-200 hover:shadow-md hover:border-purple-200"
+      }`}
+    >
+      {/* Header */}
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${reg.dotColor}`} />
+          <span className={`text-sm font-bold truncate ${isSelected ? "text-purple-800" : "text-slate-800"}`}>
+            {reg.region.replace(" Region", "").replace(" – ", " — ")}
+          </span>
+        </div>
+        <div className="text-right shrink-0">
+          <span className={`text-2xl font-bold ${completionTextColor(perf.overallAvg)}`}>
+            {perf.overallAvg}%
+          </span>
+        </div>
+      </div>
+
+      {/* Sub-stats */}
+      <div className="px-4 pb-2 flex items-center gap-3 text-[10px] text-slate-500">
+        <span>{reg.stores.length} stores</span>
+        {perf.atRiskCount > 0 && (
+          <span className="font-semibold text-amber-600">{perf.atRiskCount} at risk</span>
+        )}
+        <TrendIcon trend={perf.trend} />
+      </div>
+
+      {/* Category mini-bars */}
+      <div className="px-4 pb-3 grid grid-cols-2 gap-x-3 gap-y-1.5">
+        {orderedCats.map((cat) => {
+          const cfg = CATEGORY_CONFIG[cat];
+          const pct = perf.catAvgs[cat];
+          return (
+            <div key={cat}>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[9px] font-semibold text-slate-400">
+                  {shortLabel(cfg.label)}
+                </span>
+                <span className={`text-[9px] font-bold ${completionTextColor(pct)}`}>{pct}%</span>
+              </div>
+              <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${completionBarColor(pct)}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Sparkline */}
+      {perf.sparkline.length > 1 && (
+        <div className="px-4 pb-3">
+          <Sparkline data={perf.sparkline} color={isSelected ? "#9333ea" : "#94a3b8"} width={160} height={32} />
+        </div>
+      )}
+    </button>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function RegionalDashboard() {
   const { user } = useAuth();
@@ -369,6 +454,14 @@ export default function RegionalDashboard() {
   const avgCompliance = Math.round(
     allTrends.reduce((s, t) => s + t.overallAvg, 0) / allTrends.length
   );
+
+  // ── Region performance data (CPO only) ──────────────────────────────────
+  const regionPerformances = isCpoUser
+    ? STORE_REGIONS.map((reg) => ({
+        reg,
+        perf: computeRegionPerformance(reg.stores.map((s) => s.id)),
+      }))
+    : [];
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -445,6 +538,45 @@ export default function RegionalDashboard() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+
+        {/* ── Region Performance Overview (CPO only) ───────────────────── */}
+        {isCpoUser && (
+          <section>
+            <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
+              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-purple-600" />
+                Region Performance
+                <span className="text-xs font-normal text-slate-400 ml-1">
+                  — Click a region to filter the dashboard
+                </span>
+              </h2>
+              {cpoFilterRegion && (
+                <button
+                  data-testid="region-filter-clear"
+                  onClick={() => setCpoFilterRegion(null)}
+                  className="flex items-center gap-1 text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-300 px-2.5 py-1 rounded-md hover-elevate"
+                >
+                  <X className="w-3 h-3" />
+                  Clear: {cpoFilterRegion.replace(" Region", "").replace(" – ", " — ")}
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {regionPerformances.map(({ reg, perf }) => (
+                <RegionCard
+                  key={reg.region}
+                  reg={reg}
+                  perf={perf}
+                  isSelected={cpoFilterRegion === reg.region}
+                  onClick={() =>
+                    setCpoFilterRegion(cpoFilterRegion === reg.region ? null : reg.region)
+                  }
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* ── Site cards ──────────────────────────────────────────────── */}
         <section>
           <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
@@ -477,25 +609,6 @@ export default function RegionalDashboard() {
               </span>
             </h2>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* CPO region filter */}
-              {isCpoUser && (
-                <div className="flex gap-1">
-                  {[null, ...STORE_REGIONS.map((r) => r.region)].map((r) => (
-                    <button
-                      key={r ?? "all"}
-                      data-testid={`region-filter-${r ?? "all"}`}
-                      onClick={() => setCpoFilterRegion(r)}
-                      className={`px-2 py-1 rounded-md text-[11px] font-bold border transition-all ${
-                        cpoFilterRegion === r
-                          ? "border-blue-400 bg-blue-50 text-blue-700"
-                          : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
-                      }`}
-                    >
-                      {r ? r.replace(" Region", "") : "All"}
-                    </button>
-                  ))}
-                </div>
-              )}
               {/* Period selector */}
               <div className="flex gap-1">
                 {(["7d", "30d", "6m", "1y"] as TrendPeriod[]).map((p) => (
