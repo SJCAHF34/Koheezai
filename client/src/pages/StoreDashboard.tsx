@@ -225,11 +225,13 @@ export default function StoreDashboard() {
   } else if (!store) {
     redirectTo = isRegionalOrAbove(profile.role) ? "/app/tasks/regional" : "/app";
   } else if (isCPO(profile.role)) {
-    redirectTo = null; // CPO can see any store
+    redirectTo = `/app/tasks?siteId=${siteId}`; // CPO → Task Manager drill-in
   } else if (profile.role === "regional_pharmacy_director") {
     const assignedRegion = getAssignedRegion(profile);
     if (assignedRegion && storeRegion?.region !== assignedRegion) {
       redirectTo = "/app/tasks/regional";
+    } else {
+      redirectTo = `/app/tasks?siteId=${siteId}`; // Regional → Task Manager drill-in
     }
   } else if (isPharmacyDirector(profile.role)) {
     if (profile.siteId !== siteId) {
