@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Redirect } from "wouter";
 import { useAuth } from "@/App";
 import {
   getUserProfile,
   isCPO,
   isRegionalOrAbove,
+  isPharmacyDirector,
   getAssignedRegion,
   getRoleLabel,
 } from "@/lib/userProfile";
@@ -38,7 +39,6 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
-  AlertTriangle,
   ClipboardList,
 } from "lucide-react";
 
@@ -72,6 +72,14 @@ function tierLabel(pct: number) {
   if (pct >= 50)
     return { label: "At Risk", bg: "bg-orange-50 text-orange-700 border-orange-200" };
   return { label: "Critical", bg: "bg-red-50 text-red-600 border-red-200" };
+}
+
+function frequencyLabel(freq: string) {
+  if (freq === "daily") return "Daily";
+  if (freq === "weekly") return "Weekly";
+  if (freq === "monthly") return "Monthly";
+  if (freq === "quarterly") return "Quarterly";
+  return freq;
 }
 
 // ── SVG Sparkline ────────────────────────────────────────────────────────────
@@ -162,74 +170,96 @@ function CustomTooltip({
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const DAILY_TASKS = TASKS.filter((t) => t.frequency === "daily");
+const ALL_TASKS = TASKS;
 const PERIOD_TABS: TrendPeriod[] = ["7d", "30d", "6m", "1y"];
 const CAT_ORDER: TaskCategory[] = ["achc", "state_board", "operations", "retention"];
 
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function StoreDashboard() {
+  // ── All hooks must be called unconditionally at the top ──────────────────
   const { user } = useAuth();
   const rawParams = useParams<{ siteId: string }>();
   const siteId = rawParams.siteId ?? "";
   const [, navigate] = useLocation();
   const [activeCat, setActiveCat] = useState<TaskCategory | null>(null);
-  const [period, setPeriod] = useState<TrendPeriod>("7d");
+  const [chartPeriod, setChartPeriod] = useState<TrendPeriod>("7d");
   const [rawDataOpen, setRawDataOpen] = useState(false);
   const [rawFilter, setRawFilter] = useState<"all" | "done" | "pending">("all");
 
-  if (!user) return null;
-
-  const profile = getUserProfile(user.email, user.name ?? "");
   const store = findStore(siteId);
   const storeRegion = findStoreRegion(siteId);
 
-  // ── Access control ───────────────────────────────────────────────────────
-  let accessDenied = false;
-  if (isCPO(profile.role)) {
-    accessDenied = false;
+  // KPI / category metrics are always computed from the fixed 7-day window
+  // regardless of which period tab is selected in the chart
+  const trend7d: SiteTrend = useMemo(
+    () =>
+      generateSiteTrendsForPeriod(
+        siteId,
+        store?.name ?? siteId,
+        storeRegion?.region ?? "",
+        "7d"
+      ),
+    [siteId, store?.name, storeRegion?.region]
+  );
+
+  // Chart data uses the selected period
+  const trendChart: SiteTrend = useMemo(
+    () =>
+      generateSiteTrendsForPeriod(
+        siteId,
+        store?.name ?? siteId,
+        storeRegion?.region ?? "",
+        chartPeriod
+      ),
+    [siteId, store?.name, storeRegion?.region, chartPeriod]
+  );
+
+  // ── Derived values (safe after hooks) ───────────────────────────────────
+  const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
+
+  // Access-control decision
+  let redirectTo: string | null = null;
+  if (!user || !profile) {
+    redirectTo = "/login";
+  } else if (!store) {
+    redirectTo = isRegionalOrAbove(profile.role) ? "/app/tasks/regional" : "/app";
+  } else if (isCPO(profile.role)) {
+    redirectTo = null; // CPO can see any store
   } else if (profile.role === "regional_pharmacy_director") {
     const assignedRegion = getAssignedRegion(profile);
     if (assignedRegion && storeRegion?.region !== assignedRegion) {
-      accessDenied = true;
+      redirectTo = "/app/tasks/regional";
     }
-  } else if (profile.role === "pharmacy_director") {
+  } else if (isPharmacyDirector(profile.role)) {
     if (profile.siteId !== siteId) {
-      accessDenied = true;
+      redirectTo = "/app";
     }
   } else {
-    accessDenied = true;
+    // Tech / pharmacist roles have no access
+    redirectTo = "/app/tasks";
   }
 
-  if (accessDenied || !store) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center px-6">
-          <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
-          <p className="text-lg font-bold text-slate-800 mb-1">Access Restricted</p>
-          <p className="text-sm text-slate-500 mb-4">
-            You don't have permission to view this store's dashboard.
-          </p>
-          <button
-            onClick={() => navigate(isRegionalOrAbove(profile.role) ? "/app/tasks/regional" : "/app")}
-            className="px-4 py-2 rounded-md bg-purple-600 text-white text-sm font-semibold"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
+  // ── Early redirect (after all hooks) ────────────────────────────────────
+  if (redirectTo) {
+    return <Redirect to={redirectTo} />;
   }
 
-  // ── Live task data from localStorage ────────────────────────────────────
+  // At this point user, profile, and store are guaranteed non-null
+  const safeProfile = profile!;
+  const safeStore = store!;
+
+  // ── Live task completions ────────────────────────────────────────────────
   const completions = loadCompletions(siteId, "daily");
+  const dailyTasks = ALL_TASKS.filter((t) => t.frequency === "daily");
   const completedCount = completions.size;
-  const totalCount = DAILY_TASKS.length;
+  const totalCount = dailyTasks.length;
 
+  // Per-category today's stats (live)
   const catStats: Record<TaskCategory, { done: number; total: number; pct: number }> =
     {} as Record<TaskCategory, { done: number; total: number; pct: number }>;
   for (const cat of TREND_CATEGORIES) {
-    const catTasks = DAILY_TASKS.filter((t) => t.category === cat);
+    const catTasks = dailyTasks.filter((t) => t.category === cat);
     const done = catTasks.filter((t) => completions.has(t.id)).length;
     catStats[cat] = {
       done,
@@ -241,31 +271,26 @@ export default function StoreDashboard() {
     TREND_CATEGORIES.reduce((s, cat) => s + catStats[cat].pct, 0) / TREND_CATEGORIES.length
   );
 
-  // ── Simulated historical trend data ─────────────────────────────────────
-  const siteTrend: SiteTrend = useMemo(
-    () =>
-      generateSiteTrendsForPeriod(siteId, store.name, storeRegion?.region ?? "", period),
-    [siteId, store.name, storeRegion, period]
-  );
-
-  const avg7d = siteTrend.overallAvg;
+  // KPI 7-day average — always from fixed 7d trend
+  const avg7d = trend7d.overallAvg;
   const tier = tierLabel(avg7d);
 
+  // Chart data for expanded area chart (uses chart period)
   const chartData = activeCat
-    ? siteTrend.categories[activeCat].days.map((d) => ({ name: d.label, value: d.pct }))
+    ? trendChart.categories[activeCat].days.map((d) => ({ name: d.label, value: d.pct }))
     : [];
 
-  // ── Filtered raw task list ───────────────────────────────────────────────
-  const filteredTasks = DAILY_TASKS.filter((t) => {
+  // Filtered raw task list
+  const filteredTasks = ALL_TASKS.filter((t) => {
     if (rawFilter === "done") return completions.has(t.id);
     if (rawFilter === "pending") return !completions.has(t.id);
     return true;
   });
 
-  const doneTodayCount = DAILY_TASKS.filter((t) => completions.has(t.id)).length;
+  const doneTodayCount = dailyTasks.filter((t) => completions.has(t.id)).length;
   const pendingCount = totalCount - doneTodayCount;
 
-  const backHref = isRegionalOrAbove(profile.role) ? "/app/tasks/regional" : "/app";
+  const backHref = isRegionalOrAbove(safeProfile.role) ? "/app/tasks/regional" : "/app";
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -286,14 +311,14 @@ export default function StoreDashboard() {
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-purple-600 mb-4 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            {isRegionalOrAbove(profile.role) ? "Back to Regional Dashboard" : "Back to Dashboard"}
+            {isRegionalOrAbove(safeProfile.role) ? "Back to Regional Dashboard" : "Back to Dashboard"}
           </button>
 
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <MapPin className="w-5 h-5 text-purple-600" />
-                <h1 className="text-2xl font-bold text-slate-900">{store.name}</h1>
+                <h1 className="text-2xl font-bold text-slate-900">{safeStore.name}</h1>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-slate-50 text-slate-500 border-slate-200">
@@ -313,7 +338,7 @@ export default function StoreDashboard() {
               className="text-xs font-bold px-2.5 py-1 rounded-full text-white whitespace-nowrap shrink-0"
               style={{ background: "linear-gradient(90deg,#3b82f6,#9333ea)" }}
             >
-              {getRoleLabel(profile.role)}
+              {getRoleLabel(safeProfile.role)}
             </span>
           </div>
 
@@ -347,7 +372,7 @@ export default function StoreDashboard() {
                 Tasks Today
               </p>
               <p className="text-3xl font-bold text-slate-900">{completedCount}</p>
-              <p className="text-xs text-slate-400 mt-0.5">of {totalCount} daily tasks done</p>
+              <p className="text-xs text-slate-400 mt-0.5">of {totalCount} tasks done</p>
             </div>
             <div
               data-testid="kpi-tier"
@@ -374,7 +399,7 @@ export default function StoreDashboard() {
             <BarChart3 className="w-4 h-4 text-purple-600" />
             Category Performance
             <span className="text-xs font-normal text-slate-400 ml-1">
-              — Click any card to see the full trend chart
+              — Click any card to see the trend chart
             </span>
           </h2>
 
@@ -382,8 +407,9 @@ export default function StoreDashboard() {
             {CAT_ORDER.map((cat) => {
               const cfg = CATEGORY_CONFIG[cat];
               const color = SPARKLINE_COLORS[cat];
-              const catTrend = siteTrend.categories[cat];
-              const sparkData = catTrend.days.map((d) => d.pct);
+              // Sparkline and "7d avg" always from the fixed 7d trend
+              const catTrend7d = trend7d.categories[cat];
+              const sparkData = catTrend7d.days.map((d) => d.pct);
               const stat = catStats[cat];
               const isActive = activeCat === cat;
 
@@ -402,13 +428,11 @@ export default function StoreDashboard() {
                     <p className="text-xs font-semibold text-slate-500 truncate pr-2">
                       {cfg.label}
                     </p>
-                    <TrendIcon trend={catTrend.trend} />
+                    <TrendIcon trend={catTrend7d.trend} />
                   </div>
                   <div className="flex items-end gap-1.5 mb-1">
-                    <p
-                      className={`text-2xl font-bold ${completionTextColor(catTrend.avg7d)}`}
-                    >
-                      {catTrend.avg7d}%
+                    <p className={`text-2xl font-bold ${completionTextColor(catTrend7d.avg7d)}`}>
+                      {catTrend7d.avg7d}%
                     </p>
                     <p className="text-[10px] text-slate-400 mb-1">7d avg</p>
                   </div>
@@ -445,7 +469,7 @@ export default function StoreDashboard() {
                     {CATEGORY_CONFIG[activeCat].label} — Performance Trend
                   </p>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    {store.name} · {PERIOD_CONFIG[period].label}
+                    {safeStore.name} · {PERIOD_CONFIG[chartPeriod].label}
                   </p>
                 </div>
                 <div className="flex gap-1">
@@ -455,10 +479,10 @@ export default function StoreDashboard() {
                       data-testid={`period-tab-${p}`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setPeriod(p);
+                        setChartPeriod(p);
                       }}
                       className={`px-2.5 py-1 rounded-md text-xs font-bold border transition-all ${
-                        period === p
+                        chartPeriod === p
                           ? "border-purple-400 bg-purple-50 text-purple-700"
                           : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
                       }`}
@@ -556,7 +580,9 @@ export default function StoreDashboard() {
               const stat = catStats[cat];
               return (
                 <div key={cat} className={`rounded-md px-3 py-2 ${cfg.bg}`}>
-                  <p className={`text-[10px] font-bold uppercase tracking-wide mb-1 ${cfg.color}`}>
+                  <p
+                    className={`text-[10px] font-bold uppercase tracking-wide mb-1 ${cfg.color}`}
+                  >
                     {cfg.label.replace(" Compliance", "").replace(" Metrics", "")}
                   </p>
                   <p className={`text-lg font-bold ${completionTextColor(stat.pct)}`}>
@@ -607,7 +633,7 @@ export default function StoreDashboard() {
                     }`}
                   >
                     {f.charAt(0).toUpperCase() + f.slice(1)}
-                    {f === "all" && ` (${totalCount})`}
+                    {f === "all" && ` (${ALL_TASKS.length})`}
                     {f === "done" && ` (${doneTodayCount})`}
                     {f === "pending" && ` (${pendingCount})`}
                   </button>
@@ -619,15 +645,18 @@ export default function StoreDashboard() {
           {rawDataOpen && (
             <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
                   Task
                 </span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                  Role
+                  Category
                 </span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                  Category
+                  Frequency
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                  Role
                 </span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide text-right">
                   Status
@@ -646,7 +675,7 @@ export default function StoreDashboard() {
                     <div
                       key={task.id}
                       data-testid={`raw-task-${task.id}`}
-                      className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-4 py-3 border-b border-slate-50 last:border-0 items-center hover-elevate"
+                      className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-4 py-3 border-b border-slate-50 last:border-0 items-center hover-elevate"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-slate-800 truncate">
@@ -658,13 +687,16 @@ export default function StoreDashboard() {
                           </p>
                         )}
                       </div>
-                      <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap capitalize">
-                        {task.role.replace(/_/g, " ")}
-                      </span>
                       <span
                         className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${cfg.badge}`}
                       >
                         {cfg.label.replace(" Compliance", "").replace(" Metrics", "")}
+                      </span>
+                      <span className="text-[10px] font-medium text-slate-500 whitespace-nowrap capitalize">
+                        {frequencyLabel(task.frequency)}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap capitalize hidden sm:block">
+                        {task.role.replace(/_/g, " ")}
                       </span>
                       <div className="flex justify-end">
                         {isDone ? (
