@@ -19,7 +19,7 @@ import CQIMeeting from "@/pages/CQIMeeting";
 import StoreDashboard from "@/pages/StoreDashboard";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
-import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole } from "@/lib/userProfile";
+import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
 import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
@@ -78,6 +78,7 @@ function AppNav() {
 
   const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
   const isRegional = profile ? isRegionalOrAbove(profile.role) : false;
+  const isCpoUser = profile ? isCPO(profile.role) : false;
   const showWorkbook = profile ? !isTechRole(profile.role) : false;
   const showCQI = profile ? isDirectorRole(profile.role) : false;
 
@@ -94,7 +95,7 @@ function AppNav() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 gap-4">
           {/* Logo */}
-          <Link href={isRegional ? "/app/tasks/regional" : "/app"}>
+          <Link href={isCpoUser ? "/app/tasks/national" : isRegional ? "/app/tasks/regional" : "/app"}>
             <span className="font-bold text-sm tracking-tight cursor-pointer">
               <span
                 className="bg-clip-text text-transparent"
@@ -106,8 +107,13 @@ function AppNav() {
           </Link>
 
           <nav className="flex items-center gap-1 flex-wrap">
-            {/* Regional dashboard link — regional directors only */}
-            {isRegional ? (
+            {/* Dashboard link — role-specific */}
+            {isCpoUser ? (
+              <NavLink href="/app/tasks/national" testId="nav-national">
+                <Globe className="w-4 h-4" />
+                <span className="hidden sm:inline">National</span>
+              </NavLink>
+            ) : isRegional ? (
               <NavLink href="/app/tasks/regional" testId="nav-regional">
                 <Globe className="w-4 h-4" />
                 <span className="hidden sm:inline">Regional</span>
@@ -238,6 +244,10 @@ function Router() {
       </Route>
       {/* Regional dashboard — role-gated; must appear before /app/tasks */}
       <Route path="/app/tasks/regional">
+        <RegionalProtected component={RegionalDashboard} />
+      </Route>
+      {/* National dashboard — CPO view of all regions */}
+      <Route path="/app/tasks/national">
         <RegionalProtected component={RegionalDashboard} />
       </Route>
       {/* Category report — regional director only */}

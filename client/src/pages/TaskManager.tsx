@@ -7,6 +7,7 @@ import {
   isRegionalOrAbove,
   isPharmacyDirector,
   isTechRole,
+  isCPO,
   getRoleLabel,
   type UserRole,
 } from "@/lib/userProfile";
@@ -3285,6 +3286,65 @@ function PerfTrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
 
 const PERF_CAT_ORDER: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
 
+// Responsive SVG sparkline — scales to 100% container width
+function ResponsivePerfSparkline({ data, color = "#8b5cf6", height = 48 }: { data: number[]; color?: string; height?: number }) {
+  if (data.length < 2) return null;
+  const vw = 200;
+  const pad = 4;
+  const innerW = vw - pad * 2;
+  const innerH = height - pad * 2;
+  const pts = data.map((v, i) => {
+    const x = pad + (i / (data.length - 1)) * innerW;
+    const y = pad + innerH - (v / 100) * innerH;
+    return [x, y] as [number, number];
+  });
+  const polyPoints = pts.map(([x, y]) => `${x},${y}`).join(" ");
+  const areaPoints = [`${pts[0][0]},${height - pad}`, ...pts.map(([x, y]) => `${x},${y}`), `${pts[pts.length - 1][0]},${height - pad}`].join(" ");
+  const last = pts[pts.length - 1];
+  const gradId = `rsg-${color.replace(/[^a-z0-9]/gi, "")}`;
+  return (
+    <svg viewBox={`0 0 ${vw} ${height}`} style={{ width: "100%", height: `${height}px`, overflow: "visible" }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <polygon points={areaPoints} fill={`url(#${gradId})`} />
+      <polyline points={polyPoints} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={last[0]} cy={last[1]} r={4} fill={color} />
+    </svg>
+  );
+}
+
+// Category mini-card matching the screenshot style
+function CategoryMiniCard({ cat, trend7d }: { cat: TaskCategory; trend7d: SiteTrend }) {
+  const cfg = CATEGORY_CONFIG[cat];
+  const color = SPARKLINE_COLORS[cat];
+  const catTrend = trend7d.categories[cat];
+  const sparkData = catTrend.days.map((d) => d.pct);
+  const latestPct = sparkData[sparkData.length - 1] ?? catTrend.avg7d;
+  const shortName = cfg.label.replace(" Compliance", "").replace(" Metrics", "").toUpperCase();
+  return (
+    <div data-testid={`cat-mini-card-${cat}`} className="bg-white border border-slate-200 rounded-md p-4">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[11px] font-bold tracking-wide" style={{ color }}>
+          {shortName}
+        </p>
+        <PerfTrendIcon trend={catTrend.trend} />
+      </div>
+      <div className="flex items-end gap-2 mb-3">
+        <p className={`text-2xl font-bold ${perfTextColor(catTrend.avg7d)}`}>{catTrend.avg7d}%</p>
+        <p className="text-[11px] text-slate-400 mb-0.5">7 Days avg</p>
+      </div>
+      <ResponsivePerfSparkline data={sparkData} color={color} height={48} />
+      <p className="text-[11px] text-slate-400 mt-2">
+        Latest: <span className={`font-semibold ${perfTextColor(latestPct)}`}>{latestPct}%</span>
+      </p>
+    </div>
+  );
+}
+
 type PerfCatStats = Record<string, { done: number; total: number; pct: number }>;
 
 function StorePerformancePanel({
@@ -3335,49 +3395,6 @@ function StorePerformancePanel({
         </div>
       </div>
 
-      {/* Category Performance */}
-      <div>
-        <p className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1.5">
-          <BarChart3 className="w-3.5 h-3.5 text-purple-500" />
-          Category Performance
-        </p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {PERF_CAT_ORDER.map((cat) => {
-            const cfg = CATEGORY_CONFIG[cat];
-            const color = SPARKLINE_COLORS[cat];
-            const catTrend = trend7d.categories[cat];
-            const sparkData = catTrend.days.map((d) => d.pct);
-            const stat = catStats[cat] ?? { done: 0, total: 0, pct: 0 };
-            return (
-              <div
-                key={cat}
-                data-testid={`perf-cat-card-${cat}`}
-                className="bg-white border border-slate-200 rounded-md p-4"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-slate-500 truncate pr-2">{cfg.label}</p>
-                  <PerfTrendIcon trend={catTrend.trend} />
-                </div>
-                <div className="flex items-end gap-1.5 mb-1">
-                  <p className={`text-2xl font-bold ${perfTextColor(catTrend.avg7d)}`}>{catTrend.avg7d}%</p>
-                  <p className="text-[10px] text-slate-400 mb-1">7d avg</p>
-                </div>
-                <p className="text-[10px] text-slate-400 mb-3">
-                  {stat.done}/{stat.total} tasks done today
-                </p>
-                <PerfSparkline data={sparkData} color={color} width={120} height={36} />
-                <div className="mt-2.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${perfBarColor(stat.pct)}`}
-                    style={{ width: `${stat.pct}%` }}
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400 mt-1">{stat.pct}% today</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
@@ -3654,16 +3671,16 @@ export default function TaskManager() {
 
       {/* Page header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-6 py-8">
-          {/* Back to Regional link when drilling into a store */}
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          {/* Back to dashboard link when drilling into a store */}
           {isRegionalDir && urlSiteId && (
             <Link
-              href="/app/tasks/regional"
+              href={isCPO(profile.role) ? "/app/tasks/national" : "/app/tasks/regional"}
               data-testid="link-back-to-regional"
               className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-purple-700 transition-colors mb-4"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              Back to Regional Dashboard
+              {isCPO(profile.role) ? "Back to National Dashboard" : "Back to Regional Dashboard"}
             </Link>
           )}
           <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -3697,6 +3714,13 @@ export default function TaskManager() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Category performance mini-cards — shown for all users below the title */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
+            {PERF_CAT_ORDER.map((cat) => (
+              <CategoryMiniCard key={cat} cat={cat} trend7d={perfTrend7d} />
+            ))}
           </div>
         </div>
       </div>

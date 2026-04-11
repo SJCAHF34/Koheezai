@@ -627,6 +627,7 @@ export default function RegionalDashboard() {
   const profile = getUserProfile(user.email, user.name ?? "");
   const assignedRegion = getAssignedRegion(profile);
   const isCpoUser = isCPO(profile.role);
+
   // Effective region: RPD → their region; CPO → whatever filter is set (null = all)
   const filterRegion = assignedRegion ?? cpoFilterRegion;
 
@@ -679,10 +680,12 @@ export default function RegionalDashboard() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Globe className="w-5 h-5 text-purple-600" />
-                <h1 className="text-2xl font-bold text-slate-900">Regional Dashboard</h1>
+                <h1 className="text-2xl font-bold text-slate-900">
+                  {isCpoUser ? "National Dashboard" : "Regional Dashboard"}
+                </h1>
               </div>
               <p className="text-sm text-slate-400">
-                {filterRegion ?? "All Regions"} · {today}
+                {filterRegion ?? (isCpoUser ? "All Regions · National" : "All Regions")} · {today}
               </p>
             </div>
             <span
