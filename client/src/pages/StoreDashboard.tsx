@@ -66,7 +66,7 @@ function completionBarColor(pct: number) {
 
 function tierLabel(pct: number) {
   if (pct >= 80)
-    return { label: "Top Performer", bg: "bg-green-50 text-green-700 border-green-200" };
+    return { label: "Top", bg: "bg-green-50 text-green-700 border-green-200" };
   if (pct >= 65)
     return { label: "Good", bg: "bg-amber-50 text-amber-700 border-amber-200" };
   if (pct >= 50)
@@ -170,7 +170,7 @@ function CustomTooltip({
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const ALL_TASKS = TASKS;
+const DAILY_TASKS = TASKS.filter((t) => t.frequency === "daily");
 const PERIOD_TABS: TrendPeriod[] = ["7d", "30d", "6m", "1y"];
 const CAT_ORDER: TaskCategory[] = ["achc", "state_board", "operations", "retention"];
 
@@ -251,7 +251,7 @@ export default function StoreDashboard() {
 
   // ── Live task completions ────────────────────────────────────────────────
   const completions = loadCompletions(siteId, "daily");
-  const dailyTasks = ALL_TASKS.filter((t) => t.frequency === "daily");
+  const dailyTasks = DAILY_TASKS;
   const completedCount = completions.size;
   const totalCount = dailyTasks.length;
 
@@ -281,7 +281,7 @@ export default function StoreDashboard() {
     : [];
 
   // Filtered raw task list
-  const filteredTasks = ALL_TASKS.filter((t) => {
+  const filteredTasks = DAILY_TASKS.filter((t) => {
     if (rawFilter === "done") return completions.has(t.id);
     if (rawFilter === "pending") return !completions.has(t.id);
     return true;
@@ -633,7 +633,7 @@ export default function StoreDashboard() {
                     }`}
                   >
                     {f.charAt(0).toUpperCase() + f.slice(1)}
-                    {f === "all" && ` (${ALL_TASKS.length})`}
+                    {f === "all" && ` (${DAILY_TASKS.length})`}
                     {f === "done" && ` (${doneTodayCount})`}
                     {f === "pending" && ` (${pendingCount})`}
                   </button>
