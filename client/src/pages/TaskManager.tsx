@@ -3250,7 +3250,7 @@ export default function TaskManager() {
     highlightedTask ? highlightedTask.frequency : "daily"
   );
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(rawHighlightId);
-  const [viewingRole, setViewingRole] = useState<ViewingRole>(urlSiteId ? "all" : "own");
+  const [viewingRole, setViewingRole] = useState<ViewingRole>("own");
   const [categoryFilter, setCategoryFilter] = useState<TaskCategory | "all">("all");
   const [showRoster, setShowRoster] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -3563,8 +3563,8 @@ export default function TaskManager() {
           </div>
         </div>
 
-        {/* Director role-view selector */}
-        {isDir && !readOnly && (
+        {/* Director role-view selector — hidden when regional is viewing a specific store */}
+        {isDir && !readOnly && !(isRegionalDir && urlSiteId) && (
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
               View tasks for
@@ -3596,8 +3596,8 @@ export default function TaskManager() {
           </div>
         )}
 
-        {/* Director site overview cards (by role) */}
-        {isDir && !readOnly && (
+        {/* Director site overview cards (by role) — hidden when regional is viewing a specific store */}
+        {isDir && !readOnly && !(isRegionalDir && urlSiteId) && (
           <SiteOverviewPanel
             siteId={siteId}
             frequency={frequency}
@@ -3616,8 +3616,8 @@ export default function TaskManager() {
           />
         )}
 
-        {/* Director staff roster + history */}
-        {isDir && !readOnly && (
+        {/* Staff roster / history — hidden when regional is viewing a specific store */}
+        {isDir && !readOnly && !(isRegionalDir && urlSiteId) && (
           <div>
             <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
