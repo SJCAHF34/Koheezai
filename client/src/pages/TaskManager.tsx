@@ -3285,6 +3285,103 @@ function PerfTrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
 
 const PERF_CAT_ORDER: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
 
+type PerfCatStats = Record<string, { done: number; total: number; pct: number }>;
+
+function StorePerformancePanel({
+  trend7d,
+  catStats,
+}: {
+  trend7d: SiteTrend;
+  catStats: PerfCatStats;
+}) {
+  const completedCount = TREND_CATEGORIES.reduce((s, cat) => s + (catStats[cat]?.done ?? 0), 0);
+  const totalCount = TREND_CATEGORIES.reduce((s, cat) => s + (catStats[cat]?.total ?? 0), 0);
+  const todayPct = Math.round(
+    TREND_CATEGORIES.reduce((s, cat) => s + (catStats[cat]?.pct ?? 0), 0) / TREND_CATEGORIES.length
+  );
+  const avg7d = trend7d.overallAvg;
+  const tier = perfTierLabel(avg7d);
+
+  return (
+    <div data-testid="store-perf-panel" className="space-y-4">
+      <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+        <BarChart3 className="w-4 h-4 text-purple-600" />
+        Store Performance
+      </h2>
+
+      {/* KPI tiles */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div data-testid="kpi-today" className="bg-white border border-slate-200 rounded-md px-4 py-3">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Today's Rate</p>
+          <p className={`text-3xl font-bold ${perfTextColor(todayPct)}`}>{todayPct}%</p>
+          <p className="text-xs text-slate-400 mt-0.5">avg across 4 categories</p>
+        </div>
+        <div data-testid="kpi-7d" className="bg-white border border-slate-200 rounded-md px-4 py-3">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">7-Day Average</p>
+          <p className={`text-3xl font-bold ${perfTextColor(avg7d)}`}>{avg7d}%</p>
+          <p className="text-xs text-slate-400 mt-0.5">rolling compliance</p>
+        </div>
+        <div data-testid="kpi-tasks" className="bg-white border border-slate-200 rounded-md px-4 py-3">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Tasks Today</p>
+          <p className="text-3xl font-bold text-slate-900">{completedCount}</p>
+          <p className="text-xs text-slate-400 mt-0.5">of {totalCount} tasks done</p>
+        </div>
+        <div data-testid="kpi-tier" className="bg-white border border-slate-200 rounded-md px-4 py-3">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Compliance Tier</p>
+          <span className={`inline-block mt-1 text-xs font-bold px-2.5 py-1 rounded-full border ${tier.bg}`}>
+            {tier.label}
+          </span>
+          <p className="text-xs text-slate-400 mt-1.5">based on 7d avg</p>
+        </div>
+      </div>
+
+      {/* Category Performance */}
+      <div>
+        <p className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1.5">
+          <BarChart3 className="w-3.5 h-3.5 text-purple-500" />
+          Category Performance
+        </p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {PERF_CAT_ORDER.map((cat) => {
+            const cfg = CATEGORY_CONFIG[cat];
+            const color = SPARKLINE_COLORS[cat];
+            const catTrend = trend7d.categories[cat];
+            const sparkData = catTrend.days.map((d) => d.pct);
+            const stat = catStats[cat] ?? { done: 0, total: 0, pct: 0 };
+            return (
+              <div
+                key={cat}
+                data-testid={`perf-cat-card-${cat}`}
+                className="bg-white border border-slate-200 rounded-md p-4"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-slate-500 truncate pr-2">{cfg.label}</p>
+                  <PerfTrendIcon trend={catTrend.trend} />
+                </div>
+                <div className="flex items-end gap-1.5 mb-1">
+                  <p className={`text-2xl font-bold ${perfTextColor(catTrend.avg7d)}`}>{catTrend.avg7d}%</p>
+                  <p className="text-[10px] text-slate-400 mb-1">7d avg</p>
+                </div>
+                <p className="text-[10px] text-slate-400 mb-3">
+                  {stat.done}/{stat.total} tasks done today
+                </p>
+                <PerfSparkline data={sparkData} color={color} width={120} height={36} />
+                <div className="mt-2.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${perfBarColor(stat.pct)}`}
+                    style={{ width: `${stat.pct}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">{stat.pct}% today</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function TaskManager() {
@@ -3607,94 +3704,9 @@ export default function TaskManager() {
       {/* Main content */}
       <div className="max-w-4xl mx-auto px-6 py-6 space-y-5">
         {/* ── Store Performance Panel — shown when CPO/Regional drills into a store ── */}
-        {isRegionalDir && urlSiteId && (() => {
-          // Use perfCatStats (loaded from daily completions, independent of frequency tab)
-          const completedCount = TREND_CATEGORIES.reduce((s, cat) => s + (perfCatStats[cat]?.done ?? 0), 0);
-          const totalCount = TREND_CATEGORIES.reduce((s, cat) => s + (perfCatStats[cat]?.total ?? 0), 0);
-          const todayPct = Math.round(
-            TREND_CATEGORIES.reduce((s, cat) => s + (perfCatStats[cat]?.pct ?? 0), 0) / TREND_CATEGORIES.length
-          );
-          const avg7d = perfTrend7d.overallAvg;
-          const tier = perfTierLabel(avg7d);
-          return (
-            <div data-testid="store-perf-panel" className="space-y-4">
-              <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-purple-600" />
-                Store Performance
-              </h2>
-
-              {/* KPI tiles */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div data-testid="kpi-today" className="bg-white border border-slate-200 rounded-md px-4 py-3">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Today's Rate</p>
-                  <p className={`text-3xl font-bold ${perfTextColor(todayPct)}`}>{todayPct}%</p>
-                  <p className="text-xs text-slate-400 mt-0.5">avg across 4 categories</p>
-                </div>
-                <div data-testid="kpi-7d" className="bg-white border border-slate-200 rounded-md px-4 py-3">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">7-Day Average</p>
-                  <p className={`text-3xl font-bold ${perfTextColor(avg7d)}`}>{avg7d}%</p>
-                  <p className="text-xs text-slate-400 mt-0.5">rolling compliance</p>
-                </div>
-                <div data-testid="kpi-tasks" className="bg-white border border-slate-200 rounded-md px-4 py-3">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Tasks Today</p>
-                  <p className="text-3xl font-bold text-slate-900">{completedCount}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">of {totalCount} tasks done</p>
-                </div>
-                <div data-testid="kpi-tier" className="bg-white border border-slate-200 rounded-md px-4 py-3">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Compliance Tier</p>
-                  <span className={`inline-block mt-1 text-xs font-bold px-2.5 py-1 rounded-full border ${tier.bg}`}>
-                    {tier.label}
-                  </span>
-                  <p className="text-xs text-slate-400 mt-1.5">based on 7d avg</p>
-                </div>
-              </div>
-
-              {/* Category Performance */}
-              <div>
-                <p className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1.5">
-                  <BarChart3 className="w-3.5 h-3.5 text-purple-500" />
-                  Category Performance
-                </p>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {PERF_CAT_ORDER.map((cat) => {
-                    const cfg = CATEGORY_CONFIG[cat];
-                    const color = SPARKLINE_COLORS[cat];
-                    const catTrend = perfTrend7d.categories[cat];
-                    const sparkData = catTrend.days.map((d) => d.pct);
-                    const stat = perfCatStats[cat] ?? { done: 0, total: 0, pct: 0 };
-                    return (
-                      <div
-                        key={cat}
-                        data-testid={`perf-cat-card-${cat}`}
-                        className="bg-white border border-slate-200 rounded-md p-4"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-xs font-semibold text-slate-500 truncate pr-2">{cfg.label}</p>
-                          <PerfTrendIcon trend={catTrend.trend} />
-                        </div>
-                        <div className="flex items-end gap-1.5 mb-1">
-                          <p className={`text-2xl font-bold ${perfTextColor(catTrend.avg7d)}`}>{catTrend.avg7d}%</p>
-                          <p className="text-[10px] text-slate-400 mb-1">7d avg</p>
-                        </div>
-                        <p className="text-[10px] text-slate-400 mb-3">
-                          {stat.done}/{stat.total} tasks done today
-                        </p>
-                        <PerfSparkline data={sparkData} color={color} width={120} height={36} />
-                        <div className="mt-2.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${perfBarColor(stat.pct)}`}
-                            style={{ width: `${stat.pct}%` }}
-                          />
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-1">{stat.pct}% today</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        {isRegionalDir && urlSiteId && (
+          <StorePerformancePanel trend7d={perfTrend7d} catStats={perfCatStats} />
+        )}
 
         {/* Frequency tabs */}
         <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1">
