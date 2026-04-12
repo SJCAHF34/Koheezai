@@ -4434,14 +4434,64 @@ export default function TaskManager() {
         )}
 
         {/* Frequency tabs + New Task button */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-          <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1 flex-1 min-w-0">
+
+        {/* Mobile layout: row 1 = Daily/Weekly/Monthly, row 2 = Quarterly/One-Time + Create Task */}
+        <div className="flex flex-col gap-1.5 sm:hidden">
+          <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1">
+            {FREQUENCY_TABS.slice(0, 3).map((tab) => (
+              <button
+                key={tab.value}
+                data-testid={`freq-tab-${tab.value}`}
+                onClick={() => setFrequency(tab.value)}
+                className={`flex-1 px-2 py-2 rounded text-sm font-semibold transition-all ${
+                  frequency === tab.value
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1 flex-1">
+              {FREQUENCY_TABS.slice(3).map((tab) => (
+                <button
+                  key={tab.value}
+                  data-testid={`freq-tab-${tab.value}`}
+                  onClick={() => setFrequency(tab.value)}
+                  className={`flex-1 px-2 py-2 rounded text-sm font-semibold transition-all ${
+                    frequency === tab.value
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            {canCreateTask && (
+              <Button
+                data-testid="button-new-task"
+                onClick={() => setShowCreateModal(true)}
+                className="shrink-0 gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                Create Task
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop layout: all tabs + button in one row */}
+        <div className="hidden sm:flex sm:items-center gap-3">
+          <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1 flex-1">
             {FREQUENCY_TABS.map((tab) => (
               <button
                 key={tab.value}
                 data-testid={`freq-tab-${tab.value}`}
                 onClick={() => setFrequency(tab.value)}
-                className={`flex-1 min-w-0 px-2 py-2 rounded text-sm font-semibold transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
+                className={`flex-1 px-3 py-2 rounded text-sm font-semibold transition-all ${
                   frequency === tab.value
                     ? "bg-purple-600 text-white shadow-sm"
                     : "text-slate-500 hover:text-slate-700"
@@ -4455,7 +4505,7 @@ export default function TaskManager() {
             <Button
               data-testid="button-new-task"
               onClick={() => setShowCreateModal(true)}
-              className="shrink-0 gap-1.5 self-end sm:self-auto"
+              className="shrink-0 gap-1.5"
             >
               <Plus className="w-4 h-4" />
               Create Task
