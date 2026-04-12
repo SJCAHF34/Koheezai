@@ -9,8 +9,8 @@ import {
   getAssignedRegion,
   getRoleLabel,
 } from "@/lib/userProfile";
-import { TASKS, CATEGORY_CONFIG, type TaskCategory } from "@/lib/taskData";
-import { loadCompletions } from "@/lib/taskStorage";
+import { TASKS, CATEGORY_CONFIG, type TaskCategory, type TaskRole } from "@/lib/taskData";
+import { loadCompletions, loadCountersForSite, getTodayDateKey } from "@/lib/taskStorage";
 import {
   generateSiteTrendsForPeriod,
   TREND_CATEGORIES,
@@ -40,6 +40,8 @@ import {
   ChevronUp,
   Check,
   ClipboardList,
+  Activity,
+  ArrowUpRight,
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -291,6 +293,62 @@ export default function StoreDashboard() {
 
   const doneTodayCount = dailyTasks.filter((t) => completions.has(t.id)).length;
   const pendingCount = totalCount - doneTodayCount;
+
+  // ── Operations productivity (counter tasks) ──────────────────────────────
+  const todayKey = getTodayDateKey();
+  const counterEntries = loadCountersForSite(siteId, todayKey);
+  const counterMap = new Map(counterEntries.map((e) => [e.taskId, e]));
+
+  // Build per-task productivity rows from all tasks that have a counterType
+  interface ProdRow {
+    taskId: string;
+    title: string;
+    role: TaskRole;
+    counterType: "start-end" | "end-only";
+    start: number | undefined;
+    end: number | undefined;
+    delta: number;
+    isComplete: boolean;
+  }
+
+  const prodTasks = TASKS.filter((t) => t.counterType && t.frequency === "daily");
+  const prodRows: ProdRow[] = prodTasks.map((t) => {
+    const entry = counterMap.get(t.id);
+    const start = entry?.start;
+    const end = entry?.end;
+    const delta = (end ?? 0) - (start ?? 0);
+    return {
+      taskId: t.id,
+      title: t.title,
+      role: t.role as TaskRole,
+      counterType: t.counterType!,
+      start,
+      end,
+      delta: delta > 0 ? delta : 0,
+      isComplete: completions.has(t.id),
+    };
+  });
+
+  // Group by role
+  const ROLE_LABELS: Partial<Record<TaskRole, string>> = {
+    data_entry_tech: "Data Entry Tech",
+    pv2_tech: "PV2 Tech",
+    delivery_tech: "Delivery Tech",
+    pharmacist_1: "Pharmacist 1",
+  };
+  type ProdRole = "data_entry_tech" | "pv2_tech" | "delivery_tech" | "pharmacist_1";
+  const PROD_ROLE_ORDER: ProdRole[] = ["data_entry_tech", "pv2_tech", "delivery_tech", "pharmacist_1"];
+
+  const prodByRole: Record<string, ProdRow[]> = {};
+  for (const row of prodRows) {
+    const key = row.role;
+    if (!prodByRole[key]) prodByRole[key] = [];
+    prodByRole[key].push(row);
+  }
+
+  const totalItemsProcessed = prodRows.reduce((sum, r) => sum + r.delta, 0);
+  const tasksWithData = prodRows.filter((r) => r.end !== undefined).length;
+  const tasksEnteredCount = prodRows.filter((r) => r.start !== undefined || r.end !== undefined).length;
 
   const backHref = isRegionalOrAbove(safeProfile.role) ? "/app/tasks/regional" : "/app";
 
@@ -597,6 +655,167 @@ export default function StoreDashboard() {
               );
             })}
           </div>
+        </section>
+
+        {/* ── Operations Productivity ──────────────────────────────────── */}
+        <section>
+          <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <Activity className="w-4 h-4 text-slate-500" />
+            Operations Productivity
+            <span className="text-xs font-normal text-slate-400 ml-1">
+              — Start · End · Delta by task
+            </span>
+          </h2>
+
+          {/* Summary KPI strip */}
+          <div className="grid grid-cols-3 gap-3 mb-3">
+            <div className="bg-white border border-slate-200 rounded-md px-4 py-3" data-testid="ops-prod-total">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+                Total Items Processed
+              </p>
+              <p className="text-2xl font-bold text-slate-900">{totalItemsProcessed}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">sum of all deltas today</p>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-md px-4 py-3" data-testid="ops-prod-entered">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+                Tasks with Data
+              </p>
+              <p className="text-2xl font-bold text-slate-900">
+                {tasksEnteredCount}
+                <span className="text-base font-normal text-slate-400">/{prodRows.length}</span>
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">counts entered</p>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-md px-4 py-3" data-testid="ops-prod-complete">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+                Counter Tasks Done
+              </p>
+              <p className="text-2xl font-bold text-slate-900">
+                {prodRows.filter((r) => r.isComplete).length}
+                <span className="text-base font-normal text-slate-400">/{prodRows.length}</span>
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">marked complete</p>
+            </div>
+          </div>
+
+          {/* Per-role breakdown */}
+          <div className="space-y-3">
+            {PROD_ROLE_ORDER.filter((r) => prodByRole[r]?.length).map((roleKey) => {
+              const rows = prodByRole[roleKey];
+              const roleTotal = rows.reduce((s, r) => s + r.delta, 0);
+              const roleDone = rows.filter((r) => r.isComplete).length;
+              return (
+                <div
+                  key={roleKey}
+                  className="bg-white border border-slate-200 rounded-md overflow-hidden"
+                  data-testid={`ops-role-group-${roleKey}`}
+                >
+                  {/* Role header */}
+                  <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                    <p className="text-xs font-bold text-slate-700">{ROLE_LABELS[roleKey]}</p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-semibold text-slate-500">
+                        {roleDone}/{rows.length} done
+                      </span>
+                      {roleTotal > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                          <ArrowUpRight className="w-3 h-3" />
+                          {roleTotal} processed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Task rows */}
+                  <div>
+                    {/* Column headers */}
+                    <div className="grid grid-cols-[1fr_64px_64px_64px_80px] gap-2 px-4 py-1.5 border-b border-slate-50">
+                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide">Task</span>
+                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide text-center">Start</span>
+                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide text-center">End</span>
+                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide text-center">Delta</span>
+                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide text-right">Status</span>
+                    </div>
+                    {rows.map((row) => {
+                      const hasStart = row.start !== undefined;
+                      const hasEnd = row.end !== undefined;
+                      const deltaColor =
+                        row.delta > 0
+                          ? "text-green-600 font-bold"
+                          : hasEnd
+                          ? "text-slate-400"
+                          : "text-slate-300";
+                      return (
+                        <div
+                          key={row.taskId}
+                          data-testid={`ops-prod-row-${row.taskId}`}
+                          className="grid grid-cols-[1fr_64px_64px_64px_80px] gap-2 px-4 py-2.5 border-b border-slate-50 last:border-0 items-center"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-800 truncate">{row.title}</p>
+                            {row.counterType === "end-only" && (
+                              <p className="text-[10px] text-slate-400 mt-0.5">End count only</p>
+                            )}
+                          </div>
+
+                          {/* Start */}
+                          <div className="text-center">
+                            {row.counterType === "end-only" ? (
+                              <span className="text-[10px] text-slate-300">—</span>
+                            ) : hasStart ? (
+                              <span className="text-sm font-semibold text-slate-700">{row.start}</span>
+                            ) : (
+                              <span className="text-[10px] text-slate-300">—</span>
+                            )}
+                          </div>
+
+                          {/* End */}
+                          <div className="text-center">
+                            {hasEnd ? (
+                              <span className="text-sm font-semibold text-slate-700">{row.end}</span>
+                            ) : (
+                              <span className="text-[10px] text-slate-300">—</span>
+                            )}
+                          </div>
+
+                          {/* Delta */}
+                          <div className="text-center">
+                            {hasEnd ? (
+                              <span className={`text-sm ${deltaColor}`}>
+                                {row.delta > 0 ? `+${row.delta}` : row.delta === 0 ? "0" : "—"}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-300">—</span>
+                            )}
+                          </div>
+
+                          {/* Status */}
+                          <div className="flex justify-end">
+                            {row.isComplete ? (
+                              <span className="flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200 whitespace-nowrap">
+                                <Check className="w-3 h-3" />
+                                Done
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200 whitespace-nowrap">
+                                Pending
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {prodRows.length === 0 && (
+            <div className="bg-white border border-slate-200 rounded-md px-6 py-8 text-center text-sm text-slate-400">
+              No productivity counter tasks configured.
+            </div>
+          )}
         </section>
 
         {/* ── Raw task data ─────────────────────────────────────────────── */}

@@ -791,3 +791,8 @@ export function saveTaskCounter(entry: TaskCounterEntry): void {
   all.push(entry);
   writeCounters(all);
 }
+
+/** Load all counter entries for a given site on a given date (YYYY-MM-DD). */
+export function loadCountersForSite(siteId: string, date: string): TaskCounterEntry[] {
+  return readCounters().filter((e) => e.siteId === siteId && e.date === date);
+}
