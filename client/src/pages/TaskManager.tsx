@@ -3306,7 +3306,11 @@ function ResponsivePerfSparkline({ data, color = "#8b5cf6", height = 48 }: { dat
   const last = pts[pts.length - 1];
   const gradId = `rsg-${color.replace(/[^a-z0-9]/gi, "")}`;
   return (
-    <svg viewBox={`0 0 ${vw} ${height}`} style={{ width: "100%", height: `${height}px`, overflow: "visible" }}>
+    <svg
+      viewBox={`0 0 ${vw} ${height}`}
+      preserveAspectRatio="none"
+      style={{ width: "100%", height: `${height}px`, display: "block" }}
+    >
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.2" />
@@ -3314,8 +3318,8 @@ function ResponsivePerfSparkline({ data, color = "#8b5cf6", height = 48 }: { dat
         </linearGradient>
       </defs>
       <polygon points={areaPoints} fill={`url(#${gradId})`} />
-      <polyline points={polyPoints} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={last[0]} cy={last[1]} r={4} fill={color} />
+      <polyline points={polyPoints} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <circle cx={last[0]} cy={last[1]} r={4} fill={color} vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
