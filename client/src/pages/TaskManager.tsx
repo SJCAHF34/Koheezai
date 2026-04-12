@@ -387,16 +387,33 @@ function TaskRow({
     const entry = loadTaskCounter(resolvedSiteId, task.id, today);
     return entry?.end !== undefined ? String(entry.end) : "";
   });
+  // Tracks whether user tried to check without filling required counters
+  const [counterBlocked, setCounterBlocked] = useState(false);
+
+  // True when all required counter fields are filled
+  const counterReady = !task.counterType
+    || (task.counterType === "end-only" ? counterEnd !== "" : counterStart !== "" && counterEnd !== "");
 
   function handleCounterChange(field: "start" | "end", raw: string) {
     const cleaned = raw.replace(/[^0-9]/g, "");
     if (field === "start") setCounterStart(cleaned);
     else setCounterEnd(cleaned);
+    if (counterBlocked) setCounterBlocked(false);
     const entry = loadTaskCounter(resolvedSiteId, task.id, today) ?? { siteId: resolvedSiteId, taskId: task.id, date: today };
     saveTaskCounter({
       ...entry,
       [field]: cleaned === "" ? undefined : Number(cleaned),
     });
+  }
+
+  function handleToggle() {
+    // Always allow unchecking; only block checking when counters aren't ready
+    if (!completed && !counterReady) {
+      setCounterBlocked(true);
+      return;
+    }
+    setCounterBlocked(false);
+    onToggle(task);
   }
   return (
     <div
@@ -417,7 +434,7 @@ function TaskRow({
       <TaskCheckbox
         completed={completed}
         animating={animating}
-        onClick={() => onToggle(task)}
+        onClick={handleToggle}
         testId={`checkbox-${task.id}`}
         disabled={readOnly}
       />
@@ -489,33 +506,54 @@ function TaskRow({
 
         {/* ── Day counters ────────────────────────────────────── */}
         {task.counterType && !readOnly && (
-          <div className="flex items-center gap-3 mt-2" onClick={(e) => e.stopPropagation()}>
-            {task.counterType === "start-end" && (
+          <div className="mt-2 space-y-1" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              {task.counterType === "start-end" && (
+                <label className="flex items-center gap-1.5">
+                  <span className={`text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${counterBlocked && counterStart === "" ? "text-red-500" : "text-slate-500"}`}>
+                    Start
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={counterStart}
+                    onChange={(e) => handleCounterChange("start", e.target.value)}
+                    data-testid={`counter-start-${task.id}`}
+                    className={`w-16 h-6 text-xs text-center rounded border bg-white text-slate-700 focus:outline-none focus:ring-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                      counterBlocked && counterStart === ""
+                        ? "border-red-400 focus:ring-red-400 focus:border-red-400"
+                        : "border-slate-200 focus:ring-blue-400 focus:border-blue-400"
+                    }`}
+                    placeholder="—"
+                  />
+                </label>
+              )}
               <label className="flex items-center gap-1.5">
-                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Start</span>
+                <span className={`text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${counterBlocked && counterEnd === "" ? "text-red-500" : "text-slate-500"}`}>
+                  End
+                </span>
                 <input
                   type="number"
                   min={0}
-                  value={counterStart}
-                  onChange={(e) => handleCounterChange("start", e.target.value)}
-                  data-testid={`counter-start-${task.id}`}
-                  className="w-16 h-6 text-xs text-center rounded border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  value={counterEnd}
+                  onChange={(e) => handleCounterChange("end", e.target.value)}
+                  data-testid={`counter-end-${task.id}`}
+                  className={`w-16 h-6 text-xs text-center rounded border bg-white text-slate-700 focus:outline-none focus:ring-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                    counterBlocked && counterEnd === ""
+                      ? "border-red-400 focus:ring-red-400 focus:border-red-400"
+                      : "border-slate-200 focus:ring-blue-400 focus:border-blue-400"
+                  }`}
                   placeholder="—"
                 />
               </label>
+            </div>
+            {counterBlocked && (
+              <p className="text-[10px] text-red-500 font-medium">
+                {task.counterType === "end-only"
+                  ? "Enter end of day count to complete this task."
+                  : "Enter start and end of day counts to complete this task."}
+              </p>
             )}
-            <label className="flex items-center gap-1.5">
-              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">End</span>
-              <input
-                type="number"
-                min={0}
-                value={counterEnd}
-                onChange={(e) => handleCounterChange("end", e.target.value)}
-                data-testid={`counter-end-${task.id}`}
-                className="w-16 h-6 text-xs text-center rounded border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                placeholder="—"
-              />
-            </label>
           </div>
         )}
 
