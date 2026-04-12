@@ -673,7 +673,7 @@ export default function RegionalDashboard() {
   });
 
   const handleDrillDown = (siteId: string) => {
-    navigate(`/app/store/${siteId}`);
+    navigate(`/app/tasks?siteId=${siteId}`);
   };
 
   return (
