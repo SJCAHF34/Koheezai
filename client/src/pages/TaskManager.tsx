@@ -59,6 +59,8 @@ import {
   loadRoster,
   saveRoster,
   loadSiteCompletions,
+  loadTaskCounter,
+  saveTaskCounter,
   type TaskCompletion,
   type TaskAssignment,
   type TaskPriority,
@@ -371,6 +373,31 @@ function TaskRow({
   onMarkUrgent: (t: PharmacyTask) => void;
 }) {
   const cat = CATEGORY_CONFIG[task.category];
+  const today = getTodayDateKey();
+  const resolvedSiteId = siteId ?? "unknown";
+
+  // Counter state for tasks that track start/end of day counts
+  const [counterStart, setCounterStart] = useState<string>(() => {
+    if (!task.counterType) return "";
+    const entry = loadTaskCounter(resolvedSiteId, task.id, today);
+    return entry?.start !== undefined ? String(entry.start) : "";
+  });
+  const [counterEnd, setCounterEnd] = useState<string>(() => {
+    if (!task.counterType) return "";
+    const entry = loadTaskCounter(resolvedSiteId, task.id, today);
+    return entry?.end !== undefined ? String(entry.end) : "";
+  });
+
+  function handleCounterChange(field: "start" | "end", raw: string) {
+    const cleaned = raw.replace(/[^0-9]/g, "");
+    if (field === "start") setCounterStart(cleaned);
+    else setCounterEnd(cleaned);
+    const entry = loadTaskCounter(resolvedSiteId, task.id, today) ?? { siteId: resolvedSiteId, taskId: task.id, date: today };
+    saveTaskCounter({
+      ...entry,
+      [field]: cleaned === "" ? undefined : Number(cleaned),
+    });
+  }
   return (
     <div
       id={`task-row-${task.id}`}
@@ -458,6 +485,38 @@ function TaskRow({
             Open CQI Meeting Form
             <ArrowUpRight className="w-3 h-3" />
           </Link>
+        )}
+
+        {/* ── Day counters ────────────────────────────────────── */}
+        {task.counterType && !readOnly && (
+          <div className="flex items-center gap-3 mt-2" onClick={(e) => e.stopPropagation()}>
+            {task.counterType === "start-end" && (
+              <label className="flex items-center gap-1.5">
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">Start</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={counterStart}
+                  onChange={(e) => handleCounterChange("start", e.target.value)}
+                  data-testid={`counter-start-${task.id}`}
+                  className="w-16 h-6 text-xs text-center rounded border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  placeholder="—"
+                />
+              </label>
+            )}
+            <label className="flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">End</span>
+              <input
+                type="number"
+                min={0}
+                value={counterEnd}
+                onChange={(e) => handleCounterChange("end", e.target.value)}
+                data-testid={`counter-end-${task.id}`}
+                className="w-16 h-6 text-xs text-center rounded border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                placeholder="—"
+              />
+            </label>
+          </div>
         )}
 
         {assignment && (

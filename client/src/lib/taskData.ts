@@ -20,6 +20,7 @@ export interface PharmacyTask {
   category: TaskCategory;
   taskGroup: string;
   isUrgent?: boolean;
+  counterType?: "start-end" | "end-only";
 }
 
 export interface Site {
@@ -171,6 +172,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Contact Manager",
     isUrgent: true,
+    counterType: "start-end",
   },
   {
     id: "de-d-003",
@@ -181,6 +183,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "ICQ",
     isUrgent: true,
+    counterType: "start-end",
   },
   {
     id: "de-d-004",
@@ -190,6 +193,7 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "operations",
     taskGroup: "Data Entry",
+    counterType: "start-end",
   },
   {
     id: "de-d-007",
@@ -199,6 +203,7 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "operations",
     taskGroup: "Adjudication Exception",
+    counterType: "start-end",
   },
 
   // ── PV2 TECH · DAILY ────────────────────────────────────────────────────
@@ -220,6 +225,7 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "operations",
     taskGroup: "PV2",
+    counterType: "start-end",
   },
   {
     id: "pv2-d-008",
@@ -238,6 +244,7 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "operations",
     taskGroup: "Contact Manager",
+    counterType: "start-end",
   },
   {
     id: "pv2-d-010",
@@ -247,6 +254,7 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "operations",
     taskGroup: "Adjudication Exception",
+    counterType: "start-end",
   },
   {
     id: "pv2-d-011",
@@ -256,6 +264,7 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "operations",
     taskGroup: "Product Dispensing",
+    counterType: "start-end",
   },
   {
     id: "pv2-d-013",
@@ -343,6 +352,7 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "operations",
     taskGroup: "Product Dispensing",
+    counterType: "start-end",
   },
   {
     id: "del-d-011",
@@ -379,6 +389,7 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "operations",
     taskGroup: "Return to Stock",
+    counterType: "end-only",
   },
   {
     id: "del-d-015",
@@ -429,6 +440,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "PV1 / P4H",
     isUrgent: true,
+    counterType: "start-end",
   },
   {
     id: "rph1-d-018",

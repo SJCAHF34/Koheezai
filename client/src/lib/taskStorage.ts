@@ -752,3 +752,42 @@ export function saveStoreDocs(siteId: string, docs: StoreDocRecord[]): void {
 export function removeStoreDoc(id: string): void {
   writeStoreDocs(readStoreDocs().filter((d) => d.id !== id));
 }
+
+// ── Task Counters ─────────────────────────────────────────────────────────────
+
+const COUNTERS_KEY = "koheez_task_counters";
+
+export interface TaskCounterEntry {
+  siteId: string;
+  taskId: string;
+  date: string;
+  start?: number;
+  end?: number;
+}
+
+function readCounters(): TaskCounterEntry[] {
+  try {
+    const raw = localStorage.getItem(COUNTERS_KEY);
+    return raw ? (JSON.parse(raw) as TaskCounterEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCounters(entries: TaskCounterEntry[]): void {
+  try {
+    localStorage.setItem(COUNTERS_KEY, JSON.stringify(entries));
+  } catch {}
+}
+
+export function loadTaskCounter(siteId: string, taskId: string, date: string): TaskCounterEntry | null {
+  return readCounters().find((e) => e.siteId === siteId && e.taskId === taskId && e.date === date) ?? null;
+}
+
+export function saveTaskCounter(entry: TaskCounterEntry): void {
+  const all = readCounters().filter(
+    (e) => !(e.siteId === entry.siteId && e.taskId === entry.taskId && e.date === entry.date)
+  );
+  all.push(entry);
+  writeCounters(all);
+}
