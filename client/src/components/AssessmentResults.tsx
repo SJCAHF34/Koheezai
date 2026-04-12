@@ -47,7 +47,7 @@ export default function AssessmentResults({
     const p = patientData;
     if (!p) return "";
     const lines: string[] = [];
-    lines.push("I am a pharmacist reviewing an HIV-positive patient. Please evaluate the following for treatment appropriateness and clinically significant drug-drug interactions:");
+    lines.push("I am a pharmacist reviewing a patient regimen. Please evaluate the following for treatment appropriateness and clinically significant drug-drug interactions:");
     lines.push("");
     lines.push(`Patient: ${p.age ? `${p.age}-year-old` : "Adult"}, ${p.pregnancy === "yes" ? "pregnant" : p.pregnancy === "no" ? "not pregnant" : "pregnancy status unknown"}, ${p.treatmentStatus === "naive" ? "treatment-naive" : "treatment-experienced"}`);
     if (p.cd4Count !== undefined) lines.push(`CD4 Count: ${p.cd4Count} cells/µL`);
@@ -63,6 +63,19 @@ export default function AssessmentResults({
     lines.push("2. Are there any clinically significant drug-drug interactions between the ARV regimen and concomitant medications?");
     lines.push("3. Are any dose adjustments needed given the patient's renal or hepatic function?");
     lines.push("4. Are there any contraindications or safety concerns?");
+    lines.push("");
+    lines.push("Make this into a note in this format:");
+    lines.push("(ARV DRUG) Consult:");
+    lines.push("");
+    lines.push("(DRUG NAME)");
+    lines.push("Reviewed, sig, and indication: (indication)");
+    lines.push("SEs: (side effects)");
+    lines.push("WARNINGS: (fda warnings/precautions)");
+    lines.push("DDIs: (interactions and symptoms of those interactions)");
+    lines.push("RENAL: (if dose adjustment needed, if not just no Hx of renal dysfunction)");
+    lines.push("HEPATIC: (if dose adjustment needed, if not just no Hx of hepatic dysfunction)");
+    lines.push("CI: (list if any documented)");
+    lines.push("NOTE FOR PT: (notes for patient, key tips from FDA patient handouts)");
     return lines.join("\n");
   };
 

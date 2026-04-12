@@ -101,7 +101,6 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "ICQ",
     "Data Entry",
     "Adjudication Exception",
-    "Support Role",
     "Team Huddle",
   ],
   pv2_tech: [
@@ -112,7 +111,6 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "Adjudication Exception",
     "Product Dispensing",
     "ClerkChat",
-    "Support Role",
     "Inventory",
     "Weekly Purchase",
     "Team Huddle",
@@ -128,7 +126,6 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "AR Report",
     "RX Not Scanned Report",
     "Waiting in Bin Report",
-    "Support Role",
     "Return to Stock",
     "Closing",
     "Weekly",
@@ -203,15 +200,6 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Adjudication Exception",
   },
-  {
-    id: "de-d-008",
-    title: "Support Role",
-    description: "Assist other techs as needed (DE, PV2, DP, CM, ICQ)",
-    role: "data_entry_tech",
-    frequency: "daily",
-    category: "operations",
-    taskGroup: "Support Role",
-  },
 
   // ── PV2 TECH · DAILY ────────────────────────────────────────────────────
   {
@@ -277,15 +265,6 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "operations",
     taskGroup: "ClerkChat",
-  },
-  {
-    id: "pv2-d-014",
-    title: "Support Role",
-    description: "Assist other techs as needed (DE, PV2, DP, CM, ICQ)",
-    role: "pv2_tech",
-    frequency: "daily",
-    category: "operations",
-    taskGroup: "Support Role",
   },
   {
     id: "pv2-d-015",
@@ -391,15 +370,6 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "retention",
     taskGroup: "Waiting in Bin Report",
-  },
-  {
-    id: "del-d-017",
-    title: "Support Role",
-    description: "Assist other techs as needed (DE, PV2, DP, CM, ICQ)",
-    role: "delivery_tech",
-    frequency: "daily",
-    category: "operations",
-    taskGroup: "Support Role",
   },
   {
     id: "del-d-014",
