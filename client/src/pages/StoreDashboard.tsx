@@ -226,14 +226,15 @@ export default function StoreDashboard() {
     redirectTo = "/login";
   } else if (!store) {
     redirectTo = isRegionalOrAbove(profile.role) ? "/app/tasks/regional" : "/app";
+  } else if (isCPO(profile.role)) {
+    redirectTo = `/app/tasks?siteId=${siteId}`;
   } else if (profile.role === "regional_pharmacy_director") {
     const assignedRegion = getAssignedRegion(profile);
-    // RPD can view stores in their region; redirect out if wrong region
     if (assignedRegion && storeRegion?.region !== assignedRegion) {
       redirectTo = "/app/tasks/regional";
+    } else {
+      redirectTo = `/app/tasks?siteId=${siteId}`;
     }
-  } else if (isCPO(profile.role)) {
-    // CPO can view any store dashboard — no redirect
   } else if (isPharmacyDirector(profile.role)) {
     if (profile.siteId !== siteId) {
       redirectTo = "/app";
