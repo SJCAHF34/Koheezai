@@ -504,6 +504,19 @@ function TaskRow({
           </Link>
         )}
 
+        {task.url && (
+          <a
+            href={task.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid={`link-task-url-${task.id}`}
+            className="inline-flex items-center gap-1 mt-1.5 px-2.5 py-1 rounded text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+          >
+            Open HealthStream
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+
         {/* ── Day counters ────────────────────────────────────── */}
         {task.counterType && !readOnly && (
           <div className="mt-2 space-y-1" onClick={(e) => e.stopPropagation()}>

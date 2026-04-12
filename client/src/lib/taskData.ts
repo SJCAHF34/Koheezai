@@ -22,6 +22,7 @@ export interface PharmacyTask {
   isUrgent?: boolean;
   counterType?: "start-end" | "end-only";
   hidden?: boolean;
+  url?: string;
 }
 
 export interface Site {
@@ -103,6 +104,7 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "ICQ",
     "Data Entry",
     "Adjudication Exception",
+    "Training & Development",
     "Team Huddle",
   ],
   pv2_tech: [
@@ -115,6 +117,7 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "ClerkChat",
     "Inventory",
     "Weekly Purchase",
+    "Training & Development",
     "Team Huddle",
   ],
   delivery_tech: [
@@ -131,6 +134,7 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "Return to Stock",
     "Closing",
     "Weekly",
+    "Training & Development",
     "Team Huddle",
   ],
   pharmacist_1: [
@@ -141,6 +145,7 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "Shift Sign-Out",
     "Weekly",
     "Monthly & Quarterly",
+    "Training & Development",
     "Team Huddle",
   ],
   pharmacist_2: [
@@ -151,6 +156,7 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "Shift Sign-Out",
     "Weekly",
     "Monthly & Quarterly",
+    "Training & Development",
     "Team Huddle",
   ],
   director: [
@@ -158,6 +164,7 @@ export const ROLE_GROUP_ORDER: Partial<Record<TaskRole, string[]>> = {
     "Weekly",
     "Monthly",
     "Quarterly",
+    "Training & Development",
     "Team Huddle",
   ],
 };
@@ -850,5 +857,79 @@ export const TASKS: PharmacyTask[] = [
     frequency: "weekly",
     category: "retention",
     taskGroup: "Weekly",
+  },
+
+  // ── MINI-LEARNING SESSIONS · QUARTERLY ──────────────────────────────────
+  {
+    id: "mls-q-de",
+    title: "Complete (2) Mini-Learning Sessions",
+    description: "Complete two quarterly Mini-Learning Sessions (MLS) from the AHF Pharmacy Technician catalog on HealthStream.",
+    role: "data_entry_tech",
+    frequency: "quarterly",
+    category: "operations",
+    taskGroup: "Training & Development",
+    url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=b27b2a5e-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacy%20Technician&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+  },
+  {
+    id: "mls-q-pv2",
+    title: "Complete (2) Mini-Learning Sessions",
+    description: "Complete two quarterly Mini-Learning Sessions (MLS) from the AHF Pharmacy Technician catalog on HealthStream.",
+    role: "pv2_tech",
+    frequency: "quarterly",
+    category: "operations",
+    taskGroup: "Training & Development",
+    url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=b27b2a5e-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacy%20Technician&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+  },
+  {
+    id: "mls-q-del",
+    title: "Complete (2) Mini-Learning Sessions",
+    description: "Complete two quarterly Mini-Learning Sessions (MLS) from the AHF Pharmacy Technician catalog on HealthStream.",
+    role: "delivery_tech",
+    frequency: "quarterly",
+    category: "operations",
+    taskGroup: "Training & Development",
+    url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=b27b2a5e-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacy%20Technician&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+  },
+  {
+    id: "mls-q-rph1",
+    title: "Complete (2) Mini-Learning Sessions",
+    description: "Complete two quarterly Mini-Learning Sessions (MLS) from the AHF Pharmacist catalog on HealthStream.",
+    role: "pharmacist_1",
+    frequency: "quarterly",
+    category: "operations",
+    taskGroup: "Training & Development",
+    url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=f8da0358-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacist&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+  },
+  {
+    id: "mls-q-rph2",
+    title: "Complete (2) Mini-Learning Sessions",
+    description: "Complete two quarterly Mini-Learning Sessions (MLS) from the AHF Pharmacist catalog on HealthStream.",
+    role: "pharmacist_2",
+    frequency: "quarterly",
+    category: "operations",
+    taskGroup: "Training & Development",
+    url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=f8da0358-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacist&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+  },
+  {
+    id: "mls-q-dir",
+    title: "Complete (2) Mini-Learning Sessions",
+    description: "Complete two quarterly Mini-Learning Sessions (MLS) from the AHF Pharmacist catalog on HealthStream.",
+    role: "director",
+    frequency: "quarterly",
+    category: "operations",
+    taskGroup: "Training & Development",
+    url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=f8da0358-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacist&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+  },
+
+  // ── AHF UNIVERSITY · WEEKLY ─────────────────────────────────────────────
+  {
+    id: "ahfu-w-all",
+    title: "Complete AHF University Courses",
+    description: "Log in to HealthStream and complete assigned AHF University courses for the week.",
+    role: "all_staff",
+    frequency: "weekly",
+    category: "operations",
+    taskGroup: "Training & Development",
+    url: "https://www.healthstream.com/HSAPP/Login/HighlightMessage",
   },
 ];
