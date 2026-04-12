@@ -22,6 +22,7 @@ export interface AssessmentFormData {
   currentDrugs: string[];
   concomitantMeds: string[];
   geneticResistanceNotes: string;
+  additionalNotes: string;
   oeResponse: string;
   comprehensiveNote: string | null;
   assessmentResult: AssessmentResult | null;

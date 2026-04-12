@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Shield, BookOpen, Pill } from "lucide-react";
+import { Shield, BookOpen, Pill, Activity } from "lucide-react";
 
 export type ToolCard = {
   id: string;
@@ -28,6 +28,27 @@ export type ToolCard = {
 };
 
 export const clinicalTools: ToolCard[] = [
+  {
+    id: "athena",
+    title: "Athena",
+    subtitle: "Electronic Health Record — AthenaHealth",
+    icon: Activity,
+    iconColor: "text-blue-600 dark:text-blue-400",
+    iconBg: "bg-blue-100 dark:bg-blue-900/40",
+    description:
+      "AthenaHealth is the electronic health record (EHR) system used to access patient charts, clinical notes, medication histories, and care plans. Use this portal to review patient records and document pharmacy consultation notes.",
+    tips: [
+      "Use your AHF credentials to sign in — do not share login information",
+      "Review the patient's medication list and active problems before processing any dispensing",
+      "Document all pharmacy interventions and patient counseling in the clinical notes section",
+      "Ensure all changes are saved before closing a patient chart",
+    ],
+    primaryAction: {
+      label: "Open Athena EHR",
+      url: "https://athenanet.athenahealth.com/1/1/login/startoidc.esp?IDP=0oay9fqjxcuda2iRm297",
+      testId: "link-athena-portal",
+    },
+  },
   {
     id: "ramsell",
     title: "Ramsell ADAP",

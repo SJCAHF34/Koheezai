@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, BookOpen, ExternalLink, Copy, Check, FileText, Save, ShieldAlert, AlertTriangle, Info } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import AssessorWaiver from "@/components/AssessorWaiver";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -127,6 +128,7 @@ function buildOePrompt(p: {
   hepaticFunction?: string;
   selectedDrugs: string[];
   concomitantMeds: string[];
+  additionalNotes?: string;
 }): string {
   const lines: string[] = [];
   lines.push(
@@ -177,6 +179,10 @@ function buildOePrompt(p: {
   lines.push("HEPATIC: (if dose adjustment needed, if not just no Hx of hepatic dysfunction)");
   lines.push("CI: (list if any documented)");
   lines.push("NOTE FOR PT: (notes for patient, key tips from FDA patient handouts)");
+  if (p.additionalNotes && p.additionalNotes.trim()) {
+    lines.push("");
+    lines.push(`Additional Notes: ${p.additionalNotes.trim()}`);
+  }
   return lines.join("\n");
 }
 
@@ -188,6 +194,7 @@ function buildPrepOePrompt(p: {
   hepaticFunction?: string;
   selectedDrugs: string[];
   concomitantMeds: string[];
+  additionalNotes?: string;
 }): string {
   const lines: string[] = [];
   lines.push(
@@ -223,6 +230,10 @@ function buildPrepOePrompt(p: {
     "3. Are any dose adjustments or contraindications present given the patient's renal or hepatic function?"
   );
   lines.push("4. Are there any safety concerns, monitoring requirements, or counseling points specific to this PrEP regimen?");
+  if (p.additionalNotes && p.additionalNotes.trim()) {
+    lines.push("");
+    lines.push(`Additional Notes: ${p.additionalNotes.trim()}`);
+  }
   return lines.join("\n");
 }
 
@@ -238,6 +249,7 @@ function buildPatientContext(p: {
   selectedDrugs: string[];
   concomitantMeds: string[];
   geneticResistanceNotes?: string;
+  additionalNotes?: string;
   prepMode?: boolean;
 }): string {
   const lines: string[] = [];
@@ -259,6 +271,7 @@ function buildPatientContext(p: {
   }
   lines.push(`Concomitant Medications: ${p.concomitantMeds.join(", ") || "None"}`);
   if (!p.prepMode && p.geneticResistanceNotes) lines.push(`Genetic/Resistance Notes: ${p.geneticResistanceNotes}`);
+  if (p.additionalNotes && p.additionalNotes.trim()) lines.push(`Additional Notes: ${p.additionalNotes.trim()}`);
   return lines.join("\n");
 }
 
@@ -307,6 +320,7 @@ export default function AssessmentForm() {
   const [currentDrugs, setCurrentDrugs] = useState<string[]>(saved?.currentDrugs ?? []);
   const [concomitantMeds, setConcomitantMeds] = useState<string[]>(saved?.concomitantMeds ?? []);
   const [geneticResistanceNotes, setGeneticResistanceNotes] = useState(saved?.geneticResistanceNotes ?? "");
+  const [additionalNotes, setAdditionalNotes] = useState(saved?.additionalNotes ?? "");
 
   // Step 2 result
   const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(saved?.assessmentResult ?? null);
@@ -333,14 +347,14 @@ export default function AssessmentForm() {
       formData: {
         age, pregnancy, hlab5701, treatmentStatus, viralLoad, cd4Count, egfr,
         hepaticFunction, regimenMode, selectedDrugs, currentDrugs, concomitantMeds,
-        geneticResistanceNotes, oeResponse, comprehensiveNote, assessmentResult,
+        geneticResistanceNotes, additionalNotes, oeResponse, comprehensiveNote, assessmentResult,
       },
     });
     setLastSaved(new Date());
   }, [
     patientId, age, pregnancy, hlab5701, treatmentStatus, viralLoad, cd4Count, egfr,
     hepaticFunction, regimenMode, selectedDrugs, currentDrugs, concomitantMeds,
-    geneticResistanceNotes, oeResponse, comprehensiveNote, assessmentResult,
+    geneticResistanceNotes, additionalNotes, oeResponse, comprehensiveNote, assessmentResult,
   ]);
 
   useEffect(() => {
@@ -465,11 +479,12 @@ export default function AssessmentForm() {
       viralLoad: prepMode ? undefined : viralLoad,
       egfr, hepaticFunction, selectedDrugs, concomitantMeds,
       geneticResistanceNotes: prepMode ? undefined : geneticResistanceNotes,
+      additionalNotes: additionalNotes || undefined,
       prepMode,
     });
     const oeQuery = prepMode
-      ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds })
-      : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds });
+      ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes })
+      : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes });
     noteMutation.mutate({
       patientContext: patientCtx,
       oeQuery,
@@ -480,8 +495,8 @@ export default function AssessmentForm() {
 
   const handleCopyPrompt = () => {
     const prompt = prepMode
-      ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds })
-      : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds });
+      ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes })
+      : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes });
     navigator.clipboard.writeText(prompt).then(() => {
       setPromptCopied(true);
       setTimeout(() => setPromptCopied(false), 2000);
@@ -499,8 +514,8 @@ export default function AssessmentForm() {
 
 
   const oePrompt = prepMode
-    ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds })
-    : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds });
+    ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes })
+    : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes });
 
   if (!waiverAccepted) {
     return <AssessorWaiver onAccept={() => setWaiverAccepted(true)} />;
@@ -644,6 +659,26 @@ export default function AssessmentForm() {
                     />
                   )}
                 </div>
+
+                {/* Additional Notes */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                      Additional Notes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      id="additional-notes"
+                      data-testid="textarea-additional-notes"
+                      placeholder="Enter any additional clinical context, patient history, or notes to include in the OpenEvidence query and comprehensive note..."
+                      value={additionalNotes}
+                      onChange={(e) => setAdditionalNotes(e.target.value)}
+                      className="min-h-[96px] text-sm resize-none"
+                    />
+                  </CardContent>
+                </Card>
               </div>
             </section>
 
