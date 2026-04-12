@@ -120,6 +120,7 @@ import {
   Upload,
   FileUp,
   Tag,
+  ExternalLink,
 } from "lucide-react";
 
 // ── API helpers for retention patients ───────────────────────────────────────
