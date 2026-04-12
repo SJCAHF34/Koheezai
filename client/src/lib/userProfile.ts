@@ -31,6 +31,12 @@ const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteNam
     siteName: "All Regions",
     region: "all",
   },
+  "jeremy.zeller@aidshealth.org": {
+    role: "chief_pharmacy_officer",
+    siteId: "ALL",
+    siteName: "All Regions",
+    region: "all",
+  },
   "regionaldirector@koheez.ai": {
     role: "regional_pharmacy_director",
     siteId: "1417",

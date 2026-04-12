@@ -45,6 +45,7 @@ import {
   removePriority,
   hasPriority,
   loadUrgentTasks,
+  loadUrgentTaskDetails,
   saveUrgentTask,
   removeUrgentTask,
   loadHandoffNoteForRoleAndDate,
@@ -348,6 +349,7 @@ function TaskRow({
   canPrioritize,
   isPrioritized,
   isUrgentFromRegional,
+  urgentMarkedBy,
   canMarkUrgent,
   readOnly,
   siteId,
@@ -365,6 +367,7 @@ function TaskRow({
   canPrioritize: boolean;
   isPrioritized: boolean;
   isUrgentFromRegional: boolean;
+  urgentMarkedBy?: string;
   canMarkUrgent: boolean;
   readOnly?: boolean;
   siteId?: string;
@@ -446,7 +449,7 @@ function TaskRow({
           {(task.isUrgent || isUrgentFromRegional) && !completed && (
             <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-100 text-red-700">
               <AlertTriangle className="w-2.5 h-2.5" />
-              Urgent
+              {urgentMarkedBy ? `URGENT - ${urgentMarkedBy}` : "Urgent"}
             </span>
           )}
           {isPrioritized && !completed && (
@@ -652,6 +655,7 @@ function TaskGroupSection({
   assignments,
   priorities,
   urgentIds,
+  urgentDetails,
   canAssign,
   canPrioritize,
   canMarkUrgent,
@@ -670,6 +674,7 @@ function TaskGroupSection({
   assignments: Map<string, TaskAssignment>;
   priorities: Set<string>;
   urgentIds: Set<string>;
+  urgentDetails: Map<string, string>;
   canAssign: boolean;
   canPrioritize: boolean;
   canMarkUrgent: boolean;
@@ -730,6 +735,7 @@ function TaskGroupSection({
               canPrioritize={canPrioritize}
               isPrioritized={priorities.has(task.id)}
               isUrgentFromRegional={urgentIds.has(task.id)}
+              urgentMarkedBy={urgentDetails.get(task.id)}
               canMarkUrgent={canMarkUrgent}
               readOnly={readOnly}
               siteId={siteId}
@@ -756,6 +762,7 @@ function RoleSection({
   assignments,
   priorities,
   urgentIds,
+  urgentDetails,
   canAssign,
   canPrioritize,
   canMarkUrgent,
@@ -774,6 +781,7 @@ function RoleSection({
   assignments: Map<string, TaskAssignment>;
   priorities: Set<string>;
   urgentIds: Set<string>;
+  urgentDetails: Map<string, string>;
   canAssign: boolean;
   canPrioritize: boolean;
   canMarkUrgent: boolean;
@@ -851,6 +859,7 @@ function RoleSection({
               assignments={assignments}
               priorities={priorities}
               urgentIds={urgentIds}
+              urgentDetails={urgentDetails}
               canAssign={canAssign}
               canPrioritize={canPrioritize}
               canMarkUrgent={canMarkUrgent}
@@ -3739,6 +3748,7 @@ export default function TaskManager() {
   const [activePriorities, setActivePriorities] = useState<TaskPriority[]>([]);
   const [priorityIds, setPriorityIds] = useState<Set<string>>(new Set());
   const [urgentIds, setUrgentIds] = useState<Set<string>>(new Set());
+  const [urgentDetails, setUrgentDetails] = useState<Map<string, string>>(new Map());
   const [todayHandoffs, setTodayHandoffs] = useState<HandoffNote[]>([]);
 
   const siteId = urlSiteId ?? profile?.siteId ?? "1417";
@@ -3764,6 +3774,7 @@ export default function TaskManager() {
     setActivePriorities(pList);
     setPriorityIds(new Set(pList.map((p) => p.taskId)));
     setUrgentIds(loadUrgentTasks(siteId));
+    setUrgentDetails(loadUrgentTaskDetails(siteId));
     // Load today's handoff tasks and purge stale entries
     purgeStaleHandoffNotes();
     setTodayHandoffs(loadHandoffNotesForRole(siteId, getTodayDateKey(), profile.role));
@@ -3860,9 +3871,20 @@ export default function TaskManager() {
         next.delete(task.id);
         return next;
       });
+      setUrgentDetails((prev) => {
+        const next = new Map(prev);
+        next.delete(task.id);
+        return next;
+      });
     } else {
-      saveUrgentTask(urlSiteId, task.id, profile.email);
+      const roleAbbr =
+        profile.role === "chief_pharmacy_officer" ? "CPO"
+        : profile.role === "regional_pharmacy_director" ? "RPD"
+        : "PD";
+      const markerLabel = `${profile.name} ${roleAbbr}`;
+      saveUrgentTask(urlSiteId, task.id, markerLabel);
       setUrgentIds((prev) => new Set([...prev, task.id]));
+      setUrgentDetails((prev) => new Map([...prev, [task.id, markerLabel]]));
     }
   }, [profile, urlSiteId, urgentIds]);
 
@@ -4289,6 +4311,7 @@ export default function TaskManager() {
                 assignments={assignments}
                 priorities={priorityIds}
                 urgentIds={urgentIds}
+                urgentDetails={urgentDetails}
                 canAssign={isDir}
                 canPrioritize={canPrioritize}
                 canMarkUrgent={canMarkUrgent}

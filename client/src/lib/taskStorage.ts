@@ -285,6 +285,14 @@ export function loadUrgentTasks(siteId: string): Set<string> {
   );
 }
 
+export function loadUrgentTaskDetails(siteId: string): Map<string, string> {
+  return new Map(
+    readUrgentTasks()
+      .filter((t) => t.siteId === siteId)
+      .map((t) => [t.taskId, t.markedBy])
+  );
+}
+
 export function saveUrgentTask(siteId: string, taskId: string, markedBy: string): void {
   const all = readUrgentTasks().filter(
     (t) => !(t.taskId === taskId && t.siteId === siteId)
