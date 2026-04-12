@@ -7,7 +7,6 @@ import {
   isRegionalOrAbove,
   isPharmacyDirector,
   getAssignedRegion,
-  getRoleLabel,
 } from "@/lib/userProfile";
 import { TASKS, CATEGORY_CONFIG, type TaskCategory, type TaskRole } from "@/lib/taskData";
 import { loadCompletions, loadCountersForSite, getTodayDateKey } from "@/lib/taskStorage";
@@ -410,7 +409,7 @@ export default function StoreDashboard() {
               className="text-xs font-bold px-2.5 py-1 rounded-full text-white whitespace-nowrap shrink-0"
               style={{ background: "linear-gradient(90deg,#3b82f6,#9333ea)" }}
             >
-              {getRoleLabel(safeProfile.role)}
+              Pharmacy Director
             </span>
           </div>
 
