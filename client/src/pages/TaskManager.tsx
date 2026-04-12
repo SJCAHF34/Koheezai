@@ -29,7 +29,9 @@ import {
   buildAggregateSiteTrend,
   TREND_CATEGORIES,
   SPARKLINE_COLORS,
+  PERIOD_CONFIG,
   type SiteTrend,
+  type TrendPeriod,
 } from "@/lib/trendData";
 import { AHF_LOCATIONS, US_STATES, type AhfLocation } from "@/lib/ahfLocations";
 import {
@@ -3318,8 +3320,25 @@ function ResponsivePerfSparkline({ data, color = "#8b5cf6", height = 48 }: { dat
   );
 }
 
-// Category mini-card matching the screenshot style
-function CategoryMiniCard({ cat, trend7d }: { cat: TaskCategory; trend7d: SiteTrend }) {
+const TREND_PERIODS: Array<{ id: TrendPeriod; label: string }> = [
+  { id: "7d",  label: "Weekly"    },
+  { id: "30d", label: "Monthly"   },
+  { id: "6m",  label: "Quarterly" },
+  { id: "1y",  label: "Yearly"    },
+];
+
+// Category mini-card — clickable to expand the drill-down panel
+function CategoryMiniCard({
+  cat,
+  trend7d,
+  onClick,
+  isExpanded,
+}: {
+  cat: TaskCategory;
+  trend7d: SiteTrend;
+  onClick?: () => void;
+  isExpanded?: boolean;
+}) {
   const cfg = CATEGORY_CONFIG[cat];
   const color = SPARKLINE_COLORS[cat];
   const catTrend = trend7d.categories[cat];
@@ -3327,21 +3346,135 @@ function CategoryMiniCard({ cat, trend7d }: { cat: TaskCategory; trend7d: SiteTr
   const latestPct = sparkData[sparkData.length - 1] ?? catTrend.avg7d;
   const shortName = cfg.label.replace(" Compliance", "").replace(" Metrics", "").toUpperCase();
   return (
-    <div data-testid={`cat-mini-card-${cat}`} className="bg-white border border-slate-200 rounded-md p-4">
+    <div
+      data-testid={`cat-mini-card-${cat}`}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      className={`bg-white border border-slate-200 rounded-md p-4 transition-all ${onClick ? "cursor-pointer hover-elevate" : ""}`}
+      style={isExpanded ? { outline: `2px solid ${color}`, outlineOffset: "-2px" } : undefined}
+    >
       <div className="flex items-center justify-between mb-1">
         <p className="text-[11px] font-bold tracking-wide" style={{ color }}>
           {shortName}
         </p>
-        <PerfTrendIcon trend={catTrend.trend} />
+        <div className="flex items-center gap-1">
+          <PerfTrendIcon trend={catTrend.trend} />
+          {onClick && (isExpanded
+            ? <ChevronUp className="w-3 h-3 text-slate-400" />
+            : <ChevronDown className="w-3 h-3 text-slate-400" />
+          )}
+        </div>
       </div>
       <div className="flex items-end gap-2 mb-3">
         <p className={`text-2xl font-bold ${perfTextColor(catTrend.avg7d)}`}>{catTrend.avg7d}%</p>
-        <p className="text-[11px] text-slate-400 mb-0.5">7 Days avg</p>
+        <p className="text-[11px] text-slate-400 mb-0.5">7d avg</p>
       </div>
       <ResponsivePerfSparkline data={sparkData} color={color} height={48} />
       <p className="text-[11px] text-slate-400 mt-2">
         Latest: <span className={`font-semibold ${perfTextColor(latestPct)}`}>{latestPct}%</span>
       </p>
+    </div>
+  );
+}
+
+// Expanded drill-down panel — shows all 4 periods for a single category
+function CategoryDrillDownPanel({
+  cat,
+  buildTrend,
+  onClose,
+}: {
+  cat: TaskCategory;
+  buildTrend: (period: TrendPeriod) => SiteTrend;
+  onClose: () => void;
+}) {
+  const [activePeriod, setActivePeriod] = useState<TrendPeriod>("7d");
+  const trend = useMemo(() => buildTrend(activePeriod), [buildTrend, activePeriod]);
+  const catTrend = trend.categories[cat];
+  const cfg = CATEGORY_CONFIG[cat];
+  const color = SPARKLINE_COLORS[cat];
+  const sparkData = catTrend.days.map((d) => d.pct);
+  const latestPct = sparkData[sparkData.length - 1] ?? 0;
+  const highPct = Math.max(...sparkData);
+  const lowPct = Math.min(...sparkData);
+  const periodLabel = PERIOD_CONFIG[activePeriod].label;
+  // x-axis: show first, midpoint, last labels
+  const days = catTrend.days;
+  const midIdx = Math.floor(days.length / 2);
+  const xLabels = [
+    days[0]?.label ?? "",
+    days[midIdx]?.label ?? "",
+    days[days.length - 1]?.label ?? "",
+  ];
+  return (
+    <div
+      data-testid={`cat-drill-panel-${cat}`}
+      className="bg-white border rounded-md p-5 mt-3"
+      style={{ borderColor: color }}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <p className="text-sm font-bold" style={{ color }}>{cfg.label}</p>
+          <p className="text-xs text-slate-400">
+            Performance trend &middot; {trend.siteName} &middot; {periodLabel}
+          </p>
+        </div>
+        <button
+          data-testid="button-close-trend-panel"
+          onClick={onClose}
+          className="text-slate-400 hover:text-slate-600 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Period tabs */}
+      <div className="flex gap-1 bg-slate-50 border border-slate-100 rounded-md p-1 mb-5">
+        {TREND_PERIODS.map((p) => (
+          <button
+            key={p.id}
+            data-testid={`period-tab-${p.id}`}
+            onClick={() => setActivePeriod(p.id)}
+            className={`flex-1 px-2 py-1.5 rounded text-xs font-semibold transition-all ${
+              activePeriod === p.id ? "text-white shadow-sm" : "text-slate-500 hover:text-slate-700"
+            }`}
+            style={activePeriod === p.id ? { backgroundColor: color } : undefined}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-4 gap-2 mb-4">
+        {[
+          { label: "Period Avg", value: catTrend.avg7d },
+          { label: "Latest",    value: latestPct       },
+          { label: "High",      value: highPct         },
+          { label: "Low",       value: lowPct          },
+        ].map(({ label, value }) => (
+          <div key={label} className="text-center border border-slate-100 rounded-md py-2.5 px-1">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-1">{label}</p>
+            <p className={`text-lg font-bold ${perfTextColor(value)}`}>{value}%</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Trend badge */}
+      <div className="flex items-center gap-1.5 mb-3">
+        <PerfTrendIcon trend={catTrend.trend} />
+        <span className="text-xs text-slate-500 capitalize">{catTrend.trend} trend over {periodLabel.toLowerCase()}</span>
+      </div>
+
+      {/* Large sparkline */}
+      <ResponsivePerfSparkline data={sparkData} color={color} height={80} />
+
+      {/* X-axis labels */}
+      <div className="flex justify-between mt-1 px-0.5">
+        {xLabels.map((lbl, i) => (
+          <p key={i} className="text-[10px] text-slate-400">{lbl}</p>
+        ))}
+      </div>
     </div>
   );
 }
@@ -3429,6 +3562,7 @@ export default function TaskManager() {
     highlightedTask ? highlightedTask.frequency : "daily"
   );
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(rawHighlightId);
+  const [expandedCat, setExpandedCat] = useState<TaskCategory | null>(null);
   const [viewingRole, setViewingRole] = useState<ViewingRole>("own");
   const [categoryFilter, setCategoryFilter] = useState<TaskCategory | "all">("all");
   const [showRoster, setShowRoster] = useState(false);
@@ -3591,6 +3725,23 @@ export default function TaskManager() {
     // PD / store-level — individual store
     return generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", "7d");
   }, [urlSiteId, siteId, drillStoreInfo?.name, drillStoreRegion?.region, profile?.role, profile?.region]);
+
+  // Scope-aware trend builder used by the drill-down panel to load any period on demand
+  const buildTrendForScope = useCallback((period: TrendPeriod): SiteTrend => {
+    if (urlSiteId) {
+      return generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", period);
+    }
+    if (profile && isCPO(profile.role)) {
+      return buildAggregateSiteTrend(ALL_STORES.map((s) => s.id), period, "National");
+    }
+    if (profile && isRegionalOrAbove(profile.role) && !isCPO(profile.role)) {
+      const regionData = STORE_REGIONS.find((r) => r.region === profile.region);
+      const regionIds = regionData ? regionData.stores.map((s) => s.id) : [profile.siteId];
+      return buildAggregateSiteTrend(regionIds, period, regionData?.region ?? profile.region ?? "Region");
+    }
+    return generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", period);
+  }, [urlSiteId, siteId, drillStoreInfo?.name, drillStoreRegion?.region, profile?.role, profile?.region]);
+
   const perfCatStats = useMemo(() => {
     const comps = loadCompletions(siteId, "daily");
     const dailyTasks = TASKS.filter((t) => t.frequency === "daily");
@@ -3734,12 +3885,27 @@ export default function TaskManager() {
             </div>
           </div>
 
-          {/* Category performance mini-cards — shown for all users below the title */}
+          {/* Category performance mini-cards — clickable to expand drill-down */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
             {PERF_CAT_ORDER.map((cat) => (
-              <CategoryMiniCard key={cat} cat={cat} trend7d={perfTrend7d} />
+              <CategoryMiniCard
+                key={cat}
+                cat={cat}
+                trend7d={perfTrend7d}
+                onClick={() => setExpandedCat(expandedCat === cat ? null : cat)}
+                isExpanded={expandedCat === cat}
+              />
             ))}
           </div>
+
+          {/* Drill-down panel — appears below mini-cards when one is selected */}
+          {expandedCat && (
+            <CategoryDrillDownPanel
+              cat={expandedCat}
+              buildTrend={buildTrendForScope}
+              onClose={() => setExpandedCat(null)}
+            />
+          )}
         </div>
       </div>
 
