@@ -4222,15 +4222,23 @@ export default function TaskManager() {
 
   const extraRoles = profile.taskRoles as string[] | undefined;
   const baseVisible = getVisibleTasks(frequency, profile.role, viewingRole, extraRoles);
-  // Merge in custom tasks that match the current frequency and role view
+  // Merge in custom tasks that match the current frequency and role view.
+  // Mirror getVisibleTasks semantics exactly: director tasks are only visible
+  // to directors; non-directors see only their own role + all_staff.
   const relevantCustom = customTasks.filter((ct) => {
     if (ct.frequency !== frequency) return false;
-    if (viewingRole === "own") {
-      // Show custom tasks assigned to director or all_staff
-      return ct.role === "director" || ct.role === "all_staff" || ct.role === profile.role;
-    }
     if (viewingRole === "all") return true;
-    return ct.role === viewingRole || ct.role === "all_staff";
+    if (viewingRole === "own") {
+      if (isDir) {
+        // Directors in "own" view: their director tasks + all_staff
+        return ct.role === "director" || ct.role === "all_staff";
+      } else {
+        // Non-directors: only their specific role + all_staff (never director)
+        return ct.role === profile.role || ct.role === "all_staff";
+      }
+    }
+    // Specific role view (director drilling into a staff role)
+    return ct.role === (viewingRole as string) || ct.role === "all_staff";
   });
   const visible = [...baseVisible, ...relevantCustom];
   const filteredVisible = categoryFilter === "all"
@@ -4447,7 +4455,7 @@ export default function TaskManager() {
               className="shrink-0 gap-1.5"
             >
               <Plus className="w-4 h-4" />
-              New Task
+              Create Task
             </Button>
           )}
         </div>
