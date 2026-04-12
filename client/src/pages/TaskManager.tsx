@@ -183,6 +183,7 @@ const FREQUENCY_TABS: { value: TaskFrequency; label: string; sub: string }[] = [
   { value: "weekly", label: "Weekly", sub: "This week" },
   { value: "monthly", label: "Monthly", sub: "This month" },
   { value: "quarterly", label: "Quarterly", sub: "This quarter" },
+  { value: "one_time", label: "One-Time", sub: "Ad hoc tasks" },
 ];
 
 type ViewingRole = TaskRole | "own" | "all";
@@ -3782,7 +3783,7 @@ function StorePerformancePanel({
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(120, "Max 120 characters"),
   description: z.string().optional(),
-  frequency: z.enum(["daily", "weekly", "monthly", "quarterly"] as const),
+  frequency: z.enum(["daily", "weekly", "monthly", "quarterly", "one_time"] as const),
   role: z.enum(["data_entry_tech", "pv2_tech", "delivery_tech", "pharmacist_1", "pharmacist_2", "director", "all_staff"] as const),
   category: z.enum(["operations", "achc", "state_board", "retention"] as const),
   taskGroup: z.string(),
@@ -3894,6 +3895,7 @@ function CreateTaskModal({
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
                   <SelectItem value="quarterly">Quarterly</SelectItem>
+                  <SelectItem value="one_time">One-Time</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -7,7 +7,7 @@ export type TaskRole =
   | "director"
   | "all_staff";
 
-export type TaskFrequency = "daily" | "weekly" | "monthly" | "quarterly";
+export type TaskFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "one_time";
 
 export type TaskCategory = "achc" | "state_board" | "retention" | "operations";
 

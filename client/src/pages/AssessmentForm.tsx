@@ -20,7 +20,7 @@ import {
   saveAssessment,
 } from "@/lib/patientStorage";
 
-const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
+const GRADIENT = "linear-gradient(135deg, #7c3aed, #9333ea)";
 
 // ── Steps definition ──────────────────────────────────────────────────────
 const STEPS = [

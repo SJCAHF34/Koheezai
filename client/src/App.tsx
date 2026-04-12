@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode, type ComponentType } from "react";
 import { Switch, Route, Link, useLocation, Redirect } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient as qc, apiRequest } from "./lib/queryClient";
@@ -20,7 +20,7 @@ import StoreDashboard from "@/pages/StoreDashboard";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
@@ -54,20 +54,34 @@ function Spinner() {
 }
 
 // ── App nav ────────────────────────────────────────────────────────────────
-function NavLink({ href, children, testId }: { href: string; children: ReactNode; testId: string }) {
+function NavMenuItem({
+  href,
+  icon: Icon,
+  label,
+  testId,
+  onClick,
+}: {
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  testId: string;
+  onClick?: () => void;
+}) {
   const [location] = useLocation();
   const active = location === href || (href !== "/app" && location.startsWith(href));
   return (
     <Link
       href={href}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+      data-testid={testId}
+      onClick={onClick}
+      className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-md transition-colors ${
         active
           ? "bg-purple-50 text-purple-700"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          : "text-foreground hover:bg-muted"
       }`}
-      data-testid={testId}
     >
-      {children}
+      <Icon className="w-4 h-4 shrink-0" />
+      {label}
     </Link>
   );
 }
@@ -75,6 +89,7 @@ function NavLink({ href, children, testId }: { href: string; children: ReactNode
 function AppNav() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
 
   const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
   const isRegional = profile ? isRegionalOrAbove(profile.role) : false;
@@ -90,89 +105,95 @@ function AppNav() {
     },
   });
 
-  return (
-    <header className="sticky top-0 z-50 border-b bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 gap-4">
-          {/* Logo */}
-          <Link href={isCpoUser ? "/app/tasks/national" : isRegional ? "/app/tasks/regional" : "/app"}>
-            <span className="font-bold text-sm tracking-tight cursor-pointer">
-              <span
-                className="bg-clip-text text-transparent"
-                style={{ backgroundImage: LOGO_GRADIENT }}
-              >
-                Koheez.ai
-              </span>
-            </span>
-          </Link>
+  const close = () => setOpen(false);
 
-          <nav className="flex items-center gap-1 flex-wrap">
-            {/* Dashboard link — role-specific */}
+  return (
+    <>
+      <header className="sticky top-0 z-50 border-b bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14">
+            {/* Logo */}
+            <Link href={isCpoUser ? "/app/tasks/national" : isRegional ? "/app/tasks/regional" : "/app"} onClick={close}>
+              <span className="font-bold text-sm tracking-tight cursor-pointer">
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: LOGO_GRADIENT }}
+                >
+                  Koheez.ai
+                </span>
+              </span>
+            </Link>
+
+            {/* Right side: hamburger + logout */}
+            <div className="flex items-center gap-1">
+              <button
+                data-testid="btn-logout"
+                onClick={() => logoutMutation.mutate()}
+                title={user?.email ?? "Sign out"}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Sign out</span>
+              </button>
+
+              <button
+                data-testid="btn-menu-toggle"
+                onClick={() => setOpen((o) => !o)}
+                className="inline-flex items-center justify-center w-9 h-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="Toggle navigation menu"
+                aria-expanded={open}
+              >
+                {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Dropdown nav panel */}
+      {open && (
+        <div
+          className="fixed top-14 right-0 z-40 w-64 bg-white border-l border-b shadow-lg rounded-bl-lg"
+          data-testid="nav-dropdown-menu"
+        >
+          <nav className="p-2 space-y-0.5">
             {isCpoUser ? (
-              <NavLink href="/app/tasks/national" testId="nav-national">
-                <Globe className="w-4 h-4" />
-                <span className="hidden sm:inline">National</span>
-              </NavLink>
+              <NavMenuItem href="/app/tasks/national" icon={Globe} label="National Dashboard" testId="nav-national" onClick={close} />
             ) : isRegional ? (
-              <NavLink href="/app/tasks/regional" testId="nav-regional">
-                <Globe className="w-4 h-4" />
-                <span className="hidden sm:inline">Regional</span>
-              </NavLink>
+              <NavMenuItem href="/app/tasks/regional" icon={Globe} label="Regional Dashboard" testId="nav-regional" onClick={close} />
             ) : (
-              <NavLink href="/app" testId="nav-dashboard">
-                <LayoutDashboard className="w-4 h-4" />
-                <span className="hidden sm:inline">Dashboard</span>
-              </NavLink>
+              <NavMenuItem href="/app" icon={LayoutDashboard} label="Dashboard" testId="nav-dashboard" onClick={close} />
             )}
 
-            <NavLink href="/app/assessment" testId="nav-assessment">
-              <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline">HIV/PrEP</span>
-              <span className="sm:hidden">Assess</span>
-            </NavLink>
-
-            <NavLink href="/app/tasks" testId="nav-tasks">
-              <ClipboardList className="w-4 h-4" />
-              <span className="hidden sm:inline">Tasks</span>
-            </NavLink>
+            <NavMenuItem href="/app/assessment" icon={Activity} label="HIV/PrEP Assessor" testId="nav-assessment" onClick={close} />
+            <NavMenuItem href="/app/tasks" icon={ClipboardList} label="Tasks" testId="nav-tasks" onClick={close} />
 
             {showWorkbook && (
-              <NavLink href="/app/achc-workbook" testId="nav-achc-workbook">
-                <BookCheck className="w-4 h-4" />
-                <span className="hidden sm:inline">ACHC Workbook</span>
-                <span className="sm:hidden">ACHC</span>
-              </NavLink>
+              <NavMenuItem href="/app/achc-workbook" icon={BookCheck} label="ACHC Workbook" testId="nav-achc-workbook" onClick={close} />
             )}
 
             {showCQI && (
-              <NavLink href="/app/cqi-meeting" testId="nav-cqi-meeting">
-                <ClipboardCheck className="w-4 h-4" />
-                <span className="hidden sm:inline">CQI Meeting</span>
-                <span className="sm:hidden">CQI</span>
-              </NavLink>
+              <NavMenuItem href="/app/cqi-meeting" icon={ClipboardCheck} label="CQI Meeting" testId="nav-cqi-meeting" onClick={close} />
             )}
 
-            <NavLink href="/app/patient-assistance" testId="nav-assistance">
-              <HeartHandshake className="w-4 h-4" />
-              <span className="hidden sm:inline">Patient Assistance</span>
-              <span className="sm:hidden">Assistance</span>
-            </NavLink>
+            <NavMenuItem href="/app/patient-assistance" icon={HeartHandshake} label="Patient Assistance" testId="nav-assistance" onClick={close} />
 
-            <ClinicalToolsPanel />
-
-            <button
-              data-testid="btn-logout"
-              onClick={() => logoutMutation.mutate()}
-              title={user?.email ?? "Sign out"}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Sign out</span>
-            </button>
+            <div className="pt-1 pb-0.5" onClick={close}>
+              <ClinicalToolsPanel />
+            </div>
           </nav>
         </div>
-      </div>
-    </header>
+      )}
+
+      {/* Backdrop to close menu */}
+      {open && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={close}
+          aria-hidden="true"
+        />
+      )}
+    </>
   );
 }
 
