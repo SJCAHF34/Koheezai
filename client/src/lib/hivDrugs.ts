@@ -347,6 +347,13 @@ export const prepDrugs: HIVDrug[] = [
     class: "PrEP",
   },
   {
+    id: "apretude",
+    name: "Cabotegravir LA",
+    brandName: "Apretude",
+    dosage: "600 mg IM — initiation Day 1 & Day 29, then q2m",
+    class: "PrEP",
+  },
+  {
     id: "yeztugo",
     name: "Lenacapavir",
     brandName: "Yeztugo",
