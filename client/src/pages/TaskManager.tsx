@@ -4069,16 +4069,9 @@ export default function TaskManager() {
           )}
 
           {/* ── My Store Dashboard banner — Director/Regional/CPO only ── */}
-          {/* For CPO/RPD: only show when NOT already drilled into a store (avoids linking to current page) */}
-          {isDirectorRole(profile.role) &&
-            siteId !== "ALL" &&
-            (!isRegionalOrAbove(profile.role) || !urlSiteId) && (
+          {isDirectorRole(profile.role) && siteId !== "ALL" && (
             <Link
-              href={
-                isRegionalOrAbove(profile.role)
-                  ? `/app/tasks?siteId=${siteId}`
-                  : `/app/store/${siteId}`
-              }
+              href={`/app/store/${siteId}`}
               data-testid="link-store-dashboard-banner"
               className="flex items-center gap-3 mt-4 bg-white border border-slate-200 rounded-md px-4 py-3 hover-elevate group transition-all"
             >
