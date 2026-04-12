@@ -4224,7 +4224,8 @@ export default function TaskManager() {
   const baseVisible = getVisibleTasks(frequency, profile.role, viewingRole, extraRoles);
   // Merge in custom tasks that match the current frequency and role view.
   // Mirror getVisibleTasks semantics exactly: director tasks are only visible
-  // to directors; non-directors see only their own role + all_staff.
+  // to directors; non-directors see only their assigned role(s) + all_staff.
+  const extraRoleSet = new Set<string>(extraRoles ?? []);
   const relevantCustom = customTasks.filter((ct) => {
     if (ct.frequency !== frequency) return false;
     if (viewingRole === "all") return true;
@@ -4233,8 +4234,8 @@ export default function TaskManager() {
         // Directors in "own" view: their director tasks + all_staff
         return ct.role === "director" || ct.role === "all_staff";
       } else {
-        // Non-directors: only their specific role + all_staff (never director)
-        return ct.role === profile.role || ct.role === "all_staff";
+        // Non-directors: primary role + any extra assigned roles + all_staff (never director)
+        return ct.role === profile.role || extraRoleSet.has(ct.role) || ct.role === "all_staff";
       }
     }
     // Specific role view (director drilling into a staff role)
