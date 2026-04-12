@@ -121,6 +121,7 @@ import {
   FileUp,
   Tag,
   ExternalLink,
+  LayoutGrid,
 } from "lucide-react";
 
 // ── API helpers for retention patients ───────────────────────────────────────
@@ -3712,8 +3713,11 @@ export default function TaskManager() {
   // Regional/CPO directors can drill into any site via URL param and retain full access.
   const isRegionalDir = profile ? isRegionalOrAbove(profile.role) : false;
   const knownSiteIds = new Set(SITES.map((s) => s.id));
+  // Accept any siteId that is in the SITES list OR found in the full store directory
   const effectiveRawSiteId =
-    rawUrlSiteId && knownSiteIds.has(rawUrlSiteId) ? rawUrlSiteId : null;
+    rawUrlSiteId && (knownSiteIds.has(rawUrlSiteId) || !!findStore(rawUrlSiteId))
+      ? rawUrlSiteId
+      : null;
   const urlSiteId =
     effectiveRawSiteId && isRegionalDir ? effectiveRawSiteId : null;
   const readOnly = false;
@@ -4062,6 +4066,41 @@ export default function TaskManager() {
               buildTrend={buildTrendForScope}
               onClose={() => setExpandedCat(null)}
             />
+          )}
+
+          {/* ── My Store Dashboard banner — Director/Regional/CPO only ── */}
+          {isDirectorRole(profile.role) && siteId !== "ALL" && (
+            <Link
+              href={`/app/store/${siteId}`}
+              data-testid="link-store-dashboard-banner"
+              className="flex items-center gap-3 mt-4 bg-white border border-slate-200 rounded-md px-4 py-3 hover-elevate group transition-all"
+            >
+              <div className="flex-shrink-0 w-9 h-9 rounded-md bg-purple-50 flex items-center justify-center">
+                <LayoutGrid className="w-4 h-4 text-purple-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  My Store Dashboard
+                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-bold text-slate-900">{displaySiteName}</p>
+                  <span className={`text-sm font-bold ${
+                    perfTrendLive.overallAvg >= 80
+                      ? "text-green-600"
+                      : perfTrendLive.overallAvg >= 65
+                      ? "text-amber-600"
+                      : "text-red-500"
+                  }`}>
+                    {perfTrendLive.overallAvg}% 7d avg
+                  </span>
+                </div>
+              </div>
+              <span className="text-sm font-semibold text-purple-600 group-hover:text-purple-800 whitespace-nowrap flex items-center gap-1 transition-colors">
+                View dashboard
+                <ChevronRight className="w-4 h-4" />
+              </span>
+            </Link>
           )}
         </div>
       </div>

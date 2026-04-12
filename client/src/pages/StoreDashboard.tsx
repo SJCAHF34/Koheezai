@@ -226,15 +226,14 @@ export default function StoreDashboard() {
     redirectTo = "/login";
   } else if (!store) {
     redirectTo = isRegionalOrAbove(profile.role) ? "/app/tasks/regional" : "/app";
-  } else if (isCPO(profile.role)) {
-    redirectTo = `/app/tasks?siteId=${siteId}`; // CPO → Task Manager drill-in
   } else if (profile.role === "regional_pharmacy_director") {
     const assignedRegion = getAssignedRegion(profile);
+    // RPD can view stores in their region; redirect out if wrong region
     if (assignedRegion && storeRegion?.region !== assignedRegion) {
       redirectTo = "/app/tasks/regional";
-    } else {
-      redirectTo = `/app/tasks?siteId=${siteId}`; // Regional → Task Manager drill-in
     }
+  } else if (isCPO(profile.role)) {
+    // CPO can view any store dashboard — no redirect
   } else if (isPharmacyDirector(profile.role)) {
     if (profile.siteId !== siteId) {
       redirectTo = "/app";
@@ -350,7 +349,11 @@ export default function StoreDashboard() {
   const tasksWithData = prodRows.filter((r) => r.end !== undefined).length;
   const tasksEnteredCount = prodRows.filter((r) => r.start !== undefined || r.end !== undefined).length;
 
-  const backHref = isRegionalOrAbove(safeProfile.role) ? "/app/tasks/regional" : "/app";
+  const backHref = isCPO(safeProfile.role)
+    ? "/app/tasks/national"
+    : safeProfile.role === "regional_pharmacy_director"
+    ? "/app/tasks/regional"
+    : "/app";
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -371,7 +374,11 @@ export default function StoreDashboard() {
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-purple-600 mb-4 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            {isRegionalOrAbove(safeProfile.role) ? "Back to Regional Dashboard" : "Back to Dashboard"}
+            {isCPO(safeProfile.role)
+              ? "Back to National Dashboard"
+              : safeProfile.role === "regional_pharmacy_director"
+              ? "Back to Regional Dashboard"
+              : "Back to Dashboard"}
           </button>
 
           <div className="flex items-start justify-between gap-4 flex-wrap">
