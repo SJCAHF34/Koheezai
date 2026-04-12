@@ -4013,9 +4013,9 @@ export default function TaskManager() {
   const isPharmDir = profile ? isPharmacyDirector(profile.role) : false;
   const canPrioritize = isDir && !isTechRole(profile?.role ?? "pharmacist_1");
   const canMarkUrgent = isRegionalDir && !!urlSiteId;
-  // Directors can create custom tasks only when viewing a specific store (not ALL)
-  const canCreateTask = isDir && siteId !== "ALL";
-  // Directors can also delete custom tasks they see (same condition)
+  // PD can always create/delete custom tasks for their own store.
+  // RPD/CPO can only do so when drilled into a specific store via URL param.
+  const canCreateTask = isPharmDir || (isRegionalDir && !!urlSiteId);
   const canDeleteCustom = canCreateTask;
 
   useEffect(() => {
