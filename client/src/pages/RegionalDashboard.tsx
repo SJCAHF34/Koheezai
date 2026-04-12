@@ -155,7 +155,8 @@ function SiteCard({
   const site = SITES.find((s) => s.id === trend.siteId);
   const orderedCats: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
 
-  const todayPct = realStats.todayAvg;
+  const lastDayIdx = trend.categories.achc.days.length - 1;
+  const todayPct = realStats.todayAvg > 0 ? realStats.todayAvg : trend.todayAvg;
 
   const overallTrend: "up" | "down" | "stable" =
     trend.overallAvg >= todayPct + 5
@@ -190,7 +191,8 @@ function SiteCard({
       <div className="px-5 pb-3 grid grid-cols-2 gap-x-5 gap-y-3">
         {orderedCats.map((cat) => {
           const cfg = CATEGORY_CONFIG[cat];
-          const todayPctCat = realStats.catPcts[cat];
+          const realCatPct = realStats.catPcts[cat];
+          const todayPctCat = realCatPct > 0 ? realCatPct : trend.categories[cat].days[lastDayIdx].pct;
           const weekAvgCat = trend.categories[cat].avg7d;
           return (
             <div key={cat}>
@@ -432,7 +434,8 @@ function CarouselStoreCard({
   onDrillDown: (id: string) => void;
 }) {
   const orderedCats: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
-  const todayPct = realStats.todayAvg;
+  const lastDayIdx = trend ? trend.categories.achc.days.length - 1 : 6;
+  const todayPct = realStats.todayAvg > 0 ? realStats.todayAvg : (trend?.todayAvg ?? 0);
 
   return (
     <button
@@ -459,7 +462,9 @@ function CarouselStoreCard({
       <div className="px-5 pb-3 grid grid-cols-2 gap-x-5 gap-y-3">
         {orderedCats.map((cat) => {
           const cfg = CATEGORY_CONFIG[cat];
-          const todayCat = realStats.catPcts[cat];
+          const realCatPct = realStats.catPcts[cat];
+          const simCatPct = trend?.categories[cat].days[lastDayIdx].pct ?? 0;
+          const todayCat = realCatPct > 0 ? realCatPct : simCatPct;
           const weekAvgCat = trend?.categories[cat].avg7d;
           return (
             <div key={cat}>

@@ -251,6 +251,44 @@ export function getAverageCategoryPointsForPeriod(
   );
 }
 
+/**
+ * Build an aggregate SiteTrend by averaging per-category daily points across
+ * the provided store IDs. Used for CPO (all stores) and RPD (region stores).
+ */
+export function buildAggregateSiteTrend(
+  siteIds: string[],
+  period: TrendPeriod,
+  label: string = "Aggregate"
+): SiteTrend {
+  if (siteIds.length === 0) {
+    return generateSiteTrendsForPeriod("1417", label, "", period);
+  }
+  const allTrends = siteIds.map((id) =>
+    generateSiteTrendsForPeriod(id, id, "", period)
+  );
+  const categories = {} as Record<TaskCategory, CategoryTrend>;
+  for (const cat of TREND_CATEGORIES) {
+    const avgPoints = getAverageCategoryPointsForPeriod(cat, allTrends);
+    const templateDays = allTrends[0].categories[cat].days;
+    const days: DayPoint[] = templateDays.map((d, i) => ({
+      date: d.date,
+      label: d.label,
+      pct: avgPoints[i],
+    }));
+    const avg7d = Math.round(avgPoints.reduce((s, v) => s + v, 0) / avgPoints.length);
+    const trend = calcTrend(avgPoints);
+    categories[cat] = { category: cat, days, avg7d, trend };
+  }
+  const overallAvg = Math.round(
+    TREND_CATEGORIES.reduce((s, cat) => s + categories[cat].avg7d, 0) / TREND_CATEGORIES.length
+  );
+  const lastIdx = allTrends[0].categories.achc.days.length - 1;
+  const todayAvg = Math.round(
+    TREND_CATEGORIES.reduce((s, cat) => s + categories[cat].days[lastIdx].pct, 0) / TREND_CATEGORIES.length
+  );
+  return { siteId: "aggregate", siteName: label, region: "", categories, overallAvg, todayAvg };
+}
+
 /** Rank all provided stores by their avg completion % for a category × period */
 export function getSiteRankingByCategory(
   cat: TaskCategory,

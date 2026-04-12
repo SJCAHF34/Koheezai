@@ -23,9 +23,10 @@ import {
   type TaskFrequency,
   type TaskCategory,
 } from "@/lib/taskData";
-import { findStore, findStoreRegion } from "@/lib/storeDirectory";
+import { findStore, findStoreRegion, STORE_REGIONS, ALL_STORES } from "@/lib/storeDirectory";
 import {
   generateSiteTrendsForPeriod,
+  buildAggregateSiteTrend,
   TREND_CATEGORIES,
   SPARKLINE_COLORS,
   type SiteTrend,
@@ -3356,9 +3357,10 @@ function StorePerformancePanel({
 }) {
   const completedCount = TREND_CATEGORIES.reduce((s, cat) => s + (catStats[cat]?.done ?? 0), 0);
   const totalCount = TREND_CATEGORIES.reduce((s, cat) => s + (catStats[cat]?.total ?? 0), 0);
-  const todayPct = Math.round(
-    TREND_CATEGORIES.reduce((s, cat) => s + (catStats[cat]?.pct ?? 0), 0) / TREND_CATEGORIES.length
-  );
+  const hasRealData = TREND_CATEGORIES.some((cat) => (catStats[cat]?.pct ?? 0) > 0);
+  const todayPct = hasRealData
+    ? Math.round(TREND_CATEGORIES.reduce((s, cat) => s + (catStats[cat]?.pct ?? 0), 0) / TREND_CATEGORIES.length)
+    : trend7d.todayAvg;
   const avg7d = trend7d.overallAvg;
   const tier = perfTierLabel(avg7d);
 
@@ -3569,10 +3571,25 @@ export default function TaskManager() {
   // ── Store performance data — always computed (hooks must be unconditional) ──
   const drillStoreInfo = findStore(siteId);
   const drillStoreRegion = findStoreRegion(siteId);
-  const perfTrend7d: SiteTrend = useMemo(
-    () => generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", "7d"),
-    [siteId, drillStoreInfo?.name, drillStoreRegion?.region]
-  );
+  const perfTrend7d: SiteTrend = useMemo(() => {
+    // Drilling into a specific store — always show that store's data
+    if (urlSiteId) {
+      return generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", "7d");
+    }
+    // CPO (national scope) — aggregate across all stores
+    if (profile && isCPO(profile.role)) {
+      const allIds = ALL_STORES.map((s) => s.id);
+      return buildAggregateSiteTrend(allIds, "7d", "National");
+    }
+    // RPD (regional scope) — aggregate across their assigned region's stores
+    if (profile && isRegionalOrAbove(profile.role) && !isCPO(profile.role)) {
+      const regionData = STORE_REGIONS.find((r) => r.region === profile.region);
+      const regionIds = regionData ? regionData.stores.map((s) => s.id) : [profile.siteId];
+      return buildAggregateSiteTrend(regionIds, "7d", regionData?.region ?? profile.region ?? "Region");
+    }
+    // PD / store-level — individual store
+    return generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", "7d");
+  }, [urlSiteId, siteId, drillStoreInfo?.name, drillStoreRegion?.region, profile?.role, profile?.region]);
   const perfCatStats = useMemo(() => {
     const comps = loadCompletions(siteId, "daily");
     const dailyTasks = TASKS.filter((t) => t.frequency === "daily");
