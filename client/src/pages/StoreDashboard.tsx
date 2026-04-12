@@ -315,7 +315,12 @@ export default function StoreDashboard() {
     const entry = counterMap.get(t.id);
     const start = entry?.start;
     const end = entry?.end;
-    const delta = (end ?? 0) - (start ?? 0);
+    // For start-end tasks: delta = start - end (positive = cleared queue, negative = backlog grew)
+    // For end-only tasks: no meaningful delta
+    const delta =
+      t.counterType === "start-end" && start !== undefined && end !== undefined
+        ? start - end
+        : 0;
     return {
       taskId: t.id,
       title: t.title,
@@ -323,7 +328,7 @@ export default function StoreDashboard() {
       counterType: t.counterType!,
       start,
       end,
-      delta: delta > 0 ? delta : 0,
+      delta,
       isComplete: completions.has(t.id),
     };
   });
@@ -724,12 +729,17 @@ export default function StoreDashboard() {
                       <span className="text-[10px] font-semibold text-slate-500">
                         {roleDone}/{rows.length} done
                       </span>
-                      {roleTotal > 0 && (
+                      {roleTotal > 0 ? (
                         <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                          <ArrowUpRight className="w-3 h-3" />
-                          {roleTotal} processed
+                          <TrendingDown className="w-3 h-3" />
+                          {roleTotal} cleared
                         </span>
-                      )}
+                      ) : roleTotal < 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                          <TrendingUp className="w-3 h-3" />
+                          {Math.abs(roleTotal)} added
+                        </span>
+                      ) : null}
                     </div>
                   </div>
 
@@ -749,6 +759,8 @@ export default function StoreDashboard() {
                       const deltaColor =
                         row.delta > 0
                           ? "text-green-600 font-bold"
+                          : row.delta < 0
+                          ? "text-red-500 font-bold"
                           : hasEnd
                           ? "text-slate-400"
                           : "text-slate-300";
@@ -789,7 +801,7 @@ export default function StoreDashboard() {
                           <div className="text-center">
                             {hasEnd ? (
                               <span className={`text-sm ${deltaColor}`}>
-                                {row.delta > 0 ? `+${row.delta}` : row.delta === 0 ? "0" : "—"}
+                                {row.delta !== 0 ? row.delta : "0"}
                               </span>
                             ) : (
                               <span className="text-[10px] text-slate-300">—</span>
