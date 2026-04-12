@@ -25,8 +25,7 @@ import {
 } from "@/lib/taskData";
 import { findStore, findStoreRegion, STORE_REGIONS, ALL_STORES } from "@/lib/storeDirectory";
 import {
-  generateSiteTrendsForPeriod,
-  buildAggregateSiteTrend,
+  buildZeroSiteTrend,
   TREND_CATEGORIES,
   SPARKLINE_COLORS,
   PERIOD_CONFIG,
@@ -3756,24 +3755,16 @@ export default function TaskManager() {
   const drillStoreInfo = findStore(siteId);
   const drillStoreRegion = findStoreRegion(siteId);
   const perfTrend7d: SiteTrend = useMemo(() => {
-    // Drilling into a specific store — always show that store's data
-    if (urlSiteId) {
-      return generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", "7d");
-    }
-    // CPO (national scope) — aggregate across all stores
-    if (profile && isCPO(profile.role)) {
-      const allIds = ALL_STORES.map((s) => s.id);
-      return buildAggregateSiteTrend(allIds, "7d", "National");
-    }
-    // RPD (regional scope) — aggregate across their assigned region's stores
-    // Note: relies on exact profile.region string matching STORE_REGIONS.region (safe since profiles are hardcoded)
-    if (profile && isRegionalOrAbove(profile.role) && !isCPO(profile.role)) {
-      const regionData = STORE_REGIONS.find((r) => r.region === profile.region);
-      const regionIds = regionData ? regionData.stores.map((s) => s.id) : [profile.siteId];
-      return buildAggregateSiteTrend(regionIds, "7d", regionData?.region ?? profile.region ?? "Region");
-    }
-    // PD / store-level — individual store
-    return generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", "7d");
+    // All roles and scopes start from 0% — no simulated baseline data
+    const label = urlSiteId
+      ? (drillStoreInfo?.name ?? siteId)
+      : profile && isCPO(profile.role)
+        ? "National"
+        : profile && isRegionalOrAbove(profile.role) && !isCPO(profile.role)
+          ? (STORE_REGIONS.find((r) => r.region === profile.region)?.region ?? profile.region ?? "Region")
+          : (drillStoreInfo?.name ?? siteId);
+    const region = urlSiteId ? (drillStoreRegion?.region ?? "") : "";
+    return buildZeroSiteTrend(siteId, label, region, "7d");
   }, [urlSiteId, siteId, drillStoreInfo?.name, drillStoreRegion?.region, profile?.role, profile?.region]);
 
   // Real task-completion data for today — recomputes live as tasks are checked off
@@ -3793,21 +3784,18 @@ export default function TaskManager() {
     return stats;
   }, [siteId, completions]);
 
-  // Scope-aware trend builder — patches "today" with real completion data for all periods
+  // Scope-aware trend builder — all periods start from 0%, patches "today" with real completion data
   const buildTrendForScope = useCallback((period: TrendPeriod): SiteTrend => {
-    let simulated: SiteTrend;
-    if (urlSiteId) {
-      simulated = generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", period);
-    } else if (profile && isCPO(profile.role)) {
-      simulated = buildAggregateSiteTrend(ALL_STORES.map((s) => s.id), period, "National");
-    } else if (profile && isRegionalOrAbove(profile.role) && !isCPO(profile.role)) {
-      const regionData = STORE_REGIONS.find((r) => r.region === profile.region);
-      const regionIds = regionData ? regionData.stores.map((s) => s.id) : [profile.siteId];
-      simulated = buildAggregateSiteTrend(regionIds, period, regionData?.region ?? profile.region ?? "Region");
-    } else {
-      simulated = generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", period);
-    }
-    return patchTrendTodayWithRealData(simulated, perfCatStats);
+    const label = urlSiteId
+      ? (drillStoreInfo?.name ?? siteId)
+      : profile && isCPO(profile.role)
+        ? "National"
+        : profile && isRegionalOrAbove(profile.role) && !isCPO(profile.role)
+          ? (STORE_REGIONS.find((r) => r.region === profile.region)?.region ?? profile.region ?? "Region")
+          : (drillStoreInfo?.name ?? siteId);
+    const region = urlSiteId ? (drillStoreRegion?.region ?? "") : "";
+    const zeroed = buildZeroSiteTrend(siteId, label, region, period);
+    return patchTrendTodayWithRealData(zeroed, perfCatStats);
   }, [urlSiteId, siteId, drillStoreInfo?.name, drillStoreRegion?.region, profile?.role, profile?.region, perfCatStats]);
 
   // Live trend: simulated baseline with today's real completion rate patched in

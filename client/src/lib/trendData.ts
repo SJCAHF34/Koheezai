@@ -296,6 +296,25 @@ export function buildAggregateSiteTrend(
   return { siteId: "aggregate", siteName: label, region: "", categories, overallAvg, todayAvg };
 }
 
+/**
+ * Build a zeroed SiteTrend for any period — no simulated data.
+ * All historical points start at 0%; real data is patched in externally.
+ */
+export function buildZeroSiteTrend(
+  siteId: string,
+  siteName: string,
+  region: string,
+  period: TrendPeriod
+): SiteTrend {
+  const pts = getPeriodPoints(period);
+  const categories = {} as Record<TaskCategory, CategoryTrend>;
+  for (const cat of TREND_CATEGORIES) {
+    const days: DayPoint[] = pts.map(({ iso, label }) => ({ date: iso, label, pct: 0 }));
+    categories[cat] = { category: cat, days, avg7d: 0, trend: "stable" };
+  }
+  return { siteId, siteName, region, categories, overallAvg: 0, todayAvg: 0 };
+}
+
 /** Rank all provided stores by their avg completion % for a category × period */
 export function getSiteRankingByCategory(
   cat: TaskCategory,
