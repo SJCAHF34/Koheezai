@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Link } from "wouter";
 import { useAuth } from "@/App";
 import {
@@ -62,6 +65,9 @@ import {
   loadSiteCompletions,
   loadTaskCounter,
   saveTaskCounter,
+  loadCustomTasks,
+  saveCustomTask,
+  deleteCustomTask,
   type TaskCompletion,
   type TaskAssignment,
   type TaskPriority,
@@ -70,6 +76,7 @@ import {
   type RetentionRiskEntry,
   type StaffMember,
   type SiteRoster,
+  type CustomTask,
 } from "@/lib/taskStorage";
 import type { RetentionPatient, RetentionIssueType, RetentionStatus, AttemptLogEntry } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -124,6 +131,24 @@ import {
   ExternalLink,
   LayoutGrid,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ── API helpers for retention patients ───────────────────────────────────────
 
@@ -351,6 +376,7 @@ function TaskRow({
   isUrgentFromRegional,
   urgentMarkedBy,
   canMarkUrgent,
+  canDeleteCustom,
   readOnly,
   siteId,
   highlighted,
@@ -358,6 +384,7 @@ function TaskRow({
   onAssign,
   onPrioritize,
   onMarkUrgent,
+  onDeleteCustom,
 }: {
   task: PharmacyTask;
   completed: boolean;
@@ -369,6 +396,7 @@ function TaskRow({
   isUrgentFromRegional: boolean;
   urgentMarkedBy?: string;
   canMarkUrgent: boolean;
+  canDeleteCustom: boolean;
   readOnly?: boolean;
   siteId?: string;
   highlighted?: boolean;
@@ -376,6 +404,7 @@ function TaskRow({
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
   onMarkUrgent: (t: PharmacyTask) => void;
+  onDeleteCustom: (t: PharmacyTask) => void;
 }) {
   const cat = CATEGORY_CONFIG[task.category];
   const today = getTodayDateKey();
@@ -394,6 +423,8 @@ function TaskRow({
   });
   // Tracks whether user tried to check without filling required counters
   const [counterBlocked, setCounterBlocked] = useState(false);
+  // For custom task deletion: first click shows confirm state
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // True when all required counter fields are filled
   const counterReady = !task.counterType
@@ -456,6 +487,12 @@ function TaskRow({
             <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
               <Flag className="w-2.5 h-2.5" />
               Priority Alert
+            </span>
+          )}
+          {task.isCustom && (
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 border border-purple-200">
+              <Tag className="w-2.5 h-2.5" />
+              Custom
             </span>
           )}
           <p
@@ -641,6 +678,30 @@ function TaskRow({
           <UserPlus className="w-4 h-4" />
         </button>
       )}
+
+      {/* Delete custom task button — directors only, custom tasks only */}
+      {task.isCustom && canDeleteCustom && !readOnly && (
+        confirmDelete ? (
+          <button
+            data-testid={`button-delete-custom-confirm-${task.id}`}
+            onClick={() => { onDeleteCustom(task); setConfirmDelete(false); }}
+            title="Confirm delete"
+            className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-white bg-red-500 transition-colors"
+            onBlur={() => setConfirmDelete(false)}
+          >
+            Delete?
+          </button>
+        ) : (
+          <button
+            data-testid={`button-delete-custom-${task.id}`}
+            onClick={() => setConfirmDelete(true)}
+            title="Delete this custom task"
+            className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )
+      )}
     </div>
   );
 }
@@ -659,6 +720,7 @@ function TaskGroupSection({
   canAssign,
   canPrioritize,
   canMarkUrgent,
+  canDeleteCustom,
   readOnly,
   siteId,
   highlightTaskId,
@@ -666,6 +728,7 @@ function TaskGroupSection({
   onAssign,
   onPrioritize,
   onMarkUrgent,
+  onDeleteCustom,
 }: {
   groupName: string;
   tasks: PharmacyTask[];
@@ -678,6 +741,7 @@ function TaskGroupSection({
   canAssign: boolean;
   canPrioritize: boolean;
   canMarkUrgent: boolean;
+  canDeleteCustom: boolean;
   readOnly?: boolean;
   siteId?: string;
   highlightTaskId?: string | null;
@@ -685,6 +749,7 @@ function TaskGroupSection({
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
   onMarkUrgent: (t: PharmacyTask) => void;
+  onDeleteCustom: (t: PharmacyTask) => void;
 }) {
   const [open, setOpen] = useState(true);
   const done = tasks.filter((t) => completions.has(t.id)).length;
@@ -737,6 +802,7 @@ function TaskGroupSection({
               isUrgentFromRegional={urgentIds.has(task.id)}
               urgentMarkedBy={urgentDetails.get(task.id)}
               canMarkUrgent={canMarkUrgent}
+              canDeleteCustom={canDeleteCustom}
               readOnly={readOnly}
               siteId={siteId}
               highlighted={task.id === highlightTaskId}
@@ -744,6 +810,7 @@ function TaskGroupSection({
               onAssign={onAssign}
               onPrioritize={onPrioritize}
               onMarkUrgent={onMarkUrgent}
+              onDeleteCustom={onDeleteCustom}
             />
           ))}
         </div>
@@ -766,6 +833,7 @@ function RoleSection({
   canAssign,
   canPrioritize,
   canMarkUrgent,
+  canDeleteCustom,
   readOnly,
   siteId,
   highlightTaskId,
@@ -773,6 +841,7 @@ function RoleSection({
   onAssign,
   onPrioritize,
   onMarkUrgent,
+  onDeleteCustom,
 }: {
   role: TaskRole;
   groups: Array<{ groupName: string; tasks: PharmacyTask[] }>;
@@ -785,6 +854,7 @@ function RoleSection({
   canAssign: boolean;
   canPrioritize: boolean;
   canMarkUrgent: boolean;
+  canDeleteCustom: boolean;
   readOnly?: boolean;
   siteId?: string;
   highlightTaskId?: string | null;
@@ -792,6 +862,7 @@ function RoleSection({
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
   onMarkUrgent: (t: PharmacyTask) => void;
+  onDeleteCustom: (t: PharmacyTask) => void;
 }) {
   const [open, setOpen] = useState(true);
   const style = ROLE_STYLE[role];
@@ -863,12 +934,14 @@ function RoleSection({
               canAssign={canAssign}
               canPrioritize={canPrioritize}
               canMarkUrgent={canMarkUrgent}
+              canDeleteCustom={canDeleteCustom}
               readOnly={readOnly}
               highlightTaskId={highlightTaskId}
               onToggle={onToggle}
               onAssign={onAssign}
               onPrioritize={onPrioritize}
               onMarkUrgent={onMarkUrgent}
+              onDeleteCustom={onDeleteCustom}
             />
           ))}
         </div>
@@ -3704,6 +3777,188 @@ function StorePerformancePanel({
   );
 }
 
+// ── Create Task Modal ─────────────────────────────────────────────────────────
+
+const createTaskSchema = z.object({
+  title: z.string().min(1, "Title is required").max(120, "Max 120 characters"),
+  description: z.string().optional(),
+  frequency: z.enum(["daily", "weekly", "monthly", "quarterly"] as const),
+  role: z.enum(["data_entry_tech", "pv2_tech", "delivery_tech", "pharmacist_1", "pharmacist_2", "director", "all_staff"] as const),
+  category: z.enum(["operations", "achc", "state_board", "retention"] as const),
+  taskGroup: z.string(),
+});
+type CreateTaskFormValues = z.infer<typeof createTaskSchema>;
+
+function CreateTaskModal({
+  open,
+  siteId,
+  profile,
+  onClose,
+  onCreated,
+}: {
+  open: boolean;
+  siteId: string;
+  profile: { email: string; name: string; role: string };
+  onClose: () => void;
+  onCreated: (task: PharmacyTask) => void;
+}) {
+  const form = useForm<CreateTaskFormValues>({
+    resolver: zodResolver(createTaskSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      frequency: "daily",
+      role: "all_staff",
+      category: "operations",
+      taskGroup: "Custom Tasks",
+    },
+  });
+
+  function handleSubmit(values: CreateTaskFormValues) {
+    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const roleAbbr =
+      profile.role === "chief_pharmacy_officer" ? "CPO"
+      : profile.role === "regional_pharmacy_director" ? "RPD"
+      : "PD";
+    const customTask: CustomTask = {
+      id,
+      siteId,
+      title: values.title,
+      description: values.description || undefined,
+      role: values.role,
+      frequency: values.frequency,
+      category: values.category,
+      taskGroup: values.taskGroup || "Custom Tasks",
+      createdBy: `${profile.name} ${roleAbbr}`,
+      createdByRole: profile.role,
+      createdAt: new Date().toISOString(),
+    };
+    saveCustomTask(customTask);
+    const asPharmacyTask: PharmacyTask = { ...customTask, isCustom: true };
+    onCreated(asPharmacyTask);
+    form.reset();
+    onClose();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Plus className="w-4 h-4 text-purple-600" />
+            Create Custom Task
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          {/* Title */}
+          <div className="space-y-1.5">
+            <Label htmlFor="ct-title">Title <span className="text-red-500">*</span></Label>
+            <Input
+              id="ct-title"
+              data-testid="input-create-task-title"
+              placeholder="e.g. Review daily log sheet"
+              {...form.register("title")}
+            />
+            {form.formState.errors.title && (
+              <p className="text-xs text-red-600">{form.formState.errors.title.message}</p>
+            )}
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1.5">
+            <Label htmlFor="ct-desc">Description <span className="text-slate-400 font-normal text-xs">(optional)</span></Label>
+            <Textarea
+              id="ct-desc"
+              data-testid="input-create-task-description"
+              placeholder="Brief instructions or context..."
+              rows={2}
+              className="resize-none text-sm"
+              {...form.register("description")}
+            />
+          </div>
+
+          {/* Frequency + Role row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Frequency</Label>
+              <Select
+                value={form.watch("frequency")}
+                onValueChange={(v) => form.setValue("frequency", v as TaskFrequency)}
+              >
+                <SelectTrigger data-testid="select-create-task-frequency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Assigned Role</Label>
+              <Select
+                value={form.watch("role")}
+                onValueChange={(v) => form.setValue("role", v as TaskRole)}
+              >
+                <SelectTrigger data-testid="select-create-task-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all_staff">All Staff</SelectItem>
+                  <SelectItem value="director">Director</SelectItem>
+                  <SelectItem value="pharmacist_1">Pharmacist 1</SelectItem>
+                  <SelectItem value="pharmacist_2">Pharmacist 2</SelectItem>
+                  <SelectItem value="data_entry_tech">DE Tech</SelectItem>
+                  <SelectItem value="pv2_tech">PV2 Tech</SelectItem>
+                  <SelectItem value="delivery_tech">Delivery Tech</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Category + Task Group row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Category</Label>
+              <Select
+                value={form.watch("category")}
+                onValueChange={(v) => form.setValue("category", v as TaskCategory)}
+              >
+                <SelectTrigger data-testid="select-create-task-category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="operations">Operations</SelectItem>
+                  <SelectItem value="achc">ACHC Compliance</SelectItem>
+                  <SelectItem value="state_board">State Board</SelectItem>
+                  <SelectItem value="retention">Retention</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ct-group">Task Group</Label>
+              <Input
+                id="ct-group"
+                data-testid="input-create-task-group"
+                placeholder="Custom Tasks"
+                {...form.register("taskGroup")}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" data-testid="button-create-task-submit">Create Task</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function TaskManager() {
@@ -3750,12 +4005,18 @@ export default function TaskManager() {
   const [urgentIds, setUrgentIds] = useState<Set<string>>(new Set());
   const [urgentDetails, setUrgentDetails] = useState<Map<string, string>>(new Map());
   const [todayHandoffs, setTodayHandoffs] = useState<HandoffNote[]>([]);
+  const [customTasks, setCustomTasks] = useState<PharmacyTask[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const siteId = urlSiteId ?? profile?.siteId ?? "1417";
   const isDir = isDirectorRole(profile?.role ?? "pharmacist_1");
   const isPharmDir = profile ? isPharmacyDirector(profile.role) : false;
   const canPrioritize = isDir && !isTechRole(profile?.role ?? "pharmacist_1");
   const canMarkUrgent = isRegionalDir && !!urlSiteId;
+  // Directors can create custom tasks only when viewing a specific store (not ALL)
+  const canCreateTask = isDir && siteId !== "ALL";
+  // Directors can also delete custom tasks they see (same condition)
+  const canDeleteCustom = canCreateTask;
 
   useEffect(() => {
     if (!profile) return;
@@ -3778,6 +4039,9 @@ export default function TaskManager() {
     // Load today's handoff tasks and purge stale entries
     purgeStaleHandoffNotes();
     setTodayHandoffs(loadHandoffNotesForRole(siteId, getTodayDateKey(), profile.role));
+    // Load custom tasks for this site
+    const rawCustom = loadCustomTasks(siteId);
+    setCustomTasks(rawCustom.map((ct) => ({ ...ct, isCustom: true } as PharmacyTask)));
   }, [frequency, siteId, profile?.email, viewingRole]);
 
   // Scroll to and highlight the task coming from a trouble-spot click-through
@@ -3888,6 +4152,12 @@ export default function TaskManager() {
     }
   }, [profile, urlSiteId, urgentIds]);
 
+  const handleDeleteCustom = useCallback((task: PharmacyTask) => {
+    if (!task.isCustom) return;
+    deleteCustomTask(siteId, task.id);
+    setCustomTasks((prev) => prev.filter((t) => t.id !== task.id));
+  }, [siteId]);
+
   // ── Store performance data — always computed (hooks must be unconditional) ──
   const drillStoreInfo = findStore(siteId);
   const drillStoreRegion = findStoreRegion(siteId);
@@ -3951,7 +4221,18 @@ export default function TaskManager() {
   const displaySiteName = drillSite?.name ?? profile.siteName;
 
   const extraRoles = profile.taskRoles as string[] | undefined;
-  const visible = getVisibleTasks(frequency, profile.role, viewingRole, extraRoles);
+  const baseVisible = getVisibleTasks(frequency, profile.role, viewingRole, extraRoles);
+  // Merge in custom tasks that match the current frequency and role view
+  const relevantCustom = customTasks.filter((ct) => {
+    if (ct.frequency !== frequency) return false;
+    if (viewingRole === "own") {
+      // Show custom tasks assigned to director or all_staff
+      return ct.role === "director" || ct.role === "all_staff" || ct.role === profile.role;
+    }
+    if (viewingRole === "all") return true;
+    return ct.role === viewingRole || ct.role === "all_staff";
+  });
+  const visible = [...baseVisible, ...relevantCustom];
   const filteredVisible = categoryFilter === "all"
     ? visible
     : visible.filter((t) => t.category === categoryFilter);
@@ -4141,8 +4422,9 @@ export default function TaskManager() {
           <StorePerformancePanel trend7d={perfTrendLive} catStats={perfCatStats} />
         )}
 
-        {/* Frequency tabs */}
-        <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1">
+        {/* New Task button + Frequency tabs row */}
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1 flex-1">
           {FREQUENCY_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -4157,6 +4439,17 @@ export default function TaskManager() {
               {tab.label}
             </button>
           ))}
+          </div>
+          {canCreateTask && (
+            <Button
+              data-testid="button-new-task"
+              onClick={() => setShowCreateModal(true)}
+              className="shrink-0 gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              New Task
+            </Button>
+          )}
         </div>
 
         {/* Category filter chips */}
@@ -4315,6 +4608,7 @@ export default function TaskManager() {
                 canAssign={isDir}
                 canPrioritize={canPrioritize}
                 canMarkUrgent={canMarkUrgent}
+                canDeleteCustom={canDeleteCustom}
                 readOnly={readOnly}
                 siteId={siteId}
                 highlightTaskId={highlightTaskId}
@@ -4322,6 +4616,7 @@ export default function TaskManager() {
                 onAssign={setAssigningTask}
                 onPrioritize={setPrioritizingTask}
                 onMarkUrgent={handleMarkUrgent}
+                onDeleteCustom={handleDeleteCustom}
               />
             ))}
           </div>
@@ -4367,6 +4662,17 @@ export default function TaskManager() {
           onSave={handlePrioritySave}
           onRemove={handlePriorityRemove}
           onClose={() => setPrioritizingTask(null)}
+        />
+      )}
+
+      {/* Create custom task modal */}
+      {canCreateTask && profile && (
+        <CreateTaskModal
+          open={showCreateModal}
+          siteId={siteId}
+          profile={{ email: profile.email, name: profile.name, role: profile.role }}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={(task) => setCustomTasks((prev) => [...prev, task])}
         />
       )}
     </div>

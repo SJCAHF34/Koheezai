@@ -23,6 +23,7 @@ export interface PharmacyTask {
   counterType?: "start-end" | "end-only";
   hidden?: boolean;
   url?: string;
+  isCustom?: boolean;
 }
 
 export interface Site {

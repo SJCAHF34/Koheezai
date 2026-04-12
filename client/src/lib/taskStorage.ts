@@ -1,4 +1,4 @@
-import type { TaskFrequency } from "./taskData";
+import type { TaskFrequency, TaskRole, TaskCategory } from "./taskData";
 
 const COMPLETIONS_KEY = "koheez_task_completions";
 const ASSIGNMENTS_KEY = "koheez_task_assignments";
@@ -803,4 +803,53 @@ export function saveTaskCounter(entry: TaskCounterEntry): void {
 /** Load all counter entries for a given site on a given date (YYYY-MM-DD). */
 export function loadCountersForSite(siteId: string, date: string): TaskCounterEntry[] {
   return readCounters().filter((e) => e.siteId === siteId && e.date === date);
+}
+
+// ── Custom Tasks ─────────────────────────────────────────────────────────────
+
+const CUSTOM_TASKS_KEY = "koheez_custom_tasks";
+
+export interface CustomTask {
+  id: string;
+  siteId: string;
+  title: string;
+  description?: string;
+  role: TaskRole;
+  frequency: TaskFrequency;
+  category: TaskCategory;
+  taskGroup: string;
+  createdBy: string;
+  createdByRole: string;
+  createdAt: string;
+}
+
+function readCustomTasks(): CustomTask[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_TASKS_KEY);
+    return raw ? (JSON.parse(raw) as CustomTask[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCustomTasks(tasks: CustomTask[]): void {
+  try {
+    localStorage.setItem(CUSTOM_TASKS_KEY, JSON.stringify(tasks));
+  } catch {}
+}
+
+export function loadCustomTasks(siteId: string): CustomTask[] {
+  return readCustomTasks().filter((t) => t.siteId === siteId);
+}
+
+export function saveCustomTask(task: CustomTask): void {
+  const all = readCustomTasks().filter((t) => t.id !== task.id);
+  all.push(task);
+  writeCustomTasks(all);
+}
+
+export function deleteCustomTask(siteId: string, taskId: string): void {
+  writeCustomTasks(
+    readCustomTasks().filter((t) => !(t.id === taskId && t.siteId === siteId))
+  );
 }
