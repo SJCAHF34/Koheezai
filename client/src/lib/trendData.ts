@@ -261,7 +261,14 @@ export function buildAggregateSiteTrend(
   label: string = "Aggregate"
 ): SiteTrend {
   if (siteIds.length === 0) {
-    return generateSiteTrendsForPeriod("1417", label, "", period);
+    // Return explicit zeroed aggregate so callers never get single-store data accidentally
+    const pts = getPeriodPoints(period);
+    const categories = {} as Record<TaskCategory, CategoryTrend>;
+    for (const cat of TREND_CATEGORIES) {
+      const days: DayPoint[] = pts.map(({ iso, label: lbl }) => ({ date: iso, label: lbl, pct: 0 }));
+      categories[cat] = { category: cat, days, avg7d: 0, trend: "stable" };
+    }
+    return { siteId: "aggregate", siteName: label, region: "", categories, overallAvg: 0, todayAvg: 0 };
   }
   const allTrends = siteIds.map((id) =>
     generateSiteTrendsForPeriod(id, id, "", period)

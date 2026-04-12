@@ -3582,6 +3582,7 @@ export default function TaskManager() {
       return buildAggregateSiteTrend(allIds, "7d", "National");
     }
     // RPD (regional scope) — aggregate across their assigned region's stores
+    // Note: relies on exact profile.region string matching STORE_REGIONS.region (safe since profiles are hardcoded)
     if (profile && isRegionalOrAbove(profile.role) && !isCPO(profile.role)) {
       const regionData = STORE_REGIONS.find((r) => r.region === profile.region);
       const regionIds = regionData ? regionData.stores.map((s) => s.id) : [profile.siteId];
