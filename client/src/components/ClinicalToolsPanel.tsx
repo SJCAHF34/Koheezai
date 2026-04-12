@@ -76,7 +76,7 @@ function displayUrl(url: string): string {
   }
 }
 
-export function ClinicalToolsPanel() {
+export function ClinicalToolsPanel({ navMode = false }: { navMode?: boolean }) {
   const [open, setOpen] = useState(false);
   const [activeId, setActiveId] = useState(browserTools[0].id);
   const [iframeKey, setIframeKey] = useState(0);
@@ -205,12 +205,21 @@ export function ClinicalToolsPanel() {
     <Sheet open={open} onOpenChange={setOpen} modal={false}>
       <SheetTrigger asChild>
         <button
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+          className={navMode
+            ? "flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium rounded-md transition-colors text-foreground hover:bg-muted"
+            : "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+          }
           data-testid="button-clinical-tools-panel"
         >
-          <Wrench className="w-4 h-4" />
-          <span className="hidden sm:inline">Clinical Tools</span>
-          <span className="sm:hidden">Tools</span>
+          <Wrench className="w-4 h-4 shrink-0" />
+          {navMode ? (
+            <span>Clinical Tools</span>
+          ) : (
+            <>
+              <span className="hidden sm:inline">Clinical Tools</span>
+              <span className="sm:hidden">Tools</span>
+            </>
+          )}
         </button>
       </SheetTrigger>
 

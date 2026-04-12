@@ -109,7 +109,7 @@ function AppNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b bg-white">
+      <header className="sticky top-0 z-50 border-b bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
             {/* Logo */}
@@ -153,7 +153,7 @@ function AppNav() {
       {/* Dropdown nav panel */}
       {open && (
         <div
-          className="fixed top-14 right-0 z-40 w-64 bg-white border-l border-b shadow-lg rounded-bl-lg"
+          className="fixed top-14 inset-x-0 sm:inset-x-auto sm:right-0 sm:w-72 z-40 bg-background border-b sm:border-l border-border shadow-lg sm:rounded-bl-lg"
           data-testid="nav-dropdown-menu"
         >
           <nav className="p-2 space-y-0.5">
@@ -178,8 +178,8 @@ function AppNav() {
 
             <NavMenuItem href="/app/patient-assistance" icon={HeartHandshake} label="Patient Assistance" testId="nav-assistance" onClick={close} />
 
-            <div className="pt-1 pb-0.5" onClick={close}>
-              <ClinicalToolsPanel />
+            <div onClick={close}>
+              <ClinicalToolsPanel navMode />
             </div>
           </nav>
         </div>
