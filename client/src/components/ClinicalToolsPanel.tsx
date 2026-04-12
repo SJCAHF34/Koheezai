@@ -14,7 +14,6 @@ import {
   Shield,
   BookOpen,
   Pill,
-  Activity,
   Lock,
   X,
   Loader2,
@@ -39,15 +38,6 @@ type BrowserTool = {
 type FrameStatus = "checking" | "frameable" | "blocked" | "error" | "cookie-required";
 
 const browserTools: BrowserTool[] = [
-  {
-    id: "athena",
-    label: "Athena",
-    url: "https://athenanet.athenahealth.com/1/1/login/startoidc.esp?IDP=0oay9fqjxcuda2iRm297",
-    icon: Activity,
-    iconColor: "text-blue-600",
-    iconBg: "bg-blue-100 dark:bg-blue-900/40",
-    loginViaTab: true,
-  },
   {
     id: "ramsell",
     label: "Ramsell ADAP",
