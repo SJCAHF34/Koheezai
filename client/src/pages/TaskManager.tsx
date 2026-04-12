@@ -3305,22 +3305,39 @@ function ResponsivePerfSparkline({ data, color = "#8b5cf6", height = 48 }: { dat
   const areaPoints = [`${pts[0][0]},${height - pad}`, ...pts.map(([x, y]) => `${x},${y}`), `${pts[pts.length - 1][0]},${height - pad}`].join(" ");
   const last = pts[pts.length - 1];
   const gradId = `rsg-${color.replace(/[^a-z0-9]/gi, "")}`;
+  // Convert last point to percentage so the CSS dot stays circular despite non-uniform SVG scaling
+  const lastXPct = (last[0] / vw) * 100;
+  const lastYPct = (last[1] / height) * 100;
   return (
-    <svg
-      viewBox={`0 0 ${vw} ${height}`}
-      preserveAspectRatio="none"
-      style={{ width: "100%", height: `${height}px`, display: "block" }}
-    >
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
-      <polygon points={areaPoints} fill={`url(#${gradId})`} />
-      <polyline points={polyPoints} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      <circle cx={last[0]} cy={last[1]} r={4} fill={color} vectorEffect="non-scaling-stroke" />
-    </svg>
+    <div className="relative" style={{ height: `${height}px` }}>
+      <svg
+        viewBox={`0 0 ${vw} ${height}`}
+        preserveAspectRatio="none"
+        style={{ width: "100%", height: `${height}px`, display: "block" }}
+      >
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <polygon points={areaPoints} fill={`url(#${gradId})`} />
+        <polyline points={polyPoints} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <div
+        style={{
+          position: "absolute",
+          left: `${lastXPct}%`,
+          top: `${lastYPct}%`,
+          transform: "translate(-50%, -50%)",
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          backgroundColor: color,
+          pointerEvents: "none",
+        }}
+      />
+    </div>
   );
 }
 
