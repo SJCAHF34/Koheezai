@@ -4433,29 +4433,29 @@ export default function TaskManager() {
           <StorePerformancePanel trend7d={perfTrendLive} catStats={perfCatStats} />
         )}
 
-        {/* New Task button + Frequency tabs row */}
-        <div className="flex items-center gap-3">
-          <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1 flex-1">
-          {FREQUENCY_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              data-testid={`freq-tab-${tab.value}`}
-              onClick={() => setFrequency(tab.value)}
-              className={`flex-1 px-3 py-2 rounded text-sm font-semibold transition-all ${
-                frequency === tab.value
-                  ? "bg-purple-600 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Frequency tabs + New Task button */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1 flex-1 min-w-0">
+            {FREQUENCY_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                data-testid={`freq-tab-${tab.value}`}
+                onClick={() => setFrequency(tab.value)}
+                className={`flex-1 min-w-0 px-2 py-2 rounded text-sm font-semibold transition-all whitespace-nowrap overflow-hidden text-ellipsis ${
+                  frequency === tab.value
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
           {canCreateTask && (
             <Button
               data-testid="button-new-task"
               onClick={() => setShowCreateModal(true)}
-              className="shrink-0 gap-1.5"
+              className="shrink-0 gap-1.5 self-end sm:self-auto"
             >
               <Plus className="w-4 h-4" />
               Create Task
