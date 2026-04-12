@@ -3289,6 +3289,35 @@ function PerfTrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
 
 const PERF_CAT_ORDER: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
 
+// Patch the last (today) data-point in a simulated trend with real completion rates.
+// Returns the trend unchanged if no real data exists (all pct === 0).
+function patchTrendTodayWithRealData(
+  trend: SiteTrend,
+  catStats: Record<string, { done: number; total: number; pct: number }>
+): SiteTrend {
+  const hasReal = TREND_CATEGORIES.some((cat) => (catStats[cat]?.pct ?? 0) > 0);
+  if (!hasReal) return trend;
+  const categories = { ...trend.categories } as typeof trend.categories;
+  for (const cat of TREND_CATEGORIES) {
+    const realPct = catStats[cat]?.pct ?? 0;
+    const oldDays = trend.categories[cat].days;
+    const newDays = [...oldDays.slice(0, -1), { ...oldDays[oldDays.length - 1], pct: realPct }];
+    const allPcts = newDays.map((d) => d.pct);
+    const avg7d = Math.round(allPcts.reduce((s, v) => s + v, 0) / allPcts.length);
+    categories[cat] = { ...trend.categories[cat], days: newDays, avg7d };
+  }
+  const overallAvg = Math.round(
+    TREND_CATEGORIES.reduce((s, cat) => s + categories[cat].avg7d, 0) / TREND_CATEGORIES.length
+  );
+  const todayAvg = Math.round(
+    TREND_CATEGORIES.reduce(
+      (s, cat) => s + categories[cat].days[categories[cat].days.length - 1].pct,
+      0
+    ) / TREND_CATEGORIES.length
+  );
+  return { ...trend, categories, overallAvg, todayAvg };
+}
+
 // Responsive SVG sparkline — scales to 100% container width
 function ResponsivePerfSparkline({ data, color = "#8b5cf6", height = 48 }: { data: number[]; color?: string; height?: number }) {
   if (data.length < 2) return null;
@@ -3747,22 +3776,7 @@ export default function TaskManager() {
     return generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", "7d");
   }, [urlSiteId, siteId, drillStoreInfo?.name, drillStoreRegion?.region, profile?.role, profile?.region]);
 
-  // Scope-aware trend builder used by the drill-down panel to load any period on demand
-  const buildTrendForScope = useCallback((period: TrendPeriod): SiteTrend => {
-    if (urlSiteId) {
-      return generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", period);
-    }
-    if (profile && isCPO(profile.role)) {
-      return buildAggregateSiteTrend(ALL_STORES.map((s) => s.id), period, "National");
-    }
-    if (profile && isRegionalOrAbove(profile.role) && !isCPO(profile.role)) {
-      const regionData = STORE_REGIONS.find((r) => r.region === profile.region);
-      const regionIds = regionData ? regionData.stores.map((s) => s.id) : [profile.siteId];
-      return buildAggregateSiteTrend(regionIds, period, regionData?.region ?? profile.region ?? "Region");
-    }
-    return generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", period);
-  }, [urlSiteId, siteId, drillStoreInfo?.name, drillStoreRegion?.region, profile?.role, profile?.region]);
-
+  // Real task-completion data for today — recomputes live as tasks are checked off
   const perfCatStats = useMemo(() => {
     const comps = loadCompletions(siteId, "daily");
     const dailyTasks = TASKS.filter((t) => t.frequency === "daily");
@@ -3778,6 +3792,29 @@ export default function TaskManager() {
     }
     return stats;
   }, [siteId, completions]);
+
+  // Scope-aware trend builder — patches "today" with real completion data for all periods
+  const buildTrendForScope = useCallback((period: TrendPeriod): SiteTrend => {
+    let simulated: SiteTrend;
+    if (urlSiteId) {
+      simulated = generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", period);
+    } else if (profile && isCPO(profile.role)) {
+      simulated = buildAggregateSiteTrend(ALL_STORES.map((s) => s.id), period, "National");
+    } else if (profile && isRegionalOrAbove(profile.role) && !isCPO(profile.role)) {
+      const regionData = STORE_REGIONS.find((r) => r.region === profile.region);
+      const regionIds = regionData ? regionData.stores.map((s) => s.id) : [profile.siteId];
+      simulated = buildAggregateSiteTrend(regionIds, period, regionData?.region ?? profile.region ?? "Region");
+    } else {
+      simulated = generateSiteTrendsForPeriod(siteId, drillStoreInfo?.name ?? siteId, drillStoreRegion?.region ?? "", period);
+    }
+    return patchTrendTodayWithRealData(simulated, perfCatStats);
+  }, [urlSiteId, siteId, drillStoreInfo?.name, drillStoreRegion?.region, profile?.role, profile?.region, perfCatStats]);
+
+  // Live trend: simulated baseline with today's real completion rate patched in
+  const perfTrendLive = useMemo(
+    () => patchTrendTodayWithRealData(perfTrend7d, perfCatStats),
+    [perfTrend7d, perfCatStats]
+  );
 
   if (!profile) return null;
 
@@ -3912,7 +3949,7 @@ export default function TaskManager() {
               <CategoryMiniCard
                 key={cat}
                 cat={cat}
-                trend7d={perfTrend7d}
+                trend7d={perfTrendLive}
                 onClick={() => setExpandedCat(expandedCat === cat ? null : cat)}
                 isExpanded={expandedCat === cat}
               />
@@ -3934,7 +3971,7 @@ export default function TaskManager() {
       <div className="max-w-4xl mx-auto px-6 py-6 space-y-5">
         {/* ── Store Performance Panel — shown when CPO/Regional drills into a store ── */}
         {isRegionalDir && urlSiteId && (
-          <StorePerformancePanel trend7d={perfTrend7d} catStats={perfCatStats} />
+          <StorePerformancePanel trend7d={perfTrendLive} catStats={perfCatStats} />
         )}
 
         {/* Frequency tabs */}
