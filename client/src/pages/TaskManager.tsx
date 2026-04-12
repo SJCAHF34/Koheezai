@@ -165,7 +165,7 @@ function getVisibleTasks(
   viewingRole: ViewingRole,
   extraRoles?: string[]
 ): PharmacyTask[] {
-  const byFreq = TASKS.filter((t) => t.frequency === frequency);
+  const byFreq = TASKS.filter((t) => t.frequency === frequency && !t.hidden);
   if (isDirectorRole(userRole)) {
     if (viewingRole === "all") return byFreq;
     if (viewingRole === "own")

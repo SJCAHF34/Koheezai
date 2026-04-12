@@ -21,6 +21,7 @@ export interface PharmacyTask {
   taskGroup: string;
   isUrgent?: boolean;
   counterType?: "start-end" | "end-only";
+  hidden?: boolean;
 }
 
 export interface Site {
@@ -235,6 +236,7 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "retention",
     taskGroup: "Patient Retention",
+    hidden: true,
   },
   {
     id: "pv2-d-009",
