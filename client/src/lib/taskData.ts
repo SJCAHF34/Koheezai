@@ -636,7 +636,7 @@ export const TASKS: PharmacyTask[] = [
     taskGroup: "Approved Time Cards",
     isUrgent: true,
     url: "https://sso-3be35d3b.sso.duosecurity.com/saml2/sp/DICUTYT6TZPGH7WUEBWQ/sso",
-    urlLabel: "ADAP",
+    urlLabel: "ADP",
   },
 
   // ── MONTHLY TASKS ───────────────────────────────────────────────────────
