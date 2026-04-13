@@ -3622,15 +3622,28 @@ function CategoryMiniCard({
   );
 }
 
-// Expanded drill-down panel — shows all 4 periods for a single category
+// Frequency label map used in drill-down task list
+const FREQ_LABEL: Record<string, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  biweekly: "Biweekly",
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  one_time: "One-Time",
+};
+const FREQ_ORDER = ["daily", "weekly", "biweekly", "monthly", "quarterly", "one_time"];
+
+// Expanded drill-down panel — shows all 4 periods for a single category + tasks list
 function CategoryDrillDownPanel({
   cat,
   buildTrend,
   onClose,
+  siteId,
 }: {
   cat: TaskCategory;
   buildTrend: (period: TrendPeriod) => SiteTrend;
   onClose: () => void;
+  siteId: string;
 }) {
   const [activePeriod, setActivePeriod] = useState<TrendPeriod>("7d");
   const trend = useMemo(() => buildTrend(activePeriod), [buildTrend, activePeriod]);
@@ -3650,6 +3663,27 @@ function CategoryDrillDownPanel({
     days[midIdx]?.label ?? "",
     days[days.length - 1]?.label ?? "",
   ];
+
+  // Build task list: all tasks in this category, grouped by frequency, with completion status
+  const tasksByFreq = useMemo(() => {
+    const catTasks = TASKS.filter((t) => t.category === cat);
+    const groups: { freq: string; label: string; tasks: { task: PharmacyTask; done: boolean }[] }[] = [];
+    for (const freq of FREQ_ORDER) {
+      const freqTasks = catTasks.filter((t) => t.frequency === freq);
+      if (freqTasks.length === 0) continue;
+      const comps = loadCompletions(siteId, freq as any);
+      groups.push({
+        freq,
+        label: FREQ_LABEL[freq] ?? freq,
+        tasks: freqTasks.map((task) => ({ task, done: comps.has(task.id) })),
+      });
+    }
+    return groups;
+  }, [cat, siteId]);
+
+  const totalTasks = tasksByFreq.reduce((s, g) => s + g.tasks.length, 0);
+  const doneTasks = tasksByFreq.reduce((s, g) => s + g.tasks.filter((t) => t.done).length, 0);
+
   return (
     <div
       data-testid={`cat-drill-panel-${cat}`}
@@ -3719,6 +3753,82 @@ function CategoryDrillDownPanel({
         {xLabels.map((lbl, i) => (
           <p key={i} className="text-[10px] text-slate-400">{lbl}</p>
         ))}
+      </div>
+
+      {/* ── Task list ─────────────────────────────────────────────── */}
+      <div className="mt-5 border-t border-slate-100 pt-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+            Tasks in this category
+          </p>
+          <span className="text-xs text-slate-400">
+            {doneTasks}/{totalTasks} completed this period
+          </span>
+        </div>
+
+        {tasksByFreq.length === 0 ? (
+          <p className="text-xs text-slate-400 italic">No tasks assigned to this category.</p>
+        ) : (
+          <div className="space-y-4">
+            {tasksByFreq.map(({ freq, label: freqLabel, tasks }) => {
+              const groupDone = tasks.filter((t) => t.done).length;
+              return (
+                <div key={freq}>
+                  {/* Frequency group header */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border"
+                      style={{ color, borderColor: `${color}40`, backgroundColor: `${color}10` }}
+                    >
+                      {freqLabel}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {groupDone}/{tasks.length}
+                    </span>
+                  </div>
+
+                  {/* Tasks */}
+                  <div className="space-y-1.5">
+                    {tasks.map(({ task, done }) => (
+                      <div
+                        key={task.id}
+                        data-testid={`drill-task-${task.id}`}
+                        className="flex items-start gap-2.5 px-3 py-2 rounded-md bg-slate-50 border border-slate-100"
+                      >
+                        <div
+                          className={`mt-0.5 flex-shrink-0 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${
+                            done
+                              ? "border-green-500 bg-green-500"
+                              : "border-slate-300 bg-white"
+                          }`}
+                        >
+                          {done && (
+                            <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 8 8">
+                              <path d="M1.5 4l2 2 3-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-medium leading-snug ${done ? "text-slate-400 line-through" : "text-slate-700"}`}>
+                            {task.taskGroup ?? task.title}
+                          </p>
+                          {task.taskGroup && task.title !== task.taskGroup && (
+                            <p className="text-[10px] text-slate-400 mt-0.5 truncate">{task.title}</p>
+                          )}
+                        </div>
+                        {task.isUrgent && (
+                          <span className="flex-shrink-0 text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 rounded-full px-1.5 py-0.5 uppercase tracking-wide">
+                            Urgent
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -4381,6 +4491,7 @@ export default function TaskManager() {
               cat={expandedCat}
               buildTrend={buildTrendForScope}
               onClose={() => setExpandedCat(null)}
+              siteId={siteId}
             />
           )}
 
