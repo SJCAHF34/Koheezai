@@ -556,7 +556,7 @@ function TaskRow({
             data-testid={`link-task-url-${task.id}`}
             className="inline-flex items-center gap-1 mt-1.5 px-2.5 py-1 rounded text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
           >
-            Open HealthStream
+            {task.urlLabel ?? "Open Link"}
             <ExternalLink className="w-3 h-3" />
           </a>
         )}

@@ -23,6 +23,7 @@ export interface PharmacyTask {
   counterType?: "start-end" | "end-only";
   hidden?: boolean;
   url?: string;
+  urlLabel?: string;
   isCustom?: boolean;
 }
 
@@ -635,6 +636,7 @@ export const TASKS: PharmacyTask[] = [
     taskGroup: "Approved Time Cards",
     isUrgent: true,
     url: "https://sso-3be35d3b.sso.duosecurity.com/saml2/sp/DICUTYT6TZPGH7WUEBWQ/sso",
+    urlLabel: "ADAP",
   },
 
   // ── MONTHLY TASKS ───────────────────────────────────────────────────────
@@ -892,6 +894,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=b27b2a5e-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacy%20Technician&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+    urlLabel: "Open HealthStream",
   },
   {
     id: "mls-q-pv2",
@@ -902,6 +905,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=b27b2a5e-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacy%20Technician&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+    urlLabel: "Open HealthStream",
   },
   {
     id: "mls-q-del",
@@ -912,6 +916,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=b27b2a5e-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacy%20Technician&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+    urlLabel: "Open HealthStream",
   },
   {
     id: "mls-q-rph1",
@@ -922,6 +927,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=f8da0358-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacist&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+    urlLabel: "Open HealthStream",
   },
   {
     id: "mls-q-rph2",
@@ -932,6 +938,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=f8da0358-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacist&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+    urlLabel: "Open HealthStream",
   },
   {
     id: "mls-q-dir",
@@ -942,6 +949,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/CourseCatalog?categoryId=f8da0358-ffa8-ef11-9990-005056a730af&recordsPerPage=20&currentPage=1&CategoryName=AHF%20-%20MLS%20Pharmacist&showFilterModal=True&IsCategoryCollapsed=False&courseCatalogSortType=BestMatch&recordsPerPageForRecommendation=0&currentPageForRecommendation=1&isFromSearch=False",
+    urlLabel: "Open HealthStream",
   },
 
   // ── AHF UNIVERSITY · WEEKLY ─────────────────────────────────────────────
@@ -954,6 +962,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/Login/HighlightMessage",
+    urlLabel: "Open HealthStream",
   },
   {
     id: "ahfu-w-pv2",
@@ -964,6 +973,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/Login/HighlightMessage",
+    urlLabel: "Open HealthStream",
   },
   {
     id: "ahfu-w-del",
@@ -974,6 +984,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/Login/HighlightMessage",
+    urlLabel: "Open HealthStream",
   },
   {
     id: "ahfu-w-rph1",
@@ -984,6 +995,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/Login/HighlightMessage",
+    urlLabel: "Open HealthStream",
   },
   {
     id: "ahfu-w-rph2",
@@ -994,6 +1006,7 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/Login/HighlightMessage",
+    urlLabel: "Open HealthStream",
   },
   {
     id: "ahfu-w-dir",
@@ -1004,5 +1017,6 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/Login/HighlightMessage",
+    urlLabel: "Open HealthStream",
   },
 ];
