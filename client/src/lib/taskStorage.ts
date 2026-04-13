@@ -556,8 +556,9 @@ const DEFAULT_ROSTERS: Record<string, SiteRoster> = {
   "1417": {
     siteId: "1417",
     members: [
-      { id: "s1417-001", name: "Seth Collins",   roles: ["director"] },
+      { id: "s1417-001", name: "Seth Collins",    roles: ["director"] },
       { id: "s1417-002", name: "Debbie Nguyen",  roles: ["pharmacist_1"] },
+      { id: "s1417-006", name: "Uyen-Vy Nguyen", roles: ["pharmacist_1"] },
       { id: "s1417-003", name: "Claire Wood",    roles: ["data_entry_tech"] },
       { id: "s1417-004", name: "Pairiss Wilcox", roles: ["data_entry_tech"] },
       { id: "s1417-005", name: "Anh Do",         roles: ["data_entry_tech"] },
