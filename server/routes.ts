@@ -37,6 +37,7 @@ const DEMO_USERS = [
   { email: "anh.do@aidshealth.org", password: "AHF1", name: "Anh Do" },
   { email: "debbie.nguyen@aidshealth.org", password: "AHF1", name: "Debbie Nguyen" },
   { email: "seth.collins@aidshealth.org", password: "AHF1", name: "Seth Collins" },
+  { email: "walid.mohammad@aidshealth.org", password: "AHF1", name: "Walid Mohammad" },
   { email: "elizabeth.camper@aidshealth.org", password: "AHF2", name: "Elizabeth Camper" },
   { email: "roshanak.mohaghegh@ahfrx.org", password: "AHF1", name: "Roshanak Mohaghegh" },
   { email: "uyen-vy.nguyen@aidshealth.org", password: "AHF1", name: "Uyen-Vy Nguyen" },
