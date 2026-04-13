@@ -7,7 +7,7 @@ export type TaskRole =
   | "director"
   | "all_staff";
 
-export type TaskFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "one_time";
+export type TaskFrequency = "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "one_time";
 
 export type TaskCategory = "achc" | "state_board" | "retention" | "operations";
 
@@ -461,6 +461,15 @@ export const TASKS: PharmacyTask[] = [
     category: "state_board",
     taskGroup: "Shift Sign-Out",
   },
+  {
+    id: "rph1-d-019",
+    title: "Good Results Consultation",
+    description: "McKesson > CPS Queues > Alert Name > Good Results Consultation\nReview and action all Good Results Consultation alerts in the queue",
+    role: "pharmacist_1",
+    frequency: "daily",
+    category: "retention",
+    taskGroup: "Good Results Consultation",
+  },
 
   // ── PHARMACIST 2 · DAILY ────────────────────────────────────────────────
   {
@@ -613,6 +622,19 @@ export const TASKS: PharmacyTask[] = [
     frequency: "weekly",
     category: "operations",
     taskGroup: "Team Huddle",
+  },
+
+  // ── BIWEEKLY TASKS ──────────────────────────────────────────────────────
+  {
+    id: "dir-bw-001",
+    title: "Approved Time Cards",
+    description: "Review and approve employee time cards in Kronos before 10 AM every other Monday.",
+    role: "director",
+    frequency: "biweekly",
+    category: "operations",
+    taskGroup: "Approved Time Cards",
+    isUrgent: true,
+    url: "https://sso-3be35d3b.sso.duosecurity.com/saml2/sp/DICUTYT6TZPGH7WUEBWQ/sso",
   },
 
   // ── MONTHLY TASKS ───────────────────────────────────────────────────────

@@ -50,6 +50,19 @@ export function getPeriodKey(frequency: TaskFrequency): string {
     );
     return `${y}-W${pad(week)}`;
   }
+  if (frequency === "biweekly") {
+    // Biweekly periods anchored to Monday 2026-04-13 (first due date)
+    const ref = new Date(2026, 3, 13);
+    const today = new Date(y, m - 1, d);
+    const daysSinceRef = Math.floor((today.getTime() - ref.getTime()) / 86400000);
+    const weeksSinceRef = Math.floor(Math.max(0, daysSinceRef) / 7);
+    const biweeklyNum = Math.floor(weeksSinceRef / 2);
+    const periodStart = new Date(ref.getTime() + biweeklyNum * 14 * 86400000);
+    const py = periodStart.getFullYear();
+    const pm = periodStart.getMonth() + 1;
+    const pd = periodStart.getDate();
+    return `${py}-BW${pad(pm)}${pad(pd)}`;
+  }
   if (frequency === "monthly") return `${y}-${pad(m)}`;
   if (frequency === "quarterly") return `${y}-Q${Math.ceil(m / 3)}`;
   if (frequency === "one_time") return "one-time";

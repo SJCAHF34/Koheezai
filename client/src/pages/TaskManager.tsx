@@ -181,6 +181,7 @@ async function apiUpdateRetentionPatient(patient: RetentionPatient): Promise<Ret
 const FREQUENCY_TABS: { value: TaskFrequency; label: string; sub: string }[] = [
   { value: "daily", label: "Daily", sub: "Today's tasks" },
   { value: "weekly", label: "Weekly", sub: "This week" },
+  { value: "biweekly", label: "Biweekly", sub: "Every other week" },
   { value: "monthly", label: "Monthly", sub: "This month" },
   { value: "quarterly", label: "Quarterly", sub: "This quarter" },
   { value: "one_time", label: "One-Time", sub: "Ad hoc tasks" },
@@ -3783,7 +3784,7 @@ function StorePerformancePanel({
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(120, "Max 120 characters"),
   description: z.string().optional(),
-  frequency: z.enum(["daily", "weekly", "monthly", "quarterly", "one_time"] as const),
+  frequency: z.enum(["daily", "weekly", "biweekly", "monthly", "quarterly", "one_time"] as const),
   role: z.enum(["data_entry_tech", "pv2_tech", "delivery_tech", "pharmacist_1", "pharmacist_2", "director", "all_staff"] as const),
   category: z.enum(["operations", "achc", "state_board", "retention"] as const),
   taskGroup: z.string(),
@@ -3893,6 +3894,7 @@ function CreateTaskModal({
                 <SelectContent>
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="biweekly">Biweekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
                   <SelectItem value="quarterly">Quarterly</SelectItem>
                   <SelectItem value="one_time">One-Time</SelectItem>
@@ -4435,7 +4437,7 @@ export default function TaskManager() {
 
         {/* Frequency tabs + New Task button */}
 
-        {/* Mobile layout: row 1 = Daily/Weekly/Monthly, row 2 = Quarterly/One-Time + Create Task */}
+        {/* Mobile layout: row 1 = Daily/Weekly/Biweekly, row 2 = Monthly/Quarterly/One-Time + Create Task */}
         <div className="flex flex-col gap-1.5 sm:hidden">
           <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1">
             {FREQUENCY_TABS.slice(0, 3).map((tab) => (
