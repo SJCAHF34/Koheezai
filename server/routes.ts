@@ -39,6 +39,7 @@ const DEMO_USERS = [
   { email: "seth.collins@aidshealth.org", password: "AHF1", name: "Seth Collins" },
   { email: "elizabeth.camper@aidshealth.org", password: "AHF2", name: "Elizabeth Camper" },
   { email: "roshanak.mohaghegh@ahfrx.org", password: "AHF1", name: "Roshanak Mohaghegh" },
+  { email: "uyen-vy.nguyen@aidshealth.org", password: "AHF1", name: "Uyen-Vy Nguyen" },
 ];
 
 const inMemoryUsers: Array<{ email: string; password: string; name: string }> = [];
