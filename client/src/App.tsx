@@ -20,7 +20,7 @@ import StoreDashboard from "@/pages/StoreDashboard";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
@@ -90,6 +90,7 @@ function AppNav() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [clinicalOpen, setClinicalOpen] = useState(false);
 
   const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
   const isRegional = profile ? isRegionalOrAbove(profile.role) : false;
@@ -178,9 +179,14 @@ function AppNav() {
 
             <NavMenuItem href="/app/patient-assistance" icon={HeartHandshake} label="Patient Assistance" testId="nav-assistance" onClick={close} />
 
-            <div onClick={close}>
-              <ClinicalToolsPanel navMode />
-            </div>
+            <button
+              data-testid="button-clinical-tools-nav"
+              onClick={() => { close(); setClinicalOpen(true); }}
+              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium rounded-md transition-colors text-foreground hover:bg-muted"
+            >
+              <Wrench className="w-4 h-4 shrink-0" />
+              <span>Clinical Tools</span>
+            </button>
           </nav>
         </div>
       )}
@@ -193,6 +199,9 @@ function AppNav() {
           aria-hidden="true"
         />
       )}
+
+      {/* Clinical tools panel — always mounted so the sheet animates correctly */}
+      <ClinicalToolsPanel navMode open={clinicalOpen} onOpenChange={setClinicalOpen} />
     </>
   );
 }

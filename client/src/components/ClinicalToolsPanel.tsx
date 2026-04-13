@@ -76,8 +76,18 @@ function displayUrl(url: string): string {
   }
 }
 
-export function ClinicalToolsPanel({ navMode = false }: { navMode?: boolean }) {
-  const [open, setOpen] = useState(false);
+export function ClinicalToolsPanel({
+  navMode = false,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: {
+  navMode?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange !== undefined ? controlledOnOpenChange : setInternalOpen;
   const [activeId, setActiveId] = useState(browserTools[0].id);
   const [iframeKey, setIframeKey] = useState(0);
   const [iframeLoading, setIframeLoading] = useState(true);
