@@ -63,7 +63,7 @@ function DrugPicker({
               </div>
             </AccordionTrigger>
             <AccordionContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-1 gap-2 pt-2">
                 {drugs.map((drug) => {
                   const inputId = `${idPrefix}-${drug.id}`;
                   return (
@@ -74,19 +74,19 @@ function DrugPicker({
                         onCheckedChange={() => toggle(drug.id)}
                         data-testid={`checkbox-${idPrefix}-drug-${drug.id}`}
                       />
-                      <div className="grid gap-1 leading-none">
+                      <div className="grid gap-0.5 leading-none min-w-0">
                         <Label
                           htmlFor={inputId}
-                          className="font-mono text-sm font-medium leading-none cursor-pointer"
+                          className="text-sm font-medium leading-snug cursor-pointer break-words"
                         >
                           {drug.name}
                           {drug.brandName && (
-                            <span className="text-muted-foreground font-sans ml-1">
+                            <span className="text-muted-foreground ml-1">
                               ({drug.brandName})
                             </span>
                           )}
                         </Label>
-                        <p className="text-xs text-muted-foreground font-mono">
+                        <p className="text-xs text-muted-foreground">
                           {drug.dosage}
                         </p>
                       </div>
@@ -140,10 +140,10 @@ function PrepDrugPicker({
               />
               <span className="text-sm font-semibold">{drug.brandName}</span>
             </div>
-            <p className="text-xs text-muted-foreground pl-7 font-mono leading-snug">
+            <p className="text-xs text-muted-foreground pl-7 leading-snug">
               {drug.name}
             </p>
-            <p className="text-xs text-muted-foreground pl-7 font-mono">
+            <p className="text-xs text-muted-foreground pl-7">
               {drug.dosage}
             </p>
           </label>
