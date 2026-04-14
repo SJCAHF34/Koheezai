@@ -224,81 +224,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fallback to OpenAI if OpenEvidence is not configured or failed
       if (!result.clinicalSummary) {
         console.log("[Assessment] Using OpenAI for clinical assessment");
-        const prompt = `You are an experienced clinical pharmacist specializing in HIV treatment. Generate a comprehensive clinical assessment based on the following patient information:
 
-**Patient Demographics:**
-- Age: ${data.age} years
-- Pregnancy Status: ${data.pregnancy}
-- HLA-B*5701: ${data.hlab5701}
+        const patientLine = [
+          `${data.age}-year-old`,
+          data.pregnancy === "yes" ? "pregnant" : data.pregnancy === "no" ? "not pregnant" : "pregnancy status unknown",
+          data.treatmentStatus === "naive" ? "treatment-naive" : "treatment-experienced",
+        ].join(", ");
 
-**Clinical Parameters:**
-- Treatment Status: ${data.treatmentStatus}
-- Viral Load: ${data.viralLoad ? `${data.viralLoad.toLocaleString()} copies/mL` : "Not documented"}
-- CD4 Count: ${data.cd4Count ? `${data.cd4Count} cells/mm³` : "Not documented"}
-- eGFR (Renal Function): ${data.egfr ? `${data.egfr} mL/min` : "Not documented"}
-- Hepatic Function: ${data.hepaticFunction}
+        const extraLines: string[] = [];
+        if (data.cd4Count !== undefined) extraLines.push(`CD4 Count: ${data.cd4Count} cells/µL`);
+        if (data.viralLoad !== undefined) extraLines.push(`HIV Viral Load: ${data.viralLoad.toLocaleString()} copies/mL`);
+        if (data.egfr !== undefined) extraLines.push(`eGFR: ${data.egfr} mL/min/1.73m²`);
+        if (data.hepaticFunction && data.hepaticFunction !== "normal") extraLines.push(`Hepatic Function: ${data.hepaticFunction} impairment`);
+        if (data.hlab5701 && data.hlab5701 !== "unknown") extraLines.push(`HLA-B*5701: ${data.hlab5701}`);
+        if (data.geneticResistanceNotes) extraLines.push(`Resistance Notes: ${data.geneticResistanceNotes}`);
 
-**Selected HIV Regimen:**
-${selectedDrugDetails}
-${regimenChangeBlock}
-**Concomitant Medications:**
-${data.concomitantMeds.length > 0 ? data.concomitantMeds.join(", ") : "None reported"}
-
-**Genetic Resistance Notes:**
-${data.geneticResistanceNotes || "None documented"}
-
-**Drug-Drug Interactions Identified:**
-${interactions.length > 0 ? interactions.map(i => `${i.severity.toUpperCase()}: ${i.drug1} + ${i.drug2}`).join("; ") : "None identified"}
-
-**Renal Function Alerts:**
-${renalAlerts.length > 0 ? renalAlerts.map(a => `${a.severity.toUpperCase()}: ${a.medication} - ${a.description}`).join("; ") : "No renal concerns identified"}
-
-**Hepatic/Pregnancy/HLA-B*5701 Alerts:**
-${hepaticPregnancyAlerts.length > 0 ? hepaticPregnancyAlerts.map(a => `${a.severity.toUpperCase()} [${a.category}]: ${a.medication} - ${a.description}`).join("; ") : "No hepatic, pregnancy, or HLA concerns identified"}
-
-**Clinical Recommendations Generated:**
-${clinicalRecommendations.length > 0 ? clinicalRecommendations.map(r => `${r.priority.toUpperCase()} [${r.category}]: ${r.title}`).join("; ") : "Standard monitoring"}
-
-Please provide:
-1. A clinical assessment summary (3-4 paragraphs) that addresses:
-   - Patient's HIV treatment context and appropriateness of selected regimen
-   - Key clinical considerations (HLA-B*5701, pregnancy, renal/hepatic function)
-   - Drug interaction concerns if present
-   - Dosing adjustments needed based on organ function
-   - Any contraindications or safety alerts
-
-2. A list of 7-10 specific consultation questions a pharmacist should ask this patient during counseling. Focus on:
-   - Medication history and adherence barriers
-   - Symptoms and adverse effects
-   - Understanding of treatment
-   - Social determinants affecting care
-   - Specific concerns related to their regimen or interactions
-
-Format your response as JSON:
-{
-  "clinicalSummary": "multi-paragraph assessment",
-  "consultationQuestions": ["question 1", "question 2", ...]
-}`;
+        const prompt = [
+          "I am a pharmacist reviewing a patient regimen. Please evaluate the following for treatment appropriateness and clinically significant drug-drug interactions:",
+          "",
+          `Patient: ${patientLine}`,
+          ...extraLines,
+          "",
+          `ARV Regimen: ${selectedDrugDetails || (data.selectedDrugs.length > 0 ? data.selectedDrugs.join(" + ") : "None specified")}`,
+          ...(regimenChangeBlock ? [regimenChangeBlock] : []),
+          `Concomitant Medications: ${data.concomitantMeds.length > 0 ? data.concomitantMeds.join(", ") : "None"}`,
+          "",
+          "Please address:",
+          "1. Is this ARV regimen appropriate for this patient's clinical profile?",
+          "2. Are there any clinically significant drug-drug interactions between the ARV regimen and concomitant medications?",
+          "3. Are any dose adjustments needed given the patient's renal or hepatic function?",
+          "4. Are there any contraindications or safety concerns?",
+          "",
+          "Make this into a note in this format:",
+          "(ARV DRUG) Consult:",
+          "",
+          "(DRUG NAME)",
+          "Reviewed, sig, and indication: (indication)",
+          "SEs: (side effects)",
+          "WARNINGS: (fda warnings/precautions, if pertinent)",
+          "DDIs: (interactions and symptoms of those interactions, if taking the medication, don't list unless taking medication that interact)",
+          "RENAL: (if dose adjustment needed, if not just no Hx of renal dysfunction)",
+          "HEPATIC: (if dose adjustment needed, if not just no Hx of hepatic dysfunction)",
+          "CI: (list if any documented and pertinent)",
+          "NOTE FOR PT: (notes for patient, key tips from FDA patient handouts)",
+          "",
+          "After the note, provide a JSON block in this exact format:",
+          '{ "consultationQuestions": ["question 1", "question 2", ...] }',
+          "Include 7-10 specific pharmacist counseling questions relevant to this patient's regimen and concomitant medications.",
+        ].join("\n");
 
         const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
+          model: "gpt-4o",
           messages: [
             {
               role: "system",
-              content: "You are an expert HIV pharmacist. Provide evidence-based, clinically appropriate assessments. Be thorough but concise. Always respond with valid JSON."
+              content: "You are an expert HIV clinical pharmacist. Write concise, evidence-based pharmacy consultation notes. Follow the note format exactly as instructed. After the note append a JSON block with consultation questions as instructed.",
             },
             {
               role: "user",
-              content: prompt
-            }
+              content: prompt,
+            },
           ],
-          response_format: { type: "json_object" },
-          temperature: 0.7,
+          temperature: 0.5,
         });
 
-        const openaiResult = JSON.parse(completion.choices[0].message.content || "{}");
-        result.clinicalSummary = openaiResult.clinicalSummary || "Assessment could not be generated.";
-        result.consultationQuestions = openaiResult.consultationQuestions || [];
+        const rawContent = completion.choices[0].message.content || "";
+
+        // Separate the note from the trailing JSON block
+        const jsonMatch = rawContent.match(/\{[\s\S]*"consultationQuestions"[\s\S]*\}/);
+        let consultationQuestions: string[] = [];
+        let clinicalSummary = rawContent.trim();
+
+        if (jsonMatch) {
+          try {
+            const parsed = JSON.parse(jsonMatch[0]);
+            consultationQuestions = parsed.consultationQuestions || [];
+            // Strip the JSON block from the displayed note
+            clinicalSummary = rawContent.substring(0, rawContent.lastIndexOf(jsonMatch[0])).trim();
+          } catch {
+            // If parsing fails, keep full content as summary
+          }
+        }
+
+        result.clinicalSummary = clinicalSummary || "Assessment could not be generated.";
+        result.consultationQuestions = consultationQuestions;
         result.provider = "openai";
       }
 

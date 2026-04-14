@@ -122,34 +122,52 @@ export class OpenEvidenceClient {
       return null;
     }
 
-    const clinicalQuestion = `
-As an HIV clinical pharmacist, provide an evidence-based assessment for this patient:
+    const patientLine = [
+      `${patientData.age}-year-old`,
+      patientData.pregnancy === "yes" ? "pregnant" : patientData.pregnancy === "no" ? "not pregnant" : "pregnancy status unknown",
+      patientData.treatmentStatus === "naive" ? "treatment-naive" : "treatment-experienced",
+    ].join(", ");
 
-Patient Profile:
-- Age: ${patientData.age} years
-- Pregnancy: ${patientData.pregnancy}
-- HLA-B*5701: ${patientData.hlab5701}
-- Treatment Status: ${patientData.treatmentStatus}
-- Viral Load: ${patientData.viralLoad ? `${patientData.viralLoad.toLocaleString()} copies/mL` : "Not documented"}
-- CD4 Count: ${patientData.cd4Count ? `${patientData.cd4Count} cells/mm³` : "Not documented"}
-- eGFR: ${patientData.egfr ? `${patientData.egfr} mL/min` : "Not documented"}
-- Hepatic Function: ${patientData.hepaticFunction}
+    const extraLines: string[] = [];
+    if (patientData.cd4Count) extraLines.push(`CD4 Count: ${patientData.cd4Count} cells/µL`);
+    if (patientData.viralLoad) extraLines.push(`HIV Viral Load: ${patientData.viralLoad.toLocaleString()} copies/mL`);
+    if (patientData.egfr) extraLines.push(`eGFR: ${patientData.egfr} mL/min/1.73m²`);
+    if (patientData.hepaticFunction && patientData.hepaticFunction !== "normal")
+      extraLines.push(`Hepatic Function: ${patientData.hepaticFunction} impairment`);
+    if (patientData.hlab5701 && patientData.hlab5701 !== "unknown")
+      extraLines.push(`HLA-B*5701: ${patientData.hlab5701}`);
+    if (patientData.geneticResistanceNotes)
+      extraLines.push(`Resistance Notes: ${patientData.geneticResistanceNotes}`);
 
-HIV Regimen: ${patientData.selectedDrugDetails}
-${patientData.regimenChangeBlock ?? ""}
-Concomitant Medications: ${patientData.concomitantMeds.length > 0 ? patientData.concomitantMeds.join(", ") : "None"}
-
-Identified Issues:
-- Drug Interactions: ${patientData.interactions.length > 0 ? patientData.interactions.map(i => `${i.drug1} + ${i.drug2} (${i.severity})`).join("; ") : "None"}
-- Renal Alerts: ${patientData.renalAlerts.length > 0 ? patientData.renalAlerts.map(a => `${a.medication}: ${a.description}`).join("; ") : "None"}
-- Hepatic/Pregnancy/HLA Alerts: ${patientData.hepaticPregnancyAlerts.length > 0 ? patientData.hepaticPregnancyAlerts.map(a => `${a.medication} [${a.category}]: ${a.description}`).join("; ") : "None"}
-
-Please provide:
-1. A clinical assessment summary addressing regimen appropriateness, safety concerns, and required monitoring
-2. Key consultation questions for pharmacist counseling
-
-Reference DHHS HIV Treatment Guidelines and current evidence.
-    `.trim();
+    const clinicalQuestion = [
+      "I am a pharmacist reviewing a patient regimen. Please evaluate the following for treatment appropriateness and clinically significant drug-drug interactions:",
+      "",
+      `Patient: ${patientLine}`,
+      ...extraLines,
+      "",
+      `ARV Regimen: ${patientData.selectedDrugDetails || (patientData.selectedDrugs.length > 0 ? patientData.selectedDrugs.join(" + ") : "None specified")}`,
+      ...(patientData.regimenChangeBlock ? [patientData.regimenChangeBlock] : []),
+      `Concomitant Medications: ${patientData.concomitantMeds.length > 0 ? patientData.concomitantMeds.join(", ") : "None"}`,
+      "",
+      "Please address:",
+      "1. Is this ARV regimen appropriate for this patient's clinical profile?",
+      "2. Are there any clinically significant drug-drug interactions between the ARV regimen and concomitant medications?",
+      "3. Are any dose adjustments needed given the patient's renal or hepatic function?",
+      "4. Are there any contraindications or safety concerns?",
+      "",
+      "Make this into a note in this format:",
+      "(ARV DRUG) Consult:",
+      "",
+      "(DRUG NAME)",
+      "Reviewed, sig, and indication: (indication)",
+      "SEs: (side effects)",
+      "WARNINGS: (fda warnings/precautions, if pertinent)",
+      "DDIs: (interactions and symptoms of those interactions, if taking the medication, don't list unless taking medication that interact)",
+      "RENAL: (if dose adjustment needed, if not just no Hx of renal dysfunction)",
+      "HEPATIC: (if dose adjustment needed, if not just no Hx of hepatic dysfunction)",
+      "CI: (list if any documented and pertinent)",
+      "NOTE FOR PT: (notes for patient, key tips from FDA patient handouts)",
+    ].join("\n");
 
     try {
       const response = await this.query(clinicalQuestion);

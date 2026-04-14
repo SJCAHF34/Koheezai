@@ -173,11 +173,11 @@ function buildOePrompt(p: {
   lines.push("(DRUG NAME)");
   lines.push("Reviewed, sig, and indication: (indication)");
   lines.push("SEs: (side effects)");
-  lines.push("WARNINGS: (fda warnings/precautions)");
-  lines.push("DDIs: (interactions and symptoms of those interactions)");
+  lines.push("WARNINGS: (fda warnings/precautions, if pertinent)");
+  lines.push("DDIs: (interactions and symptoms of those interactions, if taking the medication, don't list unless taking medication that interact)");
   lines.push("RENAL: (if dose adjustment needed, if not just no Hx of renal dysfunction)");
   lines.push("HEPATIC: (if dose adjustment needed, if not just no Hx of hepatic dysfunction)");
-  lines.push("CI: (list if any documented)");
+  lines.push("CI: (list if any documented and pertinent)");
   lines.push("NOTE FOR PT: (notes for patient, key tips from FDA patient handouts)");
   if (p.additionalNotes && p.additionalNotes.trim()) {
     lines.push("");
