@@ -4105,7 +4105,9 @@ export default function TaskManager() {
   );
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(rawHighlightId);
   const [expandedCat, setExpandedCat] = useState<TaskCategory | null>(null);
-  const [viewingRole, setViewingRole] = useState<ViewingRole>("own");
+  const [viewingRole, setViewingRole] = useState<ViewingRole>(
+    isRegionalOrAbove(profile?.role ?? "pharmacist_1") && !!urlSiteId ? "all" : "own"
+  );
   const [categoryFilter, setCategoryFilter] = useState<TaskCategory | "all">("all");
   const [showRoster, setShowRoster] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -4662,15 +4664,15 @@ export default function TaskManager() {
           </div>
         </div>
 
-        {/* Director role-view selector — hidden when regional is viewing a specific store */}
-        {isDir && !readOnly && !(isRegionalDir && urlSiteId) && (
+        {/* Director role-view selector — visible for all directors including CPO/RPD drilling into a store */}
+        {isDir && !readOnly && (
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
               View tasks for
             </p>
             <div className="flex flex-wrap gap-2">
               {[
-                { value: "own" as ViewingRole, label: "My Tasks" },
+                { value: "own" as ViewingRole, label: isRegionalDir && urlSiteId ? "Director" : "My Tasks" },
                 { value: "data_entry_tech" as ViewingRole, label: "DE Tech" },
                 { value: "pv2_tech" as ViewingRole, label: "PV2 Tech" },
                 { value: "delivery_tech" as ViewingRole, label: "Delivery Tech" },
@@ -4695,8 +4697,8 @@ export default function TaskManager() {
           </div>
         )}
 
-        {/* Director site overview cards (by role) — hidden when regional is viewing a specific store */}
-        {isDir && !readOnly && !(isRegionalDir && urlSiteId) && (
+        {/* Director site overview cards (by role) */}
+        {isDir && !readOnly && (
           <SiteOverviewPanel
             siteId={siteId}
             frequency={frequency}
