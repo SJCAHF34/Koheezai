@@ -25,6 +25,9 @@ export interface PharmacyTask {
   url?: string;
   urlLabel?: string;
   isCustom?: boolean;
+  scope?: "site" | "regional" | "national";
+  region?: string;
+  dueDate?: string;
 }
 
 export interface Site {

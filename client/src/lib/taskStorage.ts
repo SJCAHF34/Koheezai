@@ -825,9 +825,13 @@ export function loadCountersForSite(siteId: string, date: string): TaskCounterEn
 
 const CUSTOM_TASKS_KEY = "koheez_custom_tasks";
 
+export type CustomTaskScope = "site" | "regional" | "national";
+
 export interface CustomTask {
   id: string;
   siteId: string;
+  scope: CustomTaskScope;
+  region?: string;
   title: string;
   description?: string;
   role: TaskRole;
@@ -837,6 +841,7 @@ export interface CustomTask {
   createdBy: string;
   createdByRole: string;
   createdAt: string;
+  dueDate?: string;
 }
 
 function readCustomTasks(): CustomTask[] {
@@ -854,8 +859,13 @@ function writeCustomTasks(tasks: CustomTask[]): void {
   } catch {}
 }
 
-export function loadCustomTasks(siteId: string): CustomTask[] {
-  return readCustomTasks().filter((t) => t.siteId === siteId);
+export function loadCustomTasks(siteId: string, region?: string): CustomTask[] {
+  return readCustomTasks().filter((t) => {
+    const scope = t.scope ?? "site";
+    if (scope === "national") return true;
+    if (scope === "regional") return !!region && t.region === region;
+    return t.siteId === siteId;
+  });
 }
 
 export function saveCustomTask(task: CustomTask): void {
@@ -864,8 +874,6 @@ export function saveCustomTask(task: CustomTask): void {
   writeCustomTasks(all);
 }
 
-export function deleteCustomTask(siteId: string, taskId: string): void {
-  writeCustomTasks(
-    readCustomTasks().filter((t) => !(t.id === taskId && t.siteId === siteId))
-  );
+export function deleteCustomTask(taskId: string): void {
+  writeCustomTasks(readCustomTasks().filter((t) => t.id !== taskId));
 }

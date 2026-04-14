@@ -77,6 +77,7 @@ import {
   type StaffMember,
   type SiteRoster,
   type CustomTask,
+  type CustomTaskScope,
 } from "@/lib/taskStorage";
 import type { RetentionPatient, RetentionIssueType, RetentionStatus, AttemptLogEntry } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -495,6 +496,21 @@ function TaskRow({
             <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 border border-purple-200">
               <Tag className="w-2.5 h-2.5" />
               Custom
+            </span>
+          )}
+          {task.isCustom && task.scope === "national" && (
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+              National
+            </span>
+          )}
+          {task.isCustom && task.scope === "regional" && (
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200">
+              Regional
+            </span>
+          )}
+          {task.isCustom && task.dueDate && (
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
+              Due {new Date(task.dueDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
           )}
           <p
@@ -3898,6 +3914,9 @@ const createTaskSchema = z.object({
   role: z.enum(["data_entry_tech", "pv2_tech", "delivery_tech", "pharmacist_1", "pharmacist_2", "director", "all_staff"] as const),
   category: z.enum(["operations", "achc", "state_board", "retention"] as const),
   taskGroup: z.string(),
+  scope: z.enum(["site", "regional", "national"] as const),
+  selectedRegion: z.string().optional(),
+  dueDate: z.string().optional(),
 });
 type CreateTaskFormValues = z.infer<typeof createTaskSchema>;
 
@@ -3907,13 +3926,26 @@ function CreateTaskModal({
   profile,
   onClose,
   onCreated,
+  isCpo,
+  isRegional,
+  userRegion,
+  hasSiteContext,
+  availableRegions,
 }: {
   open: boolean;
   siteId: string;
   profile: { email: string; name: string; role: string };
   onClose: () => void;
   onCreated: (task: PharmacyTask) => void;
+  isCpo: boolean;
+  isRegional: boolean;
+  userRegion?: string;
+  hasSiteContext: boolean;
+  availableRegions: string[];
 }) {
+  const showScopeSelector = isCpo || isRegional;
+  const defaultScope: CustomTaskScope = isCpo ? "national" : isRegional ? "regional" : "site";
+
   const form = useForm<CreateTaskFormValues>({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
@@ -3923,8 +3955,22 @@ function CreateTaskModal({
       role: "all_staff",
       category: "operations",
       taskGroup: "Custom Tasks",
+      scope: defaultScope,
+      selectedRegion: userRegion ?? "",
+      dueDate: "",
     },
   });
+
+  const watchScope = form.watch("scope");
+  const watchFrequency = form.watch("frequency");
+
+  // When scope changes, reset selectedRegion to the user's own region
+  const handleScopeChange = (v: CustomTaskScope) => {
+    form.setValue("scope", v);
+    if (v === "regional") {
+      form.setValue("selectedRegion", userRegion ?? availableRegions[0] ?? "");
+    }
+  };
 
   function handleSubmit(values: CreateTaskFormValues) {
     const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -3932,9 +3978,19 @@ function CreateTaskModal({
       profile.role === "chief_pharmacy_officer" ? "CPO"
       : profile.role === "regional_pharmacy_director" ? "RPD"
       : "PD";
+
+    const scope: CustomTaskScope = values.scope ?? "site";
+    // Determine the storage siteId based on scope
+    const storageSiteId =
+      scope === "national" ? "NATIONAL"
+      : scope === "regional" ? `REGION:${values.selectedRegion ?? userRegion ?? ""}`
+      : siteId;
+
     const customTask: CustomTask = {
       id,
-      siteId,
+      siteId: storageSiteId,
+      scope,
+      region: scope === "regional" ? (values.selectedRegion ?? userRegion ?? "") : undefined,
       title: values.title,
       description: values.description || undefined,
       role: values.role,
@@ -3944,25 +4000,79 @@ function CreateTaskModal({
       createdBy: `${profile.name} ${roleAbbr}`,
       createdByRole: profile.role,
       createdAt: new Date().toISOString(),
+      dueDate: values.dueDate || undefined,
     };
     saveCustomTask(customTask);
     const asPharmacyTask: PharmacyTask = { ...customTask, isCustom: true };
     onCreated(asPharmacyTask);
-    form.reset();
+    form.reset({ ...form.formState.defaultValues, scope: defaultScope, selectedRegion: userRegion ?? "" });
     onClose();
   }
 
+  // Scope label helpers
+  const scopeLabels: { value: CustomTaskScope; label: string; desc: string }[] = [
+    ...(isCpo ? [{ value: "national" as CustomTaskScope, label: "National", desc: "All stores nationwide" }] : []),
+    ...(isCpo || isRegional ? [{ value: "regional" as CustomTaskScope, label: "Regional", desc: "All stores in a region" }] : []),
+    ...(hasSiteContext ? [{ value: "site" as CustomTaskScope, label: "This Store", desc: "This location only" }] : []),
+  ];
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="w-4 h-4 text-purple-600" />
-            Create Custom Task
+            Create Task
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+
+          {/* Scope selector — CPO and RPD only */}
+          {showScopeSelector && scopeLabels.length > 1 && (
+            <div className="space-y-1.5">
+              <Label>Scope</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {scopeLabels.map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    data-testid={`scope-btn-${s.value}`}
+                    onClick={() => handleScopeChange(s.value)}
+                    className={`px-3 py-2.5 rounded-md border text-left transition-all ${
+                      watchScope === s.value
+                        ? "border-purple-400 bg-purple-50 text-purple-700"
+                        : "border-slate-200 text-slate-500 hover:border-slate-300"
+                    }`}
+                  >
+                    <p className="text-xs font-bold">{s.label}</p>
+                    <p className="text-[10px] mt-0.5 opacity-70">{s.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Region selector — shown when scope = regional AND user is CPO (can pick any region) */}
+          {watchScope === "regional" && isCpo && availableRegions.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Region</Label>
+              <Select
+                value={form.watch("selectedRegion") ?? ""}
+                onValueChange={(v) => form.setValue("selectedRegion", v)}
+              >
+                <SelectTrigger data-testid="select-task-region">
+                  <SelectValue placeholder="Select region" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableRegions.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Title */}
           <div className="space-y-1.5">
             <Label htmlFor="ct-title">Title <span className="text-red-500">*</span></Label>
@@ -3990,7 +4100,7 @@ function CreateTaskModal({
             />
           </div>
 
-          {/* Frequency + Role row */}
+          {/* Frequency + Assigned Role row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Frequency</Label>
@@ -4012,7 +4122,7 @@ function CreateTaskModal({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Assigned Role</Label>
+              <Label>Assigned To</Label>
               <Select
                 value={form.watch("role")}
                 onValueChange={(v) => form.setValue("role", v as TaskRole)}
@@ -4022,15 +4132,32 @@ function CreateTaskModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all_staff">All Staff</SelectItem>
-                  <SelectItem value="director">Director</SelectItem>
+                  <SelectItem value="director">Pharmacy Director</SelectItem>
                   <SelectItem value="pharmacist_1">Pharmacist 1</SelectItem>
                   <SelectItem value="pharmacist_2">Pharmacist 2</SelectItem>
-                  <SelectItem value="data_entry_tech">DE Tech</SelectItem>
-                  <SelectItem value="pv2_tech">PV2 Tech</SelectItem>
+                  <SelectItem value="data_entry_tech">DE Technician</SelectItem>
+                  <SelectItem value="pv2_tech">PV2 Technician</SelectItem>
                   <SelectItem value="delivery_tech">Delivery Tech</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Due date — shown for one_time OR any frequency when user wants to set one */}
+          <div className="space-y-1.5">
+            <Label htmlFor="ct-due">
+              Due Date
+              {watchFrequency !== "one_time" && (
+                <span className="text-slate-400 font-normal text-xs ml-1">(optional)</span>
+              )}
+            </Label>
+            <Input
+              id="ct-due"
+              type="date"
+              data-testid="input-create-task-due-date"
+              className="text-sm"
+              {...form.register("dueDate")}
+            />
           </div>
 
           {/* Category + Task Group row */}
@@ -4129,10 +4256,10 @@ export default function TaskManager() {
   const isPharmDir = profile ? isPharmacyDirector(profile.role) : false;
   const canPrioritize = isDir && !isTechRole(profile?.role ?? "pharmacist_1");
   const canMarkUrgent = isRegionalDir && !!urlSiteId;
-  // PD can always create/delete custom tasks for their own store.
-  // RPD/CPO can only do so when drilled into a specific store via URL param.
-  const canCreateTask = isPharmDir || (isRegionalDir && !!urlSiteId);
-  const canDeleteCustom = canCreateTask;
+  // All directors can create tasks. CPO/RPD can create national/regional tasks from any view;
+  // site-specific tasks require a store context (urlSiteId for regional/CPO, always for PD).
+  const canCreateTask = isDir;
+  const canDeleteCustom = isPharmDir || (isRegionalDir && !!urlSiteId);
 
   useEffect(() => {
     if (!profile) return;
@@ -4155,8 +4282,9 @@ export default function TaskManager() {
     // Load today's handoff tasks and purge stale entries
     purgeStaleHandoffNotes();
     setTodayHandoffs(loadHandoffNotesForRole(siteId, getTodayDateKey(), profile.role));
-    // Load custom tasks for this site
-    const rawCustom = loadCustomTasks(siteId);
+    // Load custom tasks for this site (including regional and national tasks)
+    const storeRegionForLoad = findStoreRegion(siteId)?.region ?? profile?.region;
+    const rawCustom = loadCustomTasks(siteId, storeRegionForLoad);
     setCustomTasks(rawCustom.map((ct) => ({ ...ct, isCustom: true } as PharmacyTask)));
   }, [frequency, siteId, profile?.email, viewingRole]);
 
@@ -4270,7 +4398,7 @@ export default function TaskManager() {
 
   const handleDeleteCustom = useCallback((task: PharmacyTask) => {
     if (!task.isCustom) return;
-    deleteCustomTask(siteId, task.id);
+    deleteCustomTask(task.id);
     setCustomTasks((prev) => prev.filter((t) => t.id !== task.id));
   }, [siteId]);
 
@@ -4849,6 +4977,11 @@ export default function TaskManager() {
           profile={{ email: profile.email, name: profile.name, role: profile.role }}
           onClose={() => setShowCreateModal(false)}
           onCreated={(task) => setCustomTasks((prev) => [...prev, task])}
+          isCpo={isCPO(profile.role)}
+          isRegional={isRegionalDir && !isCPO(profile.role)}
+          userRegion={isCPO(profile.role) ? undefined : (profile.region ?? drillStoreRegion?.region)}
+          hasSiteContext={isPharmDir || !!urlSiteId}
+          availableRegions={STORE_REGIONS.map((r) => r.region)}
         />
       )}
     </div>
