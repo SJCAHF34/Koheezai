@@ -1,9 +1,12 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/App";
-import { getUserProfile, isCPO, getAssignedRegion, getRoleLabel } from "@/lib/userProfile";
-import { SITES, TASKS, CATEGORY_CONFIG, type TaskCategory } from "@/lib/taskData";
+import { getUserProfile, isCPO, isRegionalOrAbove, getAssignedRegion, getRoleLabel } from "@/lib/userProfile";
+import { SITES, TASKS, CATEGORY_CONFIG, type TaskCategory, type PharmacyTask } from "@/lib/taskData";
 import { loadCompletions } from "@/lib/taskStorage";
+import { CreateTaskModal } from "@/components/CreateTaskModal";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import {
   getAllSiteTrends,
   getAllSiteTrendsForPeriod,
@@ -35,6 +38,8 @@ import {
   Store,
   X,
   Layers,
+  Plus,
+  ClipboardList,
 } from "lucide-react";
 
 const DAILY_TASKS = TASKS.filter((t) => t.frequency === "daily");
@@ -626,6 +631,8 @@ export default function RegionalDashboard() {
   const [period, setPeriod] = useState<TrendPeriod>("7d");
   // CPO region filter — null means "All Regions"; RPDs are locked to their region
   const [cpoFilterRegion, setCpoFilterRegion] = useState<string | null>(null);
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const { toast } = useToast();
 
   if (!user) return null;
 
@@ -676,8 +683,32 @@ export default function RegionalDashboard() {
     navigate(`/app/tasks?siteId=${siteId}`);
   };
 
+  const isRegionalDir = isRegionalOrAbove(profile.role);
+  const availableRegions = STORE_REGIONS.map((r) => r.region);
+
+  function handleTaskCreated(task: PharmacyTask) {
+    toast({
+      title: "Task created",
+      description: `"${task.title}" saved${task.scope === "national" ? " nationally" : task.scope === "regional" ? ` for ${task.region ?? "region"}` : ""}.`,
+    });
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        open={showCreateTask}
+        siteId="NATIONAL"
+        profile={{ email: profile.email, name: profile.name, role: profile.role }}
+        onClose={() => setShowCreateTask(false)}
+        onCreated={handleTaskCreated}
+        isCpo={isCpoUser}
+        isRegional={!isCpoUser && isRegionalDir}
+        userRegion={assignedRegion ?? undefined}
+        hasSiteContext={false}
+        availableRegions={availableRegions}
+      />
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-6 py-8">
@@ -742,6 +773,31 @@ export default function RegionalDashboard() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+
+        {/* ── Create Task ────────────────────────────────────────────────── */}
+        {isRegionalDir && (
+          <section className="bg-white border border-slate-200 rounded-md px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-purple-600" />
+                {isCpoUser ? "Push a Task Nationally or Regionally" : "Push a Task to Your Region"}
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isCpoUser
+                  ? "Create tasks that automatically appear at all sites nationwide or in a specific region."
+                  : "Create tasks that automatically appear at all sites in your region."}
+              </p>
+            </div>
+            <Button
+              data-testid="button-open-create-task"
+              onClick={() => setShowCreateTask(true)}
+              className="shrink-0"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Create Task
+            </Button>
+          </section>
+        )}
 
         {/* ── Region Performance Overview (CPO only) ───────────────────── */}
         {isCpoUser && (
