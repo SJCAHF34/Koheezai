@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, User } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import {
   saveCustomTask,
   type CustomTask,
@@ -47,6 +61,16 @@ export const createTaskSchema = z.object({
 });
 
 export type CreateTaskFormValues = z.infer<typeof createTaskSchema>;
+
+// Deduplicate people by display name
+function dedupe<T extends { name: string }>(people: T[]): T[] {
+  const seen = new Set<string>();
+  return people.filter((p) => {
+    if (seen.has(p.name)) return false;
+    seen.add(p.name);
+    return true;
+  });
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -101,11 +125,12 @@ export function CreateTaskModal({
   // Local state for assignee — more reliable than form.watch for cross-Select updates
   const [assigneeValue, setAssigneeValue] = useState<string>(() => {
     if (defaultScope === "national") return "All Directors & RPDs";
-    if (defaultScope === "regional" && !isCpo && userRegion) {
-      const rpds = (getRPDsByRegion(userRegion) ?? []).filter(
-        (p, i, arr) => arr.findIndex((q) => q.name === p.name) === i
-      );
-      return rpds[0]?.name ?? "Regional Pharmacy Director";
+    if (defaultScope === "regional") {
+      const region = userRegion ?? availableRegions[0] ?? "";
+      if (region) {
+        const rpds = dedupe(getRPDsByRegion(region));
+        return rpds[0]?.name ?? "Regional Pharmacy Director";
+      }
     }
     return "";
   });
@@ -118,11 +143,10 @@ export function CreateTaskModal({
     } else if (v === "regional") {
       const region = userRegion ?? availableRegions[0] ?? "";
       form.setValue("selectedRegion", region);
-      // Auto-populate for RPD (locked region); CPO picks region manually
-      if (!isCpo && region) {
-        const rpds = getRPDsByRegion(region);
-        const first = rpds[0]?.name ?? "Regional Pharmacy Director";
-        setAssigneeValue(first);
+      // Auto-populate assignee from the pre-selected region (RPD: locked region; CPO: first region)
+      if (region) {
+        const rpds = dedupe(getRPDsByRegion(region));
+        setAssigneeValue(rpds[0]?.name ?? "Regional Pharmacy Director");
       } else {
         setAssigneeValue("");
       }
@@ -131,29 +155,24 @@ export function CreateTaskModal({
     }
   };
 
-  // Stores available to pick from
+  // Combobox open state for store picker
+  const [storePickerOpen, setStorePickerOpen] = useState(false);
+
+  // Stores available to pick from — alphabetized by name
   const storesForPicker = (() => {
     if (isCpo) {
-      return STORE_REGIONS.flatMap((r) =>
+      const all = STORE_REGIONS.flatMap((r) =>
         r.stores.map((s) => ({ ...s, region: r.region }))
       );
+      return [...all].sort((a, b) => a.name.localeCompare(b.name));
     }
     if (userRegion) {
       const reg = STORE_REGIONS.find((r) => r.region === userRegion);
-      return (reg?.stores ?? []).map((s) => ({ ...s, region: userRegion }));
+      return [...(reg?.stores ?? [])].map((s) => ({ ...s, region: userRegion }))
+        .sort((a, b) => a.name.localeCompare(b.name));
     }
     return [];
   })();
-
-  // Deduplicate by name
-  const dedupe = (people: { name: string; email: string }[]) => {
-    const seen = new Set<string>();
-    return people.filter((p) => {
-      if (seen.has(p.name)) return false;
-      seen.add(p.name);
-      return true;
-    });
-  };
 
   // Assignee options derived from scope
   const assigneeOptions: { label: string; value: string }[] = (() => {
@@ -182,6 +201,12 @@ export function CreateTaskModal({
     : singleAssignee;
 
   function handleSubmit(values: CreateTaskFormValues) {
+    // Require a store when scope is site
+    if (values.scope === "site" && !values.selectedStore) {
+      form.setError("selectedStore", { message: "Please select a store" });
+      return;
+    }
+
     const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const roleAbbr =
       profile.role === "chief_pharmacy_officer" ? "CPO"
@@ -313,39 +338,59 @@ export function CreateTaskModal({
             </div>
           )}
 
-          {/* ── Store picker (Store scope) ───────────────────────────── */}
+          {/* ── Store picker (Store scope) — searchable combobox ────── */}
           {watchScope === "site" && storesForPicker.length > 0 && (
             <div className="space-y-1.5">
               <Label>Store</Label>
-              <Select
-                value={watchStore ?? ""}
-                onValueChange={(v) => {
-                  form.setValue("selectedStore", v);
-                  const dirs = dedupe(getDirectorsByStore(v));
-                  setAssigneeValue(dirs.length > 0 ? dirs[0].name : "Pharmacy Director");
-                }}
-              >
-                <SelectTrigger data-testid="select-task-store">
-                  <SelectValue placeholder="Select a pharmacy" />
-                </SelectTrigger>
-                <SelectContent className="max-h-64">
-                  {isCpo
-                    ? STORE_REGIONS.map((reg) => (
-                        <div key={reg.region}>
-                          <div className="px-2 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
-                            {reg.region}
-                          </div>
-                          {reg.stores.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                          ))}
-                        </div>
-                      ))
-                    : storesForPicker.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                      ))
-                  }
-                </SelectContent>
-              </Select>
+              <Popover open={storePickerOpen} onOpenChange={setStorePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={storePickerOpen}
+                    data-testid="select-task-store"
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className="truncate">
+                      {watchStore
+                        ? (storesForPicker.find((s) => s.id === watchStore)?.name ?? watchStore)
+                        : "Select a pharmacy"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search pharmacy..." />
+                    <CommandList>
+                      <CommandEmpty>No pharmacy found.</CommandEmpty>
+                      <CommandGroup>
+                        {storesForPicker.map((s) => (
+                          <CommandItem
+                            key={s.id}
+                            value={s.name}
+                            onSelect={() => {
+                              form.setValue("selectedStore", s.id);
+                              const dirs = dedupe(getDirectorsByStore(s.id));
+                              setAssigneeValue(dirs.length > 0 ? dirs[0].name : "Pharmacy Director");
+                              setStorePickerOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn("mr-2 h-4 w-4", watchStore === s.id ? "opacity-100" : "opacity-0")}
+                            />
+                            {s.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {watchScope === "site" && !watchStore && form.formState.isSubmitted && (
+                <p className="text-xs text-red-600">Please select a store</p>
+              )}
             </div>
           )}
 
