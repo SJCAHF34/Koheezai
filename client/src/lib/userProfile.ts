@@ -131,6 +131,12 @@ const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteNam
     region: "Western",
     taskRoles: ["pharmacist_1"],
   },
+  "bobby.couch@aidshealth.org": {
+    role: "pharmacy_director",
+    siteId: "5511",
+    siteName: "RX Cumberland",
+    region: "Southern – North Region",
+  },
 };
 
 const DEFAULT_PROFILE: Pick<UserProfile, "role" | "siteId" | "siteName"> = {
