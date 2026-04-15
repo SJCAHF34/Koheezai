@@ -832,9 +832,11 @@ export interface CustomTask {
   siteId: string;
   scope: CustomTaskScope;
   region?: string;
+  selectedStore?: string;
   title: string;
   description?: string;
   role: TaskRole;
+  assignedToLabel?: string;
   frequency: TaskFrequency;
   category: TaskCategory;
   taskGroup: string;

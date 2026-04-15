@@ -18,49 +18,59 @@ export interface UserProfile {
   taskRoles?: UserRole[];
 }
 
-const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteName" | "region" | "taskRoles">> = {
+type ProfileEntry = Pick<UserProfile, "role" | "siteId" | "siteName" | "region" | "taskRoles"> & { name?: string };
+
+const PROFILE_MAP: Record<string, ProfileEntry> = {
   "cpo@koheez.ai": {
+    name: "Chief Pharmacy Officer",
     role: "chief_pharmacy_officer",
     siteId: "ALL",
     siteName: "All Regions",
     region: "all",
   },
   "cpo@aidshealth.org": {
+    name: "Chief Pharmacy Officer",
     role: "chief_pharmacy_officer",
     siteId: "ALL",
     siteName: "All Regions",
     region: "all",
   },
   "jeremy.zeller@aidshealth.org": {
+    name: "Jeremy Zeller",
     role: "chief_pharmacy_officer",
     siteId: "ALL",
     siteName: "All Regions",
     region: "all",
   },
   "regionaldirector@koheez.ai": {
+    name: "Regional Pharmacy Director",
     role: "regional_pharmacy_director",
     siteId: "1417",
     siteName: "Western Region",
     region: "Western Region",
   },
   "regional@aidshealth.org": {
+    name: "Regional Pharmacy Director",
     role: "regional_pharmacy_director",
     siteId: "1417",
     siteName: "Western Region",
     region: "Western Region",
   },
   "test@koheez.ai": {
+    name: "Test User",
     role: "regional_pharmacy_director",
     siteId: "1417",
     siteName: "Western Region",
     region: "Western Region",
   },
   "jrockwoodpharmd@gmail.com": {
+    name: "Jason Rockwood",
     role: "pharmacy_director",
     siteId: "1417",
     siteName: "RX Pike Street",
   },
   "director@koheez.ai": {
+    name: "Pharmacy Director",
     role: "pharmacy_director",
     siteId: "1417",
     siteName: "RX Pike Street",
@@ -106,12 +116,14 @@ const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteNam
     taskRoles: ["pharmacist_1"],
   },
   "seth.collins@aidshealth.org": {
+    name: "Seth Collins",
     role: "pharmacy_director",
     siteId: "1417",
     siteName: "RX Pike Street",
     region: "Western",
   },
   "walid.mohammad@aidshealth.org": {
+    name: "Walid Mohammad",
     role: "pharmacy_director",
     siteId: "1417",
     siteName: "RX Pike Street",
@@ -132,6 +144,7 @@ const PROFILE_MAP: Record<string, Pick<UserProfile, "role" | "siteId" | "siteNam
     taskRoles: ["pharmacist_1"],
   },
   "bobby.couch@aidshealth.org": {
+    name: "Bobby Couch",
     role: "pharmacy_director",
     siteId: "5511",
     siteName: "RX Cumberland",
@@ -198,4 +211,21 @@ export function getRoleLabel(role: UserRole): string {
     chief_pharmacy_officer: "Chief Pharmacy Officer",
   };
   return labels[role] ?? role;
+}
+
+export interface PersonRef {
+  name: string;
+  email: string;
+}
+
+export function getDirectorsByStore(siteId: string): PersonRef[] {
+  return Object.entries(PROFILE_MAP)
+    .filter(([, p]) => p.role === "pharmacy_director" && p.siteId === siteId)
+    .map(([email, p]) => ({ name: p.name ?? email, email }));
+}
+
+export function getRPDsByRegion(region: string): PersonRef[] {
+  return Object.entries(PROFILE_MAP)
+    .filter(([, p]) => p.role === "regional_pharmacy_director" && p.region === region)
+    .map(([email, p]) => ({ name: p.name ?? email, email }));
 }
