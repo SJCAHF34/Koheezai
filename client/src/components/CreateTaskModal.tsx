@@ -72,6 +72,23 @@ function dedupe<T extends { name: string }>(people: T[]): T[] {
   });
 }
 
+// Generic role label names used in PROFILE_MAP as placeholder accounts
+const GENERIC_ROLE_NAMES = new Set([
+  "Regional Pharmacy Director",
+  "Pharmacy Director",
+  "CPO",
+  "Chief Pharmacy Officer",
+]);
+
+/**
+ * From a deduplicated list, prefer entries with real names over generic role labels.
+ * Falls back to the full list only if no named profiles exist.
+ */
+function preferNamed<T extends { name: string }>(people: T[]): T[] {
+  const named = people.filter((p) => !GENERIC_ROLE_NAMES.has(p.name));
+  return named.length > 0 ? named : people;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function CreateTaskModal({
@@ -128,7 +145,7 @@ export function CreateTaskModal({
     if (defaultScope === "regional") {
       const region = userRegion ?? availableRegions[0] ?? "";
       if (region) {
-        const rpds = dedupe(getRPDsByRegion(region));
+        const rpds = preferNamed(dedupe(getRPDsByRegion(region)));
         return rpds[0]?.name ?? "Regional Pharmacy Director";
       }
     }
@@ -145,7 +162,7 @@ export function CreateTaskModal({
       form.setValue("selectedRegion", region);
       // Auto-populate assignee from the pre-selected region (RPD: locked region; CPO: first region)
       if (region) {
-        const rpds = dedupe(getRPDsByRegion(region));
+        const rpds = preferNamed(dedupe(getRPDsByRegion(region)));
         setAssigneeValue(rpds[0]?.name ?? "Regional Pharmacy Director");
       } else {
         setAssigneeValue("");
@@ -174,16 +191,16 @@ export function CreateTaskModal({
     return [];
   })();
 
-  // Assignee options derived from scope
+  // Assignee options derived from scope — prefer real names over generic role labels
   const assigneeOptions: { label: string; value: string }[] = (() => {
     if (watchScope === "national") return [];
     if (watchScope === "regional" && watchRegion) {
-      const rpds = dedupe(getRPDsByRegion(watchRegion));
+      const rpds = preferNamed(dedupe(getRPDsByRegion(watchRegion)));
       if (rpds.length > 0) return rpds.map((p) => ({ label: p.name, value: p.name }));
       return [{ label: "Regional Pharmacy Director", value: "Regional Pharmacy Director" }];
     }
     if (watchScope === "site" && watchStore) {
-      const dirs = dedupe(getDirectorsByStore(watchStore));
+      const dirs = preferNamed(dedupe(getDirectorsByStore(watchStore)));
       if (dirs.length > 0) return dirs.map((p) => ({ label: p.name, value: p.name }));
       return [{ label: "Pharmacy Director", value: "Pharmacy Director" }];
     }
@@ -204,6 +221,11 @@ export function CreateTaskModal({
     // Require a store when scope is site
     if (values.scope === "site" && !values.selectedStore) {
       form.setError("selectedStore", { message: "Please select a store" });
+      return;
+    }
+    // Require a region when scope is regional and user is CPO
+    if (values.scope === "regional" && isCpo && !values.selectedRegion) {
+      form.setError("selectedRegion", { message: "Please select a region" });
       return;
     }
 
@@ -312,7 +334,7 @@ export function CreateTaskModal({
                 value={form.watch("selectedRegion") ?? ""}
                 onValueChange={(v) => {
                   form.setValue("selectedRegion", v);
-                  const rpds = dedupe(getRPDsByRegion(v));
+                  const rpds = preferNamed(dedupe(getRPDsByRegion(v)));
                   setAssigneeValue(rpds.length > 0 ? rpds[0].name : "Regional Pharmacy Director");
                 }}
               >
@@ -372,7 +394,7 @@ export function CreateTaskModal({
                             value={s.name}
                             onSelect={() => {
                               form.setValue("selectedStore", s.id);
-                              const dirs = dedupe(getDirectorsByStore(s.id));
+                              const dirs = preferNamed(dedupe(getDirectorsByStore(s.id)));
                               setAssigneeValue(dirs.length > 0 ? dirs[0].name : "Pharmacy Director");
                               setStorePickerOpen(false);
                             }}
