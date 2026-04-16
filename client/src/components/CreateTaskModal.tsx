@@ -42,6 +42,23 @@ import {
 } from "@/lib/taskStorage";
 import type { PharmacyTask, TaskFrequency, TaskRole, TaskCategory } from "@/lib/taskData";
 import { STORE_REGIONS } from "@/lib/storeDirectory";
+import { getDirectorsByStore, getRPDsByRegion } from "@/lib/userProfile";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Generic placeholder names that should be treated as fallbacks, not real assignees
+const GENERIC_ROLE_NAMES = new Set([
+  "Regional Pharmacy Director",
+  "Pharmacy Director",
+  "CPO",
+  "Chief Pharmacy Officer",
+]);
+
+// Return named people; fall back to the full list if none have real names
+function namedPeople<T extends { name: string }>(people: T[]): T[] {
+  const named = people.filter((p) => !GENERIC_ROLE_NAMES.has(p.name));
+  return named.length > 0 ? named : people;
+}
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -121,18 +138,58 @@ export function CreateTaskModal({
   const watchStore = form.watch("selectedStore");
   const watchFrequency = form.watch("frequency");
 
-  // Assignee role group — always one of the ASSIGNEE_GROUPS values
-  const [assigneeValue, setAssigneeValue] = useState<string>("All Pharmacy Directors");
+  // Assignee — tracks the selected assignee label (group name for national, person name for others)
+  const [assigneeValue, setAssigneeValue] = useState<string>(() => {
+    if (defaultScope === "national") return ASSIGNEE_GROUPS[0].value;
+    if (defaultScope === "regional" && userRegion) {
+      const rpds = namedPeople(getRPDsByRegion(userRegion));
+      return rpds[0]?.name ?? "";
+    }
+    return "";
+  });
 
   const handleScopeChange = (v: CustomTaskScope) => {
     form.setValue("scope", v);
     form.setValue("selectedStore", "");
-    if (v === "regional") {
+    if (v === "national") {
+      setAssigneeValue(ASSIGNEE_GROUPS[0].value);
+    } else if (v === "regional") {
       const region = userRegion ?? availableRegions[0] ?? "";
       form.setValue("selectedRegion", region);
+      if (region) {
+        const rpds = namedPeople(getRPDsByRegion(region));
+        setAssigneeValue(rpds[0]?.name ?? "");
+      } else {
+        setAssigneeValue("");
+      }
+    } else {
+      // site — wait for user to pick a store
+      setAssigneeValue("");
     }
-    // Assignee group stays as-is when scope changes — user selects it explicitly
   };
+
+  // Scope-aware assignee options:
+  //   National  → 5 role-group options from ASSIGNEE_GROUPS
+  //   Regional  → specific RPD(s) for selected region
+  //   Site      → specific director(s) for selected store
+  const assigneeOptions: { label: string; value: string }[] = (() => {
+    if (watchScope === "national") {
+      return ASSIGNEE_GROUPS.map((g) => ({ label: g.label, value: g.value }));
+    }
+    if (watchScope === "regional" && watchRegion) {
+      const rpds = namedPeople(getRPDsByRegion(watchRegion));
+      return rpds.length > 0
+        ? rpds.map((p) => ({ label: p.name, value: p.name }))
+        : [{ label: "Regional Pharmacy Director", value: "Regional Pharmacy Director" }];
+    }
+    if (watchScope === "site" && watchStore) {
+      const dirs = namedPeople(getDirectorsByStore(watchStore));
+      return dirs.length > 0
+        ? dirs.map((p) => ({ label: p.name, value: p.name }))
+        : [{ label: "Pharmacy Director", value: "Pharmacy Director" }];
+    }
+    return [];
+  })();
 
   // Combobox open state for store picker
   const [storePickerOpen, setStorePickerOpen] = useState(false);
@@ -181,9 +238,9 @@ export function CreateTaskModal({
       : scope === "site" && values.selectedStore ? values.selectedStore
       : siteId;
 
-    // Derive role from the selected assignee group
+    // Derive role: national scope uses ASSIGNEE_GROUPS mapping; regional/site are always director
     const group = ASSIGNEE_GROUPS.find((g) => g.value === assigneeValue);
-    const taskRole: TaskRole = group?.role ?? "director";
+    const taskRole: TaskRole = scope === "national" ? (group?.role ?? "director") : "director";
 
     const customTask: CustomTask = {
       id,
@@ -207,7 +264,15 @@ export function CreateTaskModal({
     const asPharmacyTask: PharmacyTask = { ...customTask, isCustom: true };
     onCreated(asPharmacyTask);
     form.reset({ ...form.formState.defaultValues, scope: defaultScope, selectedRegion: userRegion ?? "" });
-    setAssigneeValue("All Pharmacy Directors");
+    // Reset assignee to sensible default for this user's default scope
+    if (defaultScope === "national") {
+      setAssigneeValue(ASSIGNEE_GROUPS[0].value);
+    } else if (defaultScope === "regional" && userRegion) {
+      const rpds = namedPeople(getRPDsByRegion(userRegion));
+      setAssigneeValue(rpds[0]?.name ?? "");
+    } else {
+      setAssigneeValue("");
+    }
     onClose();
   }
 
@@ -268,6 +333,8 @@ export function CreateTaskModal({
                 value={form.watch("selectedRegion") ?? ""}
                 onValueChange={(v) => {
                   form.setValue("selectedRegion", v);
+                  const rpds = namedPeople(getRPDsByRegion(v));
+                  setAssigneeValue(rpds[0]?.name ?? "");
                 }}
               >
                 <SelectTrigger data-testid="select-task-region">
@@ -326,6 +393,8 @@ export function CreateTaskModal({
                             value={s.name}
                             onSelect={() => {
                               form.setValue("selectedStore", s.id);
+                              const dirs = namedPeople(getDirectorsByStore(s.id));
+                              setAssigneeValue(dirs[0]?.name ?? "");
                               setStorePickerOpen(false);
                             }}
                           >
@@ -397,19 +466,25 @@ export function CreateTaskModal({
 
             <div className="space-y-1.5">
               <Label>Assigned To</Label>
-              <Select
-                value={assigneeValue}
-                onValueChange={(v) => setAssigneeValue(v)}
-              >
-                <SelectTrigger data-testid="select-create-task-assignee">
-                  <SelectValue placeholder="Select group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ASSIGNEE_GROUPS.map((g) => (
-                    <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {assigneeOptions.length > 0 ? (
+                <Select
+                  value={assigneeValue}
+                  onValueChange={(v) => setAssigneeValue(v)}
+                >
+                  <SelectTrigger data-testid="select-create-task-assignee">
+                    <SelectValue placeholder="Select assignee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assigneeOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex items-center px-3 h-9 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-400">
+                  {watchScope === "site" ? "Select a store first" : "Select a region first"}
+                </div>
+              )}
             </div>
           </div>
 
