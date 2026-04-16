@@ -27,6 +27,7 @@ const DEMO_USERS = [
   { email: "jeremy.zeller@aidshealth.org", password: "AHF1", name: "Jeremy Zeller" },
   { email: "regionaldirector@koheez.ai", password: "AHF1", name: "Regional Pharmacy Director" },
   { email: "regional@aidshealth.org", password: "AHF1", name: "Regional Pharmacy Director" },
+  { email: "negar.shirazpour@aidshealth.org", password: "AHF1", name: "Negar Shirazpour" },
   { email: "director@koheez.ai", password: "AHF1", name: "Pharmacy Director" },
   { email: "techs@koheez.ai", password: "AHF1", name: "Pharmacy Technician" },
   { email: "test@koheez.ai", password: "AHF1", name: "Test User" },

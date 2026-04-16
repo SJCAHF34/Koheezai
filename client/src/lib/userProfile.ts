@@ -56,6 +56,13 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     siteName: "Western Region",
     region: "Western Region",
   },
+  "negar.shirazpour@aidshealth.org": {
+    name: "Negar Shirazpour",
+    role: "regional_pharmacy_director",
+    siteId: "1417",
+    siteName: "Western Region",
+    region: "Western Region",
+  },
   "test@koheez.ai": {
     name: "Test User",
     role: "regional_pharmacy_director",
