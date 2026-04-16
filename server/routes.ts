@@ -10,6 +10,7 @@ import { generateClinicalRecommendations } from "./lib/clinicalRecommendations";
 import { openEvidenceClient } from "./lib/openEvidence";
 import { checkLiverpoolInteractions, isConfigured as liverpoolConfigured } from "./lib/liverpoolDDI";
 import { hivDrugs } from "../client/src/lib/hivDrugs";
+import { getUserProfile, isRegionalOrAbove } from "../client/src/lib/userProfile";
 import { storage } from "./storage";
 import { runOutreachNow } from "./lib/outreachScheduler";
 import { logRetentionEvent } from "./lib/salesforceClient";
@@ -890,6 +891,13 @@ Write in professional clinical language for medical record documentation. Be spe
   app.post("/api/ai/performance-query", async (req, res) => {
     if (!req.session?.userId) {
       return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const sessionEmail = req.session.userId;
+    const sessionName = req.session.user?.name ?? "";
+    const sessionProfile = getUserProfile(sessionEmail, sessionName);
+    if (!isRegionalOrAbove(sessionProfile.role)) {
+      return res.status(403).json({ message: "Access restricted to Regional Directors and above." });
     }
 
     if (!process.env.OPENAI_API_KEY) {
