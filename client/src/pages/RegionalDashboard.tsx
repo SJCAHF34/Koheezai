@@ -704,31 +704,37 @@ export default function RegionalDashboard() {
       };
     });
 
-    const regionStoreIds = isCpoUser
-      ? STORE_REGIONS.flatMap((r) => r.stores.map((s) => s.id))
-      : (STORE_REGIONS.find((r) => r.region === assignedRegion)?.stores.map((s) => s.id) ?? []);
+    const storeList = isCpoUser
+      ? STORE_REGIONS.flatMap((r) => r.stores.map((s) => ({ ...s, region: r.region })))
+      : (STORE_REGIONS.find((r) => r.region === assignedRegion)?.stores.map(
+          (s) => ({ ...s, region: assignedRegion ?? "" })
+        ) ?? []);
 
-    const atRiskStores = allTrends
-      .filter((t) => {
-        if (!isCpoUser) return regionStoreIds.includes(t.siteId) && t.overallAvg < 60;
-        return t.overallAvg < 60;
+    // Use the same computeRegionPerformance function that powers region cards,
+    // so at-risk store names are consistent with region-level at-risk counts.
+    const atRiskStores = storeList
+      .map((store) => {
+        const perf = computeRegionPerformance([store.id]);
+        return {
+          siteId: store.id,
+          siteName: store.name,
+          region: store.region,
+          overallAvg: perf.overallAvg,
+          isAtRisk: perf.atRiskCount > 0,
+          trend: perf.trend,
+        };
       })
+      .filter((s) => s.isAtRisk)
       .sort((a, b) => a.overallAvg - b.overallAvg)
       .slice(0, 5)
-      .map((t) => ({
-        siteId: t.siteId,
-        siteName: t.siteName,
-        region: t.region,
-        overallAvg: t.overallAvg,
-        trend: t.categories.achc.trend,
+      .map(({ siteId, siteName, region, overallAvg, trend }) => ({
+        siteId, siteName, region, overallAvg, trend,
       }));
 
     const catSummary = TREND_CATEGORIES.map((cat) => {
-      const relevant = isCpoUser
-        ? allTrends
-        : allTrends.filter((t) => regionStoreIds.includes(t.siteId));
-      const avgPct = relevant.length
-        ? Math.round(relevant.reduce((s, t) => s + t.categories[cat].avg7d, 0) / relevant.length)
+      const perfs = storeList.map((store) => computeRegionPerformance([store.id]));
+      const avgPct = perfs.length
+        ? Math.round(perfs.reduce((s, p) => s + p.catAvgs[cat], 0) / perfs.length)
         : 0;
       return { category: cat, label: CATEGORY_CONFIG[cat].label, avgPct };
     }).sort((a, b) => a.avgPct - b.avgPct);
