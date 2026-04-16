@@ -879,3 +879,13 @@ export function saveCustomTask(task: CustomTask): void {
 export function deleteCustomTask(taskId: string): void {
   writeCustomTasks(readCustomTasks().filter((t) => t.id !== taskId));
 }
+
+/** Load ALL custom tasks from storage (no scope/site filtering — for the Task Tracker). */
+export function loadAllCustomTasks(): CustomTask[] {
+  return readCustomTasks();
+}
+
+/** Return every raw completion record (for cross-store tracker view). */
+export function loadAllCompletionsRaw(): TaskCompletion[] {
+  return readCompletions();
+}

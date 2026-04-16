@@ -17,10 +17,11 @@ import CategoryReport from "@/pages/CategoryReport";
 import AchcWorkbook from "@/pages/AchcWorkbook";
 import CQIMeeting from "@/pages/CQIMeeting";
 import StoreDashboard from "@/pages/StoreDashboard";
+import TaskTracker from "@/pages/TaskTracker";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
@@ -169,6 +170,10 @@ function AppNav() {
             <NavMenuItem href="/app/assessment" icon={Activity} label="HIV/PrEP Assessor" testId="nav-assessment" onClick={close} />
             <NavMenuItem href="/app/tasks" icon={ClipboardList} label="Tasks" testId="nav-tasks" onClick={close} />
 
+            {isRegional && (
+              <NavMenuItem href="/app/task-tracker" icon={ListChecks} label="Task Tracker" testId="nav-task-tracker" onClick={close} />
+            )}
+
             {showWorkbook && (
               <NavMenuItem href="/app/achc-workbook" icon={BookCheck} label="ACHC Workbook" testId="nav-achc-workbook" onClick={close} />
             )}
@@ -283,6 +288,10 @@ function Router() {
       {/* Category report — regional director only */}
       <Route path="/app/category-report">
         <RegionalProtected component={CategoryReport} />
+      </Route>
+      {/* Task Tracker — CPO & RPD only */}
+      <Route path="/app/task-tracker">
+        <RegionalProtected component={TaskTracker} />
       </Route>
       <Route path="/app/tasks">
         <Protected component={TaskManager} />
