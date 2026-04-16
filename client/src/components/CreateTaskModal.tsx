@@ -171,7 +171,7 @@ export function CreateTaskModal({
   // Scope-aware assignee options:
   //   National  → 5 role-group options from ASSIGNEE_GROUPS
   //   Regional  → specific RPD(s) for selected region
-  //   Site      → specific director(s) for selected store
+  //   Site      → named director(s) at that store (if any) + "All Staff" always
   const assigneeOptions: { label: string; value: string }[] = (() => {
     if (watchScope === "national") {
       return ASSIGNEE_GROUPS.map((g) => ({ label: g.label, value: g.value }));
@@ -184,9 +184,9 @@ export function CreateTaskModal({
     }
     if (watchScope === "site" && watchStore) {
       const dirs = namedPeople(getDirectorsByStore(watchStore));
-      return dirs.length > 0
-        ? dirs.map((p) => ({ label: p.name, value: p.name }))
-        : [{ label: "Pharmacy Director", value: "Pharmacy Director" }];
+      const namedOptions = dirs.map((p) => ({ label: p.name, value: p.name }));
+      // Always include "All Staff" so any store can be assigned even without named profiles
+      return [...namedOptions, { label: "All Staff", value: "All Staff" }];
     }
     return [];
   })();
@@ -238,9 +238,12 @@ export function CreateTaskModal({
       : scope === "site" && values.selectedStore ? values.selectedStore
       : siteId;
 
-    // Derive role: national scope uses ASSIGNEE_GROUPS mapping; regional/site are always director
+    // Derive role from assignee selection
     const group = ASSIGNEE_GROUPS.find((g) => g.value === assigneeValue);
-    const taskRole: TaskRole = scope === "national" ? (group?.role ?? "director") : "director";
+    const taskRole: TaskRole =
+      scope === "national" ? (group?.role ?? "director")
+      : assigneeValue === "All Staff" ? "all_staff"
+      : "director";
 
     const customTask: CustomTask = {
       id,
@@ -394,7 +397,8 @@ export function CreateTaskModal({
                             onSelect={() => {
                               form.setValue("selectedStore", s.id);
                               const dirs = namedPeople(getDirectorsByStore(s.id));
-                              setAssigneeValue(dirs[0]?.name ?? "");
+                              // Default to first named director, or "All Staff" if none known
+                              setAssigneeValue(dirs[0]?.name ?? "All Staff");
                               setStorePickerOpen(false);
                             }}
                           >
