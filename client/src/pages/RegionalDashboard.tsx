@@ -724,7 +724,7 @@ export default function RegionalDashboard() {
                 {filterRegion ?? (isCpoUser ? "All Regions · National" : "All Regions")} · {today}
               </p>
               <p className="text-sm text-slate-500 mt-1">
-                Welcome, <span className="font-semibold text-slate-700">{profile.name.split(" ")[0]}</span>
+                Welcome <span className="font-semibold text-slate-700">{profile.name.split(" ")[0]}</span>!
               </p>
             </div>
             <span
