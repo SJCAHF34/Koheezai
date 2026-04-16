@@ -24,7 +24,7 @@ declare module "express-session" {
 const DEMO_USERS = [
   { email: "cpo@koheez.ai", password: "AHF1", name: "Chief Pharmacy Officer" },
   { email: "cpo@aidshealth.org", password: "AHF1", name: "Chief Pharmacy Officer" },
-  { email: "jeremy.zeller@aidshealth.org", password: "AHF1", name: "Jeremy Zeller" },
+  { email: "jeremy.zellers@aidshealth.org", password: "AHF1", name: "Jeremy Zeller" },
   { email: "regionaldirector@koheez.ai", password: "AHF1", name: "Regional Pharmacy Director" },
   { email: "regional@aidshealth.org", password: "AHF1", name: "Regional Pharmacy Director" },
   { email: "negar.shirazpour@aidshealth.org", password: "AHF1", name: "Negar Shirazpour" },

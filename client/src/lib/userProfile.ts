@@ -35,7 +35,7 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     siteName: "All Regions",
     region: "all",
   },
-  "jeremy.zeller@aidshealth.org": {
+  "jeremy.zellers@aidshealth.org": {
     name: "Jeremy Zeller",
     role: "chief_pharmacy_officer",
     siteId: "ALL",
