@@ -27,6 +27,16 @@ import {
 // ── Constants ─────────────────────────────────────────────────────────────────
 const ALL_STORE_IDS = STORE_REGIONS.flatMap((r) => r.stores.map((s) => s.id));
 
+/**
+ * Normalize legacy or inconsistent scope values.
+ * Treats undefined and the historically-seen "store" variant as "site".
+ */
+function normalizeScope(scope: string | undefined): "site" | "regional" | "national" {
+  if (scope === "national") return "national";
+  if (scope === "regional") return "regional";
+  return "site"; // covers undefined, "site", "store", or any future typo
+}
+
 const FREQ_LABELS: Record<string, string> = {
   daily: "Daily",
   weekly: "Weekly",
@@ -64,7 +74,7 @@ interface TaskStatus {
 }
 
 function getStatus(task: CustomTask, completions: TaskCompletion[]): TaskStatus {
-  const scope = task.scope ?? "site"; // normalize legacy tasks without scope
+  const scope = normalizeScope(task.scope);
   const period = getPeriodKey(task.frequency);
   const relevant = completions.filter((c) => c.taskId === task.id && c.period === period);
   const completedSites = new Set(relevant.map((c) => c.siteId));
@@ -151,7 +161,7 @@ function TaskRow({ task, completions }: { task: CustomTask; completions: TaskCom
 
   // Per-store detail for national/regional tasks
   const storeDetails = useMemo(() => {
-    const scope = task.scope ?? "site";
+    const scope = normalizeScope(task.scope);
     if (scope === "site") return null;
     const period = getPeriodKey(task.frequency);
     const relevant = completions.filter((c) => c.taskId === task.id && c.period === period);
@@ -294,6 +304,7 @@ function Section({
   title,
   tasks,
   completions,
+  statusMap,
   filter,
   accentClass,
 }: {
@@ -301,13 +312,14 @@ function Section({
   title: string;
   tasks: CustomTask[];
   completions: TaskCompletion[];
+  statusMap: Map<string, TaskStatus>;
   filter: "all" | "completed" | "pending";
   accentClass: string;
 }) {
   const filtered = tasks.filter((t) => {
     if (filter === "all") return true;
-    const s = getStatus(t, completions);
-    return filter === "completed" ? s.isDone : !s.isDone;
+    const isDone = statusMap.get(t.id)?.isDone ?? false;
+    return filter === "completed" ? isDone : !isDone;
   });
 
   if (filtered.length === 0) return null;
@@ -362,14 +374,25 @@ export default function TaskTracker() {
     [tick]
   );
 
-  // Normalize scope for legacy tasks that may lack the field
-  const nationalTasks = visibleTasks.filter((t) => (t.scope ?? "site") === "national");
-  const regionalTasks = visibleTasks.filter((t) => (t.scope ?? "site") === "regional");
-  const siteTasks = visibleTasks.filter((t) => (t.scope ?? "site") === "site");
+  // Normalize scope for legacy tasks that may lack the field or use "store"
+  const nationalTasks = visibleTasks.filter((t) => normalizeScope(t.scope) === "national");
+  const regionalTasks = visibleTasks.filter((t) => normalizeScope(t.scope) === "regional");
+  const siteTasks = visibleTasks.filter((t) => normalizeScope(t.scope) === "site");
+
+  // Pre-compute status for all visible tasks once per render cycle to avoid
+  // repeated getStatus calls across summary counts, filter tabs, and Section filters
+  const statusMap = useMemo(
+    () => {
+      const map = new Map<string, TaskStatus>();
+      for (const t of visibleTasks) map.set(t.id, getStatus(t, completions));
+      return map;
+    },
+    [visibleTasks, completions]
+  );
 
   // Counts based on isDone (all stores complete = completed)
   const totalCount = visibleTasks.length;
-  const completedCount = visibleTasks.filter((t) => getStatus(t, completions).isDone).length;
+  const completedCount = visibleTasks.filter((t) => statusMap.get(t.id)?.isDone).length;
   const pendingCount = totalCount - completedCount;
 
   const hasAnyInSection =
@@ -460,15 +483,22 @@ export default function TaskTracker() {
       )}
 
       {/* No tasks match the active filter */}
-      {hasAnyInSection &&
-        nationalTasks.filter((t) => filter === "all" || (filter === "completed" ? getStatus(t, completions).isDone : !getStatus(t, completions).isDone)).length === 0 &&
-        regionalTasks.filter((t) => filter === "all" || (filter === "completed" ? getStatus(t, completions).isDone : !getStatus(t, completions).isDone)).length === 0 &&
-        siteTasks.filter((t) => filter === "all" || (filter === "completed" ? getStatus(t, completions).isDone : !getStatus(t, completions).isDone)).length === 0 && (
+      {hasAnyInSection && filter !== "all" && (() => {
+        const matchesFilter = (t: CustomTask) => {
+          const done = statusMap.get(t.id)?.isDone ?? false;
+          return filter === "completed" ? done : !done;
+        };
+        const anyMatch =
+          nationalTasks.some(matchesFilter) ||
+          regionalTasks.some(matchesFilter) ||
+          siteTasks.some(matchesFilter);
+        return !anyMatch ? (
           <div className="text-center py-12 text-muted-foreground">
             <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
             <p className="text-sm">No tasks match the current filter.</p>
           </div>
-        )}
+        ) : null;
+      })()}
 
       {/* Task sections */}
       {hasAnyInSection && (
@@ -478,6 +508,7 @@ export default function TaskTracker() {
             title="Nationwide"
             tasks={nationalTasks}
             completions={completions}
+            statusMap={statusMap}
             filter={filter}
             accentClass="text-blue-700 border-blue-100"
           />
@@ -486,6 +517,7 @@ export default function TaskTracker() {
             title="Regional"
             tasks={regionalTasks}
             completions={completions}
+            statusMap={statusMap}
             filter={filter}
             accentClass="text-purple-700 border-purple-100"
           />
@@ -494,6 +526,7 @@ export default function TaskTracker() {
             title="Store-Level"
             tasks={siteTasks}
             completions={completions}
+            statusMap={statusMap}
             filter={filter}
             accentClass="text-green-700 border-green-100"
           />
