@@ -898,13 +898,13 @@ export function loadAllCustomTasksForRole(
   const all = readCustomTasks();
   if (isCpo) return all;
   return all.filter((t) => {
-    if (t.scope === "national") return true;
-    if (t.scope === "regional") return !!userRegion && t.region === userRegion;
-    if (t.scope === "site") {
-      const id = t.selectedStore || t.siteId;
-      return !!regionStoreIds && regionStoreIds.has(id);
-    }
-    return false;
+    // Treat missing/legacy scope as "site" for backward compatibility
+    const scope = t.scope ?? "site";
+    if (scope === "national") return true;
+    if (scope === "regional") return !!userRegion && t.region === userRegion;
+    // site
+    const id = t.selectedStore || t.siteId;
+    return !!regionStoreIds && regionStoreIds.has(id);
   });
 }
 

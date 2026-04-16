@@ -114,33 +114,31 @@ function ScopeBadge({ scope }: { scope: CustomTask["scope"] }) {
 }
 
 function StatusPill({ status, scope }: { status: TaskStatus; scope: CustomTask["scope"] }) {
-  if (scope === "site") {
-    return status.isDone ? (
+  if (status.isDone) {
+    return (
       <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
         <CheckCircle2 className="w-3 h-3" />
         Completed
-      </span>
-    ) : (
-      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-        <Clock className="w-3 h-3" />
-        Pending
+        {scope !== "site" && (
+          <span className="opacity-70 font-normal">({status.completedCount}/{status.totalCount})</span>
+        )}
       </span>
     );
   }
 
   const pct = status.totalCount > 0 ? Math.round((status.completedCount / status.totalCount) * 100) : 0;
   const color =
-    status.isDone
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : pct > 0
+    pct > 0
       ? "bg-amber-50 text-amber-700 border-amber-200"
       : "bg-red-50 text-red-700 border-red-200";
-  const Icon = status.isDone ? CheckCircle2 : Clock;
 
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${color}`}>
-      <Icon className="w-3 h-3" />
-      {status.completedCount}/{status.totalCount} stores
+      <Clock className="w-3 h-3" />
+      Pending
+      {scope !== "site" && (
+        <span className="opacity-70 font-normal">({status.completedCount}/{status.totalCount})</span>
+      )}
     </span>
   );
 }
