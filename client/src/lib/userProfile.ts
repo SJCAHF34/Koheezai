@@ -245,7 +245,7 @@ export interface StoreStaffMember extends PersonRef {
   role: UserRole;
 }
 
-/** Returns all named staff at a store, ordered: directors → pharmacists → techs. */
+/** Returns all named store-level staff (excludes RPDs and CPOs), ordered: directors → pharmacists → techs. */
 export function getStoreStaff(siteId: string): StoreStaffMember[] {
   const roleOrder: Record<UserRole, number> = {
     chief_pharmacy_officer: 0,
@@ -258,7 +258,12 @@ export function getStoreStaff(siteId: string): StoreStaffMember[] {
     delivery_tech: 7,
   };
   return Object.entries(PROFILE_MAP)
-    .filter(([, p]) => p.siteId === siteId && p.name)
+    .filter(([, p]) =>
+      p.siteId === siteId &&
+      p.name &&
+      p.role !== "regional_pharmacy_director" &&
+      p.role !== "chief_pharmacy_officer"
+    )
     .map(([email, p]) => ({ name: p.name!, email, role: p.role }))
     .sort((a, b) => (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9));
 }
