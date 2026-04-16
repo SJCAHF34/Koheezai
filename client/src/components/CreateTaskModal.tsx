@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Check, ChevronsUpDown, Plus, User } from "lucide-react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +42,6 @@ import {
 } from "@/lib/taskStorage";
 import type { PharmacyTask, TaskFrequency, TaskRole, TaskCategory } from "@/lib/taskData";
 import { STORE_REGIONS } from "@/lib/storeDirectory";
-import { getDirectorsByStore, getRPDsByRegion } from "@/lib/userProfile";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -62,32 +61,15 @@ export const createTaskSchema = z.object({
 
 export type CreateTaskFormValues = z.infer<typeof createTaskSchema>;
 
-// Deduplicate people by display name
-function dedupe<T extends { name: string }>(people: T[]): T[] {
-  const seen = new Set<string>();
-  return people.filter((p) => {
-    if (seen.has(p.name)) return false;
-    seen.add(p.name);
-    return true;
-  });
-}
-
-// Generic role label names used in PROFILE_MAP as placeholder accounts
-const GENERIC_ROLE_NAMES = new Set([
-  "Regional Pharmacy Director",
-  "Pharmacy Director",
-  "CPO",
-  "Chief Pharmacy Officer",
-]);
-
-/**
- * From a deduplicated list, prefer entries with real names over generic role labels.
- * Falls back to the full list only if no named profiles exist.
- */
-function preferNamed<T extends { name: string }>(people: T[]): T[] {
-  const named = people.filter((p) => !GENERIC_ROLE_NAMES.has(p.name));
-  return named.length > 0 ? named : people;
-}
+// ── Assignee role groups ──────────────────────────────────────────────────────
+// Fixed options the task creator can assign to — independent of who is in the PROFILE_MAP.
+const ASSIGNEE_GROUPS: { value: string; label: string; role: TaskRole }[] = [
+  { value: "All Pharmacy Directors", label: "All Pharmacy Directors", role: "director" },
+  { value: "All RPDs",               label: "All RPDs",               role: "director" },
+  { value: "All Technicians",        label: "All Technicians",        role: "all_staff" },
+  { value: "PDs + RPDs",             label: "PDs + RPDs",             role: "director" },
+  { value: "PDs + Technicians",      label: "PDs + Technicians",      role: "all_staff" },
+];
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -139,37 +121,17 @@ export function CreateTaskModal({
   const watchStore = form.watch("selectedStore");
   const watchFrequency = form.watch("frequency");
 
-  // Local state for assignee — more reliable than form.watch for cross-Select updates
-  const [assigneeValue, setAssigneeValue] = useState<string>(() => {
-    if (defaultScope === "national") return "All Directors & RPDs";
-    if (defaultScope === "regional") {
-      const region = userRegion ?? availableRegions[0] ?? "";
-      if (region) {
-        const rpds = preferNamed(dedupe(getRPDsByRegion(region)));
-        return rpds[0]?.name ?? "Regional Pharmacy Director";
-      }
-    }
-    return "";
-  });
+  // Assignee role group — always one of the ASSIGNEE_GROUPS values
+  const [assigneeValue, setAssigneeValue] = useState<string>("All Pharmacy Directors");
 
   const handleScopeChange = (v: CustomTaskScope) => {
     form.setValue("scope", v);
     form.setValue("selectedStore", "");
-    if (v === "national") {
-      setAssigneeValue("All Directors & RPDs");
-    } else if (v === "regional") {
+    if (v === "regional") {
       const region = userRegion ?? availableRegions[0] ?? "";
       form.setValue("selectedRegion", region);
-      // Auto-populate assignee from the pre-selected region (RPD: locked region; CPO: first region)
-      if (region) {
-        const rpds = preferNamed(dedupe(getRPDsByRegion(region)));
-        setAssigneeValue(rpds[0]?.name ?? "Regional Pharmacy Director");
-      } else {
-        setAssigneeValue("");
-      }
-    } else {
-      setAssigneeValue("");
     }
+    // Assignee group stays as-is when scope changes — user selects it explicitly
   };
 
   // Combobox open state for store picker
@@ -191,31 +153,6 @@ export function CreateTaskModal({
     return [];
   })();
 
-  // Assignee options derived from scope — prefer real names over generic role labels
-  const assigneeOptions: { label: string; value: string }[] = (() => {
-    if (watchScope === "national") return [];
-    if (watchScope === "regional" && watchRegion) {
-      const rpds = preferNamed(dedupe(getRPDsByRegion(watchRegion)));
-      if (rpds.length > 0) return rpds.map((p) => ({ label: p.name, value: p.name }));
-      return [{ label: "Regional Pharmacy Director", value: "Regional Pharmacy Director" }];
-    }
-    if (watchScope === "site" && watchStore) {
-      const dirs = preferNamed(dedupe(getDirectorsByStore(watchStore)));
-      if (dirs.length > 0) return dirs.map((p) => ({ label: p.name, value: p.name }));
-      return [{ label: "Pharmacy Director", value: "Pharmacy Director" }];
-    }
-    return [];
-  })();
-
-  // When there's only one assignee option, show it as a static label (no picker needed)
-  const singleAssignee = assigneeOptions.length === 1 ? assigneeOptions[0].label : null;
-
-  // Assignee static/display label — null means show the multi-person dropdown
-  const assigneeStaticLabel: string | null =
-    watchScope === "national" ? "All Directors & RPDs"
-    : (watchScope === "regional" && !watchRegion) ? "Select a region first"
-    : (watchScope === "site" && !watchStore) ? "Select a store first"
-    : singleAssignee;
 
   function handleSubmit(values: CreateTaskFormValues) {
     // Require a store when scope is site
@@ -244,12 +181,9 @@ export function CreateTaskModal({
       : scope === "site" && values.selectedStore ? values.selectedStore
       : siteId;
 
-    // Assignee label — use the live assigneeValue state (always up-to-date)
-    const finalAssigneeLabel =
-      assigneeValue ||
-      (scope === "national" ? "All Directors & RPDs"
-        : scope === "regional" ? "Regional Pharmacy Director"
-        : "Pharmacy Director");
+    // Derive role from the selected assignee group
+    const group = ASSIGNEE_GROUPS.find((g) => g.value === assigneeValue);
+    const taskRole: TaskRole = group?.role ?? "director";
 
     const customTask: CustomTask = {
       id,
@@ -259,8 +193,8 @@ export function CreateTaskModal({
       selectedStore: scope === "site" ? (values.selectedStore || siteId) : undefined,
       title: values.title,
       description: values.description || undefined,
-      role: "director" as TaskRole,
-      assignedToLabel: finalAssigneeLabel,
+      role: taskRole,
+      assignedToLabel: assigneeValue || "All Pharmacy Directors",
       frequency: values.frequency,
       category: values.category,
       taskGroup: values.taskGroup || "Custom Tasks",
@@ -273,7 +207,7 @@ export function CreateTaskModal({
     const asPharmacyTask: PharmacyTask = { ...customTask, isCustom: true };
     onCreated(asPharmacyTask);
     form.reset({ ...form.formState.defaultValues, scope: defaultScope, selectedRegion: userRegion ?? "" });
-    setAssigneeValue(defaultScope === "national" ? "All Directors & RPDs" : "");
+    setAssigneeValue("All Pharmacy Directors");
     onClose();
   }
 
@@ -334,8 +268,6 @@ export function CreateTaskModal({
                 value={form.watch("selectedRegion") ?? ""}
                 onValueChange={(v) => {
                   form.setValue("selectedRegion", v);
-                  const rpds = preferNamed(dedupe(getRPDsByRegion(v)));
-                  setAssigneeValue(rpds.length > 0 ? rpds[0].name : "Regional Pharmacy Director");
                 }}
               >
                 <SelectTrigger data-testid="select-task-region">
@@ -394,8 +326,6 @@ export function CreateTaskModal({
                             value={s.name}
                             onSelect={() => {
                               form.setValue("selectedStore", s.id);
-                              const dirs = preferNamed(dedupe(getDirectorsByStore(s.id)));
-                              setAssigneeValue(dirs.length > 0 ? dirs[0].name : "Pharmacy Director");
                               setStorePickerOpen(false);
                             }}
                           >
@@ -467,27 +397,19 @@ export function CreateTaskModal({
 
             <div className="space-y-1.5">
               <Label>Assigned To</Label>
-              {/* Static label for nationwide or waiting-for-selection states */}
-              {assigneeStaticLabel ? (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-500 h-9">
-                  <User className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{assigneeStaticLabel}</span>
-                </div>
-              ) : (
-                <Select
-                  value={assigneeValue}
-                  onValueChange={(v) => setAssigneeValue(v)}
-                >
-                  <SelectTrigger data-testid="select-create-task-assignee">
-                    <SelectValue placeholder="Select person" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assigneeOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select
+                value={assigneeValue}
+                onValueChange={(v) => setAssigneeValue(v)}
+              >
+                <SelectTrigger data-testid="select-create-task-assignee">
+                  <SelectValue placeholder="Select group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASSIGNEE_GROUPS.map((g) => (
+                    <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
