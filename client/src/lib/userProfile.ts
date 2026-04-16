@@ -95,6 +95,7 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     taskRoles: ["data_entry_tech", "pv2_tech", "delivery_tech"],
   },
   "claire.wood@aidshealth.org": {
+    name: "Claire Wood",
     role: "data_entry_tech",
     siteId: "1417",
     siteName: "RX Pike Street",
@@ -102,6 +103,7 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     taskRoles: ["data_entry_tech"],
   },
   "pairiss.wilcox@aidshealth.org": {
+    name: "Pairiss Wilcox",
     role: "data_entry_tech",
     siteId: "1417",
     siteName: "RX Pike Street",
@@ -109,6 +111,7 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     taskRoles: ["data_entry_tech"],
   },
   "anh.do@aidshealth.org": {
+    name: "Anh Do",
     role: "data_entry_tech",
     siteId: "1417",
     siteName: "RX Pike Street",
@@ -116,6 +119,7 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     taskRoles: ["data_entry_tech"],
   },
   "debbie.nguyen@aidshealth.org": {
+    name: "Debbie Nguyen",
     role: "pharmacist_1",
     siteId: "1417",
     siteName: "RX Pike Street",
@@ -235,4 +239,26 @@ export function getRPDsByRegion(region: string): PersonRef[] {
   return Object.entries(PROFILE_MAP)
     .filter(([, p]) => p.role === "regional_pharmacy_director" && p.region === region)
     .map(([email, p]) => ({ name: p.name ?? email, email }));
+}
+
+export interface StoreStaffMember extends PersonRef {
+  role: UserRole;
+}
+
+/** Returns all named staff at a store, ordered: directors → pharmacists → techs. */
+export function getStoreStaff(siteId: string): StoreStaffMember[] {
+  const roleOrder: Record<UserRole, number> = {
+    chief_pharmacy_officer: 0,
+    regional_pharmacy_director: 1,
+    pharmacy_director: 2,
+    pharmacist_2: 3,
+    pharmacist_1: 4,
+    data_entry_tech: 5,
+    pv2_tech: 6,
+    delivery_tech: 7,
+  };
+  return Object.entries(PROFILE_MAP)
+    .filter(([, p]) => p.siteId === siteId && p.name)
+    .map(([email, p]) => ({ name: p.name!, email, role: p.role }))
+    .sort((a, b) => (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9));
 }

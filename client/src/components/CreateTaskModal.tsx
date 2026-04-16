@@ -42,7 +42,8 @@ import {
 } from "@/lib/taskStorage";
 import type { PharmacyTask, TaskFrequency, TaskRole, TaskCategory } from "@/lib/taskData";
 import { STORE_REGIONS } from "@/lib/storeDirectory";
-import { getDirectorsByStore, getRPDsByRegion } from "@/lib/userProfile";
+import { getRPDsByRegion, getStoreStaff } from "@/lib/userProfile";
+import type { UserRole } from "@/lib/userProfile";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,31 @@ function namedPeople<T extends { name: string }>(people: T[]): T[] {
   const named = people.filter((p) => !GENERIC_ROLE_NAMES.has(p.name));
   return named.length > 0 ? named : people;
 }
+
+// Short role label for display in the dropdown
+function roleShortLabel(role: UserRole): string {
+  if (role === "pharmacy_director") return "PD";
+  if (role === "pharmacist_1" || role === "pharmacist_2") return "Pharmacist";
+  return "Tech";
+}
+
+// Map a UserRole to the TaskRole used for task visibility
+function userRoleToTaskRole(role: UserRole): TaskRole {
+  if (role === "pharmacy_director") return "director";
+  if (role === "pharmacist_1") return "pharmacist_1";
+  if (role === "pharmacist_2") return "pharmacist_2";
+  if (role === "pv2_tech") return "pv2_tech";
+  if (role === "delivery_tech") return "delivery_tech";
+  if (role === "data_entry_tech") return "data_entry_tech";
+  return "all_staff";
+}
+
+// Role mapping for site-scope group options
+const STORE_GROUP_ROLES: Record<string, TaskRole> = {
+  "All Pharmacists": "pharmacist_1",
+  "All Techs":       "data_entry_tech",
+  "All Staff":       "all_staff",
+};
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -183,10 +209,19 @@ export function CreateTaskModal({
         : [{ label: "Regional Pharmacy Director", value: "Regional Pharmacy Director" }];
     }
     if (watchScope === "site" && watchStore) {
-      const dirs = namedPeople(getDirectorsByStore(watchStore));
-      const namedOptions = dirs.map((p) => ({ label: p.name, value: p.name }));
-      // Always include "All Staff" so any store can be assigned even without named profiles
-      return [...namedOptions, { label: "All Staff", value: "All Staff" }];
+      const staff = getStoreStaff(watchStore);
+      // Individual named people with role label (e.g. "Seth Collins — PD")
+      const individualOptions = staff.map((p) => ({
+        label: `${p.name} — ${roleShortLabel(p.role)}`,
+        value: p.name,
+      }));
+      // Group options always present
+      const groupOptions = [
+        { label: "All Pharmacists", value: "All Pharmacists" },
+        { label: "All Techs",       value: "All Techs" },
+        { label: "All Staff",       value: "All Staff" },
+      ];
+      return [...individualOptions, ...groupOptions];
     }
     return [];
   })();
@@ -238,12 +273,24 @@ export function CreateTaskModal({
       : scope === "site" && values.selectedStore ? values.selectedStore
       : siteId;
 
-    // Derive role from assignee selection
-    const group = ASSIGNEE_GROUPS.find((g) => g.value === assigneeValue);
-    const taskRole: TaskRole =
-      scope === "national" ? (group?.role ?? "director")
-      : assigneeValue === "All Staff" ? "all_staff"
-      : "director";
+    // Derive task role from assignee selection
+    let taskRole: TaskRole = "director";
+    if (scope === "national") {
+      const group = ASSIGNEE_GROUPS.find((g) => g.value === assigneeValue);
+      taskRole = group?.role ?? "director";
+    } else if (scope === "site") {
+      if (STORE_GROUP_ROLES[assigneeValue]) {
+        // Group option (All Pharmacists / All Techs / All Staff)
+        taskRole = STORE_GROUP_ROLES[assigneeValue];
+      } else {
+        // Individual named person — look up their role
+        const member = getStoreStaff(values.selectedStore ?? siteId).find(
+          (p) => p.name === assigneeValue
+        );
+        taskRole = member ? userRoleToTaskRole(member.role) : "all_staff";
+      }
+    }
+    // Regional scope always stays "director" (RPD)
 
     const customTask: CustomTask = {
       id,
@@ -396,9 +443,9 @@ export function CreateTaskModal({
                             value={s.name}
                             onSelect={() => {
                               form.setValue("selectedStore", s.id);
-                              const dirs = namedPeople(getDirectorsByStore(s.id));
-                              // Default to first named director, or "All Staff" if none known
-                              setAssigneeValue(dirs[0]?.name ?? "All Staff");
+                              const staff = getStoreStaff(s.id);
+                              // Default to first named person (highest role), or "All Staff"
+                              setAssigneeValue(staff[0]?.name ?? "All Staff");
                               setStorePickerOpen(false);
                             }}
                           >
