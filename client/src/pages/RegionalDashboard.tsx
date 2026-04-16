@@ -23,6 +23,7 @@ import {
   type RegionPerformance,
 } from "@/lib/trendData";
 import { STORE_REGIONS, type StoreRegion, type StoreLocation } from "@/lib/storeDirectory";
+import ReactMarkdown from "react-markdown";
 import {
   MapPin,
   TrendingUp,
@@ -712,7 +713,7 @@ export default function RegionalDashboard() {
         return t.overallAvg < 60;
       })
       .sort((a, b) => a.overallAvg - b.overallAvg)
-      .slice(0, 8)
+      .slice(0, 5)
       .map((t) => ({
         siteId: t.siteId,
         siteName: t.siteName,
@@ -991,8 +992,8 @@ export default function RegionalDashboard() {
                   <Sparkles className="w-3.5 h-3.5 text-purple-500" />
                   <span className="text-xs font-semibold text-purple-600">Koheez AI</span>
                 </div>
-                <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                  {aiResponse}
+                <div className="text-sm text-slate-700 leading-relaxed prose prose-sm prose-slate max-w-none">
+                  <ReactMarkdown>{aiResponse}</ReactMarkdown>
                 </div>
               </div>
             )}

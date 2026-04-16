@@ -948,18 +948,23 @@ ${context.regions && context.regions.length > 0 ? `\nRegional breakdown:\n${cont
 ${context.atRiskStores && context.atRiskStores.length > 0 ? `\nAt-risk stores (below 60% overall):\n${context.atRiskStores.map(s => `  • ${s.siteName} (#${s.siteId}, ${s.region}): ${s.overallAvg}% overall, trend: ${s.trend}`).join("\n")}` : "\nNo stores currently flagged as at-risk."}
 ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-performing categories:\n${context.troubleCategories.map(c => `  • ${c.label}: ${c.avgPct}% average`).join("\n")}` : ""}`;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: question },
-      ],
-      temperature: 0.4,
-      max_tokens: 800,
-    });
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: question },
+        ],
+        temperature: 0.4,
+        max_tokens: 800,
+      });
 
-    const answer = completion.choices[0].message.content ?? "No response generated.";
-    return res.json({ answer });
+      const answer = completion.choices[0].message.content ?? "No response generated.";
+      return res.json({ answer });
+    } catch (err) {
+      console.error("[AI Performance Evaluator] OpenAI error:", err);
+      return res.status(502).json({ message: "AI provider error — please try again shortly." });
+    }
   });
 
   const httpServer = createServer(app);
