@@ -904,8 +904,13 @@ Write in professional clinical language for medical record documentation. Be spe
       return res.status(503).json({ message: "AI not configured — OPENAI_API_KEY is missing." });
     }
 
+    const messageSchema = z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string().min(1).max(4000),
+    });
+
     const schema = z.object({
-      question: z.string().min(1).max(2000),
+      messages: z.array(messageSchema).min(1).max(40),
       context: z.object({
         scope: z.string(),
         date: z.string(),
@@ -937,7 +942,7 @@ Write in professional clinical language for medical record documentation. Be spe
       return res.status(400).json({ message: "Invalid request", errors: parsed.error.issues });
     }
 
-    const { question, context } = parsed.data;
+    const { messages, context } = parsed.data;
 
     const systemPrompt = `You are Koheez AI, an expert clinical pharmacy performance analyst for AIDS Healthcare Foundation (AHF). AHF operates a national network of HIV specialty pharmacies. You help pharmacy leadership (CPO and Regional Pharmacy Directors) understand performance trends, identify at-risk stores, and make data-driven decisions.
 
@@ -948,6 +953,7 @@ Platform context:
 - Your answers should be concise, actionable, and grounded in the provided data snapshot
 - Do not make up store names or numbers not in the provided context
 - Use plain, professional language suitable for pharmacy leadership
+- You are in a multi-turn conversation — remember and build upon earlier answers in this thread
 
 Performance snapshot for ${context.date}:
 Scope: ${context.scope}
@@ -961,7 +967,7 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
         model: "gpt-4o",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: question },
+          ...messages.map((m) => ({ role: m.role, content: m.content })),
         ],
         temperature: 0.4,
         max_tokens: 800,
