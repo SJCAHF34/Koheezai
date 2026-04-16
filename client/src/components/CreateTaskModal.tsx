@@ -209,18 +209,19 @@ export function CreateTaskModal({
         : [{ label: "Regional Pharmacy Director", value: "Regional Pharmacy Director" }];
     }
     if (watchScope === "site" && watchStore) {
-      const staff = getStoreStaff(watchStore);
-      // Individual named people with role label (e.g. "Seth Collins — PD")
-      const individualOptions = staff.map((p) => ({
-        label: `${p.name} — ${roleShortLabel(p.role)}`,
-        value: p.name,
-      }));
-      // Group options always present
       const groupOptions = [
         { label: "All Pharmacists", value: "All Pharmacists" },
         { label: "All Techs",       value: "All Techs" },
         { label: "All Staff",       value: "All Staff" },
       ];
+      // "All Stores" sentinel — no individual people, just groups
+      if (watchStore === ALL_STORES_SENTINEL) return groupOptions;
+      // Specific store — named individuals first, then groups
+      const staff = getStoreStaff(watchStore);
+      const individualOptions = staff.map((p) => ({
+        label: `${p.name} — ${roleShortLabel(p.role)}`,
+        value: p.name,
+      }));
       return [...individualOptions, ...groupOptions];
     }
     return [];
@@ -229,18 +230,29 @@ export function CreateTaskModal({
   // Combobox open state for store picker
   const [storePickerOpen, setStorePickerOpen] = useState(false);
 
-  // Stores available to pick from — alphabetized by name
+  // Sentinel value used when "All Stores" is selected in the store picker
+  const ALL_STORES_SENTINEL = "_ALL_STORES_";
+
+  // Label shown for the "All Stores" option depending on who's creating the task
+  const allStoresLabel = isCpo ? "All Stores" : `All ${userRegion ?? ""} Stores`;
+
+  // Stores available to pick from:
+  //   CPO    → all stores nationwide, alphabetized
+  //   RPD    → only stores in their region, alphabetized
+  // An "All Stores" entry is prepended so you can target the full scope at once.
   const storesForPicker = (() => {
+    const allStoresEntry = { id: ALL_STORES_SENTINEL, name: allStoresLabel, region: userRegion ?? "all" };
     if (isCpo) {
       const all = STORE_REGIONS.flatMap((r) =>
         r.stores.map((s) => ({ ...s, region: r.region }))
-      );
-      return [...all].sort((a, b) => a.name.localeCompare(b.name));
+      ).sort((a, b) => a.name.localeCompare(b.name));
+      return [allStoresEntry, ...all];
     }
     if (userRegion) {
       const reg = STORE_REGIONS.find((r) => r.region === userRegion);
-      return [...(reg?.stores ?? [])].map((s) => ({ ...s, region: userRegion }))
+      const regional = [...(reg?.stores ?? [])].map((s) => ({ ...s, region: userRegion }))
         .sort((a, b) => a.name.localeCompare(b.name));
+      return [allStoresEntry, ...regional];
     }
     return [];
   })();
@@ -267,9 +279,12 @@ export function CreateTaskModal({
     const scope: CustomTaskScope = values.scope ?? "site";
 
     // Determine siteId for storage
+    const isAllStores = values.selectedStore === ALL_STORES_SENTINEL;
     const storageSiteId =
       scope === "national" ? "NATIONAL"
       : scope === "regional" ? `REGION:${values.selectedRegion ?? userRegion ?? ""}`
+      : scope === "site" && isAllStores
+        ? (isCpo ? "NATIONAL" : `REGION:${userRegion ?? ""}`)
       : scope === "site" && values.selectedStore ? values.selectedStore
       : siteId;
 
@@ -424,9 +439,11 @@ export function CreateTaskModal({
                     className="w-full justify-between font-normal"
                   >
                     <span className="truncate">
-                      {watchStore
-                        ? (storesForPicker.find((s) => s.id === watchStore)?.name ?? watchStore)
-                        : "Select a pharmacy"}
+                      {watchStore === ALL_STORES_SENTINEL
+                        ? allStoresLabel
+                        : watchStore
+                          ? (storesForPicker.find((s) => s.id === watchStore)?.name ?? watchStore)
+                          : "Select a pharmacy"}
                     </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
@@ -436,15 +453,31 @@ export function CreateTaskModal({
                     <CommandInput placeholder="Search pharmacy..." />
                     <CommandList>
                       <CommandEmpty>No pharmacy found.</CommandEmpty>
+                      {/* "All Stores" shortcut — visually separated from individual stores */}
                       <CommandGroup>
-                        {storesForPicker.map((s) => (
+                        <CommandItem
+                          key={ALL_STORES_SENTINEL}
+                          value={allStoresLabel}
+                          onSelect={() => {
+                            form.setValue("selectedStore", ALL_STORES_SENTINEL);
+                            setAssigneeValue("All Staff");
+                            setStorePickerOpen(false);
+                          }}
+                          className="font-medium text-purple-700"
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", watchStore === ALL_STORES_SENTINEL ? "opacity-100" : "opacity-0")} />
+                          {allStoresLabel}
+                        </CommandItem>
+                      </CommandGroup>
+                      {/* Individual stores */}
+                      <CommandGroup heading="Specific Store">
+                        {storesForPicker.slice(1).map((s) => (
                           <CommandItem
                             key={s.id}
                             value={s.name}
                             onSelect={() => {
                               form.setValue("selectedStore", s.id);
                               const staff = getStoreStaff(s.id);
-                              // Default to first named person (highest role), or "All Staff"
                               setAssigneeValue(staff[0]?.name ?? "All Staff");
                               setStorePickerOpen(false);
                             }}
