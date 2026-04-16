@@ -880,9 +880,32 @@ export function deleteCustomTask(taskId: string): void {
   writeCustomTasks(readCustomTasks().filter((t) => t.id !== taskId));
 }
 
-/** Load ALL custom tasks from storage (no scope/site filtering — for the Task Tracker). */
-export function loadAllCustomTasks(): CustomTask[] {
-  return readCustomTasks();
+/**
+ * Load custom tasks for the Task Tracker with role-based filtering.
+ * - CPO (isCpo=true): returns all custom tasks across all scopes.
+ * - RPD (isCpo=false): returns national tasks + regional tasks for their region
+ *   + site tasks whose store is within their region.
+ *
+ * @param isCpo         Whether the caller is a Chief Pharmacy Officer.
+ * @param userRegion    The RPD's assigned region name (ignored when isCpo=true).
+ * @param regionStoreIds Set of store IDs that belong to the RPD's region (ignored when isCpo=true).
+ */
+export function loadAllCustomTasksForRole(
+  isCpo: boolean,
+  userRegion?: string,
+  regionStoreIds?: Set<string>
+): CustomTask[] {
+  const all = readCustomTasks();
+  if (isCpo) return all;
+  return all.filter((t) => {
+    if (t.scope === "national") return true;
+    if (t.scope === "regional") return !!userRegion && t.region === userRegion;
+    if (t.scope === "site") {
+      const id = t.selectedStore || t.siteId;
+      return !!regionStoreIds && regionStoreIds.has(id);
+    }
+    return false;
+  });
 }
 
 /** Return every raw completion record (for cross-store tracker view). */

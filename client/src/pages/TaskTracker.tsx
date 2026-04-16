@@ -1,11 +1,9 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/App";
 import { getUserProfile, isCPO, isRegionalOrAbove, getAssignedRegion } from "@/lib/userProfile";
 import {
-  loadAllCustomTasks,
+  loadAllCustomTasksForRole,
   loadAllCompletionsRaw,
-  saveCustomTask,
-  saveCompletion,
   getPeriodKey,
   type CustomTask,
   type TaskCompletion,
@@ -26,140 +24,26 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-// ── Seed demo data ────────────────────────────────────────────────────────────
-function seedDemoData(): void {
-  const existing = loadAllCustomTasks();
-  if (existing.length > 0) return;
-
-  const now = new Date().toISOString();
-
-  const tasks: CustomTask[] = [
-    {
-      id: "seed-natl-1",
-      siteId: "NATIONAL",
-      scope: "national",
-      title: "Review Antiretroviral Adherence Rate Reports",
-      description:
-        "All pharmacy directors must review and sign off on the latest ART adherence rate data for their site before end of month.",
-      role: "director",
-      assignedToLabel: "All Directors & RPDs",
-      frequency: "monthly",
-      category: "operations",
-      taskGroup: "Custom Tasks",
-      createdBy: "Chief Pharmacy Officer",
-      createdByRole: "chief_pharmacy_officer",
-      createdAt: now,
-    },
-    {
-      id: "seed-natl-2",
-      siteId: "NATIONAL",
-      scope: "national",
-      title: "Complete HIV Quality Indicator Benchmarking",
-      description:
-        "Submit your site's HIV quality indicators to the national benchmarking dashboard by the 15th of this month.",
-      role: "director",
-      assignedToLabel: "All Directors & RPDs",
-      frequency: "monthly",
-      category: "achc",
-      taskGroup: "Custom Tasks",
-      createdBy: "Chief Pharmacy Officer",
-      createdByRole: "chief_pharmacy_officer",
-      createdAt: now,
-    },
-    {
-      id: "seed-reg-west-1",
-      siteId: "REGION:Western Region",
-      scope: "regional",
-      region: "Western Region",
-      title: "Western Region ACHC Documentation Audit",
-      description:
-        "Complete the quarterly documentation audit checklist for ACHC compliance across all Western Region sites.",
-      role: "director",
-      assignedToLabel: "Regional Pharmacy Director",
-      frequency: "quarterly",
-      category: "achc",
-      taskGroup: "Custom Tasks",
-      createdBy: "Chief Pharmacy Officer",
-      createdByRole: "chief_pharmacy_officer",
-      createdAt: now,
-    },
-    {
-      id: "seed-site-1417-1",
-      siteId: "1417",
-      scope: "site",
-      selectedStore: "1417",
-      title: "Update PrEP Patient Outreach Contact Log",
-      description:
-        "Ensure all PrEP patients contacted this week are logged in the outreach tracker. Flag patients unreached for follow-up.",
-      role: "director",
-      assignedToLabel: "Seth Collins",
-      frequency: "weekly",
-      category: "retention",
-      taskGroup: "Custom Tasks",
-      createdBy: "Regional Pharmacy Director",
-      createdByRole: "regional_pharmacy_director",
-      createdAt: now,
-    },
-  ];
-
-  tasks.forEach(saveCustomTask);
-
-  // Seed some completions so the tracker shows mixed data
-  const monthlyCols: Omit<TaskCompletion, "taskId">[] = [
-    {
-      taskRole: "director",
-      completedAt: now,
-      period: getPeriodKey("monthly"),
-      siteId: "1412",
-      userEmail: "director@store1412.test",
-      userRole: "pharmacy_director",
-    },
-    {
-      taskRole: "director",
-      completedAt: now,
-      period: getPeriodKey("monthly"),
-      siteId: "1408",
-      userEmail: "director@store1408.test",
-      userRole: "pharmacy_director",
-    },
-    {
-      taskRole: "director",
-      completedAt: now,
-      period: getPeriodKey("monthly"),
-      siteId: "1410",
-      userEmail: "director@store1410.test",
-      userRole: "pharmacy_director",
-    },
-  ];
-
-  monthlyCols.forEach((c) => saveCompletion({ ...c, taskId: "seed-natl-1" }));
-
-  // One completion for the second national task
-  saveCompletion({
-    taskId: "seed-natl-2",
-    taskRole: "director",
-    completedAt: now,
-    period: getPeriodKey("monthly"),
-    siteId: "1416",
-    userEmail: "director@store1416.test",
-    userRole: "pharmacy_director",
-  });
-
-  // Seed the weekly site task as completed
-  saveCompletion({
-    taskId: "seed-site-1417-1",
-    taskRole: "director",
-    completedAt: now,
-    period: getPeriodKey("weekly"),
-    siteId: "1417",
-    userEmail: "seth.collins@aidshealth.org",
-    userRole: "pharmacy_director",
-  });
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 const ALL_STORE_IDS = STORE_REGIONS.flatMap((r) => r.stores.map((s) => s.id));
 
+const FREQ_LABELS: Record<string, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  biweekly: "Biweekly",
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  one_time: "One-Time",
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  operations: "Operations",
+  achc: "ACHC",
+  state_board: "State Board",
+  retention: "Retention",
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function getStoreIdsForRegion(region: string): string[] {
   return STORE_REGIONS.find((r) => r.region === region)?.stores.map((s) => s.id) ?? [];
 }
@@ -175,6 +59,7 @@ function getStoreName(id: string): string {
 interface TaskStatus {
   completedCount: number;
   totalCount: number;
+  /** True only when ALL relevant stores have completed the task in the current period. */
   isDone: boolean;
 }
 
@@ -192,31 +77,17 @@ function getStatus(task: CustomTask, completions: TaskCompletion[]): TaskStatus 
   if (task.scope === "regional") {
     const siteIds = getStoreIdsForRegion(task.region ?? "");
     const count = siteIds.filter((id) => completedSites.has(id)).length;
-    return { completedCount: count, totalCount: siteIds.length, isDone: count === siteIds.length && siteIds.length > 0 };
+    const total = siteIds.length;
+    return { completedCount: count, totalCount: total, isDone: total > 0 && count === total };
   }
 
-  // National
+  // National — all stores must be done
   const count = ALL_STORE_IDS.filter((id) => completedSites.has(id)).length;
-  return { completedCount: count, totalCount: ALL_STORE_IDS.length, isDone: count === ALL_STORE_IDS.length };
+  const total = ALL_STORE_IDS.length;
+  return { completedCount: count, totalCount: total, isDone: total > 0 && count === total };
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-const FREQ_LABELS: Record<string, string> = {
-  daily: "Daily",
-  weekly: "Weekly",
-  biweekly: "Biweekly",
-  monthly: "Monthly",
-  quarterly: "Quarterly",
-  one_time: "One-Time",
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  operations: "Operations",
-  achc: "ACHC",
-  state_board: "State Board",
-  retention: "Retention",
-};
-
+// ── Badges ────────────────────────────────────────────────────────────────────
 function ScopeBadge({ scope }: { scope: CustomTask["scope"] }) {
   if (scope === "national") {
     return (
@@ -259,10 +130,12 @@ function StatusPill({ status, scope }: { status: TaskStatus; scope: CustomTask["
 
   const pct = status.totalCount > 0 ? Math.round((status.completedCount / status.totalCount) * 100) : 0;
   const color =
-    pct === 100 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-    : pct >= 50 ? "bg-amber-50 text-amber-700 border-amber-200"
-    : "bg-red-50 text-red-700 border-red-200";
-  const Icon = pct === 100 ? CheckCircle2 : Clock;
+    status.isDone
+      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      : pct > 0
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : "bg-red-50 text-red-700 border-red-200";
+  const Icon = status.isDone ? CheckCircle2 : Clock;
 
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${color}`}>
@@ -272,13 +145,8 @@ function StatusPill({ status, scope }: { status: TaskStatus; scope: CustomTask["
   );
 }
 
-function TaskRow({
-  task,
-  completions,
-}: {
-  task: CustomTask;
-  completions: TaskCompletion[];
-}) {
+// ── Task row (expandable) ─────────────────────────────────────────────────────
+function TaskRow({ task, completions }: { task: CustomTask; completions: TaskCompletion[] }) {
   const [open, setOpen] = useState(false);
   const status = useMemo(() => getStatus(task, completions), [task, completions]);
 
@@ -288,17 +156,8 @@ function TaskRow({
     const period = getPeriodKey(task.frequency);
     const relevant = completions.filter((c) => c.taskId === task.id && c.period === period);
     const completedSites = new Set(relevant.map((c) => c.siteId));
-
-    const storeIds =
-      task.scope === "regional"
-        ? getStoreIdsForRegion(task.region ?? "")
-        : ALL_STORE_IDS;
-
-    return storeIds.map((id) => ({
-      id,
-      name: getStoreName(id),
-      done: completedSites.has(id),
-    }));
+    const ids = task.scope === "regional" ? getStoreIdsForRegion(task.region ?? "") : ALL_STORE_IDS;
+    return ids.map((id) => ({ id, name: getStoreName(id), done: completedSites.has(id) }));
   }, [task, completions]);
 
   const createdDate = new Date(task.createdAt).toLocaleDateString("en-US", {
@@ -314,7 +173,7 @@ function TaskRow({
         onClick={() => setOpen((o) => !o)}
         data-testid={`tracker-task-${task.id}`}
       >
-        <div className="mt-0.5 text-muted-foreground">
+        <div className="mt-0.5 text-muted-foreground shrink-0">
           {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </div>
 
@@ -344,7 +203,8 @@ function TaskRow({
             )}
             {task.scope === "site" && (
               <span>
-                Store: <span className="text-foreground">{getStoreName(task.selectedStore || task.siteId)}</span>
+                Store:{" "}
+                <span className="text-foreground">{getStoreName(task.selectedStore || task.siteId)}</span>
               </span>
             )}
             <span>
@@ -365,7 +225,9 @@ function TaskRow({
         <div className="border-t bg-muted/30 p-4 space-y-4">
           {task.description && (
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                Description
+              </p>
               <p className="text-sm text-foreground">{task.description}</p>
             </div>
           )}
@@ -422,6 +284,11 @@ function TaskRow({
 }
 
 // ── Section ───────────────────────────────────────────────────────────────────
+/**
+ * Filter logic:
+ * - "completed": task.isDone (ALL relevant stores completed for the current period)
+ * - "pending":   !task.isDone (at least one store still pending)
+ */
 function Section({
   icon: Icon,
   title,
@@ -440,8 +307,7 @@ function Section({
   const filtered = tasks.filter((t) => {
     if (filter === "all") return true;
     const s = getStatus(t, completions);
-    if (filter === "completed") return t.scope === "site" ? s.isDone : s.completedCount > 0;
-    return t.scope === "site" ? !s.isDone : s.completedCount < s.totalCount;
+    return filter === "completed" ? s.isDone : !s.isDone;
   });
 
   if (filtered.length === 0) return null;
@@ -450,9 +316,7 @@ function Section({
     <div>
       <div className={`flex items-center gap-2 mb-3 pb-2 border-b ${accentClass}`}>
         <Icon className="w-4 h-4" />
-        <h2 className="text-sm font-bold uppercase tracking-wide">
-          {title}
-        </h2>
+        <h2 className="text-sm font-bold uppercase tracking-wide">{title}</h2>
         <Badge variant="secondary" className="ml-auto text-xs">
           {filtered.length}
         </Badge>
@@ -470,58 +334,47 @@ function Section({
 export default function TaskTracker() {
   const { user } = useAuth();
   const [filter, setFilter] = useState<"all" | "completed" | "pending">("all");
-  const [refresh, setRefresh] = useState(0);
+  const [tick, setTick] = useState(0);
 
   const profile = useMemo(
     () => (user ? getUserProfile(user.email, user.name ?? "") : null),
     [user]
   );
 
-  const userRegion = profile ? getAssignedRegion(profile) : null;
   const isCpoUser = profile ? isCPO(profile.role) : false;
+  const userRegion = profile ? getAssignedRegion(profile) : null;
 
-  // Seed demo data on first render if localStorage is empty
-  useEffect(() => {
-    seedDemoData();
-    setRefresh((n) => n + 1);
-  }, []);
+  const regionStoreIds = useMemo(
+    () => (userRegion ? new Set(getStoreIdsForRegion(userRegion)) : new Set<string>()),
+    [userRegion]
+  );
 
-  const allTasks = useMemo(() => loadAllCustomTasks(), [refresh]);
-  const completions = useMemo(() => loadAllCompletionsRaw(), [refresh]);
+  // Use the storage helper with role-based filtering
+  const visibleTasks = useMemo(
+    () => loadAllCustomTasksForRole(isCpoUser, userRegion ?? undefined, regionStoreIds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isCpoUser, userRegion, tick]
+  );
 
-  // Determine which stores are in the RPD's region (for site-scope filtering)
-  const regionStoreIds = useMemo(() => {
-    if (!userRegion) return new Set<string>();
-    return new Set(getStoreIdsForRegion(userRegion));
-  }, [userRegion]);
+  const completions = useMemo(
+    () => loadAllCompletionsRaw(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tick]
+  );
 
-  // Filter tasks visible to the current user
-  const visibleTasks = useMemo(() => {
-    if (!profile) return [];
-    if (isCpoUser) return allTasks;
-    // RPD: national tasks + their regional + stores in their region
-    return allTasks.filter((t) => {
-      if (t.scope === "national") return true;
-      if (t.scope === "regional") return t.region === userRegion;
-      if (t.scope === "site") return regionStoreIds.has(t.selectedStore || t.siteId);
-      return false;
-    });
-  }, [allTasks, isCpoUser, userRegion, regionStoreIds, profile]);
+  const nationalTasks = visibleTasks.filter((t) => t.scope === "national");
+  const regionalTasks = visibleTasks.filter((t) => t.scope === "regional");
+  const siteTasks = visibleTasks.filter((t) => t.scope === "site");
 
-  const nationalTasks = useMemo(() => visibleTasks.filter((t) => t.scope === "national"), [visibleTasks]);
-  const regionalTasks = useMemo(() => visibleTasks.filter((t) => t.scope === "regional"), [visibleTasks]);
-  const siteTasks = useMemo(() => visibleTasks.filter((t) => t.scope === "site"), [visibleTasks]);
-
-  // Summary counters for the filter bar
+  // Counts based on isDone (all stores complete = completed)
   const totalCount = visibleTasks.length;
-  const completedCount = visibleTasks.filter((t) => {
-    const s = getStatus(t, completions);
-    return t.scope === "site" ? s.isDone : s.completedCount > 0;
-  }).length;
+  const completedCount = visibleTasks.filter((t) => getStatus(t, completions).isDone).length;
   const pendingCount = totalCount - completedCount;
 
-  const hasAnyVisible =
+  const hasAnyInSection =
     nationalTasks.length > 0 || regionalTasks.length > 0 || siteTasks.length > 0;
+
+  const handleRefresh = useCallback(() => setTick((n) => n + 1), []);
 
   if (!profile || !isRegionalOrAbove(profile.role)) {
     return (
@@ -548,7 +401,7 @@ export default function TaskTracker() {
           variant="outline"
           size="sm"
           data-testid="button-refresh-tracker"
-          onClick={() => setRefresh((n) => n + 1)}
+          onClick={handleRefresh}
           className="gap-1.5"
         >
           <RefreshCw className="w-3.5 h-3.5" />
@@ -564,7 +417,9 @@ export default function TaskTracker() {
           { label: "Pending", value: pendingCount, color: "text-amber-600" },
         ].map(({ label, value, color }) => (
           <Card key={label} className="p-3 text-center">
-            <p className={`text-2xl font-bold ${color}`}>{value}</p>
+            <p className={`text-2xl font-bold ${color}`} data-testid={`summary-${label.toLowerCase().replace(" ", "-")}`}>
+              {value}
+            </p>
             <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
           </Card>
         ))}
@@ -583,13 +438,39 @@ export default function TaskTracker() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {f === "all" ? `All (${totalCount})` : f === "completed" ? `Completed (${completedCount})` : `Pending (${pendingCount})`}
+            {f === "all"
+              ? `All (${totalCount})`
+              : f === "completed"
+              ? `Completed (${completedCount})`
+              : `Pending (${pendingCount})`}
           </button>
         ))}
       </div>
 
+      {/* Empty state when no custom tasks exist */}
+      {!hasAnyInSection && filter === "all" && (
+        <div className="text-center py-20 text-muted-foreground">
+          <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="text-sm font-medium">No pushed tasks yet.</p>
+          <p className="text-xs mt-1">
+            Use the Create Task button on the dashboard to push tasks to stores or regions.
+          </p>
+        </div>
+      )}
+
+      {/* No tasks match the active filter */}
+      {hasAnyInSection &&
+        nationalTasks.filter((t) => filter === "all" || (filter === "completed" ? getStatus(t, completions).isDone : !getStatus(t, completions).isDone)).length === 0 &&
+        regionalTasks.filter((t) => filter === "all" || (filter === "completed" ? getStatus(t, completions).isDone : !getStatus(t, completions).isDone)).length === 0 &&
+        siteTasks.filter((t) => filter === "all" || (filter === "completed" ? getStatus(t, completions).isDone : !getStatus(t, completions).isDone)).length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No tasks match the current filter.</p>
+          </div>
+        )}
+
       {/* Task sections */}
-      {hasAnyVisible ? (
+      {hasAnyInSection && (
         <div className="space-y-8">
           <Section
             icon={Globe}
@@ -615,22 +496,6 @@ export default function TaskTracker() {
             filter={filter}
             accentClass="text-green-700 border-green-100"
           />
-        </div>
-      ) : (
-        <div className="text-center py-20 text-muted-foreground">
-          <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm font-medium">No pushed tasks yet.</p>
-          <p className="text-xs mt-1">
-            Use the Create Task button on the dashboard to push tasks to stores or regions.
-          </p>
-        </div>
-      )}
-
-      {/* Empty filtered state */}
-      {hasAnyVisible && nationalTasks.length === 0 && regionalTasks.length === 0 && siteTasks.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">No tasks match the current filter.</p>
         </div>
       )}
     </div>
