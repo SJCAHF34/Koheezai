@@ -40,6 +40,8 @@ import {
   Layers,
   Plus,
   ClipboardList,
+  Sparkles,
+  Send,
 } from "lucide-react";
 
 const DAILY_TASKS = TASKS.filter((t) => t.frequency === "daily");
@@ -632,6 +634,10 @@ export default function RegionalDashboard() {
   // CPO region filter — null means "All Regions"; RPDs are locked to their region
   const [cpoFilterRegion, setCpoFilterRegion] = useState<string | null>(null);
   const [showCreateTask, setShowCreateTask] = useState(false);
+  const [aiQuery, setAiQuery] = useState("");
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const { toast } = useToast();
 
   if (!user) return null;
@@ -678,6 +684,91 @@ export default function RegionalDashboard() {
     day: "numeric",
     year: "numeric",
   });
+
+  function buildAIContext() {
+    const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    const nationalOverall = Math.round(
+      allTrends.reduce((s, t) => s + t.overallAvg, 0) / allTrends.length
+    );
+
+    const regionsData = STORE_REGIONS.map((reg) => {
+      const perf = computeRegionPerformance(reg.stores.map((s) => s.id));
+      return {
+        name: reg.region,
+        overallAvg: perf.overallAvg,
+        atRiskCount: perf.atRiskCount,
+        trend: perf.trend,
+        catAvgs: perf.catAvgs as Record<string, number>,
+      };
+    });
+
+    const regionStoreIds = isCpoUser
+      ? STORE_REGIONS.flatMap((r) => r.stores.map((s) => s.id))
+      : (STORE_REGIONS.find((r) => r.region === assignedRegion)?.stores.map((s) => s.id) ?? []);
+
+    const atRiskStores = allTrends
+      .filter((t) => {
+        if (!isCpoUser) return regionStoreIds.includes(t.siteId) && t.overallAvg < 60;
+        return t.overallAvg < 60;
+      })
+      .sort((a, b) => a.overallAvg - b.overallAvg)
+      .slice(0, 8)
+      .map((t) => ({
+        siteId: t.siteId,
+        siteName: t.siteName,
+        region: t.region,
+        overallAvg: t.overallAvg,
+        trend: t.categories.achc.trend,
+      }));
+
+    const catSummary = TREND_CATEGORIES.map((cat) => {
+      const relevant = isCpoUser
+        ? allTrends
+        : allTrends.filter((t) => regionStoreIds.includes(t.siteId));
+      const avgPct = relevant.length
+        ? Math.round(relevant.reduce((s, t) => s + t.categories[cat].avg7d, 0) / relevant.length)
+        : 0;
+      return { category: cat, label: CATEGORY_CONFIG[cat].label, avgPct };
+    }).sort((a, b) => a.avgPct - b.avgPct);
+
+    return {
+      scope: isCpoUser ? "National (all regions)" : `Regional (${assignedRegion ?? "your region"})`,
+      date: dateStr,
+      nationalOverall: isCpoUser ? nationalOverall : undefined,
+      regions: isCpoUser ? regionsData : regionsData.filter((r) => r.name === assignedRegion),
+      atRiskStores,
+      troubleCategories: catSummary,
+    };
+  }
+
+  async function handleAIQuery(question: string) {
+    if (!question.trim()) return;
+    setAiLoading(true);
+    setAiResponse(null);
+    setAiError(null);
+    try {
+      const ctx = buildAIContext();
+      const res = await fetch("/api/ai/performance-query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: question.trim(), context: ctx }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 503) {
+          setAiError("AI not configured — contact your system administrator to enable the AI Performance Evaluator.");
+        } else {
+          setAiError(data.message ?? "An error occurred. Please try again.");
+        }
+      } else {
+        setAiResponse(data.answer);
+      }
+    } catch {
+      setAiError("Network error — please check your connection and try again.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   const handleDrillDown = (siteId: string) => {
     navigate(`/app/tasks?siteId=${siteId}`);
@@ -799,6 +890,112 @@ export default function RegionalDashboard() {
               <Plus className="w-4 h-4 mr-1.5" />
               Create Task
             </Button>
+          </section>
+        )}
+
+        {/* ── AI Performance Evaluator ─────────────────────────────────── */}
+        {isRegionalDir && (
+          <section className="bg-white border border-slate-200 rounded-md px-5 py-5 space-y-4">
+            {/* Header */}
+            <div>
+              <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                AI Performance Evaluator
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Ask questions about {isCpoUser ? "national or regional" : "your region's"} pharmacy performance. Answers are grounded in today's data snapshot.
+              </p>
+            </div>
+
+            {/* Suggested prompts */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                "Which stores are at risk this week?",
+                "Compare ACHC compliance by region",
+                "Where are retention metrics lowest?",
+                "Recommend focus areas for this quarter",
+              ].map((prompt) => (
+                <button
+                  key={prompt}
+                  data-testid={`ai-prompt-chip-${prompt.slice(0, 20).replace(/\s+/g, "-").toLowerCase()}`}
+                  onClick={() => {
+                    setAiQuery(prompt);
+                    handleAIQuery(prompt);
+                  }}
+                  className="text-xs px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 bg-slate-50 hover-elevate transition-colors"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+
+            {/* Input row */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAIQuery(aiQuery);
+              }}
+              className="flex gap-2 items-end"
+            >
+              <textarea
+                data-testid="ai-query-input"
+                value={aiQuery}
+                onChange={(e) => setAiQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAIQuery(aiQuery);
+                  }
+                }}
+                placeholder="Ask a performance question…"
+                rows={2}
+                className="flex-1 resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-300"
+              />
+              <Button
+                type="submit"
+                data-testid="ai-query-submit"
+                disabled={aiLoading || !aiQuery.trim()}
+                className="shrink-0"
+                size="icon"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </form>
+
+            {/* Response panel */}
+            {aiLoading && (
+              <div data-testid="ai-loading-indicator" className="space-y-2 pt-1">
+                <div className="h-3 w-2/3 rounded bg-slate-100 animate-pulse" />
+                <div className="h-3 w-full rounded bg-slate-100 animate-pulse" />
+                <div className="h-3 w-4/5 rounded bg-slate-100 animate-pulse" />
+                <div className="h-3 w-1/2 rounded bg-slate-100 animate-pulse" />
+              </div>
+            )}
+
+            {aiError && !aiLoading && (
+              <div
+                data-testid="ai-error-message"
+                className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-3"
+              >
+                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-800">{aiError}</p>
+              </div>
+            )}
+
+            {aiResponse && !aiLoading && (
+              <div
+                data-testid="ai-response-panel"
+                className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4"
+              >
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                  <span className="text-xs font-semibold text-purple-600">Koheez AI</span>
+                </div>
+                <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                  {aiResponse}
+                </div>
+              </div>
+            )}
           </section>
         )}
 

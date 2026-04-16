@@ -886,6 +886,82 @@ Write in professional clinical language for medical record documentation. Be spe
     }
   });
 
+  // ── AI Performance Evaluator ────────────────────────────────────────────────
+  app.post("/api/ai/performance-query", async (req, res) => {
+    if (!req.session?.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({ message: "AI not configured — OPENAI_API_KEY is missing." });
+    }
+
+    const schema = z.object({
+      question: z.string().min(1).max(2000),
+      context: z.object({
+        scope: z.string(),
+        date: z.string(),
+        nationalOverall: z.number().optional(),
+        regions: z.array(z.object({
+          name: z.string(),
+          overallAvg: z.number(),
+          atRiskCount: z.number(),
+          trend: z.string(),
+          catAvgs: z.record(z.number()),
+        })).optional(),
+        atRiskStores: z.array(z.object({
+          siteId: z.string(),
+          siteName: z.string(),
+          region: z.string(),
+          overallAvg: z.number(),
+          trend: z.string(),
+        })).optional(),
+        troubleCategories: z.array(z.object({
+          category: z.string(),
+          label: z.string(),
+          avgPct: z.number(),
+        })).optional(),
+      }),
+    });
+
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid request", errors: parsed.error.issues });
+    }
+
+    const { question, context } = parsed.data;
+
+    const systemPrompt = `You are Koheez AI, an expert clinical pharmacy performance analyst for AIDS Healthcare Foundation (AHF). AHF operates a national network of HIV specialty pharmacies. You help pharmacy leadership (CPO and Regional Pharmacy Directors) understand performance trends, identify at-risk stores, and make data-driven decisions.
+
+Platform context:
+- Task categories tracked: ACHC Compliance, State Board Compliance, Patient Retention Metrics, Operations
+- Completion rates are measured daily; at-risk stores are those below 60% overall
+- Regions: Western, Southern North, Southern South, Northern
+- Your answers should be concise, actionable, and grounded in the provided data snapshot
+- Do not make up store names or numbers not in the provided context
+- Use plain, professional language suitable for pharmacy leadership
+
+Performance snapshot for ${context.date}:
+Scope: ${context.scope}
+${context.nationalOverall !== undefined ? `National overall completion: ${context.nationalOverall}%` : ""}
+${context.regions && context.regions.length > 0 ? `\nRegional breakdown:\n${context.regions.map(r => `  • ${r.name}: ${r.overallAvg}% overall (${r.atRiskCount} at-risk stores, trend: ${r.trend}) | ACHC: ${r.catAvgs.achc ?? "N/A"}%, State Board: ${r.catAvgs.state_board ?? "N/A"}%, Retention: ${r.catAvgs.retention ?? "N/A"}%, Operations: ${r.catAvgs.operations ?? "N/A"}%`).join("\n")}` : ""}
+${context.atRiskStores && context.atRiskStores.length > 0 ? `\nAt-risk stores (below 60% overall):\n${context.atRiskStores.map(s => `  • ${s.siteName} (#${s.siteId}, ${s.region}): ${s.overallAvg}% overall, trend: ${s.trend}`).join("\n")}` : "\nNo stores currently flagged as at-risk."}
+${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-performing categories:\n${context.troubleCategories.map(c => `  • ${c.label}: ${c.avgPct}% average`).join("\n")}` : ""}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: question },
+      ],
+      temperature: 0.4,
+      max_tokens: 800,
+    });
+
+    const answer = completion.choices[0].message.content ?? "No response generated.";
+    return res.json({ answer });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
