@@ -172,10 +172,6 @@ export function CreateTaskModal({
   // Assignee — tracks the selected assignee label (group name for national, person name for others)
   const [assigneeValue, setAssigneeValue] = useState<string>(() => {
     if (defaultScope === "national") return ASSIGNEE_GROUPS[0].value;
-    if (defaultScope === "regional" && userRegion) {
-      const rpds = namedPeople(getRPDsByRegion(userRegion));
-      return rpds[0]?.name ?? "";
-    }
     return "";
   });
 
@@ -198,6 +194,9 @@ export function CreateTaskModal({
       });
       setAssigneeValue(taskToEdit.assignedToLabel ?? "");
     } else {
+      // For PDs (not CPO, not RPD), pre-select their own store.
+      // Note: isPD is defined earlier in the component and captures this correctly.
+      const pdDefaultStore = (isPD && siteId) ? siteId : "";
       form.reset({
         title: "",
         description: "",
@@ -207,15 +206,19 @@ export function CreateTaskModal({
         taskGroup: "Custom Tasks",
         scope: defaultScope,
         selectedRegion: userRegion ?? "",
-        selectedStore: "",
+        selectedStore: pdDefaultStore,
         assignedToLabel: "",
         dueDate: "",
       });
-      if (defaultScope === "national") setAssigneeValue(ASSIGNEE_GROUPS[0].value);
-      else if (defaultScope === "regional" && userRegion) {
-        const rpds = namedPeople(getRPDsByRegion(userRegion));
-        setAssigneeValue(rpds[0]?.name ?? "");
-      } else setAssigneeValue("");
+      if (defaultScope === "national") {
+        setAssigneeValue(ASSIGNEE_GROUPS[0].value);
+      } else if (pdDefaultStore) {
+        // PD: auto-select first named staff member from their store
+        const staff = getStoreStaff(pdDefaultStore);
+        setAssigneeValue(staff[0]?.name ?? "");
+      } else {
+        setAssigneeValue("");
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, taskToEdit]);
@@ -246,6 +249,13 @@ export function CreateTaskModal({
   // Label shown for the "All Stores" option depending on who's creating the task
   const allStoresLabel = isCpo ? "All Stores" : `All ${userRegion ?? ""} Stores`;
 
+  // For PDs (not CPO, not RPD): watchStore may be "" on the first render before
+  // the useEffect fires form.reset() with siteId. Use siteId as an immediate fallback.
+  // Note: PDs can have a profile.region (their region label) without being RPDs,
+  // so we gate on isRegional rather than !!userRegion.
+  const isPD = !isCpo && !isRegional;
+  const effectiveStore = watchStore || (isPD && siteId ? siteId : "");
+
   // Scope-aware assignee options:
   //   National  → 5 role-group options from ASSIGNEE_GROUPS
   //   Regional  → specific RPD(s) for selected region
@@ -260,16 +270,16 @@ export function CreateTaskModal({
         ? rpds.map((p) => ({ label: p.name, value: p.name }))
         : [{ label: "Regional Pharmacy Director", value: "Regional Pharmacy Director" }];
     }
-    if (watchScope === "site" && watchStore) {
+    if (watchScope === "site" && effectiveStore) {
       const groupOptions = [
         { label: "All Pharmacists", value: "All Pharmacists" },
         { label: "All Techs",       value: "All Techs" },
         { label: "All Staff",       value: "All Staff" },
       ];
       // "All Stores" sentinel — no individual people, just groups
-      if (watchStore === ALL_STORES_SENTINEL) return groupOptions;
+      if (effectiveStore === ALL_STORES_SENTINEL) return groupOptions;
       // Specific store — named individuals first, then groups
-      const staff = getStoreStaff(watchStore);
+      const staff = getStoreStaff(effectiveStore);
       const individualOptions = staff.map((p) => ({
         label: `${p.name} — ${roleShortLabel(p.role)}`,
         value: p.name,
@@ -282,23 +292,30 @@ export function CreateTaskModal({
   // Combobox open state for store picker
   const [storePickerOpen, setStorePickerOpen] = useState(false);
 
+  // Whether the "All [X] Stores" shortcut should be offered.
+  // CPOs and actual RPDs (isRegional=true) get it; PDs do not.
+  // Note: PDs may have a userRegion in their profile but are NOT RPDs.
+  const showAllStoresSentinel = isCpo || (isRegional && !!userRegion);
+
   // Stores available to pick from:
-  //   CPO    → all stores nationwide, alphabetized
-  //   RPD    → only stores in their region, alphabetized
-  // An "All Stores" entry is prepended so you can target the full scope at once.
+  //   CPO    → all stores nationwide, alphabetized  + "All Stores" sentinel
+  //   RPD    → only stores in their region          + "All [Region] Stores" sentinel
+  //   PD     → just their own store (no sentinel)
   const storesForPicker = (() => {
-    const allStoresEntry = { id: ALL_STORES_SENTINEL, name: allStoresLabel, region: userRegion ?? "all" };
     if (isCpo) {
-      const all = STORE_REGIONS.flatMap((r) =>
+      return STORE_REGIONS.flatMap((r) =>
         r.stores.map((s) => ({ ...s, region: r.region }))
       ).sort((a, b) => a.name.localeCompare(b.name));
-      return [allStoresEntry, ...all];
     }
-    if (userRegion) {
+    if (isRegional && userRegion) {
       const reg = STORE_REGIONS.find((r) => r.region === userRegion);
-      const regional = [...(reg?.stores ?? [])].map((s) => ({ ...s, region: userRegion }))
+      return [...(reg?.stores ?? [])].map((s) => ({ ...s, region: userRegion }))
         .sort((a, b) => a.name.localeCompare(b.name));
-      return [allStoresEntry, ...regional];
+    }
+    // PD: find and return just their own store
+    for (const r of STORE_REGIONS) {
+      const s = r.stores.find((s) => s.id === siteId);
+      if (s) return [{ ...s, region: r.region }];
     }
     return [];
   })();
@@ -502,25 +519,27 @@ export function CreateTaskModal({
                     <CommandInput placeholder="Search pharmacy..." />
                     <CommandList>
                       <CommandEmpty>No pharmacy found.</CommandEmpty>
-                      {/* "All Stores" shortcut — visually separated from individual stores */}
-                      <CommandGroup>
-                        <CommandItem
-                          key={ALL_STORES_SENTINEL}
-                          value={allStoresLabel}
-                          onSelect={() => {
-                            form.setValue("selectedStore", ALL_STORES_SENTINEL);
-                            setAssigneeValue("All Staff");
-                            setStorePickerOpen(false);
-                          }}
-                          className="font-medium text-purple-700"
-                        >
-                          <Check className={cn("mr-2 h-4 w-4", watchStore === ALL_STORES_SENTINEL ? "opacity-100" : "opacity-0")} />
-                          {allStoresLabel}
-                        </CommandItem>
-                      </CommandGroup>
+                      {/* "All Stores" shortcut — only for CPO / RPD */}
+                      {showAllStoresSentinel && (
+                        <CommandGroup>
+                          <CommandItem
+                            key={ALL_STORES_SENTINEL}
+                            value={allStoresLabel}
+                            onSelect={() => {
+                              form.setValue("selectedStore", ALL_STORES_SENTINEL);
+                              setAssigneeValue("All Staff");
+                              setStorePickerOpen(false);
+                            }}
+                            className="font-medium text-purple-700"
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", watchStore === ALL_STORES_SENTINEL ? "opacity-100" : "opacity-0")} />
+                            {allStoresLabel}
+                          </CommandItem>
+                        </CommandGroup>
+                      )}
                       {/* Individual stores */}
-                      <CommandGroup heading="Specific Store">
-                        {storesForPicker.slice(1).map((s) => (
+                      <CommandGroup heading={showAllStoresSentinel ? "Specific Store" : undefined}>
+                        {storesForPicker.map((s) => (
                           <CommandItem
                             key={s.id}
                             value={s.name}
