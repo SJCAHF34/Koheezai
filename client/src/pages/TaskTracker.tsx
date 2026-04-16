@@ -64,17 +64,18 @@ interface TaskStatus {
 }
 
 function getStatus(task: CustomTask, completions: TaskCompletion[]): TaskStatus {
+  const scope = task.scope ?? "site"; // normalize legacy tasks without scope
   const period = getPeriodKey(task.frequency);
   const relevant = completions.filter((c) => c.taskId === task.id && c.period === period);
   const completedSites = new Set(relevant.map((c) => c.siteId));
 
-  if (task.scope === "site") {
+  if (scope === "site") {
     const siteId = task.selectedStore || task.siteId;
     const done = completedSites.has(siteId);
     return { completedCount: done ? 1 : 0, totalCount: 1, isDone: done };
   }
 
-  if (task.scope === "regional") {
+  if (scope === "regional") {
     const siteIds = getStoreIdsForRegion(task.region ?? "");
     const count = siteIds.filter((id) => completedSites.has(id)).length;
     const total = siteIds.length;
@@ -150,11 +151,12 @@ function TaskRow({ task, completions }: { task: CustomTask; completions: TaskCom
 
   // Per-store detail for national/regional tasks
   const storeDetails = useMemo(() => {
-    if (task.scope === "site") return null;
+    const scope = task.scope ?? "site";
+    if (scope === "site") return null;
     const period = getPeriodKey(task.frequency);
     const relevant = completions.filter((c) => c.taskId === task.id && c.period === period);
     const completedSites = new Set(relevant.map((c) => c.siteId));
-    const ids = task.scope === "regional" ? getStoreIdsForRegion(task.region ?? "") : ALL_STORE_IDS;
+    const ids = scope === "regional" ? getStoreIdsForRegion(task.region ?? "") : ALL_STORE_IDS;
     return ids.map((id) => ({ id, name: getStoreName(id), done: completedSites.has(id) }));
   }, [task, completions]);
 
@@ -360,9 +362,10 @@ export default function TaskTracker() {
     [tick]
   );
 
-  const nationalTasks = visibleTasks.filter((t) => t.scope === "national");
-  const regionalTasks = visibleTasks.filter((t) => t.scope === "regional");
-  const siteTasks = visibleTasks.filter((t) => t.scope === "site");
+  // Normalize scope for legacy tasks that may lack the field
+  const nationalTasks = visibleTasks.filter((t) => (t.scope ?? "site") === "national");
+  const regionalTasks = visibleTasks.filter((t) => (t.scope ?? "site") === "regional");
+  const siteTasks = visibleTasks.filter((t) => (t.scope ?? "site") === "site");
 
   // Counts based on isDone (all stores complete = completed)
   const totalCount = visibleTasks.length;
