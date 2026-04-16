@@ -912,3 +912,71 @@ export function loadAllCustomTasksForRole(
 export function loadAllCompletionsRaw(): TaskCompletion[] {
   return readCompletions();
 }
+
+// ── Deleted Custom Tasks (soft-delete bin) ────────────────────────────────────
+
+const DELETED_TASKS_KEY = "koheez_deleted_custom_tasks";
+
+export interface DeletedCustomTask extends CustomTask {
+  deletedAt: string;
+  deletedBy: string;
+}
+
+function readDeletedTasks(): DeletedCustomTask[] {
+  try {
+    const raw = localStorage.getItem(DELETED_TASKS_KEY);
+    return raw ? (JSON.parse(raw) as DeletedCustomTask[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeDeletedTasks(tasks: DeletedCustomTask[]): void {
+  try {
+    localStorage.setItem(DELETED_TASKS_KEY, JSON.stringify(tasks));
+  } catch {}
+}
+
+/** Move a task from the active list into the deleted-tasks bin. */
+export function softDeleteCustomTask(taskId: string, deletedBy: string): void {
+  const all = readCustomTasks();
+  const task = all.find((t) => t.id === taskId);
+  if (!task) return;
+  writeCustomTasks(all.filter((t) => t.id !== taskId));
+  const existing = readDeletedTasks().filter((t) => t.id !== taskId);
+  existing.push({ ...task, deletedAt: new Date().toISOString(), deletedBy });
+  writeDeletedTasks(existing);
+}
+
+/** Move a task from the deleted bin back into the active list. */
+export function reinstateCustomTask(taskId: string): void {
+  const all = readDeletedTasks();
+  const task = all.find((t) => t.id === taskId);
+  if (!task) return;
+  writeDeletedTasks(all.filter((t) => t.id !== taskId));
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { deletedAt: _da, deletedBy: _db, ...restored } = task;
+  saveCustomTask(restored);
+}
+
+/** Permanently remove a task from the deleted bin. */
+export function purgeDeletedTask(taskId: string): void {
+  writeDeletedTasks(readDeletedTasks().filter((t) => t.id !== taskId));
+}
+
+/** Load deleted tasks with the same role-based filtering used for active tasks. */
+export function loadDeletedCustomTasksForRole(
+  isCpo: boolean,
+  userRegion?: string,
+  regionStoreIds?: Set<string>
+): DeletedCustomTask[] {
+  const all = readDeletedTasks();
+  if (isCpo) return all;
+  return all.filter((t) => {
+    const scope = t.scope ?? "site";
+    if (scope === "national") return true;
+    if (scope === "regional") return !!userRegion && t.region === userRegion;
+    const id = t.selectedStore || t.siteId;
+    return !!regionStoreIds && regionStoreIds.has(id);
+  });
+}

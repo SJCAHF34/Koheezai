@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -122,23 +122,28 @@ export function CreateTaskModal({
   profile,
   onClose,
   onCreated,
+  onUpdated,
   isCpo,
   isRegional,
   userRegion,
   hasSiteContext,
   availableRegions,
+  taskToEdit,
 }: {
   open: boolean;
   siteId: string;
   profile: { email: string; name: string; role: string };
   onClose: () => void;
   onCreated: (task: PharmacyTask) => void;
+  onUpdated?: (task: PharmacyTask) => void;
   isCpo: boolean;
   isRegional: boolean;
   userRegion?: string;
   hasSiteContext: boolean;
   availableRegions: string[];
+  taskToEdit?: CustomTask | null;
 }) {
+  const isEditing = !!taskToEdit;
   const showScopeSelector = isCpo || isRegional;
   const defaultScope: CustomTaskScope = isCpo ? "national" : isRegional ? "regional" : "site";
 
@@ -173,6 +178,47 @@ export function CreateTaskModal({
     }
     return "";
   });
+
+  // When the modal opens in edit mode, populate form from the task being edited
+  useEffect(() => {
+    if (!open) return;
+    if (taskToEdit) {
+      form.reset({
+        title: taskToEdit.title,
+        description: taskToEdit.description ?? "",
+        frequency: taskToEdit.frequency,
+        role: taskToEdit.role,
+        category: taskToEdit.category,
+        taskGroup: taskToEdit.taskGroup || "Custom Tasks",
+        scope: taskToEdit.scope ?? defaultScope,
+        selectedRegion: taskToEdit.region ?? userRegion ?? "",
+        selectedStore: taskToEdit.selectedStore ?? "",
+        assignedToLabel: taskToEdit.assignedToLabel ?? "",
+        dueDate: taskToEdit.dueDate ?? "",
+      });
+      setAssigneeValue(taskToEdit.assignedToLabel ?? "");
+    } else {
+      form.reset({
+        title: "",
+        description: "",
+        frequency: "daily",
+        role: "director",
+        category: "operations",
+        taskGroup: "Custom Tasks",
+        scope: defaultScope,
+        selectedRegion: userRegion ?? "",
+        selectedStore: "",
+        assignedToLabel: "",
+        dueDate: "",
+      });
+      if (defaultScope === "national") setAssigneeValue(ASSIGNEE_GROUPS[0].value);
+      else if (defaultScope === "regional" && userRegion) {
+        const rpds = namedPeople(getRPDsByRegion(userRegion));
+        setAssigneeValue(rpds[0]?.name ?? "");
+      } else setAssigneeValue("");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, taskToEdit]);
 
   const handleScopeChange = (v: CustomTaskScope) => {
     form.setValue("scope", v);
@@ -270,7 +316,7 @@ export function CreateTaskModal({
       return;
     }
 
-    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const id = isEditing && taskToEdit ? taskToEdit.id : `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const roleAbbr =
       profile.role === "chief_pharmacy_officer" ? "CPO"
       : profile.role === "regional_pharmacy_director" ? "RPD"
@@ -327,7 +373,11 @@ export function CreateTaskModal({
     };
     saveCustomTask(customTask);
     const asPharmacyTask: PharmacyTask = { ...customTask, isCustom: true };
-    onCreated(asPharmacyTask);
+    if (isEditing) {
+      onUpdated?.(asPharmacyTask);
+    } else {
+      onCreated(asPharmacyTask);
+    }
     form.reset({ ...form.formState.defaultValues, scope: defaultScope, selectedRegion: userRegion ?? "" });
     // Reset assignee to sensible default for this user's default scope
     if (defaultScope === "national") {
@@ -359,7 +409,7 @@ export function CreateTaskModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="w-4 h-4 text-purple-600" />
-            Create Task
+            {isEditing ? "Edit Task" : "Create Task"}
           </DialogTitle>
         </DialogHeader>
 
@@ -621,7 +671,9 @@ export function CreateTaskModal({
 
           <DialogFooter className="pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" data-testid="button-create-task-submit">Create Task</Button>
+            <Button type="submit" data-testid="button-create-task-submit">
+              {isEditing ? "Save Changes" : "Create Task"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

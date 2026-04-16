@@ -4,14 +4,29 @@ import { getUserProfile, isCPO, isRegionalOrAbove, getAssignedRegion } from "@/l
 import {
   loadAllCustomTasksForRole,
   loadAllCompletionsRaw,
+  loadDeletedCustomTasksForRole,
+  softDeleteCustomTask,
+  reinstateCustomTask,
+  purgeDeletedTask,
   getPeriodKey,
   type CustomTask,
+  type DeletedCustomTask,
   type TaskCompletion,
 } from "@/lib/taskStorage";
 import { STORE_REGIONS } from "@/lib/storeDirectory";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   ChevronDown,
   ChevronRight,
@@ -22,19 +37,21 @@ import {
   Store,
   RefreshCw,
   ClipboardList,
+  Pencil,
+  Trash2,
+  RotateCcw,
+  XCircle,
 } from "lucide-react";
+import { CreateTaskModal } from "@/components/CreateTaskModal";
+import type { PharmacyTask } from "@/lib/taskData";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const ALL_STORE_IDS = STORE_REGIONS.flatMap((r) => r.stores.map((s) => s.id));
 
-/**
- * Normalize legacy or inconsistent scope values.
- * Treats undefined and the historically-seen "store" variant as "site".
- */
 function normalizeScope(scope: string | undefined): "site" | "regional" | "national" {
   if (scope === "national") return "national";
   if (scope === "regional") return "regional";
-  return "site"; // covers undefined, "site", "store", or any future typo
+  return "site";
 }
 
 const FREQ_LABELS: Record<string, string> = {
@@ -69,7 +86,6 @@ function getStoreName(id: string): string {
 interface TaskStatus {
   completedCount: number;
   totalCount: number;
-  /** True only when ALL relevant stores have completed the task in the current period. */
   isDone: boolean;
 }
 
@@ -84,15 +100,12 @@ function getStatus(task: CustomTask, completions: TaskCompletion[]): TaskStatus 
     const done = completedSites.has(siteId);
     return { completedCount: done ? 1 : 0, totalCount: 1, isDone: done };
   }
-
   if (scope === "regional") {
     const siteIds = getStoreIdsForRegion(task.region ?? "");
     const count = siteIds.filter((id) => completedSites.has(id)).length;
     const total = siteIds.length;
     return { completedCount: count, totalCount: total, isDone: total > 0 && count === total };
   }
-
-  // National — all stores must be done
   const count = ALL_STORE_IDS.filter((id) => completedSites.has(id)).length;
   const total = ALL_STORE_IDS.length;
   return { completedCount: count, totalCount: total, isDone: total > 0 && count === total };
@@ -155,11 +168,20 @@ function StatusPill({ status, scope }: { status: TaskStatus; scope: CustomTask["
 }
 
 // ── Task row (expandable) ─────────────────────────────────────────────────────
-function TaskRow({ task, completions }: { task: CustomTask; completions: TaskCompletion[] }) {
+function TaskRow({
+  task,
+  completions,
+  onEdit,
+  onDelete,
+}: {
+  task: CustomTask;
+  completions: TaskCompletion[];
+  onEdit: (task: CustomTask) => void;
+  onDelete: (task: CustomTask) => void;
+}) {
   const [open, setOpen] = useState(false);
   const status = useMemo(() => getStatus(task, completions), [task, completions]);
 
-  // Per-store detail for national/regional tasks
   const storeDetails = useMemo(() => {
     const scope = normalizeScope(task.scope);
     if (scope === "site") return null;
@@ -178,16 +200,22 @@ function TaskRow({ task, completions }: { task: CustomTask; completions: TaskCom
 
   return (
     <div className="border rounded-md overflow-hidden">
-      <button
-        className="w-full text-left flex items-start gap-3 p-3.5 hover-elevate transition-colors bg-card"
-        onClick={() => setOpen((o) => !o)}
-        data-testid={`tracker-task-${task.id}`}
-      >
-        <div className="mt-0.5 text-muted-foreground shrink-0">
+      <div className="w-full flex items-start gap-3 p-3.5 bg-card">
+        <button
+          className="mt-0.5 text-muted-foreground shrink-0"
+          onClick={() => setOpen((o) => !o)}
+          data-testid={`tracker-task-expand-${task.id}`}
+          type="button"
+        >
           {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </div>
+        </button>
 
-        <div className="flex-1 min-w-0">
+        <button
+          className="flex-1 min-w-0 text-left"
+          onClick={() => setOpen((o) => !o)}
+          data-testid={`tracker-task-${task.id}`}
+          type="button"
+        >
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <ScopeBadge scope={task.scope} />
             <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
@@ -224,12 +252,33 @@ function TaskRow({ task, completions }: { task: CustomTask; completions: TaskCom
               On: <span className="text-foreground">{createdDate}</span>
             </span>
           </div>
-        </div>
+        </button>
 
-        <div className="shrink-0 mt-0.5">
+        <div className="shrink-0 flex items-center gap-2 mt-0.5">
           <StatusPill status={status} scope={task.scope} />
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            data-testid={`button-edit-task-${task.id}`}
+            onClick={(e) => { e.stopPropagation(); onEdit(task); }}
+            title="Edit task"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            data-testid={`button-delete-task-${task.id}`}
+            onClick={(e) => { e.stopPropagation(); onDelete(task); }}
+            title="Delete task"
+            className="text-destructive"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="border-t bg-muted/30 p-4 space-y-4">
@@ -259,7 +308,6 @@ function TaskRow({ task, completions }: { task: CustomTask; completions: TaskCom
             </div>
           </div>
 
-          {/* Per-store breakdown for national/regional */}
           {storeDetails && storeDetails.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -293,12 +341,72 @@ function TaskRow({ task, completions }: { task: CustomTask; completions: TaskCom
   );
 }
 
+// ── Deleted Task Row ───────────────────────────────────────────────────────────
+function DeletedTaskRow({
+  task,
+  onReinstate,
+  onPurge,
+}: {
+  task: DeletedCustomTask;
+  onReinstate: (task: DeletedCustomTask) => void;
+  onPurge: (task: DeletedCustomTask) => void;
+}) {
+  const deletedDate = new Date(task.deletedAt).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  return (
+    <div className="border rounded-md p-3.5 bg-card flex flex-wrap items-start gap-3">
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <ScopeBadge scope={task.scope} />
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+            {FREQ_LABELS[task.frequency] ?? task.frequency}
+          </span>
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+            {CATEGORY_LABELS[task.category] ?? task.category}
+          </span>
+        </div>
+        <p className="text-sm font-semibold text-foreground leading-snug line-through opacity-60">{task.title}</p>
+        <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1 text-xs text-muted-foreground">
+          {task.assignedToLabel && (
+            <span>Assigned to: <span className="text-foreground">{task.assignedToLabel}</span></span>
+          )}
+          <span>Deleted on: <span className="text-foreground">{deletedDate}</span></span>
+          <span>By: <span className="text-foreground">{task.deletedBy}</span></span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          data-testid={`button-reinstate-task-${task.id}`}
+          onClick={() => onReinstate(task)}
+          className="gap-1.5"
+        >
+          <RotateCcw className="w-3 h-3" />
+          Reinstate
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          data-testid={`button-purge-task-${task.id}`}
+          onClick={() => onPurge(task)}
+          title="Permanently delete"
+          className="text-destructive"
+        >
+          <XCircle className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ── Section ───────────────────────────────────────────────────────────────────
-/**
- * Filter logic:
- * - "completed": task.isDone (ALL relevant stores completed for the current period)
- * - "pending":   !task.isDone (at least one store still pending)
- */
 function Section({
   icon: Icon,
   title,
@@ -307,6 +415,8 @@ function Section({
   statusMap,
   filter,
   accentClass,
+  onEdit,
+  onDelete,
 }: {
   icon: typeof Globe;
   title: string;
@@ -315,6 +425,8 @@ function Section({
   statusMap: Map<string, TaskStatus>;
   filter: "all" | "completed" | "pending";
   accentClass: string;
+  onEdit: (task: CustomTask) => void;
+  onDelete: (task: CustomTask) => void;
 }) {
   const filtered = tasks.filter((t) => {
     if (filter === "all") return true;
@@ -335,7 +447,7 @@ function Section({
       </div>
       <div className="space-y-2">
         {filtered.map((t) => (
-          <TaskRow key={t.id} task={t} completions={completions} />
+          <TaskRow key={t.id} task={t} completions={completions} onEdit={onEdit} onDelete={onDelete} />
         ))}
       </div>
     </div>
@@ -345,8 +457,20 @@ function Section({
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function TaskTracker() {
   const { user } = useAuth();
-  const [filter, setFilter] = useState<"all" | "completed" | "pending">("all");
+  const [filter, setFilter] = useState<"all" | "completed" | "pending" | "deleted">("all");
   const [tick, setTick] = useState(0);
+
+  // Edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<CustomTask | null>(null);
+
+  // Delete confirmation state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<CustomTask | null>(null);
+
+  // Purge confirmation state
+  const [purgeDialogOpen, setPurgeDialogOpen] = useState(false);
+  const [taskToPurge, setTaskToPurge] = useState<DeletedCustomTask | null>(null);
 
   const profile = useMemo(
     () => (user ? getUserProfile(user.email, user.name ?? "") : null),
@@ -361,9 +485,14 @@ export default function TaskTracker() {
     [userRegion]
   );
 
-  // Use the storage helper with role-based filtering
   const visibleTasks = useMemo(
     () => loadAllCustomTasksForRole(isCpoUser, userRegion ?? undefined, regionStoreIds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isCpoUser, userRegion, tick]
+  );
+
+  const deletedTasks = useMemo(
+    () => loadDeletedCustomTasksForRole(isCpoUser, userRegion ?? undefined, regionStoreIds),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isCpoUser, userRegion, tick]
   );
@@ -374,23 +503,16 @@ export default function TaskTracker() {
     [tick]
   );
 
-  // Normalize scope for legacy tasks that may lack the field or use "store"
   const nationalTasks = visibleTasks.filter((t) => normalizeScope(t.scope) === "national");
   const regionalTasks = visibleTasks.filter((t) => normalizeScope(t.scope) === "regional");
   const siteTasks = visibleTasks.filter((t) => normalizeScope(t.scope) === "site");
 
-  // Pre-compute status for all visible tasks once per render cycle to avoid
-  // repeated getStatus calls across summary counts, filter tabs, and Section filters
-  const statusMap = useMemo(
-    () => {
-      const map = new Map<string, TaskStatus>();
-      for (const t of visibleTasks) map.set(t.id, getStatus(t, completions));
-      return map;
-    },
-    [visibleTasks, completions]
-  );
+  const statusMap = useMemo(() => {
+    const map = new Map<string, TaskStatus>();
+    for (const t of visibleTasks) map.set(t.id, getStatus(t, completions));
+    return map;
+  }, [visibleTasks, completions]);
 
-  // Counts based on isDone (all stores complete = completed)
   const totalCount = visibleTasks.length;
   const completedCount = visibleTasks.filter((t) => statusMap.get(t.id)?.isDone).length;
   const pendingCount = totalCount - completedCount;
@@ -400,6 +522,42 @@ export default function TaskTracker() {
 
   const handleRefresh = useCallback(() => setTick((n) => n + 1), []);
 
+  const handleEdit = useCallback((task: CustomTask) => {
+    setTaskToEdit(task);
+    setEditModalOpen(true);
+  }, []);
+
+  const handleDeleteRequest = useCallback((task: CustomTask) => {
+    setTaskToDelete(task);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    if (!taskToDelete || !profile) return;
+    softDeleteCustomTask(taskToDelete.id, profile.name);
+    setDeleteDialogOpen(false);
+    setTaskToDelete(null);
+    setTick((n) => n + 1);
+  }, [taskToDelete, profile]);
+
+  const handleReinstate = useCallback((task: DeletedCustomTask) => {
+    reinstateCustomTask(task.id);
+    setTick((n) => n + 1);
+  }, []);
+
+  const handlePurgeRequest = useCallback((task: DeletedCustomTask) => {
+    setTaskToPurge(task);
+    setPurgeDialogOpen(true);
+  }, []);
+
+  const confirmPurge = useCallback(() => {
+    if (!taskToPurge) return;
+    purgeDeletedTask(taskToPurge.id);
+    setPurgeDialogOpen(false);
+    setTaskToPurge(null);
+    setTick((n) => n + 1);
+  }, [taskToPurge]);
+
   if (!profile || !isRegionalOrAbove(profile.role)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -407,6 +565,8 @@ export default function TaskTracker() {
       </div>
     );
   }
+
+  const availableRegions = STORE_REGIONS.map((r) => r.region);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -433,25 +593,27 @@ export default function TaskTracker() {
         </Button>
       </div>
 
-      {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        {[
-          { label: "Total Tasks", value: totalCount, color: "text-foreground" },
-          { label: "Completed", value: completedCount, color: "text-emerald-600" },
-          { label: "Pending", value: pendingCount, color: "text-amber-600" },
-        ].map(({ label, value, color }) => (
-          <Card key={label} className="p-3 text-center">
-            <p className={`text-2xl font-bold ${color}`} data-testid={`summary-${label.toLowerCase().replace(" ", "-")}`}>
-              {value}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-          </Card>
-        ))}
-      </div>
+      {/* Summary strip — hidden on deleted tab */}
+      {filter !== "deleted" && (
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[
+            { label: "Total Tasks", value: totalCount, color: "text-foreground" },
+            { label: "Completed", value: completedCount, color: "text-emerald-600" },
+            { label: "Pending", value: pendingCount, color: "text-amber-600" },
+          ].map(({ label, value, color }) => (
+            <Card key={label} className="p-3 text-center">
+              <p className={`text-2xl font-bold ${color}`} data-testid={`summary-${label.toLowerCase().replace(" ", "-")}`}>
+                {value}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-1 mb-6 border-b">
-        {(["all", "completed", "pending"] as const).map((f) => (
+        {(["all", "completed", "pending", "deleted"] as const).map((f) => (
           <button
             key={f}
             data-testid={`filter-tab-${f}`}
@@ -466,71 +628,169 @@ export default function TaskTracker() {
               ? `All (${totalCount})`
               : f === "completed"
               ? `Completed (${completedCount})`
-              : `Pending (${pendingCount})`}
+              : f === "pending"
+              ? `Pending (${pendingCount})`
+              : `Deleted (${deletedTasks.length})`}
           </button>
         ))}
       </div>
 
-      {/* Empty state when no custom tasks exist */}
-      {!hasAnyInSection && filter === "all" && (
-        <div className="text-center py-20 text-muted-foreground">
-          <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm font-medium">No pushed tasks yet.</p>
-          <p className="text-xs mt-1">
-            Use the Create Task button on the dashboard to push tasks to stores or regions.
-          </p>
+      {/* ── Deleted Tasks Panel ── */}
+      {filter === "deleted" && (
+        <div>
+          {deletedTasks.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <Trash2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium">No deleted tasks.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {deletedTasks.map((t) => (
+                <DeletedTaskRow
+                  key={t.id}
+                  task={t}
+                  onReinstate={handleReinstate}
+                  onPurge={handlePurgeRequest}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* No tasks match the active filter */}
-      {hasAnyInSection && filter !== "all" && (() => {
-        const matchesFilter = (t: CustomTask) => {
-          const done = statusMap.get(t.id)?.isDone ?? false;
-          return filter === "completed" ? done : !done;
-        };
-        const anyMatch =
-          nationalTasks.some(matchesFilter) ||
-          regionalTasks.some(matchesFilter) ||
-          siteTasks.some(matchesFilter);
-        return !anyMatch ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">No tasks match the current filter.</p>
-          </div>
-        ) : null;
-      })()}
+      {/* ── Active Tasks ── */}
+      {filter !== "deleted" && (
+        <>
+          {/* Empty state when no custom tasks exist */}
+          {!hasAnyInSection && filter === "all" && (
+            <div className="text-center py-20 text-muted-foreground">
+              <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium">No pushed tasks yet.</p>
+              <p className="text-xs mt-1">
+                Use the Create Task button on the dashboard to push tasks to stores or regions.
+              </p>
+            </div>
+          )}
 
-      {/* Task sections */}
-      {hasAnyInSection && (
-        <div className="space-y-8">
-          <Section
-            icon={Globe}
-            title="Nationwide"
-            tasks={nationalTasks}
-            completions={completions}
-            statusMap={statusMap}
-            filter={filter}
-            accentClass="text-blue-700 border-blue-100"
-          />
-          <Section
-            icon={MapPin}
-            title="Regional"
-            tasks={regionalTasks}
-            completions={completions}
-            statusMap={statusMap}
-            filter={filter}
-            accentClass="text-purple-700 border-purple-100"
-          />
-          <Section
-            icon={Store}
-            title="Store-Level"
-            tasks={siteTasks}
-            completions={completions}
-            statusMap={statusMap}
-            filter={filter}
-            accentClass="text-green-700 border-green-100"
-          />
-        </div>
+          {/* No tasks match the active filter */}
+          {hasAnyInSection && filter !== "all" && (() => {
+            const matchesFilter = (t: CustomTask) => {
+              const done = statusMap.get(t.id)?.isDone ?? false;
+              return filter === "completed" ? done : !done;
+            };
+            const anyMatch =
+              nationalTasks.some(matchesFilter) ||
+              regionalTasks.some(matchesFilter) ||
+              siteTasks.some(matchesFilter);
+            return !anyMatch ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No tasks match the current filter.</p>
+              </div>
+            ) : null;
+          })()}
+
+          {/* Task sections */}
+          {hasAnyInSection && (
+            <div className="space-y-8">
+              <Section
+                icon={Globe}
+                title="Nationwide"
+                tasks={nationalTasks}
+                completions={completions}
+                statusMap={statusMap}
+                filter={filter}
+                accentClass="text-blue-700 border-blue-100"
+                onEdit={handleEdit}
+                onDelete={handleDeleteRequest}
+              />
+              <Section
+                icon={MapPin}
+                title="Regional"
+                tasks={regionalTasks}
+                completions={completions}
+                statusMap={statusMap}
+                filter={filter}
+                accentClass="text-purple-700 border-purple-100"
+                onEdit={handleEdit}
+                onDelete={handleDeleteRequest}
+              />
+              <Section
+                icon={Store}
+                title="Store-Level"
+                tasks={siteTasks}
+                completions={completions}
+                statusMap={statusMap}
+                filter={filter}
+                accentClass="text-green-700 border-green-100"
+                onEdit={handleEdit}
+                onDelete={handleDeleteRequest}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Delete Confirmation ── */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{taskToDelete?.title}" will be moved to the Deleted tab. You can reinstate it any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              data-testid="button-confirm-delete-task"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Purge Confirmation ── */}
+      <AlertDialog open={purgeDialogOpen} onOpenChange={setPurgeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Permanently Delete Task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{taskToPurge?.title}" will be permanently removed and cannot be recovered.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmPurge}
+              data-testid="button-confirm-purge-task"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Permanently Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Edit Task Modal ── */}
+      {profile && (
+        <CreateTaskModal
+          open={editModalOpen}
+          siteId={taskToEdit?.siteId ?? ""}
+          profile={{ email: profile.email, name: profile.name, role: profile.role }}
+          onClose={() => { setEditModalOpen(false); setTaskToEdit(null); }}
+          onCreated={() => { setTick((n) => n + 1); }}
+          onUpdated={() => { setTick((n) => n + 1); setEditModalOpen(false); setTaskToEdit(null); }}
+          isCpo={isCpoUser}
+          isRegional={!isCpoUser && isRegionalOrAbove(profile.role)}
+          userRegion={userRegion ?? undefined}
+          hasSiteContext={false}
+          availableRegions={availableRegions}
+          taskToEdit={taskToEdit}
+        />
       )}
     </div>
   );
