@@ -144,8 +144,8 @@ export function CreateTaskModal({
   taskToEdit?: CustomTask | null;
 }) {
   const isEditing = !!taskToEdit;
-  const showScopeSelector = isCpo || isRegional;
-  const defaultScope: CustomTaskScope = isCpo ? "national" : isRegional ? "regional" : "site";
+  const showScopeSelector = isCpo;
+  const defaultScope: CustomTaskScope = isCpo ? "national" : "site";
 
   const form = useForm<CreateTaskFormValues>({
     resolver: zodResolver(createTaskSchema),
@@ -399,7 +399,6 @@ export function CreateTaskModal({
         { value: "site", label: "Store", desc: "A specific pharmacy" },
       ]
     : [
-        { value: "regional", label: "Entire Region", desc: userRegion ? `All ${userRegion} stores` : "All region stores" },
         { value: "site", label: "Specific Store", desc: "One pharmacy in your region" },
       ];
 
