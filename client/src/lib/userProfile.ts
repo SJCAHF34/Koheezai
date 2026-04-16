@@ -21,6 +21,7 @@ export interface UserProfile {
 type ProfileEntry = Pick<UserProfile, "role" | "siteId" | "siteName" | "region" | "taskRoles"> & { name?: string };
 
 const PROFILE_MAP: Record<string, ProfileEntry> = {
+  // ── CPO ─────────────────────────────────────────────────────────────────────
   "cpo@koheez.ai": {
     name: "Chief Pharmacy Officer",
     role: "chief_pharmacy_officer",
@@ -42,6 +43,8 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     siteName: "All Regions",
     region: "all",
   },
+
+  // ── RPD ─────────────────────────────────────────────────────────────────────
   "regionaldirector@koheez.ai": {
     name: "Regional Pharmacy Director",
     role: "regional_pharmacy_director",
@@ -70,17 +73,14 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     siteName: "Western Region",
     region: "Western Region",
   },
-  "jrockwoodpharmd@gmail.com": {
-    name: "Jason Rockwood",
-    role: "pharmacy_director",
-    siteId: "1417",
-    siteName: "RX Pike Street",
-  },
+
+  // ── Generic demo accounts ────────────────────────────────────────────────────
   "director@koheez.ai": {
     name: "Pharmacy Director",
     role: "pharmacy_director",
     siteId: "1417",
     siteName: "RX Pike Street",
+    region: "Western Region",
   },
   "techs@koheez.ai": {
     role: "data_entry_tech",
@@ -94,12 +94,21 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     siteName: "RX Pike Street",
     taskRoles: ["data_entry_tech", "pv2_tech", "delivery_tech"],
   },
+
+  // ── RX Pike Street (1417) ───────────────────────────────────────────────────
+  "seth.collins@aidshealth.org": {
+    name: "Seth Collins",
+    role: "pharmacy_director",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+    region: "Western Region",
+  },
   "claire.wood@aidshealth.org": {
     name: "Claire Wood",
     role: "data_entry_tech",
     siteId: "1417",
     siteName: "RX Pike Street",
-    region: "Western",
+    region: "Western Region",
     taskRoles: ["data_entry_tech"],
   },
   "pairiss.wilcox@aidshealth.org": {
@@ -107,7 +116,7 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     role: "data_entry_tech",
     siteId: "1417",
     siteName: "RX Pike Street",
-    region: "Western",
+    region: "Western Region",
     taskRoles: ["data_entry_tech"],
   },
   "anh.do@aidshealth.org": {
@@ -115,7 +124,7 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     role: "data_entry_tech",
     siteId: "1417",
     siteName: "RX Pike Street",
-    region: "Western",
+    region: "Western Region",
     taskRoles: ["data_entry_tech"],
   },
   "debbie.nguyen@aidshealth.org": {
@@ -123,43 +132,548 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     role: "pharmacist_1",
     siteId: "1417",
     siteName: "RX Pike Street",
-    region: "Western",
-    taskRoles: ["pharmacist_1"],
-  },
-  "seth.collins@aidshealth.org": {
-    name: "Seth Collins",
-    role: "pharmacy_director",
-    siteId: "1417",
-    siteName: "RX Pike Street",
-    region: "Western",
-  },
-  "walid.mohammad@aidshealth.org": {
-    name: "Walid Mohammad",
-    role: "pharmacy_director",
-    siteId: "1417",
-    siteName: "RX Pike Street",
-    region: "Western",
-  },
-  "elizabeth.camper@aidshealth.org": {
-    role: "pharmacist_1",
-    siteId: "1417",
-    siteName: "RX Pike Street",
-    region: "Western",
+    region: "Western Region",
     taskRoles: ["pharmacist_1"],
   },
   "uyen-vy.nguyen@aidshealth.org": {
     role: "pharmacist_1",
     siteId: "1417",
     siteName: "RX Pike Street",
-    region: "Western",
+    region: "Western Region",
     taskRoles: ["pharmacist_1"],
   },
+
+  // ── RX Castro (1408) — Western ──────────────────────────────────────────────
+  "ryan.leong@aidshealth.org": {
+    name: "Ryan Leong",
+    role: "pharmacy_director",
+    siteId: "1408",
+    siteName: "RX Castro",
+    region: "Western Region",
+  },
+
+  // ── RX Hollywood Flagship (1410) — Western ──────────────────────────────────
+  "jrockwoodpharmd@gmail.com": {
+    name: "Jason Rockwood",
+    role: "pharmacy_director",
+    siteId: "1410",
+    siteName: "RX Hollywood Flagship",
+    region: "Western Region",
+  },
+  "jason.rockwood@aidshealth.org": {
+    name: "Jason Rockwood",
+    role: "pharmacy_director",
+    siteId: "1410",
+    siteName: "RX Hollywood Flagship",
+    region: "Western Region",
+  },
+
+  // ── RX Cabrini (1416) — Western ─────────────────────────────────────────────
+  "elizabeth.camper@aidshealth.org": {
+    name: "Elizabeth Camper",
+    role: "pharmacy_director",
+    siteId: "1416",
+    siteName: "RX Cabrini",
+    region: "Western Region",
+  },
+
+  // ── RX Mi Farmacia (1441) — Western ─────────────────────────────────────────
+  "catalic.chavira@aidshealth.org": {
+    name: "Catalic Chavira Mendoza",
+    role: "pharmacy_director",
+    siteId: "1441",
+    siteName: "RX Mi Farmacia",
+    region: "Western Region",
+  },
+
+  // ── RX Hillcrest (1439) — Western ───────────────────────────────────────────
+  "kaylene.devries@aidshealth.org": {
+    name: "Kaylene De Vries",
+    role: "pharmacy_director",
+    siteId: "1439",
+    siteName: "RX Hillcrest",
+    region: "Western Region",
+  },
+
+  // ── RX San Diego Flagship (1415) — Western ──────────────────────────────────
+  "sam.toma@aidshealth.org": {
+    name: "Sam Toma",
+    role: "pharmacy_director",
+    siteId: "1415",
+    siteName: "RX San Diego Flagship",
+    region: "Western Region",
+  },
+
+  // ── RX Vista (1440) — Western ───────────────────────────────────────────────
+  "walid.mohammad@aidshealth.org": {
+    name: "Walid Mohammad",
+    role: "pharmacy_director",
+    siteId: "1440",
+    siteName: "RX Vista",
+    region: "Western Region",
+  },
+
+  // ── RX Las Vegas (1423) — Western ───────────────────────────────────────────
+  "hiram.juarbe@aidshealth.org": {
+    name: "Hiram Juarbe Torres",
+    role: "pharmacy_director",
+    siteId: "1423",
+    siteName: "RX Las Vegas",
+    region: "Western Region",
+  },
+  "juanpedro.flores@aidshealth.org": {
+    name: "Juan Pedro Flores",
+    role: "pharmacy_director",
+    siteId: "1423",
+    siteName: "RX Las Vegas",
+    region: "Western Region",
+  },
+
+  // ── RX Westside (1405) — Western ────────────────────────────────────────────
+  "sam.badanat@aidshealth.org": {
+    name: "Sam Badanat",
+    role: "pharmacy_director",
+    siteId: "1405",
+    siteName: "RX Westside",
+    region: "Western Region",
+  },
+
+  // ── RX Long Beach (1407) — Western ──────────────────────────────────────────
+  "eric.azcheri@aidshealth.org": {
+    name: "Eric Azcheri",
+    role: "pharmacy_director",
+    siteId: "1407",
+    siteName: "RX Long Beach",
+    region: "Western Region",
+  },
+
+  // ── RX East Los Angeles (1413) — Western ────────────────────────────────────
+  "keyvan.shahriary@aidshealth.org": {
+    name: "Keyvan Shahriary",
+    role: "pharmacy_director",
+    siteId: "1413",
+    siteName: "RX East Los Angeles",
+    region: "Western Region",
+  },
+
+  // ── RX Biscayne (5410) — Southern South ─────────────────────────────────────
+  "samantha.kim@aidshealth.org": {
+    name: "Samantha Kim",
+    role: "pharmacy_director",
+    siteId: "5410",
+    siteName: "RX Biscayne",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Campus (5506) — Southern South ───────────────────────────────────────
+  "analis.martin@aidshealth.org": {
+    name: "Analis Martin",
+    role: "pharmacy_director",
+    siteId: "5506",
+    siteName: "RX Campus",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Ft. Myers (5423) — Southern South ────────────────────────────────────
+  "shadraka.mcintosh@aidshealth.org": {
+    name: "Shadraka McIntosh",
+    role: "pharmacy_director",
+    siteId: "5423",
+    siteName: "RX Ft. Myers",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Coconut Grove (5413) — Southern South ────────────────────────────────
+  "zachary.kushner@aidshealth.org": {
+    name: "Zachary Kushner",
+    role: "pharmacy_director",
+    siteId: "5413",
+    siteName: "RX Coconut Grove",
+    region: "Southern – South Region",
+  },
+
+  // ── RX North Miami Beach (5409) — Southern South ────────────────────────────
+  "venessa.diprima@aidshealth.org": {
+    name: "Venessa DiPrima",
+    role: "pharmacy_director",
+    siteId: "5409",
+    siteName: "RX North Miami Beach",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Pensacola (5408) — Southern South ────────────────────────────────────
+  "kristen.stokes@aidshealth.org": {
+    name: "Kristen Stokes",
+    role: "pharmacy_director",
+    siteId: "5408",
+    siteName: "RX Pensacola",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Delray Beach (5420) — Southern South ─────────────────────────────────
+  "alejandra.levy@aidshealth.org": {
+    name: "Alejandra Levy",
+    role: "pharmacy_director",
+    siteId: "5420",
+    siteName: "RX Delray Beach",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Jacksonville (5402) — Southern South ─────────────────────────────────
+  "ryan.ford@aidshealth.org": {
+    name: "Ryan Ford",
+    role: "pharmacy_director",
+    siteId: "5402",
+    siteName: "RX Jacksonville",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Oakland Park (5416) — Southern South ─────────────────────────────────
+  "maksim.yermakov@aidshealth.org": {
+    name: "Maksim Yermakov",
+    role: "pharmacy_director",
+    siteId: "5416",
+    siteName: "RX Oakland Park",
+    region: "Southern – South Region",
+  },
+
+  // ── RX South Beach (5412) — Southern South ──────────────────────────────────
+  "carlos.palacios@aidshealth.org": {
+    name: "Carlos Palacios",
+    role: "pharmacy_director",
+    siteId: "5412",
+    siteName: "RX South Beach",
+    region: "Southern – South Region",
+  },
+
+  // ── RX North Point (5401) — Southern South ──────────────────────────────────
+  "sean.williams@aidshealth.org": {
+    name: "Sean Williams",
+    role: "pharmacy_director",
+    siteId: "5401",
+    siteName: "RX North Point",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Orlando OTC (5422) — Southern South ──────────────────────────────────
+  "jonathan.flores@aidshealth.org": {
+    name: "Jonathan Flores",
+    role: "pharmacy_director",
+    siteId: "5422",
+    siteName: "RX Orlando OTC",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Orlando (5405) — Southern South ──────────────────────────────────────
+  "lonnie.strom@aidshealth.org": {
+    name: "Lonnie Strom",
+    role: "pharmacy_director",
+    siteId: "5405",
+    siteName: "RX Orlando",
+    region: "Southern – South Region",
+  },
+
+  // ── RX West Palm Beach (3412) — Southern South ──────────────────────────────
+  "adrian.velazquez@aidshealth.org": {
+    name: "Adrian Velazquez",
+    role: "pharmacy_director",
+    siteId: "3412",
+    siteName: "RX West Palm Beach",
+    region: "Southern – South Region",
+  },
+  "anthony.pierre@aidshealth.org": {
+    name: "Anthony Pierre",
+    role: "pharmacy_director",
+    siteId: "3412",
+    siteName: "RX West Palm Beach",
+    region: "Southern – South Region",
+  },
+
+  // ── RX St. Petersburg (5504) — Southern South ───────────────────────────────
+  "lisa.romo@aidshealth.org": {
+    name: "Lisa Romo",
+    role: "pharmacy_director",
+    siteId: "5504",
+    siteName: "RX St. Petersburg",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Sunrise (5407) — Southern South ──────────────────────────────────────
+  "ladoucha.moore@aidshealth.org": {
+    name: "LaDoucha Moore",
+    role: "pharmacy_director",
+    siteId: "5407",
+    siteName: "RX Sunrise",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Wilton Manors (5404) — Southern South ────────────────────────────────
+  "lynette.price@aidshealth.org": {
+    name: "Lynette Price",
+    role: "pharmacy_director",
+    siteId: "5404",
+    siteName: "RX Wilton Manors",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Safety Harbor (5406) — Southern South ────────────────────────────────
+  "amanda.haddad@aidshealth.org": {
+    name: "Amanda Haddad",
+    role: "pharmacy_director",
+    siteId: "5406",
+    siteName: "RX Safety Harbor",
+    region: "Southern – South Region",
+  },
+
+  // ── RX Ansley (8104) — Southern North ───────────────────────────────────────
+  "corey.woodward@aidshealth.org": {
+    name: "Corey Woodward",
+    role: "pharmacy_director",
+    siteId: "8104",
+    siteName: "RX Ansley",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Baton Rouge (5501) — Southern North ──────────────────────────────────
+  "simone.mack@aidshealth.org": {
+    name: "Simone Mack",
+    role: "pharmacy_director",
+    siteId: "5501",
+    siteName: "RX Baton Rouge",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Auburn Avenue (5419) — Southern North ────────────────────────────────
+  "chandra.garner@aidshealth.org": {
+    name: "Chandra Garner",
+    role: "pharmacy_director",
+    siteId: "5419",
+    siteName: "RX Auburn Avenue",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Austin (2410) — Southern North ───────────────────────────────────────
+  "riko.charme@aidshealth.org": {
+    name: "Riko Charme",
+    role: "pharmacy_director",
+    siteId: "2410",
+    siteName: "RX Austin",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Binz (2408) — Southern North ─────────────────────────────────────────
+  "trisha.patel@aidshealth.org": {
+    name: "Trisha Patel",
+    role: "pharmacy_director",
+    siteId: "2408",
+    siteName: "RX Binz",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Columbia (2403) — Southern North ─────────────────────────────────────
+  "whitney.williams@aidshealth.org": {
+    name: "Whitney Williams",
+    role: "pharmacy_director",
+    siteId: "2403",
+    siteName: "RX Columbia",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Cumberland (5511) — Southern North ───────────────────────────────────
   "bobby.couch@aidshealth.org": {
     name: "Bobby Couch",
     role: "pharmacy_director",
     siteId: "5511",
     siteName: "RX Cumberland",
     region: "Southern – North Region",
+  },
+
+  // ── RX Dallas OTC (2404) — Southern North ───────────────────────────────────
+  "gregory.matuszewski@aidshealth.org": {
+    name: "Gregory Matuszewski",
+    role: "pharmacy_director",
+    siteId: "2404",
+    siteName: "RX Dallas OTC",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Fort Worth (2401) — Southern North ───────────────────────────────────
+  "anna.galvan@aidshealth.org": {
+    name: "Anna Galvan",
+    role: "pharmacy_director",
+    siteId: "2401",
+    siteName: "RX Fort Worth",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Dallas Market Center (2409) — Southern North ─────────────────────────
+  "ankit.parikh@aidshealth.org": {
+    name: "Ankit Parikh",
+    role: "pharmacy_director",
+    siteId: "2409",
+    siteName: "RX Dallas Market Center",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Houston OTC (2407) — Southern North ──────────────────────────────────
+  "aruna.rajmohan@aidshealth.org": {
+    name: "Aruna Rajmohan",
+    role: "pharmacy_director",
+    siteId: "2407",
+    siteName: "RX Houston OTC",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Jackson (5507) — Southern North ──────────────────────────────────────
+  "lashuta.johnson@aidshealth.org": {
+    name: "LaShuta Johnson",
+    role: "pharmacy_director",
+    siteId: "5507",
+    siteName: "RX Jackson",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Medical City (2400) — Southern North ─────────────────────────────────
+  "saloumeh.esmaeil@aidshealth.org": {
+    name: "Saloumeh Esmaeil",
+    role: "pharmacy_director",
+    siteId: "2400",
+    siteName: "RX Medical City",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Peachtree (5417) — Southern North ────────────────────────────────────
+  "stella.uche@aidshealth.org": {
+    name: "Stella Uche",
+    role: "pharmacy_director",
+    siteId: "5417",
+    siteName: "RX Peachtree",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Lithonia (5414) — Southern North ─────────────────────────────────────
+  "gino.ruggeri@aidshealth.org": {
+    name: "Gino Ruggeri",
+    role: "pharmacy_director",
+    siteId: "5414",
+    siteName: "RX Lithonia",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Piedmont (5421) — Southern North ─────────────────────────────────────
+  "clark.stuart@aidshealth.org": {
+    name: "Clark Stuart",
+    role: "pharmacy_director",
+    siteId: "5421",
+    siteName: "RX Piedmont",
+    region: "Southern – North Region",
+  },
+
+  // ── RX Brooklyn (3404) — Northern ───────────────────────────────────────────
+  "adaeze.akinsuanya@aidshealth.org": {
+    name: "Adaeze Akinsuanya",
+    role: "pharmacy_director",
+    siteId: "3404",
+    siteName: "RX Brooklyn",
+    region: "Northern Region",
+  },
+
+  // ── RX Chicago OTC (3411) — Northern ────────────────────────────────────────
+  "mack.parayo@aidshealth.org": {
+    name: "Mack Parayo",
+    role: "pharmacy_director",
+    siteId: "3411",
+    siteName: "RX Chicago OTC",
+    region: "Northern Region",
+  },
+
+  // ── RX Baltimore (3410) — Northern ──────────────────────────────────────────
+  "dominique.taylor@aidshealth.org": {
+    name: "Dominique Taylor",
+    role: "pharmacy_director",
+    siteId: "3410",
+    siteName: "RX Baltimore",
+    region: "Northern Region",
+  },
+  "fishan.khalik@aidshealth.org": {
+    name: "Fishan Khalik",
+    role: "pharmacy_director",
+    siteId: "3410",
+    siteName: "RX Baltimore",
+    region: "Northern Region",
+  },
+
+  // ── RX Columbus (2402) — Northern ───────────────────────────────────────────
+  "nicholas.bailey@aidshealth.org": {
+    name: "Nicholas Bailey",
+    role: "pharmacy_director",
+    siteId: "2402",
+    siteName: "RX Columbus",
+    region: "Northern Region",
+  },
+
+  // ── RX Cleveland (2405) — Northern ──────────────────────────────────────────
+  "tarra.bryant@aidshealth.org": {
+    name: "Tarra Bryant",
+    role: "pharmacy_director",
+    siteId: "2405",
+    siteName: "RX Cleveland",
+    region: "Northern Region",
+  },
+
+  // ── RX K-Street (4401) — Northern ───────────────────────────────────────────
+  "cory.silva@aidshealth.org": {
+    name: "Cory Silva",
+    role: "pharmacy_director",
+    siteId: "4401",
+    siteName: "RX K-Street",
+    region: "Northern Region",
+  },
+
+  // ── RX Capitol Hill (3414) — Northern ───────────────────────────────────────
+  "shane.hodges@aidshealth.org": {
+    name: "Shane Hodges",
+    role: "pharmacy_director",
+    siteId: "3414",
+    siteName: "RX Capitol Hill",
+    region: "Northern Region",
+  },
+
+  // ── RX Philadelphia (3409) — Northern ───────────────────────────────────────
+  "tamara.applewhite@aidshealth.org": {
+    name: "Tamara Applewhite",
+    role: "pharmacy_director",
+    siteId: "3409",
+    siteName: "RX Philadelphia",
+    region: "Northern Region",
+  },
+
+  // ── RX Manhattan (3407) — Northern ──────────────────────────────────────────
+  "fareed.choudhry@aidshealth.org": {
+    name: "Fareed Choudhry",
+    role: "pharmacy_director",
+    siteId: "3407",
+    siteName: "RX Manhattan",
+    region: "Northern Region",
+  },
+
+  // ── RX Queens (3406) — Northern ─────────────────────────────────────────────
+  "lawrence.goldstein@aidshealth.org": {
+    name: "Lawrence Goldstein",
+    role: "pharmacy_director",
+    siteId: "3406",
+    siteName: "RX Queens",
+    region: "Northern Region",
+  },
+
+  // ── Other staff ─────────────────────────────────────────────────────────────
+  "roshanak.mohaghegh@ahfrx.org": {
+    name: "Roshanak Mohaghegh",
+    role: "pharmacist_1",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+    region: "Western Region",
+    taskRoles: ["pharmacist_1"],
   },
 };
 
