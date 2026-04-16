@@ -194,6 +194,12 @@ export function CreateTaskModal({
     }
   };
 
+  // Sentinel value used when "All Stores" is selected in the store picker
+  const ALL_STORES_SENTINEL = "_ALL_STORES_";
+
+  // Label shown for the "All Stores" option depending on who's creating the task
+  const allStoresLabel = isCpo ? "All Stores" : `All ${userRegion ?? ""} Stores`;
+
   // Scope-aware assignee options:
   //   National  → 5 role-group options from ASSIGNEE_GROUPS
   //   Regional  → specific RPD(s) for selected region
@@ -229,12 +235,6 @@ export function CreateTaskModal({
 
   // Combobox open state for store picker
   const [storePickerOpen, setStorePickerOpen] = useState(false);
-
-  // Sentinel value used when "All Stores" is selected in the store picker
-  const ALL_STORES_SENTINEL = "_ALL_STORES_";
-
-  // Label shown for the "All Stores" option depending on who's creating the task
-  const allStoresLabel = isCpo ? "All Stores" : `All ${userRegion ?? ""} Stores`;
 
   // Stores available to pick from:
   //   CPO    → all stores nationwide, alphabetized
