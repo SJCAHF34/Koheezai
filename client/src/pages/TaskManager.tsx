@@ -2624,7 +2624,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
                       const ra = member.roleAssignments?.find((a) => a.role === r);
                       const isActive = activeRoles.has(r);
                       const status = ra ? getRoleDateStatus(ra, today) : null;
-                      const isDimmed = status?.expired || (!status && !isActive);
+                      const isDimmed = status?.expired || status?.future || (!status && !isActive);
                       const hintColor = status?.expired
                         ? "text-slate-400"
                         : status?.future
@@ -4350,21 +4350,46 @@ export default function TaskManager() {
     : null;
   const displaySiteName = drillSite?.name ?? profile.siteName;
 
-  // Derive extra roles from profile, filtered by today's active roster assignments
-  // if the logged-in user has a matching roster entry with date-bounded assignments.
+  // Derive extra roles for task routing, with roster as authoritative source
+  // when a matching roster entry with date-bounded assignments is found.
+  // Merge semantics:
+  //   1. Always include profile.role (primary, permanent)
+  //   2. If the roster has a matching member WITH roleAssignments:
+  //      - active assignments → included (can ADD new temp roles)
+  //      - expired/future assignments → excluded (can REMOVE roles even if in profile)
+  //      - profile roles not declared in the roster entry → passed through unchanged
+  //   3. No matching roster entry or no roleAssignments → fall back to profile.taskRoles
   const extraRoles = useMemo((): string[] | undefined => {
     const rawRoles = profile.taskRoles as string[] | undefined;
-    if (!rawRoles || rawRoles.length === 0) return rawRoles;
     const rosterForSite = loadRoster(siteId);
     if (rosterForSite.members.length === 0) return rawRoles;
     const todayKey = getTodayDateKey();
     const rosterMember = rosterForSite.members.find(
       (m) => m.name.toLowerCase().trim() === profile.name.toLowerCase().trim()
     );
-    if (!rosterMember || !rosterMember.roleAssignments) return rawRoles;
-    // Filter extra roles to only those with active date-bounded assignments
-    const activeRoles = new Set(getActiveRoles(rosterMember, todayKey));
-    return rawRoles.filter((r) => activeRoles.has(r));
+    if (!rosterMember) return rawRoles;
+    if (!rosterMember.roleAssignments || rosterMember.roleAssignments.length === 0) {
+      // Roster entry exists but no date-bounded assignments — not overriding profile
+      return rawRoles;
+    }
+    // Roles explicitly declared in the roster entry (roster is authoritative for these)
+    const rosterDeclaredRoles = new Set(rosterMember.roleAssignments.map((ra) => ra.role));
+    // Roles that are active today via the roster
+    const activeRosterRoles = new Set(getActiveRoles(rosterMember, todayKey));
+    // Merge: profile roles not declared by roster + active roster roles + primary role
+    const merged = new Set<string>([
+      // Pass through profile roles that the roster doesn't explicitly manage
+      ...(rawRoles ?? []).filter((r) => !rosterDeclaredRoles.has(r)),
+      // Always include the primary role
+      profile.role,
+      // Active roster assignments (may add new temp roles or omit expired ones)
+      ...activeRosterRoles,
+    ]);
+    // Non-directors must never see director-only tasks via a temp roster assignment
+    if (!isDirectorRole(profile.role as UserRole)) {
+      merged.delete("director");
+    }
+    return Array.from(merged);
   }, [profile, siteId]);
 
   const baseVisible = getVisibleTasks(frequency, profile.role, viewingRole, extraRoles);
