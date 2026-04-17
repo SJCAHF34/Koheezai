@@ -975,8 +975,14 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
 
       const answer = completion.choices[0].message.content ?? "No response generated.";
       return res.json({ answer });
-    } catch (err) {
+    } catch (err: any) {
       console.error("[AI Performance Evaluator] OpenAI error:", err);
+      if (err?.code === "insufficient_quota" || err?.error?.code === "insufficient_quota") {
+        return res.status(402).json({ message: "The AI quota has been exceeded. Please add credits to the OpenAI account to re-enable the AI Performance Evaluator." });
+      }
+      if (err?.status === 429 || err?.status === 503) {
+        return res.status(503).json({ message: "The AI service is temporarily busy — please try again in a moment." });
+      }
       return res.status(502).json({ message: "AI provider error — please try again shortly." });
     }
   });

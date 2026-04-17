@@ -776,11 +776,7 @@ export default function RegionalDashboard() {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (res.status === 503) {
-          setAiError("AI not configured — contact your system administrator to enable the AI Performance Evaluator.");
-        } else {
-          setAiError(data.message ?? "An error occurred. Please try again.");
-        }
+        setAiError(data.message ?? "An error occurred. Please try again.");
       } else {
         setAiMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
         setTimeout(() => {
