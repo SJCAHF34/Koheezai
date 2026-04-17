@@ -120,7 +120,6 @@ export default function LandingPage() {
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6 text-slate-900">
             Your tasks, your team,{" "}
             <span className="whitespace-nowrap bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #3b82f6, #9333ea)" }}>your patients</span>
-            <span className="text-slate-700"> —</span>
             <br />
             <span className="text-slate-900">one platform.</span>
           </h1>
