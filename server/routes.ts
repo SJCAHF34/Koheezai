@@ -110,7 +110,7 @@ const DEMO_USERS = [
 const inMemoryUsers: Array<{ email: string; password: string; name: string }> = [];
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY1 || process.env.OPENAI_API_KEY,
 });
 
 const assessmentRequestSchema = z.object({
@@ -499,7 +499,7 @@ Write in professional clinical language for medical record documentation. Be spe
         .filter((s) => s.length > 3);
 
     try {
-      if (!process.env.OPENAI_API_KEY) {
+      if (!process.env.OPENAI_API_KEY1 && !process.env.OPENAI_API_KEY) {
         return res.json({ items: lineFallback(text) });
       }
 
@@ -900,7 +900,7 @@ Write in professional clinical language for medical record documentation. Be spe
       return res.status(403).json({ message: "Access restricted to Regional Directors and above." });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.OPENAI_API_KEY1 && !process.env.OPENAI_API_KEY) {
       return res.status(503).json({ message: "AI not configured — OPENAI_API_KEY is missing." });
     }
 
