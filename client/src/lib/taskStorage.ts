@@ -545,15 +545,38 @@ export function saveRetentionRisk(entry: RetentionRiskEntry): void {
 
 const STAFF_ROSTER_KEY = "koheez_staff_roster";
 
+export interface RoleAssignment {
+  role: string;
+  startDate?: string; // YYYY-MM-DD inclusive
+  endDate?: string;   // YYYY-MM-DD inclusive
+}
+
 export interface StaffMember {
   id: string;
   name: string;
-  roles: string[];
+  roles: string[];                   // all roles — kept for backward compat
+  roleAssignments?: RoleAssignment[]; // per-role date bounds; authoritative when present
 }
 
 export interface SiteRoster {
   siteId: string;
   members: StaffMember[];
+}
+
+/** Returns the roles that are active for a member on a given date (YYYY-MM-DD).
+ *  Falls back to the flat `roles` array when no roleAssignments are present. */
+export function getActiveRoles(member: StaffMember, todayDate?: string): string[] {
+  const today = todayDate ?? getTodayDateKey();
+  if (!member.roleAssignments || member.roleAssignments.length === 0) {
+    return member.roles;
+  }
+  return member.roleAssignments
+    .filter((ra) => {
+      if (ra.startDate && today < ra.startDate) return false;
+      if (ra.endDate && today > ra.endDate) return false;
+      return true;
+    })
+    .map((ra) => ra.role);
 }
 
 function readRosters(): SiteRoster[] {

@@ -76,8 +76,10 @@ import {
   type RetentionRiskEntry,
   type StaffMember,
   type SiteRoster,
+  type RoleAssignment,
   type CustomTask,
   type CustomTaskScope,
+  getActiveRoles,
 } from "@/lib/taskStorage";
 import type { RetentionPatient, RetentionIssueType, RetentionStatus, AttemptLogEntry } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -2423,12 +2425,39 @@ function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+/** Format YYYY-MM-DD → "Apr 24" (omits year if current year). */
+function formatShortDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+}
+
+/** Returns display hint + status flags for a RoleAssignment badge. */
+function getRoleDateStatus(
+  ra: RoleAssignment,
+  today: string
+): { hint: string; expired: boolean; future: boolean } {
+  const expired = !!ra.endDate && today > ra.endDate;
+  const future = !!ra.startDate && today < ra.startDate;
+  if (expired) return { hint: `Expired ${formatShortDate(ra.endDate!)}`, expired: true, future: false };
+  if (future) return { hint: `Starts ${formatShortDate(ra.startDate!)}`, expired: false, future: true };
+  if (ra.endDate) return { hint: `Until ${formatShortDate(ra.endDate)}`, expired: false, future: false };
+  return { hint: "", expired: false, future: false };
+}
+
 function StaffRosterPanel({ siteId }: { siteId: string }) {
+  const today = getTodayDateKey();
   const [roster, setRoster] = useState<SiteRoster>(loadRoster(siteId));
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formRoles, setFormRoles] = useState<string[]>(["data_entry_tech"]);
+  const [formRoleDates, setFormRoleDates] = useState<Record<string, { startDate: string; endDate: string }>>({});
 
   function handleQuickSetup(techCount: number) {
     const members: StaffMember[] = [];
@@ -2455,6 +2484,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
   function openAdd() {
     setFormName("");
     setFormRoles(["data_entry_tech"]);
+    setFormRoleDates({});
     setEditingId(null);
     setShowAddForm(true);
   }
@@ -2462,22 +2492,44 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
   function openEdit(member: StaffMember) {
     setFormName(member.name);
     setFormRoles(member.roles);
+    const dates: Record<string, { startDate: string; endDate: string }> = {};
+    if (member.roleAssignments) {
+      for (const ra of member.roleAssignments) {
+        if (ra.startDate || ra.endDate) {
+          dates[ra.role] = { startDate: ra.startDate ?? "", endDate: ra.endDate ?? "" };
+        }
+      }
+    }
+    setFormRoleDates(dates);
     setEditingId(member.id);
     setShowAddForm(true);
   }
 
   function handleSaveMember() {
     if (!formName.trim() || formRoles.length === 0) return;
+
+    const roleAssignments: RoleAssignment[] = formRoles.map((r) => {
+      const d = formRoleDates[r];
+      return {
+        role: r,
+        startDate: d?.startDate || undefined,
+        endDate: d?.endDate || undefined,
+      };
+    });
+    const hasAnyDates = roleAssignments.some((ra) => ra.startDate || ra.endDate);
+
+    const updatedMember: StaffMember = {
+      id: editingId ?? generateId(),
+      name: formName.trim(),
+      roles: formRoles,
+      roleAssignments: hasAnyDates ? roleAssignments : undefined,
+    };
+
     let updatedMembers: StaffMember[];
     if (editingId) {
-      updatedMembers = roster.members.map((m) =>
-        m.id === editingId ? { ...m, name: formName.trim(), roles: formRoles } : m
-      );
+      updatedMembers = roster.members.map((m) => m.id === editingId ? updatedMember : m);
     } else {
-      updatedMembers = [
-        ...roster.members,
-        { id: generateId(), name: formName.trim(), roles: formRoles },
-      ];
+      updatedMembers = [...roster.members, updatedMember];
     }
     const newRoster: SiteRoster = { siteId, members: updatedMembers };
     saveRoster(newRoster);
@@ -2497,6 +2549,13 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
     setFormRoles((prev) =>
       prev.includes(roleVal) ? prev.filter((r) => r !== roleVal) : [...prev, roleVal]
     );
+  }
+
+  function setRoleDate(role: string, field: "startDate" | "endDate", value: string) {
+    setFormRoleDates((prev) => ({
+      ...prev,
+      [role]: { startDate: "", endDate: "", ...prev[role], [field]: value },
+    }));
   }
 
   return (
@@ -2544,51 +2603,70 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
       {/* Member list */}
       {roster.members.length > 0 && !showAddForm && (
         <div className="divide-y divide-slate-100">
-          {roster.members.map((member) => (
-            <div
-              key={member.id}
-              data-testid={`roster-member-${member.id}`}
-              className="flex items-center gap-3 px-4 py-3 group"
-            >
-              <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold text-slate-500">
-                  {member.name.slice(0, 2).toUpperCase()}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800">{member.name}</p>
-                <div className="flex flex-wrap gap-1 mt-0.5">
-                  {member.roles.map((r) => {
-                    const roleOpt = TECH_ROLE_OPTIONS.find((o) => o.value === r);
-                    return (
-                      <span
-                        key={r}
-                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600"
-                      >
-                        {roleOpt?.label ?? r}
-                      </span>
-                    );
-                  })}
+          {roster.members.map((member) => {
+            const activeRoles = new Set(getActiveRoles(member, today));
+            return (
+              <div
+                key={member.id}
+                data-testid={`roster-member-${member.id}`}
+                className="flex items-center gap-3 px-4 py-3 group"
+              >
+                <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-slate-500">
+                    {member.name.slice(0, 2).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-800">{member.name}</p>
+                  <div className="flex flex-wrap gap-1 mt-0.5">
+                    {member.roles.map((r) => {
+                      const roleOpt = TECH_ROLE_OPTIONS.find((o) => o.value === r);
+                      const ra = member.roleAssignments?.find((a) => a.role === r);
+                      const isActive = activeRoles.has(r);
+                      const status = ra ? getRoleDateStatus(ra, today) : null;
+                      const isDimmed = status?.expired || (!status && !isActive);
+                      return (
+                        <span
+                          key={r}
+                          style={{ opacity: isDimmed ? 0.45 : 1 }}
+                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                            status?.future
+                              ? "bg-amber-50 text-amber-600"
+                              : status?.expired || (!isActive)
+                              ? "bg-slate-100 text-slate-400"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {roleOpt?.label ?? r}
+                          {status?.hint && (
+                            <span className={`font-normal ${status.expired ? "text-slate-400" : status.future ? "text-amber-500" : "text-purple-500"}`}>
+                              · {status.hint}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 invisible group-hover:visible">
+                  <button
+                    onClick={() => openEdit(member)}
+                    className="p-1.5 rounded text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                    title="Edit member"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleRemoveMember(member.id)}
+                    className="p-1.5 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    title="Remove member"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-1 invisible group-hover:visible">
-                <button
-                  onClick={() => openEdit(member)}
-                  className="p-1.5 rounded text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                  title="Edit member"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleRemoveMember(member.id)}
-                  className="p-1.5 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                  title="Remove member"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           <div className="px-4 py-2 flex justify-end">
             <button
               onClick={openAdd}
@@ -2637,6 +2715,51 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
               ))}
             </div>
           </div>
+
+          {/* Per-role date ranges — only shown when at least one role is selected */}
+          {formRoles.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+                Temporary Assignments{" "}
+                <span className="normal-case font-normal text-slate-400">
+                  (optional — leave blank for permanent)
+                </span>
+              </p>
+              <div className="space-y-2">
+                {formRoles.map((roleVal) => {
+                  const roleOpt = TECH_ROLE_OPTIONS.find((o) => o.value === roleVal);
+                  const dates = formRoleDates[roleVal] ?? { startDate: "", endDate: "" };
+                  return (
+                    <div key={roleVal} className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500 w-28 shrink-0 truncate font-medium">
+                        {roleOpt?.label ?? roleVal}
+                      </span>
+                      <div className="flex items-center gap-1 flex-1">
+                        <input
+                          type="date"
+                          value={dates.startDate}
+                          onChange={(e) => setRoleDate(roleVal, "startDate", e.target.value)}
+                          data-testid={`roster-role-start-${roleVal}`}
+                          title="Start date (optional)"
+                          className="flex-1 min-w-0 text-xs rounded border border-slate-200 px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-300"
+                        />
+                        <span className="text-slate-300 text-xs shrink-0">→</span>
+                        <input
+                          type="date"
+                          value={dates.endDate}
+                          onChange={(e) => setRoleDate(roleVal, "endDate", e.target.value)}
+                          data-testid={`roster-role-end-${roleVal}`}
+                          title="End date (optional)"
+                          className="flex-1 min-w-0 text-xs rounded border border-slate-200 px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-300"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 justify-end pt-1">
             <button
               onClick={() => { setShowAddForm(false); setEditingId(null); }}
