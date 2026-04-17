@@ -4453,6 +4453,13 @@ export default function TaskManager() {
   const filteredVisible = categoryFilter === "all"
     ? visible
     : visible.filter((t) => t.category === categoryFilter);
+
+  // Priority alerts: directors see all; non-directors see only those on tasks
+  // they can actually act on (their own role tasks + cross-assigned tasks).
+  const visibleTaskIds = useMemo(() => new Set(visible.map((t) => t.id)), [visible]);
+  const relevantPriorities = isDir
+    ? activePriorities
+    : activePriorities.filter((p) => visibleTaskIds.has(p.taskId));
   const roleGroups = buildRoleGroups(filteredVisible, viewingRole, profile.role);
   const totalTasks = filteredVisible.length;
   const doneTasks = filteredVisible.filter((t) => completions.has(t.id)).length;
@@ -4467,8 +4474,8 @@ export default function TaskManager() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Priority alert banner — Pharmacy Director only */}
-      {isPharmDir && activePriorities.length > 0 && (
+      {/* Priority alert banner — Pharmacy Directors see all; staff see alerts on tasks they own */}
+      {relevantPriorities.length > 0 && (isPharmDir || !isDir) && (
         <div
           data-testid="priority-alert-banner"
           className="bg-amber-50 border-b border-amber-200 px-6 py-3"
@@ -4479,10 +4486,10 @@ export default function TaskManager() {
                 <Bell className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold text-amber-900">
-                    {activePriorities.length} priority alert{activePriorities.length !== 1 ? "s" : ""} from leadership
+                    {relevantPriorities.length} priority alert{relevantPriorities.length !== 1 ? "s" : ""} from leadership
                   </p>
                   <div className="mt-1 space-y-1">
-                    {activePriorities.map((p) => (
+                    {relevantPriorities.map((p) => (
                       <div key={p.taskId} className="flex items-start gap-2">
                         <Flag className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
                         <div className="flex-1">
@@ -4494,26 +4501,30 @@ export default function TaskManager() {
                             — {p.prioritizedBy}
                           </span>
                         </div>
-                        <button
-                          data-testid={`button-dismiss-priority-${p.taskId}`}
-                          onClick={() => handleDismissPriority(p.taskId)}
-                          className="shrink-0 text-amber-400 hover:text-amber-700 transition-colors"
-                          title="Dismiss alert"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                        {isPharmDir && (
+                          <button
+                            data-testid={`button-dismiss-priority-${p.taskId}`}
+                            onClick={() => handleDismissPriority(p.taskId)}
+                            className="shrink-0 text-amber-400 hover:text-amber-700 transition-colors"
+                            title="Dismiss alert"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
-              <button
-                data-testid="button-dismiss-all-priorities"
-                onClick={handleDismissAllPriorities}
-                className="text-xs font-medium text-amber-600 hover:text-amber-800 transition-colors shrink-0"
-              >
-                Dismiss all
-              </button>
+              {isPharmDir && (
+                <button
+                  data-testid="button-dismiss-all-priorities"
+                  onClick={handleDismissAllPriorities}
+                  className="text-xs font-medium text-amber-600 hover:text-amber-800 transition-colors shrink-0"
+                >
+                  Dismiss all
+                </button>
+              )}
             </div>
           </div>
         </div>
