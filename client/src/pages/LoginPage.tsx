@@ -254,11 +254,11 @@ export default function LoginPage() {
                     data-testid="btn-autofill-demo"
                     className="text-purple-600 hover:underline font-medium"
                     onClick={() => {
-                      setEmail("test@koheez.ai");
-                      setPassword("Koheez1");
+                      setEmail("director@koheez.ai");
+                      setPassword("AHF1");
                     }}
                   >
-                    test@koheez.ai
+                    director@koheez.ai
                   </button>
                 </p>
               )}

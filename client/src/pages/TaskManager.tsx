@@ -2625,23 +2625,27 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
                       const isActive = activeRoles.has(r);
                       const status = ra ? getRoleDateStatus(ra, today) : null;
                       const isDimmed = status?.expired || (!status && !isActive);
+                      const hintColor = status?.expired
+                        ? "text-slate-400"
+                        : status?.future
+                        ? "text-amber-500"
+                        : "text-purple-500";
                       return (
                         <span
                           key={r}
+                          data-testid={`roster-badge-${member.id}-${r}`}
                           style={{ opacity: isDimmed ? 0.45 : 1 }}
-                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                          className={`inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                             status?.future
                               ? "bg-amber-50 text-amber-600"
-                              : status?.expired || (!isActive)
+                              : status?.expired || !isActive
                               ? "bg-slate-100 text-slate-400"
                               : "bg-slate-100 text-slate-600"
                           }`}
                         >
                           {roleOpt?.label ?? r}
                           {status?.hint && (
-                            <span className={`font-normal ${status.expired ? "text-slate-400" : status.future ? "text-amber-500" : "text-purple-500"}`}>
-                              · {status.hint}
-                            </span>
+                            <span className={`font-normal ml-0.5 ${hintColor}`}>· {status.hint}</span>
                           )}
                         </span>
                       );
@@ -2959,11 +2963,31 @@ function AssignDialog({
   onSave: (a: TaskAssignment) => void;
   onClose: () => void;
 }) {
+  const today = getTodayDateKey();
+  const roster = useMemo(() => loadRoster(siteId), [siteId]);
+
+  // Build a map: roleKey → active member names (respects date-bounded assignments)
+  const activeByRole = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const member of roster.members) {
+      const activeRoles = getActiveRoles(member, today);
+      for (const role of activeRoles) {
+        const existing = map.get(role) ?? [];
+        map.set(role, [...existing, member.name]);
+      }
+    }
+    return map;
+  }, [roster, today]);
+
   const [selectedRole, setSelectedRole] = useState<string>("pharmacist_1");
   const [specificPerson, setSpecificPerson] = useState("");
   const [note, setNote] = useState("");
 
   const roleOptions = Object.entries(ROLE_CONFIG).filter(([k]) => k !== "director");
+
+  function handleRoleSelect(roleKey: string) {
+    setSelectedRole(roleKey);
+  }
 
   return (
     <div
@@ -2993,20 +3017,35 @@ function AssignDialog({
               Assign to Role
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {roleOptions.map(([roleKey, cfg]) => (
-                <button
-                  key={roleKey}
-                  onClick={() => setSelectedRole(roleKey)}
-                  data-testid={`assign-role-${roleKey}`}
-                  className={`text-left px-3 py-2 rounded-md text-sm border transition-all ${
-                    selectedRole === roleKey
-                      ? "border-purple-500 bg-purple-50 text-purple-800 font-semibold"
-                      : "border-slate-200 text-slate-600 hover:border-slate-300"
-                  }`}
-                >
-                  {cfg.label}
-                </button>
-              ))}
+              {roleOptions.map(([roleKey, cfg]) => {
+                const activeNames = activeByRole.get(roleKey) ?? [];
+                const hasRosterData = roster.members.length > 0;
+                return (
+                  <button
+                    key={roleKey}
+                    onClick={() => handleRoleSelect(roleKey)}
+                    data-testid={`assign-role-${roleKey}`}
+                    className={`text-left px-3 py-2 rounded-md text-sm border transition-all ${
+                      selectedRole === roleKey
+                        ? "border-purple-500 bg-purple-50 text-purple-800 font-semibold"
+                        : "border-slate-200 text-slate-600 hover:border-slate-300"
+                    }`}
+                  >
+                    <span className="block">{cfg.label}</span>
+                    {hasRosterData && (
+                      <span className={`block text-[10px] font-normal mt-0.5 ${
+                        activeNames.length > 0
+                          ? selectedRole === roleKey ? "text-purple-500" : "text-slate-400"
+                          : "text-slate-300"
+                      }`}>
+                        {activeNames.length > 0
+                          ? activeNames.length === 1 ? activeNames[0] : `${activeNames.length} members`
+                          : "No coverage today"}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div>
@@ -3014,6 +3053,24 @@ function AssignDialog({
               Specific Staff Member{" "}
               <span className="normal-case font-normal text-slate-400">(optional — overrides role)</span>
             </p>
+            {activeByRole.get(selectedRole) && (activeByRole.get(selectedRole)?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {(activeByRole.get(selectedRole) ?? []).map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setSpecificPerson(name)}
+                    className={`text-xs px-2 py-0.5 rounded border transition-all ${
+                      specificPerson === name
+                        ? "border-purple-400 bg-purple-50 text-purple-700 font-semibold"
+                        : "border-slate-200 text-slate-500 hover:border-slate-300"
+                    }`}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
             <input
               type="text"
               value={specificPerson}
@@ -4293,7 +4350,23 @@ export default function TaskManager() {
     : null;
   const displaySiteName = drillSite?.name ?? profile.siteName;
 
-  const extraRoles = profile.taskRoles as string[] | undefined;
+  // Derive extra roles from profile, filtered by today's active roster assignments
+  // if the logged-in user has a matching roster entry with date-bounded assignments.
+  const extraRoles = useMemo((): string[] | undefined => {
+    const rawRoles = profile.taskRoles as string[] | undefined;
+    if (!rawRoles || rawRoles.length === 0) return rawRoles;
+    const rosterForSite = loadRoster(siteId);
+    if (rosterForSite.members.length === 0) return rawRoles;
+    const todayKey = getTodayDateKey();
+    const rosterMember = rosterForSite.members.find(
+      (m) => m.name.toLowerCase().trim() === profile.name.toLowerCase().trim()
+    );
+    if (!rosterMember || !rosterMember.roleAssignments) return rawRoles;
+    // Filter extra roles to only those with active date-bounded assignments
+    const activeRoles = new Set(getActiveRoles(rosterMember, todayKey));
+    return rawRoles.filter((r) => activeRoles.has(r));
+  }, [profile, siteId]);
+
   const baseVisible = getVisibleTasks(frequency, profile.role, viewingRole, extraRoles);
   // Merge in custom tasks that match the current frequency and role view.
   // Mirror getVisibleTasks semantics exactly: director tasks are only visible
