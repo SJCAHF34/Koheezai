@@ -83,6 +83,7 @@ import {
 } from "@/lib/taskStorage";
 import type { RetentionPatient, RetentionIssueType, RetentionStatus, AttemptLogEntry } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { toast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { CreateTaskModal } from "@/components/CreateTaskModal";
 import {
@@ -2507,6 +2508,16 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
 
   function handleSaveMember() {
     if (!formName.trim() || formRoles.length === 0) return;
+
+    // Validate date ranges: start must be before end when both are present
+    const invalidRanges = formRoles.filter((r) => {
+      const d = formRoleDates[r];
+      return d?.startDate && d?.endDate && d.startDate > d.endDate;
+    });
+    if (invalidRanges.length > 0) {
+      toast({ title: "Invalid date range", description: "Start date must be before end date.", variant: "destructive" });
+      return;
+    }
 
     const roleAssignments: RoleAssignment[] = formRoles.map((r) => {
       const d = formRoleDates[r];
