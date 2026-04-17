@@ -119,9 +119,11 @@ export default function LandingPage() {
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6 text-slate-900">
             Your tasks, your team,{" "}
-            <span className="whitespace-nowrap bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #3b82f6, #9333ea)" }}>your patients</span>
-            <br />
-            <span className="text-slate-900">one platform.</span>
+            <span className="whitespace-nowrap">
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #3b82f6, #9333ea)" }}>your patients,</span>
+              {" "}
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #9333ea, #ef4444)" }}>one platform.</span>
+            </span>
           </h1>
           <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
             Koheez.ai brings daily task management, ACHC compliance tracking, patient
