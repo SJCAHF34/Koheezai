@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Activity, Shield, Pill, HeartHandshake, ArrowRight, CheckCircle, Zap, Users, BookOpen } from "lucide-react";
+import { Activity, Shield, HeartHandshake, ArrowRight, CheckCircle, Zap, Users, BarChart2, ListChecks, ClipboardCheck } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 const CTA_GRADIENT  = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
@@ -19,61 +19,61 @@ function KoheezLogo({ className = "" }: { className?: string }) {
 
 const features = [
   {
-    icon: Zap,
-    title: "AI That Reads Your Portals Context",
+    icon: ListChecks,
+    title: "Daily Task Management",
     description:
-      "Pull patient data from your portals into AI-powered assessments instantly. No re-entry — Koheez.ai bridges your chart and your clinical thinking.",
+      "Assign and track tasks across your pharmacy team. See what's complete, what's overdue, and what needs your attention — every single day.",
   },
   {
-    icon: Shield,
-    title: "Connected Drug Interaction Screening",
+    icon: ClipboardCheck,
+    title: "ACHC Compliance Workbook",
     description:
-      "Automatically cross-reference the full medication list from the EHR against ARV regimens. Catch interactions without toggling between systems.",
-  },
-  {
-    icon: Pill,
-    title: "Regimen Builder Tied to the Chart",
-    description:
-      "Build or switch ARV regimens with full context from the patient's chart — labs, diagnoses, current meds — all in one connected workflow.",
+      "Stay audit-ready with a built-in workbook covering every ACHC standard. Know where your site stands and close compliance gaps before the assessor arrives.",
   },
   {
     icon: HeartHandshake,
-    title: "Patient Communications, Ready to Send",
+    title: "Patient Assistance Programs",
     description:
-      "Generate plain-language medication counseling summaries and assistance program referrals that can be sent directly to patients or documented in the chart.",
+      "32+ HIV manufacturer assistance programs with direct enrollment links. Help your patients get their medications covered and reduce dispensing gaps at your site.",
   },
   {
-    icon: BookOpen,
-    title: "AI + Evidence, Side by Side",
+    icon: Zap,
+    title: "AI Clinical Assessment Tools",
     description:
-      "Koheez.ai pairs OpenEvidence's peer-reviewed citations with AI synthesis so every recommendation is backed by literature and ready to document.",
+      "AI-powered ARV assessments with drug interaction screening, regimen building, and evidence-backed recommendations — ready for your pharmacist team to use with every patient.",
+  },
+  {
+    icon: BarChart2,
+    title: "Store Performance Dashboard",
+    description:
+      "See your site's key metrics in one place: task completion rates, at-risk patients, category scores, and performance trends over time.",
   },
   {
     icon: Users,
-    title: "One Hub for Every Clinical Tool",
+    title: "Regional & National Visibility",
     description:
-      "Ramsell, UpToDate, and OpenEvidence — connected through a single interface so your team stops switching tabs and starts closing loops.",
+      "RPDs and the CPO can monitor completion and performance across every site in their footprint — so pharmacy directors stay aligned with network priorities.",
   },
 ];
 
 const steps = [
   {
     number: "01",
-    title: "Connect your patient's chart",
+    title: "Start your day with a clear picture",
     description:
-      "Open a patient in your EHR and bring their demographics, labs, and medications into Koheez.ai in seconds — no copy-paste required.",
+      "Open your site dashboard and see today's tasks, any compliance gaps, and your team's completion rate. No digging through spreadsheets.",
   },
   {
     number: "02",
-    title: "Let AI and evidence do the work",
+    title: "Take action where it matters",
     description:
-      "Koheez.ai screens interactions, validates organ function, and generates an AI assessment grounded in peer-reviewed literature.",
+      "Assign tasks to your team, enroll patients in assistance programs, or run an AI clinical assessment — all from the same platform.",
   },
   {
     number: "03",
-    title: "Communicate and document",
+    title: "Stay ready for every audit",
     description:
-      "Send patient-friendly counseling notes, log consultation findings back to the chart, and close the loop — all from one place.",
+      "The ACHC workbook tracks every standard in real time so your site is always prepared, not just when a review is scheduled.",
   },
 ];
 
@@ -108,7 +108,6 @@ export default function LandingPage() {
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden pt-24 pb-28 px-6 bg-white">
-        {/* Subtle gradient wash behind hero */}
         <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
           style={{ backgroundImage: CTA_GRADIENT }}
@@ -116,19 +115,17 @@ export default function LandingPage() {
         <div className="relative max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full text-xs font-semibold tracking-wide uppercase border border-purple-200 bg-purple-50 text-purple-700">
             <Activity className="w-3 h-3 text-purple-500 shrink-0" />
-            EHR · AI · Patient Communications — Connected
+            Task Management · ACHC Compliance · AI Tools — Built for AHF Pharmacy Directors
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6 text-slate-900">
-            Your Portals, your AI,{" "}
-            <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #3b82f6, #9333ea)" }}>your Patients</span>
-            <span className="text-slate-700"> —</span>
-            <br />
-            <span className="text-slate-900">one platform.</span>
+            Run a tighter pharmacy.{" "}
+            <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #3b82f6, #9333ea)" }}>Keep your team</span>
+            <span className="text-slate-700"> on track.</span>
           </h1>
           <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Koheez.ai connects your EHR, AI-powered clinical tools, and patient
-            communications into a single workflow — so HIV pharmacists spend less time
-            switching systems and more time with patients.
+            Koheez.ai gives AHF pharmacy directors one place to manage daily tasks,
+            track ACHC compliance, support patients with assistance programs, and run
+            AI-powered clinical assessments — without juggling separate systems.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/login?tab=signup">
@@ -152,7 +149,7 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-14 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-slate-400">
-            {["No setup required", "HIPAA-conscious workflow", "OpenEvidence ready", "32+ ARV assistance programs"].map((t) => (
+            {["Daily task accountability", "ACHC-ready workbook", "32+ PAP programs", "AI-powered clinical tools"].map((t) => (
               <span key={t} className="flex items-center gap-1.5">
                 <CheckCircle className="w-3.5 h-3.5 text-purple-500" />
                 {t}
@@ -167,10 +164,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-slate-900">
-              Everything your HIV consult needs
+              Everything a pharmacy director needs
             </h2>
             <p className="text-slate-500 text-lg max-w-xl mx-auto">
-              Purpose-built for clinical pharmacists managing HIV patients in complex polypharmacy environments.
+              Purpose-built for AHF pharmacy directors managing HIV care operations, compliance, and clinical quality.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -198,10 +195,10 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-              From intake to assessment in minutes
+              A workflow built for your day
             </h2>
             <p className="text-slate-500 text-lg max-w-xl mx-auto">
-              A streamlined three-step workflow designed around how pharmacists actually work.
+              From morning check-in to audit prep — Koheez.ai fits how pharmacy directors actually work.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -228,10 +225,11 @@ export default function LandingPage() {
           style={{ backgroundImage: CTA_GRADIENT }}
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-5 text-white">
-            Ready to elevate your HIV consultations?
+            Finally, one platform that runs with you — not against you.
           </h2>
           <p className="text-white/80 text-lg mb-8">
-            Join pharmacists using Koheez.ai to deliver faster, more evidence-based HIV care.
+            Koheez.ai gives pharmacy directors the tools to manage daily operations,
+            serve patients better, and stay ahead of compliance — without the chaos.
           </p>
           <Link href="/login?tab=signup">
             <button
@@ -250,7 +248,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <KoheezLogo className="text-base" />
           <p className="text-slate-400 text-xs">
-            For clinical pharmacist use only. Not a substitute for professional clinical judgment.
+            For pharmacy director and clinical staff use. Not a substitute for professional clinical judgment.
           </p>
         </div>
       </footer>
