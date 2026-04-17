@@ -228,11 +228,11 @@ export default function LandingPage() {
           style={{ backgroundImage: CTA_GRADIENT }}
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-5 text-white">
-            Finally, one platform that runs with you — not against you.
+            When your tools work together, so does your pharmacy.
           </h2>
           <p className="text-white/80 text-lg mb-8">
-            Koheez.ai gives pharmacy directors the tools to manage daily operations,
-            serve patients better, and stay ahead of compliance — without the chaos.
+            Koheez.ai unifies task management, compliance tracking, patient assistance,
+            and clinical tools — so your whole operation moves as one and nothing falls through the cracks.
           </p>
           <Link href="/login?tab=signup">
             <button
