@@ -115,17 +115,16 @@ export default function LandingPage() {
         <div className="relative max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full text-xs font-semibold tracking-wide uppercase border border-purple-200 bg-purple-50 text-purple-700">
             <Activity className="w-3 h-3 text-purple-500 shrink-0" />
-            Task Management · ACHC Compliance · AI Tools — Built for AHF Pharmacy Directors
+            Built for AHF Pharmacy Directors
           </div>
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6 text-slate-900">
-            Run a tighter pharmacy.{" "}
-            <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #3b82f6, #9333ea)" }}>Keep your team</span>
-            <span className="text-slate-700"> on track.</span>
+            Stop keeping it{" "}
+            <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #3b82f6, #9333ea)" }}>all in your head.</span>
           </h1>
           <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Koheez.ai gives AHF pharmacy directors one place to manage daily tasks,
-            track ACHC compliance, support patients with assistance programs, and run
-            AI-powered clinical assessments — without juggling separate systems.
+            Pharmacy directors carry a lot — daily tasks, ACHC standards, patient assistance,
+            clinical reviews. Koheez.ai holds all of it for you, so nothing slips and
+            you don't have to mentally track what's next.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/login?tab=signup">
