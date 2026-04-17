@@ -4423,7 +4423,33 @@ export default function TaskManager() {
     // Specific role view (director drilling into a staff role)
     return ct.role === (viewingRole as string) || ct.role === "all_staff";
   });
-  const visible = [...baseVisible, ...relevantCustom];
+  // For non-directors: pull in tasks from OTHER roles that a director has
+  // explicitly cross-assigned to this user's role for today.
+  // A task originally belonging to "data_entry_tech" that is assigned to
+  // "pharmacist_1" should appear in the pharmacist's task list that day.
+  const crossAssigned: PharmacyTask[] = [];
+  if (!isDir && viewingRole === "own") {
+    const userRoles = new Set<string>(extraRoles && extraRoles.length > 0 ? extraRoles : [profile.role]);
+    const byFreq = TASKS.filter((t) => t.frequency === frequency && !t.hidden);
+    for (const task of byFreq) {
+      // Skip tasks already visible via the user's own roles
+      if (userRoles.has(task.role) || task.role === "all_staff") continue;
+      const a = assignments.get(task.id);
+      if (a && userRoles.has(a.assignedToRole)) {
+        crossAssigned.push(task);
+      }
+    }
+    // Also include cross-assigned custom tasks
+    for (const ct of customTasks) {
+      if (userRoles.has(ct.role) || ct.role === "all_staff") continue;
+      const a = assignments.get(ct.id);
+      if (a && userRoles.has(a.assignedToRole)) {
+        crossAssigned.push(ct);
+      }
+    }
+  }
+
+  const visible = [...baseVisible, ...relevantCustom, ...crossAssigned];
   const filteredVisible = categoryFilter === "all"
     ? visible
     : visible.filter((t) => t.category === categoryFilter);
