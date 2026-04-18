@@ -130,6 +130,100 @@ const assessmentRequestSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ── Public crawlable info routes (must be before Vite catch-all) ─────────
+  const KOHEEZ_INFO = {
+    name: "Koheez.ai",
+    tagline: "Clinical decision support and operational management for AHF HIV pharmacy leadership.",
+    description:
+      "Koheez.ai gives Pharmacy Directors, Regional Pharmacy Directors, and the Chief Pharmacy Officer at AIDS Healthcare Foundation (AHF) a single place to run their HIV pharmacies — covering daily operational tasks, regional and national dashboards, ACHC accreditation work, patient assistance programs, store performance, AI-assisted clinical assessments, and structured AI performance reviews.",
+    audience: [
+      "Pharmacy Directors (PDs)",
+      "Regional Pharmacy Directors (RPDs)",
+      "Chief Pharmacy Officer (CPO)",
+      "Pharmacists",
+      "Pharmacy Technicians",
+    ],
+    features: [
+      { name: "Task Manager", description: "Role-based daily, weekly, and monthly tasks for directors, pharmacists, and technicians, with cross-role priority alerts." },
+      { name: "Treatment Assessor", description: "AI-powered HIV and PrEP regimen review with drug-drug interaction checking, renal/hepatic guidance, and OpenEvidence-backed clinical notes." },
+      { name: "ACHC Workbook", description: "Accreditation tracking and document vault for ACHC compliance." },
+      { name: "Patient Assistance Programs", description: "Quick links and workflows for ADAP, manufacturer copay programs, and patient assistance." },
+      { name: "Store Performance", description: "Regional and national dashboards covering script volume, revenue, retention, and operational KPIs by store." },
+      { name: "AI Performance Evaluator", description: "Structured AI-assisted reviews of pharmacy and staff performance." },
+      { name: "Retention Tracker", description: "Patient retention outreach with automated multi-day email and SMS sequences." },
+    ],
+  };
+
+  app.get("/api/info", (_req, res) => {
+    res.set("Cache-Control", "public, max-age=300");
+    res.json(KOHEEZ_INFO);
+  });
+
+  app.get("/about", (_req, res) => {
+    const featuresHtml = KOHEEZ_INFO.features
+      .map((f) => `        <li><strong>${f.name}</strong> — ${f.description}</li>`)
+      .join("\n");
+    const audienceHtml = KOHEEZ_INFO.audience
+      .map((a) => `        <li>${a}</li>`)
+      .join("\n");
+    const html = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About Koheez.ai — Clinical Decision Support &amp; Operations for HIV Pharmacy Leadership</title>
+    <meta name="description" content="${KOHEEZ_INFO.tagline} ${KOHEEZ_INFO.description}" />
+    <meta name="robots" content="index,follow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Koheez.ai" />
+    <meta property="og:title" content="About Koheez.ai" />
+    <meta property="og:description" content="${KOHEEZ_INFO.tagline}" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="About Koheez.ai" />
+    <meta name="twitter:description" content="${KOHEEZ_INFO.tagline}" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif; max-width: 760px; margin: 2.5rem auto; padding: 0 1.25rem; color: #1a1a1a; line-height: 1.55; }
+      h1 { font-size: 2rem; margin-bottom: 0.25rem; }
+      h2 { font-size: 1.2rem; margin-top: 2rem; }
+      .tagline { color: #555; font-size: 1.05rem; margin-top: 0; }
+      ul { padding-left: 1.25rem; }
+      li { margin-bottom: 0.5rem; }
+      a { color: #0b5fff; }
+      footer { margin-top: 2.5rem; color: #888; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Koheez.ai</h1>
+      <p class="tagline">${KOHEEZ_INFO.tagline}</p>
+    </header>
+    <section>
+      <h2>What it is</h2>
+      <p>${KOHEEZ_INFO.description}</p>
+    </section>
+    <section>
+      <h2>Key product areas</h2>
+      <ul>
+${featuresHtml}
+      </ul>
+    </section>
+    <section>
+      <h2>Who it's for</h2>
+      <ul>
+${audienceHtml}
+      </ul>
+    </section>
+    <footer>
+      <p><a href="/">Open the Koheez.ai app</a> · <a href="/api/info">Machine-readable summary (JSON)</a></p>
+    </footer>
+  </body>
+</html>`;
+    res.set("Content-Type", "text/html; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=300");
+    res.send(html);
+  });
+
   // ── Auth routes ──────────────────────────────────────────────────────────
   app.get("/api/auth/me", (req, res) => {
     if (req.session?.userId && req.session?.user) {
