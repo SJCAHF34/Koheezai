@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
+import fs from "fs";
+import path from "path";
+import { createRequire } from "module";
 import type { RetentionPatient } from "@shared/schema";
 import OpenAI from "openai";
 import { checkDrugInteractions } from "./lib/drugInteractions";
@@ -153,6 +156,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
       { name: "Retention Tracker", description: "Patient retention outreach with automated multi-day email and SMS sequences." },
     ],
   };
+
+  // Resolve the bundle/style asset tags once at startup.
+  // - In production, parse the built dist/public/index.html for the hashed
+  //   `<script>` and `<link rel="stylesheet">` tags Vite emitted.
+  // - In development, point at Vite's dev client + the unhashed entry module
+  //   so HMR continues to work.
+  const isProd = process.env.NODE_ENV === "production";
+  let bundleTags = "";
+  if (isProd) {
+    try {
+      const distIndexPath = path.resolve(import.meta.dirname, "public", "index.html");
+      const distHtml = fs.readFileSync(distIndexPath, "utf-8");
+      const scriptMatches = distHtml.match(/<script[^>]*src="\/assets\/[^"]+"[^>]*>\s*<\/script>/g) || [];
+      const styleMatches = distHtml.match(/<link[^>]*rel="stylesheet"[^>]*href="\/assets\/[^"]+"[^>]*>/g) || [];
+      bundleTags = [...styleMatches, ...scriptMatches].join("\n    ");
+    } catch (e) {
+      console.warn("[routes] Could not read dist/public/index.html for bundle tags:", e);
+      bundleTags = "";
+    }
+  } else {
+    // Vite dev: include the @vitejs/plugin-react preamble (normally injected
+    // by vite.transformIndexHtml) so React Refresh / Fast Refresh works and
+    // the SPA mounts correctly.
+    bundleTags = [
+      `<script type="module">`,
+      `      import RefreshRuntime from "/@react-refresh"`,
+      `      RefreshRuntime.injectIntoGlobalHook(window)`,
+      `      window.$RefreshReg$ = () => {}`,
+      `      window.$RefreshSig$ = () => (type) => type`,
+      `      window.__vite_plugin_react_preamble_installed__ = true`,
+      `    </script>`,
+      `    <script type="module" src="/@vite/client"></script>`,
+      `    <script type="module" src="/src/main.tsx"></script>`,
+    ].join("\n    ");
+  }
+
+  const require = createRequire(import.meta.url);
+  let appVersion = "1.0.0";
+  try {
+    appVersion = (require("../package.json") as { version?: string }).version ?? "1.0.0";
+  } catch {
+    // ignore
+  }
+
+  function buildIndexHtml(): string {
+    const featuresHtml = KOHEEZ_INFO.features
+      .map((f) => `          <li><strong>${f.name}</strong> — ${f.description}</li>`)
+      .join("\n");
+    const audienceText = KOHEEZ_INFO.audience.join(", ");
+
+    return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Koheez.ai — Clinical Decision Support &amp; Operations for HIV Pharmacy Leadership</title>
+    <meta name="description" content="${KOHEEZ_INFO.tagline} ${KOHEEZ_INFO.description}" />
+    <meta name="application-name" content="Koheez.ai" />
+    <meta name="theme-color" content="#0b5fff" />
+    <meta name="robots" content="index,follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Koheez.ai" />
+    <meta property="og:title" content="Koheez.ai — Clinical Decision Support &amp; Operations for HIV Pharmacy Leadership" />
+    <meta property="og:description" content="${KOHEEZ_INFO.tagline}" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Koheez.ai — Clinical Decision Support &amp; Operations for HIV Pharmacy Leadership" />
+    <meta name="twitter:description" content="${KOHEEZ_INFO.tagline}" />
+
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fira+Code:wght@300..700&family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Outfit:wght@100..900&family=Oxanium:wght@200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <script>
+      document.documentElement.classList.add("js-enabled");
+    </script>
+    <style>
+      html.js-enabled #seo-shell,
+      html.app-mounted #seo-shell { display: none !important; }
+    </style>
+    ${bundleTags}
+  </head>
+  <body>
+    <div id="seo-shell">
+      <header>
+        <h1>Koheez.ai</h1>
+        <p><strong>${KOHEEZ_INFO.tagline}</strong></p>
+        <p>${KOHEEZ_INFO.description}</p>
+      </header>
+      <section>
+        <h2>Key product areas</h2>
+        <ul>
+${featuresHtml}
+        </ul>
+      </section>
+      <section>
+        <h2>Who it's for</h2>
+        <p>${audienceText}.</p>
+      </section>
+      <p><a href="/about">Learn more about Koheez.ai</a> · <a href="/info">Machine-readable summary (JSON)</a></p>
+    </div>
+    <div id="root"></div>
+  </body>
+</html>`;
+  }
+
+  app.get("/", (_req, res) => {
+    res.set("Content-Type", "text/html; charset=utf-8");
+    res.set("Cache-Control", "no-cache");
+    res.send(buildIndexHtml());
+  });
+
+  app.get("/info", (_req, res) => {
+    res.set("Cache-Control", "public, max-age=300");
+    res.json({
+      name: KOHEEZ_INFO.name,
+      description: KOHEEZ_INFO.description,
+      features: KOHEEZ_INFO.features,
+      version: appVersion,
+    });
+  });
 
   app.get("/api/info", (_req, res) => {
     res.set("Cache-Control", "public, max-age=300");
