@@ -129,6 +129,7 @@ function buildOePrompt(p: {
   selectedDrugs: string[];
   concomitantMeds: string[];
   additionalNotes?: string;
+  medicationAllergies?: string;
 }): string {
   const lines: string[] = [];
   lines.push(
@@ -155,6 +156,9 @@ function buildOePrompt(p: {
   );
   lines.push(
     `Concomitant Medications: ${p.concomitantMeds.length > 0 ? p.concomitantMeds.join(", ") : "None"}`
+  );
+  lines.push(
+    `Medication Allergies: ${p.medicationAllergies && p.medicationAllergies.trim() ? p.medicationAllergies.trim() : "NKDA"}`
   );
   lines.push("");
   lines.push("Please address:");
@@ -195,6 +199,7 @@ function buildPrepOePrompt(p: {
   selectedDrugs: string[];
   concomitantMeds: string[];
   additionalNotes?: string;
+  medicationAllergies?: string;
 }): string {
   const lines: string[] = [];
   lines.push(
@@ -219,6 +224,9 @@ function buildPrepOePrompt(p: {
   );
   lines.push(
     `Concomitant Medications: ${p.concomitantMeds.length > 0 ? p.concomitantMeds.join(", ") : "None"}`
+  );
+  lines.push(
+    `Medication Allergies: ${p.medicationAllergies && p.medicationAllergies.trim() ? p.medicationAllergies.trim() : "NKDA"}`
   );
   lines.push("");
   lines.push("Please address:");
@@ -251,6 +259,10 @@ function buildPatientContext(p: {
   geneticResistanceNotes?: string;
   additionalNotes?: string;
   prepMode?: boolean;
+  medicationAllergies?: string;
+  emergencyContact?: string;
+  caseManager?: string;
+  patientEmail?: string;
 }): string {
   const lines: string[] = [];
   lines.push(`Assessment Type: ${p.prepMode ? "PrEP" : "HIV Treatment"}`);
@@ -270,6 +282,10 @@ function buildPatientContext(p: {
     lines.push(`ARV Regimen: ${p.selectedDrugs.join(" + ") || "None"}`);
   }
   lines.push(`Concomitant Medications: ${p.concomitantMeds.join(", ") || "None"}`);
+  lines.push(`Medication Allergies: ${p.medicationAllergies && p.medicationAllergies.trim() ? p.medicationAllergies.trim() : "NKDA"}`);
+  if (p.emergencyContact) lines.push(`Emergency Contact: ${p.emergencyContact}`);
+  if (p.caseManager) lines.push(`Case Manager: ${p.caseManager}`);
+  if (p.patientEmail) lines.push(`Patient Email: ${p.patientEmail}`);
   if (!p.prepMode && p.geneticResistanceNotes) lines.push(`Genetic/Resistance Notes: ${p.geneticResistanceNotes}`);
   if (p.additionalNotes && p.additionalNotes.trim()) lines.push(`Additional Notes: ${p.additionalNotes.trim()}`);
   return lines.join("\n");
@@ -322,6 +338,15 @@ export default function AssessmentForm() {
   const [geneticResistanceNotes, setGeneticResistanceNotes] = useState(saved?.geneticResistanceNotes ?? "");
   const [additionalNotes, setAdditionalNotes] = useState(saved?.additionalNotes ?? "");
 
+  // Patient context (allergies + emergency contact + case manager + email)
+  const [medicationAllergies, setMedicationAllergies] = useState(saved?.medicationAllergies ?? "");
+  const [emergencyContactStatus, setEmergencyContactStatus] = useState<"yes" | "no" | "">(saved?.emergencyContactStatus ?? "");
+  const [emergencyContactInfo, setEmergencyContactInfo] = useState(saved?.emergencyContactInfo ?? "");
+  const [caseManagerStatus, setCaseManagerStatus] = useState<"yes" | "no" | "">(saved?.caseManagerStatus ?? "");
+  const [caseManagerInfo, setCaseManagerInfo] = useState(saved?.caseManagerInfo ?? "");
+  const [patientEmailStatus, setPatientEmailStatus] = useState<"yes" | "no" | "">(saved?.patientEmailStatus ?? "");
+  const [patientEmail, setPatientEmail] = useState(saved?.patientEmail ?? "");
+
   // Step 2 result
   const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(saved?.assessmentResult ?? null);
   const [promptCopied, setPromptCopied] = useState(false);
@@ -347,14 +372,22 @@ export default function AssessmentForm() {
       formData: {
         age, pregnancy, hlab5701, treatmentStatus, viralLoad, cd4Count, egfr,
         hepaticFunction, regimenMode, selectedDrugs, currentDrugs, concomitantMeds,
-        geneticResistanceNotes, additionalNotes, oeResponse, comprehensiveNote, assessmentResult,
+        geneticResistanceNotes, additionalNotes,
+        medicationAllergies,
+        emergencyContactStatus, emergencyContactInfo,
+        caseManagerStatus, caseManagerInfo,
+        patientEmailStatus, patientEmail,
+        oeResponse, comprehensiveNote, assessmentResult,
       },
     });
     setLastSaved(new Date());
   }, [
     patientId, age, pregnancy, hlab5701, treatmentStatus, viralLoad, cd4Count, egfr,
     hepaticFunction, regimenMode, selectedDrugs, currentDrugs, concomitantMeds,
-    geneticResistanceNotes, additionalNotes, oeResponse, comprehensiveNote, assessmentResult,
+    geneticResistanceNotes, additionalNotes,
+    medicationAllergies, emergencyContactStatus, emergencyContactInfo,
+    caseManagerStatus, caseManagerInfo, patientEmailStatus, patientEmail,
+    oeResponse, comprehensiveNote, assessmentResult,
   ]);
 
   useEffect(() => {
@@ -473,6 +506,25 @@ export default function AssessmentForm() {
       toast({ title: "Missing Information", description: "Please paste the OpenEvidence response before generating the note.", variant: "destructive" });
       return;
     }
+    if (!medicationAllergies.trim()) {
+      toast({ title: "Allergies Required", description: "Please document medication allergies (or enter NKDA) before generating the note.", variant: "destructive" });
+      return;
+    }
+    if (!emergencyContactStatus || (emergencyContactStatus === "yes" && !emergencyContactInfo.trim())) {
+      toast({ title: "Emergency Contact Required", description: "Please indicate whether the patient has an emergency contact (and provide details if yes).", variant: "destructive" });
+      return;
+    }
+    if (!caseManagerStatus || (caseManagerStatus === "yes" && !caseManagerInfo.trim())) {
+      toast({ title: "Case Manager Required", description: "Please indicate whether the patient works with a case manager (and provide details if yes).", variant: "destructive" });
+      return;
+    }
+    if (!patientEmailStatus || (patientEmailStatus === "yes" && !patientEmail.trim())) {
+      toast({ title: "Email Required", description: "Please indicate whether the patient has an email address (and provide it if yes).", variant: "destructive" });
+      return;
+    }
+    const emergencyContactStr = emergencyContactStatus === "yes" ? emergencyContactInfo.trim() : "None reported";
+    const caseManagerStr = caseManagerStatus === "yes" ? caseManagerInfo.trim() : "Not working with a case manager";
+    const patientEmailStr = patientEmailStatus === "yes" ? patientEmail.trim() : "No email on file";
     const patientCtx = buildPatientContext({
       age, pregnancy, hlab5701, treatmentStatus,
       cd4Count: prepMode ? undefined : cd4Count,
@@ -481,10 +533,14 @@ export default function AssessmentForm() {
       geneticResistanceNotes: prepMode ? undefined : geneticResistanceNotes,
       additionalNotes: additionalNotes || undefined,
       prepMode,
+      medicationAllergies,
+      emergencyContact: emergencyContactStr,
+      caseManager: caseManagerStr,
+      patientEmail: patientEmailStr,
     });
     const oeQuery = prepMode
-      ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes })
-      : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes });
+      ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies })
+      : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies });
     noteMutation.mutate({
       patientContext: patientCtx,
       oeQuery,
@@ -495,8 +551,8 @@ export default function AssessmentForm() {
 
   const handleCopyPrompt = () => {
     const prompt = prepMode
-      ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes })
-      : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes });
+      ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies })
+      : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies });
     navigator.clipboard.writeText(prompt).then(() => {
       setPromptCopied(true);
       setTimeout(() => setPromptCopied(false), 2000);
@@ -514,8 +570,8 @@ export default function AssessmentForm() {
 
 
   const oePrompt = prepMode
-    ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes })
-    : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes });
+    ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies })
+    : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies });
 
   if (!waiverAccepted) {
     return <AssessorWaiver onAccept={() => setWaiverAccepted(true)} />;
@@ -659,6 +715,78 @@ export default function AssessmentForm() {
                     />
                   )}
                 </div>
+
+                {/* Patient Context — allergies + emergency contact + case manager + email */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4 text-muted-foreground" />
+                      Patient Context
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Required before generating the comprehensive note.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    {/* Medication allergies */}
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                        Medication Allergies <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input
+                          type="text"
+                          data-testid="input-medication-allergies"
+                          value={medicationAllergies}
+                          onChange={(e) => setMedicationAllergies(e.target.value)}
+                          placeholder="e.g. Sulfa, Penicillin — or NKDA"
+                          className="flex-1 min-w-[200px] px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
+                        />
+                        <button
+                          type="button"
+                          data-testid="button-allergies-nkda"
+                          onClick={() => setMedicationAllergies("NKDA")}
+                          className="text-xs px-3 py-2 rounded-md border border-slate-300 hover-elevate"
+                        >
+                          NKDA
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Emergency contact */}
+                    <YesNoWithDetail
+                      label="Does the patient have an emergency contact?"
+                      testIdPrefix="emergency-contact"
+                      status={emergencyContactStatus}
+                      onStatusChange={setEmergencyContactStatus}
+                      detail={emergencyContactInfo}
+                      onDetailChange={setEmergencyContactInfo}
+                      detailPlaceholder="Name, relationship, phone number"
+                    />
+
+                    {/* Case manager */}
+                    <YesNoWithDetail
+                      label="Does the patient work with a case manager?"
+                      testIdPrefix="case-manager"
+                      status={caseManagerStatus}
+                      onStatusChange={setCaseManagerStatus}
+                      detail={caseManagerInfo}
+                      onDetailChange={setCaseManagerInfo}
+                      detailPlaceholder="Case manager name and contact"
+                    />
+
+                    {/* Email */}
+                    <YesNoWithDetail
+                      label="Does the patient have an email address?"
+                      testIdPrefix="patient-email"
+                      status={patientEmailStatus}
+                      onStatusChange={setPatientEmailStatus}
+                      detail={patientEmail}
+                      onDetailChange={setPatientEmail}
+                      detailPlaceholder="patient@example.com"
+                    />
+                  </CardContent>
+                </Card>
 
                 {/* Additional Notes */}
                 <Card>
@@ -864,6 +992,67 @@ export default function AssessmentForm() {
 
           </div>
         </main>
+      </div>
+    </div>
+  );
+}
+
+// ── Yes/No with optional detail input ─────────────────────────────────────
+function YesNoWithDetail({
+  label,
+  testIdPrefix,
+  status,
+  onStatusChange,
+  detail,
+  onDetailChange,
+  detailPlaceholder,
+}: {
+  label: string;
+  testIdPrefix: string;
+  status: "yes" | "no" | "";
+  onStatusChange: (v: "yes" | "no") => void;
+  detail: string;
+  onDetailChange: (v: string) => void;
+  detailPlaceholder: string;
+}) {
+  return (
+    <div>
+      <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+        {label} <span className="text-red-500">*</span>
+      </label>
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex rounded-md border border-slate-300 overflow-hidden shrink-0">
+          <button
+            type="button"
+            data-testid={`button-${testIdPrefix}-yes`}
+            onClick={() => onStatusChange("yes")}
+            className={`px-4 py-2 text-xs font-semibold transition-colors ${
+              status === "yes" ? "bg-purple-600 text-white" : "bg-white text-slate-700 hover-elevate"
+            }`}
+          >
+            Yes
+          </button>
+          <button
+            type="button"
+            data-testid={`button-${testIdPrefix}-no`}
+            onClick={() => onStatusChange("no")}
+            className={`px-4 py-2 text-xs font-semibold border-l border-slate-300 transition-colors ${
+              status === "no" ? "bg-purple-600 text-white" : "bg-white text-slate-700 hover-elevate"
+            }`}
+          >
+            No
+          </button>
+        </div>
+        {status === "yes" && (
+          <input
+            type="text"
+            data-testid={`input-${testIdPrefix}-detail`}
+            value={detail}
+            onChange={(e) => onDetailChange(e.target.value)}
+            placeholder={detailPlaceholder}
+            className="flex-1 min-w-[200px] px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
+          />
+        )}
       </div>
     </div>
   );

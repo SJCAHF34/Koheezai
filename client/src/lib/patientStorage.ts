@@ -23,6 +23,13 @@ export interface AssessmentFormData {
   concomitantMeds: string[];
   geneticResistanceNotes: string;
   additionalNotes: string;
+  medicationAllergies?: string;
+  emergencyContactStatus?: "yes" | "no" | "";
+  emergencyContactInfo?: string;
+  caseManagerStatus?: "yes" | "no" | "";
+  caseManagerInfo?: string;
+  patientEmailStatus?: "yes" | "no" | "";
+  patientEmail?: string;
   oeResponse: string;
   comprehensiveNote: string | null;
   assessmentResult: AssessmentResult | null;
