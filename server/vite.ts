@@ -1,12 +1,21 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { createServer as createViteServer, createLogger } from "vite";
+import { createServer as createViteServer, createLogger, type ViteDevServer } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
+
+// Module-level reference to the Vite dev server, populated by setupVite.
+// Route handlers registered before setupVite runs can read this lazily at
+// request time (after the dev server has been created) to delegate HTML
+// transformation to Vite (HMR, plugin preambles, etc.).
+let _viteInstance: ViteDevServer | null = null;
+export function getViteInstance(): ViteDevServer | null {
+  return _viteInstance;
+}
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -40,6 +49,7 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
+  _viteInstance = vite;
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;

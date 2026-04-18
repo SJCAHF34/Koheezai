@@ -17,6 +17,7 @@ import { getUserProfile, isRegionalOrAbove } from "../client/src/lib/userProfile
 import { storage } from "./storage";
 import { runOutreachNow } from "./lib/outreachScheduler";
 import { logRetentionEvent } from "./lib/salesforceClient";
+import { getViteInstance } from "./vite";
 
 declare module "express-session" {
   interface SessionData {
@@ -157,39 +158,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ],
   };
 
-  // Resolve the bundle/style asset tags once at startup.
-  // - In production, parse the built dist/public/index.html for the hashed
-  //   `<script>` and `<link rel="stylesheet">` tags Vite emitted.
-  // - In development, point at Vite's dev client + the unhashed entry module
-  //   so HMR continues to work.
+  // Resolve the production bundle/style asset tags once at startup by parsing
+  // the built dist/public/index.html for the hashed `<script>` and
+  // `<link rel="stylesheet">` tags Vite emitted. In development, the
+  // unhashed `/src/main.tsx` entry is used and the assembled HTML is passed
+  // through `vite.transformIndexHtml` at request time so HMR + plugin
+  // preambles (e.g. React Fast Refresh) keep working.
   const isProd = process.env.NODE_ENV === "production";
-  let bundleTags = "";
+  let prodBundleTags = "";
   if (isProd) {
-    try {
-      const distIndexPath = path.resolve(import.meta.dirname, "public", "index.html");
-      const distHtml = fs.readFileSync(distIndexPath, "utf-8");
-      const scriptMatches = distHtml.match(/<script[^>]*src="\/assets\/[^"]+"[^>]*>\s*<\/script>/g) || [];
-      const styleMatches = distHtml.match(/<link[^>]*rel="stylesheet"[^>]*href="\/assets\/[^"]+"[^>]*>/g) || [];
-      bundleTags = [...styleMatches, ...scriptMatches].join("\n    ");
-    } catch (e) {
-      console.warn("[routes] Could not read dist/public/index.html for bundle tags:", e);
-      bundleTags = "";
+    const distIndexPath = path.resolve(import.meta.dirname, "public", "index.html");
+    const distHtml = fs.readFileSync(distIndexPath, "utf-8");
+    const scriptMatches = distHtml.match(/<script[^>]*src="\/assets\/[^"]+"[^>]*>\s*<\/script>/g) || [];
+    const styleMatches = distHtml.match(/<link[^>]*rel="stylesheet"[^>]*href="\/assets\/[^"]+"[^>]*>/g) || [];
+    prodBundleTags = [...styleMatches, ...scriptMatches].join("\n    ");
+    if (prodBundleTags === "") {
+      throw new Error(
+        `[routes] Could not find production bundle tags in ${distIndexPath}. ` +
+        `Run "npm run build" before starting in production mode.`
+      );
     }
-  } else {
-    // Vite dev: include the @vitejs/plugin-react preamble (normally injected
-    // by vite.transformIndexHtml) so React Refresh / Fast Refresh works and
-    // the SPA mounts correctly.
-    bundleTags = [
-      `<script type="module">`,
-      `      import RefreshRuntime from "/@react-refresh"`,
-      `      RefreshRuntime.injectIntoGlobalHook(window)`,
-      `      window.$RefreshReg$ = () => {}`,
-      `      window.$RefreshSig$ = () => (type) => type`,
-      `      window.__vite_plugin_react_preamble_installed__ = true`,
-      `    </script>`,
-      `    <script type="module" src="/@vite/client"></script>`,
-      `    <script type="module" src="/src/main.tsx"></script>`,
-    ].join("\n    ");
   }
 
   const require = createRequire(import.meta.url);
@@ -200,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // ignore
   }
 
-  function buildIndexHtml(): string {
+  function buildIndexHtml(bundleTags: string): string {
     const featuresHtml = KOHEEZ_INFO.features
       .map((f) => `          <li><strong>${f.name}</strong> — ${f.description}</li>`)
       .join("\n");
@@ -263,10 +251,32 @@ ${featuresHtml}
 </html>`;
   }
 
-  app.get("/", (_req, res) => {
-    res.set("Content-Type", "text/html; charset=utf-8");
-    res.set("Cache-Control", "no-cache");
-    res.send(buildIndexHtml());
+  app.get("/", async (req, res, next) => {
+    try {
+      let html: string;
+      if (isProd) {
+        html = buildIndexHtml(prodBundleTags);
+      } else {
+        // Dev: assemble HTML with the unhashed entry script, then delegate
+        // to Vite's transformIndexHtml so HMR client + plugin preambles
+        // (React Fast Refresh, etc.) are injected by Vite itself.
+        const devEntryTag = `<script type="module" src="/src/main.tsx"></script>`;
+        const rawHtml = buildIndexHtml(devEntryTag);
+        const vite = getViteInstance();
+        if (!vite) {
+          // setupVite hasn't run yet (shouldn't happen by request time);
+          // fall back to the raw HTML so the response is never broken.
+          html = rawHtml;
+        } else {
+          html = await vite.transformIndexHtml(req.originalUrl, rawHtml);
+        }
+      }
+      res.set("Content-Type", "text/html; charset=utf-8");
+      res.set("Cache-Control", "no-cache");
+      res.send(html);
+    } catch (e) {
+      next(e);
+    }
   });
 
   app.get("/info", (_req, res) => {
