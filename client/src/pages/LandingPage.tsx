@@ -107,19 +107,19 @@ export default function LandingPage() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden pt-24 pb-28 px-6 bg-white">
+      <section className="relative overflow-hidden pt-16 sm:pt-24 pb-20 sm:pb-28 px-4 sm:px-6 bg-white">
         <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
           style={{ backgroundImage: CTA_GRADIENT }}
         />
         <div className="relative max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full text-xs font-semibold tracking-wide uppercase border border-purple-200 bg-purple-50 text-purple-700">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-6 sm:mb-8 rounded-full text-[10px] sm:text-xs font-semibold tracking-wide uppercase border border-purple-200 bg-purple-50 text-purple-700 max-w-full">
             <Activity className="w-3 h-3 text-purple-500 shrink-0" />
-            Tasks · Compliance · Patients — One Platform
+            <span className="truncate">Tasks · Compliance · Patients — One Platform</span>
           </div>
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6 text-slate-900">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] sm:leading-[1.08] mb-6 text-slate-900 break-words">
             Your tasks, your team,{" "}
-            <span className="whitespace-nowrap">
+            <span className="sm:whitespace-nowrap">
               <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #3b82f6, #9333ea)" }}>your patients,</span>
               {" "}
               <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #9333ea, #ef4444)" }}>one platform.</span>
