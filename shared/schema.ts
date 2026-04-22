@@ -18,10 +18,12 @@ const dateStringSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD");
 
-export const shiftSchema = z.object({
-  start: timeStringSchema,
-  end: timeStringSchema,
-});
+export const shiftSchema = z
+  .object({
+    start: timeStringSchema,
+    end: timeStringSchema,
+  })
+  .refine((s) => s.start < s.end, { message: "Shift start must be earlier than end" });
 export type Shift = z.infer<typeof shiftSchema>;
 
 export const dailyHoursSchema = z
@@ -29,6 +31,7 @@ export const dailyHoursSchema = z
     open: timeStringSchema,
     close: timeStringSchema,
   })
+  .refine((d) => d.open < d.close, { message: "Open must be earlier than close" })
   .nullable();
 export type DailyHours = z.infer<typeof dailyHoursSchema>;
 
@@ -63,7 +66,7 @@ export type UpsertStaffScheduleDefault = z.infer<
   typeof upsertStaffScheduleDefaultSchema
 >;
 
-export const scheduleEntrySchema = z.object({
+const scheduleEntryShape = {
   id: z.string(),
   siteId: z.string().min(1),
   staffId: z.string().min(1),
@@ -74,13 +77,36 @@ export const scheduleEntrySchema = z.object({
   end: timeStringSchema.optional(),
   note: z.string().optional(),
   updatedAt: z.string(),
-});
+} as const;
+
+const scheduleEntryRefine = (e: { status: ScheduleStatus; start?: string; end?: string }) => {
+  if (e.status === "scheduled") {
+    if (!e.start || !e.end) return false;
+    if (e.start >= e.end) return false;
+  }
+  return true;
+};
+const scheduleEntryRefineMsg = {
+  message: "Scheduled entries require a valid start before end",
+};
+
+export const scheduleEntrySchema = z
+  .object(scheduleEntryShape)
+  .refine(scheduleEntryRefine, scheduleEntryRefineMsg);
 export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
 
-export const upsertScheduleEntrySchema = scheduleEntrySchema.omit({
-  id: true,
-  updatedAt: true,
-});
+export const upsertScheduleEntrySchema = z
+  .object({
+    siteId: scheduleEntryShape.siteId,
+    staffId: scheduleEntryShape.staffId,
+    staffName: scheduleEntryShape.staffName,
+    date: scheduleEntryShape.date,
+    status: scheduleEntryShape.status,
+    start: scheduleEntryShape.start,
+    end: scheduleEntryShape.end,
+    note: scheduleEntryShape.note,
+  })
+  .refine(scheduleEntryRefine, scheduleEntryRefineMsg);
 export type UpsertScheduleEntry = z.infer<typeof upsertScheduleEntrySchema>;
 
 // ── Retention Patient ────────────────────────────────────────────────────────
