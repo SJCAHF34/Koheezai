@@ -763,6 +763,8 @@ export const TASKS: PharmacyTask[] = [
     frequency: "monthly",
     category: "operations",
     taskGroup: "Monthly",
+    url: "/app/scheduling",
+    urlLabel: "Open Team Scheduler",
   },
   {
     id: "dir-m-001",

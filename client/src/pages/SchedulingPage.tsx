@@ -257,6 +257,55 @@ export default function SchedulingPage() {
         </div>
       )}
 
+      {/* Business Hours summary (read-only) */}
+      {siteId && (
+        <Card data-testid="card-hours-summary">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Pharmacy Business Hours
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {hoursQuery.isLoading ? (
+              <div className="text-xs text-muted-foreground">Loading hours…</div>
+            ) : !hoursQuery.data ? (
+              <div className="text-xs text-muted-foreground">
+                No hours configured yet. Use Defaults &amp; Hours to set them.
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                  {WEEKDAY_LABELS.map((label, i) => {
+                    const day = hoursQuery.data!.weekdays[i];
+                    return (
+                      <div
+                        key={i}
+                        className="rounded border bg-muted/30 px-2 py-1.5"
+                        data-testid={`text-hours-day-${i}`}
+                      >
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {label}
+                        </div>
+                        <div className="text-xs font-medium">
+                          {day ? `${day.open}–${day.close}` : <span className="italic text-muted-foreground">Closed</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {hoursQuery.data.holidayClosures.length > 0 && (
+                  <div className="mt-2 text-[11px] text-muted-foreground" data-testid="text-holiday-closures">
+                    <span className="font-medium">Holiday closures:</span>{" "}
+                    {hoursQuery.data.holidayClosures.join(", ")}
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Week navigator */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
