@@ -183,9 +183,7 @@ function AppNav() {
               <NavMenuItem href="/app/cqi-meeting" icon={ClipboardCheck} label="CQI Meeting" testId="nav-cqi-meeting" onClick={close} />
             )}
 
-            {showCQI && (
-              <NavMenuItem href="/app/scheduling" icon={CalendarDays} label="Team Scheduling" testId="nav-scheduling" onClick={close} />
-            )}
+            <NavMenuItem href="/app/scheduling" icon={CalendarDays} label="Team Scheduling" testId="nav-scheduling" onClick={close} />
 
             <NavMenuItem href="/app/patient-assistance" icon={HeartHandshake} label="Patient Assistance" testId="nav-assistance" onClick={close} />
 
@@ -314,9 +312,9 @@ function Router() {
       <Route path="/app/store/:siteId">
         <DirectorProtected component={StoreDashboard} />
       </Route>
-      {/* Team Scheduling — director and above only */}
+      {/* Team Scheduling — directors edit, all authenticated staff view (own site) */}
       <Route path="/app/scheduling">
-        <DirectorProtected component={SchedulingPage} />
+        <Protected component={SchedulingPage} />
       </Route>
       <Route component={NotFound} />
     </Switch>

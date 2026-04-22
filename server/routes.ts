@@ -1137,18 +1137,20 @@ Write in professional clinical language for medical record documentation. Be spe
     const sessionEmail = req.session?.userId;
     if (!sessionEmail) return { ok: false, status: 401, message: "Not authenticated" };
     const profile = getUserProfile(sessionEmail, req.session.user?.name ?? "");
-    if (!isDirectorRole(profile.role)) {
-      return { ok: false, status: 403, message: "Access restricted to pharmacy directors and above." };
-    }
     const region = getAssignedRegion(profile);
-    const canViewSite = (siteId: string) => {
+    const canEditSite = (siteId: string) => {
+      if (!isDirectorRole(profile.role)) return false;
       if (isCPO(profile.role)) return true;
       if (isPharmacyDirector(profile.role)) return profile.siteId === siteId;
       // RPD — same region
       const sr = findStoreRegion(siteId);
       return !!sr && !!region && sr.region === region;
     };
-    const canEditSite = canViewSite;
+    const canViewSite = (siteId: string) => {
+      if (canEditSite(siteId)) return true;
+      // Non-director staff can view the schedule for their own assigned site only.
+      return !!profile.siteId && profile.siteId !== "ALL" && profile.siteId === siteId;
+    };
     return { ok: true, profile, canEditSite, canViewSite };
   }
 
@@ -1156,7 +1158,14 @@ Write in professional clinical language for medical record documentation. Be spe
   app.get("/api/scheduling/sites", (req, res) => {
     const access = getSiteAccess(req);
     if (!access.ok) return res.status(access.status).json({ message: access.message });
-    if (isPharmacyDirector(access.profile.role)) {
+    // PD and non-director site staff: only their own site.
+    if (
+      isPharmacyDirector(access.profile.role) ||
+      !isDirectorRole(access.profile.role)
+    ) {
+      if (!access.profile.siteId || access.profile.siteId === "ALL") {
+        return res.json([]);
+      }
       const region = findStoreRegion(access.profile.siteId)?.region ?? null;
       return res.json([
         {

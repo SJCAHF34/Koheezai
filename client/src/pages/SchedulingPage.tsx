@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/App";
-import { getUserProfile, isPharmacyDirector } from "@/lib/userProfile";
+import { getUserProfile, isPharmacyDirector, isDirectorRole } from "@/lib/userProfile";
 import { loadRoster, type StaffMember } from "@/lib/taskStorage";
 import {
   type PharmacyHours,
@@ -171,6 +171,7 @@ export default function SchedulingPage() {
   const { user } = useAuth();
   const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
   const isPD = profile ? isPharmacyDirector(profile.role) : false;
+  const canEdit = profile ? isDirectorRole(profile.role) : false;
   const { toast } = useToast();
 
   const sitesQuery = useQuery<SiteOption[]>({
@@ -271,7 +272,12 @@ export default function SchedulingPage() {
           <h1 className="text-xl font-semibold">Team Scheduling</h1>
         </div>
         <div className="flex items-center gap-2">
-          {!isPD && sitesQuery.data && sitesQuery.data.length > 0 && (
+          {!canEdit && (
+            <Badge variant="outline" className="text-[10px]" data-testid="badge-view-only">
+              View only
+            </Badge>
+          )}
+          {canEdit && !isPD && sitesQuery.data && sitesQuery.data.length > 0 && (
             <Select value={siteId} onValueChange={setSiteId}>
               <SelectTrigger className="w-[260px]" data-testid="select-site">
                 <SelectValue placeholder="Choose a store" />
@@ -285,16 +291,18 @@ export default function SchedulingPage() {
               </SelectContent>
             </Select>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSettingsOpen(true)}
-            disabled={!siteId}
-            data-testid="button-open-settings"
-          >
-            <Settings className="w-4 h-4 mr-1" />
-            Defaults &amp; Hours
-          </Button>
+          {canEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSettingsOpen(true)}
+              disabled={!siteId}
+              data-testid="button-open-settings"
+            >
+              <Settings className="w-4 h-4 mr-1" />
+              Defaults &amp; Hours
+            </Button>
+          )}
         </div>
       </div>
 
@@ -429,6 +437,7 @@ export default function SchedulingPage() {
               defaults={defaultsQuery.data ?? []}
               entries={entriesQuery.data ?? []}
               onPickDay={(d) => setDayDetail(d)}
+              canEdit={canEdit}
             />
           ) : (
             <div className="overflow-x-auto">
@@ -467,29 +476,43 @@ export default function SchedulingPage() {
                           entriesQuery.data ?? [],
                         );
                         const dateKey = toDateKey(d);
+                        const cellInner = (
+                          <>
+                            <Badge
+                              variant="outline"
+                              className={`block w-full text-[10px] font-medium border ${STATUS_BADGE_CLASS[cell.status]}`}
+                            >
+                              {STATUS_LABEL[cell.status]}
+                            </Badge>
+                            {cell.status === "scheduled" && cell.start && cell.end && (
+                              <div className="text-[10px] mt-1 text-muted-foreground">
+                                {formatTime(cell.start)} – {formatTime(cell.end)}
+                              </div>
+                            )}
+                            {cell.fromDefault && (
+                              <div className="text-[9px] text-muted-foreground italic">default</div>
+                            )}
+                          </>
+                        );
                         return (
                           <td key={i} className="px-1 py-1 text-center align-top">
-                            <button
-                              type="button"
-                              onClick={() => setEditing({ staff, date: d })}
-                              className="w-full rounded border border-transparent hover-elevate active-elevate-2 px-1.5 py-1 text-left"
-                              data-testid={`cell-schedule-${staff.id}-${dateKey}`}
-                            >
-                              <Badge
-                                variant="outline"
-                                className={`block w-full text-[10px] font-medium border ${STATUS_BADGE_CLASS[cell.status]}`}
+                            {canEdit ? (
+                              <button
+                                type="button"
+                                onClick={() => setEditing({ staff, date: d })}
+                                className="w-full rounded border border-transparent hover-elevate active-elevate-2 px-1.5 py-1 text-left"
+                                data-testid={`cell-schedule-${staff.id}-${dateKey}`}
                               >
-                                {STATUS_LABEL[cell.status]}
-                              </Badge>
-                              {cell.status === "scheduled" && cell.start && cell.end && (
-                                <div className="text-[10px] mt-1 text-muted-foreground">
-                                  {formatTime(cell.start)} – {formatTime(cell.end)}
-                                </div>
-                              )}
-                              {cell.fromDefault && (
-                                <div className="text-[9px] text-muted-foreground italic">default</div>
-                              )}
-                            </button>
+                                {cellInner}
+                              </button>
+                            ) : (
+                              <div
+                                className="w-full rounded border border-transparent px-1.5 py-1 text-left"
+                                data-testid={`cell-schedule-${staff.id}-${dateKey}`}
+                              >
+                                {cellInner}
+                              </div>
+                            )}
                           </td>
                         );
                       })}
@@ -540,6 +563,7 @@ export default function SchedulingPage() {
           roster={roster}
           defaults={defaultsQuery.data ?? []}
           entries={entriesQuery.data ?? []}
+          canEdit={canEdit}
           onEditStaff={(staff) => {
             setDayDetail(null);
             setEditing({ staff, date: dayDetail });
@@ -1044,6 +1068,7 @@ function MonthGrid({
   defaults,
   entries,
   onPickDay,
+  canEdit,
 }: {
   monthAnchor: Date;
   days: Date[];
@@ -1052,6 +1077,7 @@ function MonthGrid({
   defaults: StaffScheduleDefault[];
   entries: ScheduleEntry[];
   onPickDay: (d: Date) => void;
+  canEdit: boolean;
 }) {
   const currentMonth = monthAnchor.getMonth();
   const todayKey = toDateKey(new Date());
@@ -1150,6 +1176,7 @@ function DayDetailDialog({
   roster,
   defaults,
   entries,
+  canEdit,
   onEditStaff,
 }: {
   open: boolean;
@@ -1158,6 +1185,7 @@ function DayDetailDialog({
   roster: StaffMember[];
   defaults: StaffScheduleDefault[];
   entries: ScheduleEntry[];
+  canEdit: boolean;
   onEditStaff: (staff: StaffMember) => void;
 }) {
   return (
@@ -1167,7 +1195,11 @@ function DayDetailDialog({
           <DialogTitle>
             {date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
           </DialogTitle>
-          <DialogDescription>Click any staff member to edit their schedule for this day.</DialogDescription>
+          <DialogDescription>
+            {canEdit
+              ? "Click any staff member to edit their schedule for this day."
+              : "Schedule for this day (view only)."}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
           {roster.length === 0 ? (
@@ -1175,14 +1207,8 @@ function DayDetailDialog({
           ) : (
             roster.map((staff) => {
               const cell = computeEffective(date, staff.id, defaults, entries);
-              return (
-                <button
-                  key={staff.id}
-                  type="button"
-                  onClick={() => onEditStaff(staff)}
-                  className="w-full flex items-center justify-between gap-3 rounded border px-3 py-2 text-left hover-elevate active-elevate-2"
-                  data-testid={`row-day-staff-${staff.id}`}
-                >
+              const inner = (
+                <>
                   <div className="min-w-0">
                     <div className="text-sm font-medium truncate">{staff.name}</div>
                     <div className="text-[10px] text-muted-foreground truncate">
@@ -1202,7 +1228,26 @@ function DayDetailDialog({
                       {STATUS_LABEL[cell.status]}
                     </Badge>
                   </div>
+                </>
+              );
+              return canEdit ? (
+                <button
+                  key={staff.id}
+                  type="button"
+                  onClick={() => onEditStaff(staff)}
+                  className="w-full flex items-center justify-between gap-3 rounded border px-3 py-2 text-left hover-elevate active-elevate-2"
+                  data-testid={`row-day-staff-${staff.id}`}
+                >
+                  {inner}
                 </button>
+              ) : (
+                <div
+                  key={staff.id}
+                  className="w-full flex items-center justify-between gap-3 rounded border px-3 py-2 text-left"
+                  data-testid={`row-day-staff-${staff.id}`}
+                >
+                  {inner}
+                </div>
               );
             })
           )}
