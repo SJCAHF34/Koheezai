@@ -686,25 +686,32 @@ Generate a professional pharmacy consultation note with these exact sections:
 PHARMACY CONSULTATION NOTE
 Date: ${today}
 
-1. PATIENT CLINICAL SUMMARY
-Brief overview of patient demographics, HIV status, and treatment context.
+1. PATIENT CONTEXT
+Reproduce the relevant patient demographics, regimen, labs, allergies, comorbidities, and any other clinical context provided above. Include the Patient Assistance (PAP) Eligibility block (program availability, the patient's answers to each eligibility question, or the documented reason PAP is not applicable) verbatim where it appears in the patient context.
 
-2. REGIMEN ASSESSMENT
+2. PATIENT CLINICAL SUMMARY
+Concise narrative overview of patient demographics, HIV status, and treatment context derived from the Patient Context above.
+
+3. REGIMEN ASSESSMENT
 Evaluation of the ARV regimen appropriateness based on the clinical profile and OpenEvidence findings.
 
-3. DRUG INTERACTION SUMMARY
+4. DRUG INTERACTION SUMMARY
 Key drug-drug interaction findings and their clinical significance.
 
-4. CLINICAL RECOMMENDATIONS
-Evidence-based recommendations derived from OpenEvidence.
+5. CLINICAL RECOMMENDATIONS
+Evidence-based recommendations derived from the OpenEvidence response above. When you quote or paraphrase the OpenEvidence response, preserve its original formatting (numbered lists, bullets, headers, line breaks). PAP / financial-access recommendations should be included here when programs are available, or omitted if PAP was marked not applicable.
 
-5. PATIENT COUNSELING POINTS
+6. PATIENT COUNSELING POINTS
 Key points addressed during the consultation, referencing the consultation questions.
 
-6. FOLLOW-UP PLAN
+7. FOLLOW-UP PLAN
 Recommended monitoring parameters and follow-up timeline.
 
-Write in professional clinical language for medical record documentation. Be specific and evidence-based.`;
+FORMATTING RULES (strict):
+- Write in professional clinical language for medical record documentation. Be specific and evidence-based.
+- Do NOT use any Markdown emphasis characters in your own writing — no asterisks (*, **), no underscores for emphasis (_, __), no backticks, no Markdown headings (#). Use plain text with section numbers/titles in ALL CAPS exactly as shown above.
+- Use plain hyphens ("- ") for any bullets you create.
+- The single exception is when you are reproducing the OpenEvidence response itself: keep its original characters and line breaks exactly as provided, including any asterisks or other formatting it contains. Do not add new asterisks of your own anywhere.`;
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4o",
