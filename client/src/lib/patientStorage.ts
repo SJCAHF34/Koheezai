@@ -30,6 +30,10 @@ export interface AssessmentFormData {
   caseManagerInfo?: string;
   patientEmailStatus?: "yes" | "no" | "";
   patientEmail?: string;
+  papNotApplicable?: boolean;
+  papNotApplicableReason?: string;
+  papAnswers?: Record<string, "yes" | "no" | "">;
+  papDetails?: Record<string, string>;
   oeResponse: string;
   comprehensiveNote: string | null;
   assessmentResult: AssessmentResult | null;

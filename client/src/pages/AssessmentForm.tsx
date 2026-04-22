@@ -12,6 +12,8 @@ import ClinicalParameters from "@/components/ClinicalParameters";
 import ConcomitantMedications from "@/components/ConcomitantMedications";
 import GeneticResistanceNotes from "@/components/GeneticResistanceNotes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { derivePapContext, formatPapContextForNote, type PapQuestion } from "@/lib/papQuestions";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { type AssessmentResult } from "@shared/schema";
 import {
@@ -347,6 +349,13 @@ export default function AssessmentForm() {
   const [patientEmailStatus, setPatientEmailStatus] = useState<"yes" | "no" | "">(saved?.patientEmailStatus ?? "");
   const [patientEmail, setPatientEmail] = useState(saved?.patientEmail ?? "");
 
+  // PAP eligibility section
+  const [papNotApplicable, setPapNotApplicable] = useState<boolean>(saved?.papNotApplicable ?? false);
+  const [papNotApplicableReason, setPapNotApplicableReason] = useState(saved?.papNotApplicableReason ?? "");
+  const [papAnswers, setPapAnswers] = useState<Record<string, "yes" | "no" | "">>(saved?.papAnswers ?? {});
+  const [papDetails, setPapDetails] = useState<Record<string, string>>(saved?.papDetails ?? {});
+  const papContext = derivePapContext(selectedDrugs);
+
   // Step 2 result
   const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(saved?.assessmentResult ?? null);
   const [promptCopied, setPromptCopied] = useState(false);
@@ -377,6 +386,7 @@ export default function AssessmentForm() {
         emergencyContactStatus, emergencyContactInfo,
         caseManagerStatus, caseManagerInfo,
         patientEmailStatus, patientEmail,
+        papNotApplicable, papNotApplicableReason, papAnswers, papDetails,
         oeResponse, comprehensiveNote, assessmentResult,
       },
     });
@@ -387,6 +397,7 @@ export default function AssessmentForm() {
     geneticResistanceNotes, additionalNotes,
     medicationAllergies, emergencyContactStatus, emergencyContactInfo,
     caseManagerStatus, caseManagerInfo, patientEmailStatus, patientEmail,
+    papNotApplicable, papNotApplicableReason, papAnswers, papDetails,
     oeResponse, comprehensiveNote, assessmentResult,
   ]);
 
@@ -525,6 +536,13 @@ export default function AssessmentForm() {
     const emergencyContactStr = emergencyContactStatus === "yes" ? emergencyContactInfo.trim() : "None reported";
     const caseManagerStr = caseManagerStatus === "yes" ? caseManagerInfo.trim() : "Not working with a case manager";
     const patientEmailStr = patientEmailStatus === "yes" ? patientEmail.trim() : "No email on file";
+    const papBlock = formatPapContextForNote({
+      papNotApplicable,
+      papNotApplicableReason,
+      papAnswers,
+      papDetails,
+      context: papContext,
+    });
     const patientCtx = buildPatientContext({
       age, pregnancy, hlab5701, treatmentStatus,
       cd4Count: prepMode ? undefined : cd4Count,
@@ -537,7 +555,7 @@ export default function AssessmentForm() {
       emergencyContact: emergencyContactStr,
       caseManager: caseManagerStr,
       patientEmail: patientEmailStr,
-    });
+    }) + "\n\n" + papBlock;
     const oeQuery = prepMode
       ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies })
       : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies });
@@ -785,6 +803,147 @@ export default function AssessmentForm() {
                       onDetailChange={setPatientEmail}
                       detailPlaceholder="patient@example.com"
                     />
+                  </CardContent>
+                </Card>
+
+                {/* Patient Assistance Program (PAP) Eligibility */}
+                <Card data-testid="card-pap-eligibility">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div>
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                          <ShieldAlert className="w-4 h-4 text-muted-foreground" />
+                          Patient Assistance (PAP) Eligibility
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {papContext.entries.length > 0
+                            ? `Tailored to ${papContext.entries.map((e) => e.brandName).join(", ")}.`
+                            : "Select a medication to see program-specific questions."}
+                        </p>
+                      </div>
+                      <label
+                        className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer shrink-0"
+                        data-testid="label-pap-not-applicable"
+                      >
+                        <Checkbox
+                          checked={papNotApplicable}
+                          onCheckedChange={(c) => setPapNotApplicable(!!c)}
+                          data-testid="checkbox-pap-not-applicable"
+                        />
+                        PAP not applicable
+                      </label>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    {papNotApplicable ? (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          PAP questions and recommendations will be skipped in the comprehensive note.
+                        </p>
+                        <input
+                          type="text"
+                          data-testid="input-pap-not-applicable-reason"
+                          value={papNotApplicableReason}
+                          onChange={(e) => setPapNotApplicableReason(e.target.value)}
+                          placeholder="Optional: reason (e.g. patient has full coverage, ADAP-enrolled, etc.)"
+                          className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
+                        />
+                      </div>
+                    ) : papContext.entries.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        No manufacturer assistance programs were found for the currently selected medication(s).
+                      </p>
+                    ) : (
+                      <>
+                        {/* Programs found */}
+                        <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                            Available programs
+                          </p>
+                          <div className="space-y-1.5">
+                            {papContext.entries.map((e) => (
+                              <div key={e.brandName} className="text-xs">
+                                <div className="font-medium text-slate-800">
+                                  {e.brandName} <span className="text-slate-500">— {e.manufacturer}</span>
+                                </div>
+                                <ul className="ml-3 mt-0.5 space-y-0.5 text-slate-600">
+                                  {e.programs.map((p) => (
+                                    <li key={p.name} className="flex items-start gap-1.5">
+                                      <span className="uppercase font-mono text-[10px] px-1.5 py-0.5 rounded bg-white border border-slate-200 mt-0.5 shrink-0">
+                                        {p.type}
+                                      </span>
+                                      <span>
+                                        <span className="font-medium">{p.name}</span>
+                                        {p.savings ? <span className="text-slate-500"> — {p.savings}</span> : null}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Eligibility questions */}
+                        <div className="space-y-3">
+                          {papContext.questions.map((q: PapQuestion) => {
+                            const ans = papAnswers[q.key] ?? "";
+                            return (
+                              <div
+                                key={q.key}
+                                className="space-y-1.5"
+                                data-testid={`pap-question-${q.key}`}
+                              >
+                                <label className="text-xs font-semibold text-slate-700 block">{q.question}</label>
+                                {q.hint && (
+                                  <p className="text-[11px] text-muted-foreground">{q.hint}</p>
+                                )}
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <div className="flex rounded-md border border-slate-300 overflow-hidden shrink-0">
+                                    <button
+                                      type="button"
+                                      data-testid={`button-pap-${q.key}-yes`}
+                                      onClick={() =>
+                                        setPapAnswers((prev) => ({ ...prev, [q.key]: prev[q.key] === "yes" ? "" : "yes" }))
+                                      }
+                                      className={`px-4 py-2 text-xs font-semibold transition-colors ${
+                                        ans === "yes" ? "bg-purple-600 text-white" : "bg-white text-slate-700 hover-elevate"
+                                      }`}
+                                    >
+                                      Yes
+                                    </button>
+                                    <button
+                                      type="button"
+                                      data-testid={`button-pap-${q.key}-no`}
+                                      onClick={() =>
+                                        setPapAnswers((prev) => ({ ...prev, [q.key]: prev[q.key] === "no" ? "" : "no" }))
+                                      }
+                                      className={`px-4 py-2 text-xs font-semibold border-l border-slate-300 transition-colors ${
+                                        ans === "no" ? "bg-purple-600 text-white" : "bg-white text-slate-700 hover-elevate"
+                                      }`}
+                                    >
+                                      No
+                                    </button>
+                                  </div>
+                                  {q.hasDetail && ans === "yes" && (
+                                    <input
+                                      type="text"
+                                      data-testid={`input-pap-${q.key}-detail`}
+                                      value={papDetails[q.key] ?? ""}
+                                      onChange={(e) =>
+                                        setPapDetails((prev) => ({ ...prev, [q.key]: e.target.value }))
+                                      }
+                                      placeholder={q.detailLabel ?? "Details"}
+                                      className="flex-1 min-w-[200px] px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
