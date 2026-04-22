@@ -568,6 +568,17 @@ function TaskRow({
           </Link>
         )}
 
+        {task.id === "ops-m-001" && (
+          <Link
+            href="/app/scheduling"
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 hover:text-blue-800 mt-1"
+            data-testid={`link-scheduling-${task.id}`}
+          >
+            Open Team Scheduling
+            <ArrowUpRight className="w-3 h-3" />
+          </Link>
+        )}
+
         {task.url && (
           <a
             href={task.url}

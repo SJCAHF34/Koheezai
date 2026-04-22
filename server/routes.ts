@@ -13,7 +13,20 @@ import { generateClinicalRecommendations } from "./lib/clinicalRecommendations";
 import { openEvidenceClient } from "./lib/openEvidence";
 import { checkLiverpoolInteractions, isConfigured as liverpoolConfigured } from "./lib/liverpoolDDI";
 import { hivDrugs } from "../client/src/lib/hivDrugs";
-import { getUserProfile, isRegionalOrAbove } from "../client/src/lib/userProfile";
+import {
+  getUserProfile,
+  isRegionalOrAbove,
+  isDirectorRole,
+  isPharmacyDirector,
+  isCPO,
+  getAssignedRegion,
+} from "../client/src/lib/userProfile";
+import { findStoreRegion, ALL_STORES } from "../client/src/lib/storeDirectory";
+import {
+  upsertPharmacyHoursSchema,
+  upsertStaffScheduleDefaultSchema,
+  upsertScheduleEntrySchema,
+} from "@shared/schema";
 import { storage } from "./storage";
 import { runOutreachNow } from "./lib/outreachScheduler";
 import { logRetentionEvent } from "./lib/salesforceClient";
@@ -1114,6 +1127,162 @@ Write in professional clinical language for medical record documentation. Be spe
     } catch (err) {
       return res.status(500).json({ message: "Import failed" });
     }
+  });
+
+  // ── Scheduling API ─────────────────────────────────────────────────────────
+
+  function getSiteAccess(req: any):
+    | { ok: true; profile: ReturnType<typeof getUserProfile>; canEditSite: (siteId: string) => boolean; canViewSite: (siteId: string) => boolean }
+    | { ok: false; status: number; message: string } {
+    const sessionEmail = req.session?.userId;
+    if (!sessionEmail) return { ok: false, status: 401, message: "Not authenticated" };
+    const profile = getUserProfile(sessionEmail, req.session.user?.name ?? "");
+    if (!isDirectorRole(profile.role)) {
+      return { ok: false, status: 403, message: "Access restricted to pharmacy directors and above." };
+    }
+    const region = getAssignedRegion(profile);
+    const canViewSite = (siteId: string) => {
+      if (isCPO(profile.role)) return true;
+      if (isPharmacyDirector(profile.role)) return profile.siteId === siteId;
+      // RPD — same region
+      const sr = findStoreRegion(siteId);
+      return !!sr && !!region && sr.region === region;
+    };
+    const canEditSite = canViewSite;
+    return { ok: true, profile, canEditSite, canViewSite };
+  }
+
+  // List sites this user is allowed to schedule for (used by the picker).
+  app.get("/api/scheduling/sites", (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    if (isPharmacyDirector(access.profile.role)) {
+      const region = findStoreRegion(access.profile.siteId)?.region ?? null;
+      return res.json([
+        {
+          id: access.profile.siteId,
+          name: access.profile.siteName,
+          region,
+        },
+      ]);
+    }
+    const region = getAssignedRegion(access.profile);
+    const stores = ALL_STORES
+      .filter((s) => access.canViewSite(s.id))
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        region: findStoreRegion(s.id)?.region ?? region,
+      }));
+    return res.json(stores);
+  });
+
+  app.get("/api/scheduling/:siteId/hours", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    if (!access.canViewSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const hours = await storage.getPharmacyHours(siteId);
+    return res.json(hours ?? null);
+  });
+
+  app.put("/api/scheduling/:siteId/hours", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    if (!access.canEditSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const parsed = upsertPharmacyHoursSchema.safeParse({ ...req.body, siteId });
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid hours payload", errors: parsed.error.issues });
+    }
+    const hours = await storage.upsertPharmacyHours(parsed.data);
+    return res.json(hours);
+  });
+
+  app.get("/api/scheduling/:siteId/defaults", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    if (!access.canViewSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const defaults = await storage.getStaffScheduleDefaults(siteId);
+    return res.json(defaults);
+  });
+
+  app.put("/api/scheduling/:siteId/defaults/:staffId", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId, staffId } = req.params;
+    if (!access.canEditSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const parsed = upsertStaffScheduleDefaultSchema.safeParse({ ...req.body, siteId, staffId });
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid default payload", errors: parsed.error.issues });
+    }
+    const record = await storage.upsertStaffScheduleDefault(parsed.data);
+    return res.json(record);
+  });
+
+  app.delete("/api/scheduling/:siteId/defaults/:staffId", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId, staffId } = req.params;
+    if (!access.canEditSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    await storage.deleteStaffScheduleDefault(siteId, staffId);
+    return res.json({ ok: true });
+  });
+
+  app.get("/api/scheduling/:siteId/entries", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    if (!access.canViewSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const from = String(req.query.from ?? "");
+    const to = String(req.query.to ?? "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      return res.status(400).json({ message: "from and to query params (YYYY-MM-DD) are required" });
+    }
+    const entries = await storage.getScheduleEntries(siteId, from, to);
+    return res.json(entries);
+  });
+
+  app.put("/api/scheduling/:siteId/entries", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    if (!access.canEditSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const parsed = upsertScheduleEntrySchema.safeParse({ ...req.body, siteId });
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid entry payload", errors: parsed.error.issues });
+    }
+    const entry = await storage.upsertScheduleEntry(parsed.data);
+    return res.json(entry);
+  });
+
+  app.delete("/api/scheduling/:siteId/entries/:staffId/:date", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId, staffId, date } = req.params;
+    if (!access.canEditSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ message: "date must be YYYY-MM-DD" });
+    }
+    await storage.deleteScheduleEntry(siteId, staffId, date);
+    return res.json({ ok: true });
   });
 
   // ── AI Performance Evaluator ────────────────────────────────────────────────

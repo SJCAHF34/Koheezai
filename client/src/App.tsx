@@ -18,10 +18,11 @@ import AchcWorkbook from "@/pages/AchcWorkbook";
 import CQIMeeting from "@/pages/CQIMeeting";
 import StoreDashboard from "@/pages/StoreDashboard";
 import TaskTracker from "@/pages/TaskTracker";
+import SchedulingPage from "@/pages/SchedulingPage";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays } from "lucide-react";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
@@ -182,6 +183,10 @@ function AppNav() {
               <NavMenuItem href="/app/cqi-meeting" icon={ClipboardCheck} label="CQI Meeting" testId="nav-cqi-meeting" onClick={close} />
             )}
 
+            {showCQI && (
+              <NavMenuItem href="/app/scheduling" icon={CalendarDays} label="Team Scheduling" testId="nav-scheduling" onClick={close} />
+            )}
+
             <NavMenuItem href="/app/patient-assistance" icon={HeartHandshake} label="Patient Assistance" testId="nav-assistance" onClick={close} />
 
             <button
@@ -308,6 +313,10 @@ function Router() {
       {/* Store Performance Dashboard — director and above only */}
       <Route path="/app/store/:siteId">
         <DirectorProtected component={StoreDashboard} />
+      </Route>
+      {/* Team Scheduling — director and above only */}
+      <Route path="/app/scheduling">
+        <DirectorProtected component={SchedulingPage} />
       </Route>
       <Route component={NotFound} />
     </Switch>

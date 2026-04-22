@@ -1,5 +1,88 @@
 import { z } from "zod";
 
+// ── Scheduling ───────────────────────────────────────────────────────────────
+
+export const SCHEDULE_STATUSES = [
+  "scheduled",
+  "unscheduled",
+  "sick",
+  "pto",
+  "floating_holiday",
+] as const;
+export type ScheduleStatus = typeof SCHEDULE_STATUSES[number];
+
+const timeStringSchema = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Time must be HH:MM (24h)");
+const dateStringSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD");
+
+export const shiftSchema = z.object({
+  start: timeStringSchema,
+  end: timeStringSchema,
+});
+export type Shift = z.infer<typeof shiftSchema>;
+
+export const dailyHoursSchema = z
+  .object({
+    open: timeStringSchema,
+    close: timeStringSchema,
+  })
+  .nullable();
+export type DailyHours = z.infer<typeof dailyHoursSchema>;
+
+export const pharmacyHoursSchema = z.object({
+  siteId: z.string().min(1),
+  // Index 0 = Sunday, 6 = Saturday. null = closed.
+  weekdays: z.array(dailyHoursSchema).length(7),
+  holidayClosures: z.array(dateStringSchema).default([]),
+  updatedAt: z.string(),
+});
+export type PharmacyHours = z.infer<typeof pharmacyHoursSchema>;
+
+export const upsertPharmacyHoursSchema = pharmacyHoursSchema.omit({
+  updatedAt: true,
+});
+export type UpsertPharmacyHours = z.infer<typeof upsertPharmacyHoursSchema>;
+
+export const staffScheduleDefaultSchema = z.object({
+  siteId: z.string().min(1),
+  staffId: z.string().min(1),
+  staffName: z.string().min(1),
+  // Index 0 = Sunday, 6 = Saturday. null = staff is off that weekday by default.
+  weekdays: z.array(shiftSchema.nullable()).length(7),
+  updatedAt: z.string(),
+});
+export type StaffScheduleDefault = z.infer<typeof staffScheduleDefaultSchema>;
+
+export const upsertStaffScheduleDefaultSchema = staffScheduleDefaultSchema.omit({
+  updatedAt: true,
+});
+export type UpsertStaffScheduleDefault = z.infer<
+  typeof upsertStaffScheduleDefaultSchema
+>;
+
+export const scheduleEntrySchema = z.object({
+  id: z.string(),
+  siteId: z.string().min(1),
+  staffId: z.string().min(1),
+  staffName: z.string().min(1),
+  date: dateStringSchema,
+  status: z.enum(SCHEDULE_STATUSES),
+  start: timeStringSchema.optional(),
+  end: timeStringSchema.optional(),
+  note: z.string().optional(),
+  updatedAt: z.string(),
+});
+export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
+
+export const upsertScheduleEntrySchema = scheduleEntrySchema.omit({
+  id: true,
+  updatedAt: true,
+});
+export type UpsertScheduleEntry = z.infer<typeof upsertScheduleEntrySchema>;
+
 // ── Retention Patient ────────────────────────────────────────────────────────
 
 export type RetentionIssueType =
