@@ -108,6 +108,52 @@ export function derivePapContext(selectedDrugIds: string[]): PapContext {
   return { entries, programTypes, manufacturers, questions };
 }
 
+type Direction = "yes" | "no" | "any";
+const QUESTION_SCORING: Record<string, { weight: number; favorable: Direction }> = {
+  "insurance-type": { weight: 1, favorable: "any" },
+  "income-fpl": { weight: 2, favorable: "yes" },
+  "us-residency": { weight: 2, favorable: "yes" },
+  "copay-enrolled": { weight: 1, favorable: "no" },
+  "pap-enrolled": { weight: 1, favorable: "no" },
+  "adap-foundation": { weight: 1, favorable: "any" },
+  "prior-applied": { weight: 1, favorable: "no" },
+  "rx-coverage-issue": { weight: 2, favorable: "yes" },
+};
+
+export type PapProbability = {
+  score: number;
+  label: "Low" | "Moderate" | "High";
+  answered: number;
+  total: number;
+};
+
+export function computePapProbability(args: {
+  context: PapContext;
+  papAnswers: Record<string, "yes" | "no" | "">;
+}): PapProbability | null {
+  const { context, papAnswers } = args;
+  if (context.entries.length === 0) return null;
+  const relevant = context.questions.filter((q) => QUESTION_SCORING[q.key]);
+  if (relevant.length === 0) return null;
+
+  let earned = 0;
+  let possible = 0;
+  let answered = 0;
+  relevant.forEach((q) => {
+    const cfg = QUESTION_SCORING[q.key];
+    possible += cfg.weight;
+    const ans = papAnswers[q.key];
+    if (!ans) return;
+    answered += 1;
+    if (cfg.favorable === "any") earned += cfg.weight;
+    else if (cfg.favorable === ans) earned += cfg.weight;
+  });
+
+  const score = possible > 0 ? Math.round((earned / possible) * 100) : 0;
+  const label: PapProbability["label"] = score >= 70 ? "High" : score >= 40 ? "Moderate" : "Low";
+  return { score, label, answered, total: relevant.length };
+}
+
 export function formatPapContextForNote(args: {
   papNotApplicable: boolean;
   papNotApplicableReason: string;
@@ -143,6 +189,12 @@ export function formatPapContextForNote(args: {
       const detail = q.hasDetail ? (papDetails[q.key] ?? "").trim() : "";
       lines.push(`    - ${q.question} → ${ans}${detail ? ` (${detail})` : ""}`);
     });
+  }
+  const probability = computePapProbability({ context, papAnswers });
+  if (probability) {
+    lines.push(
+      `  Estimated probability of PAP enrollment success: ${probability.score}% (${probability.label}) — based on ${probability.answered} of ${probability.total} eligibility questions answered.`,
+    );
   }
   return lines.join("\n");
 }

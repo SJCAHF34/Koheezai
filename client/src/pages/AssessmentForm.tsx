@@ -13,7 +13,7 @@ import ConcomitantMedications from "@/components/ConcomitantMedications";
 import GeneticResistanceNotes from "@/components/GeneticResistanceNotes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { derivePapContext, formatPapContextForNote, type PapQuestion } from "@/lib/papQuestions";
+import { derivePapContext, formatPapContextForNote, computePapProbability, type PapQuestion } from "@/lib/papQuestions";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { type AssessmentResult } from "@shared/schema";
 import {
@@ -942,6 +942,53 @@ export default function AssessmentForm() {
                             );
                           })}
                         </div>
+
+                        {/* Probability of PAP enrollment success */}
+                        {(() => {
+                          const probability = computePapProbability({ context: papContext, papAnswers });
+                          if (!probability) return null;
+                          const { score, label, answered, total } = probability;
+                          const barColor =
+                            label === "High"
+                              ? "bg-emerald-500"
+                              : label === "Moderate"
+                                ? "bg-amber-500"
+                                : "bg-rose-500";
+                          const labelColor =
+                            label === "High"
+                              ? "text-emerald-700"
+                              : label === "Moderate"
+                                ? "text-amber-700"
+                                : "text-rose-700";
+                          return (
+                            <div
+                              data-testid="gauge-pap-probability"
+                              className="rounded-md border border-slate-200 bg-white p-3 space-y-2"
+                            >
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                  Probability of PAP Enrollment Success
+                                </p>
+                                <span
+                                  data-testid="text-pap-probability-label"
+                                  className={`text-xs font-semibold ${labelColor}`}
+                                >
+                                  {label} · {score}%
+                                </span>
+                              </div>
+                              <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                                <div
+                                  className={`h-full ${barColor} transition-all`}
+                                  style={{ width: `${score}%` }}
+                                  data-testid="bar-pap-probability"
+                                />
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">
+                                Based on {answered} of {total} eligibility questions answered. Heuristic estimate — clinical judgment required.
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </>
                     )}
                   </CardContent>
