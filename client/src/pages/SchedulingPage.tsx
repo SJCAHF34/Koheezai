@@ -2,15 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/App";
-import { getUserProfile, isPharmacyDirector, isDirectorRole } from "@/lib/userProfile";
+import {
+  getUserProfile,
+  isPharmacyDirector,
+  isDirectorRole,
+  isCPO,
+  getAssignedRegion,
+} from "@/lib/userProfile";
 import { loadRoster, type StaffMember } from "@/lib/taskStorage";
 import {
   type PharmacyHours,
   type StaffScheduleDefault,
   type ScheduleEntry,
   type ScheduleStatus,
+  type ScheduleSubmission,
   SCHEDULE_STATUSES,
 } from "@shared/schema";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +47,9 @@ import {
   Settings,
   Clock,
   Loader2,
+  Send,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -192,6 +203,25 @@ export default function SchedulingPage() {
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
   const [weekAnchor, setWeekAnchor] = useState<Date>(startOfWeek(new Date()));
   const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(new Date()));
+
+  // Apply URL ?site= and ?week= params one time on mount (e.g. from notifications).
+  const [urlApplied, setUrlApplied] = useState(false);
+  useEffect(() => {
+    if (urlApplied) return;
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const qSite = sp.get("site");
+    const qWeek = sp.get("week");
+    if (qSite && sitesQuery.data?.some((s) => s.id === qSite)) {
+      setSiteId(qSite);
+    }
+    if (qWeek && /^\d{4}-\d{2}-\d{2}$/.test(qWeek)) {
+      const [y, m, d] = qWeek.split("-").map((n) => parseInt(n, 10));
+      setWeekAnchor(startOfWeek(new Date(y, m - 1, d)));
+      setViewMode("week");
+    }
+    if (sitesQuery.data) setUrlApplied(true);
+  }, [sitesQuery.data, urlApplied]);
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekAnchor, i)), [weekAnchor]);
   const monthDays = useMemo(() => monthGridDays(monthAnchor), [monthAnchor]);
   const rangeDays = viewMode === "week" ? weekDays : monthDays;
@@ -252,6 +282,64 @@ export default function SchedulingPage() {
     },
     onError: (err: any) => toast({ title: "Reset failed", description: String(err?.message ?? err), variant: "destructive" }),
   });
+
+  // ── Submission workflow ──────────────────────────────────────────────────
+  const currentSiteRegion = sitesQuery.data?.find((s) => s.id === siteId)?.region ?? null;
+  const isReviewer = profile
+    ? isCPO(profile.role) ||
+      (profile.role === "regional_pharmacy_director" &&
+        !!getAssignedRegion(profile) &&
+        getAssignedRegion(profile) === currentSiteRegion)
+    : false;
+
+  const submissionQuery = useQuery<ScheduleSubmission | null>({
+    queryKey: ["/api/scheduling", siteId, "submissions", "week", fromKey],
+    queryFn: async () =>
+      apiRequest(
+        `/api/scheduling/${siteId}/submissions?weekStart=${fromKey}`,
+      ),
+    enabled: !!siteId && viewMode === "week",
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: (payload: { weekStart: string; submitterNote?: string }) =>
+      apiRequest(`/api/scheduling/${siteId}/submissions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions", "week", fromKey] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      toast({ title: "Submitted for review", description: "Your Regional Director has been notified." });
+      setSubmitOpen(false);
+    },
+    onError: (err: any) =>
+      toast({ title: "Submit failed", description: String(err?.message ?? err), variant: "destructive" }),
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: (payload: { id: string; action: "approve" | "request-changes"; reviewNote?: string }) =>
+      apiRequest(`/api/scheduling/submissions/${payload.id}/${payload.action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewNote: payload.reviewNote }),
+      }),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions", "week", fromKey] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      toast({
+        title: vars.action === "approve" ? "Schedule approved" : "Changes requested",
+        description: "The Pharmacy Director has been notified.",
+      });
+      setReviewOpen(null);
+    },
+    onError: (err: any) =>
+      toast({ title: "Review failed", description: String(err?.message ?? err), variant: "destructive" }),
+  });
+
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState<"approve" | "request-changes" | null>(null);
 
   // ── Cell editor dialog ───────────────────────────────────────────────────
   const [editing, setEditing] = useState<{ staff: StaffMember; date: Date } | null>(null);
@@ -360,6 +448,20 @@ export default function SchedulingPage() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Submission status banner (week view only) */}
+      {siteId && viewMode === "week" && (
+        <SubmissionBanner
+          submission={submissionQuery.data ?? null}
+          isPD={isPD && profile?.siteId === siteId}
+          isReviewer={isReviewer}
+          weekLabel={weekDays[0].toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+          onSubmitClick={() => setSubmitOpen(true)}
+          onApproveClick={() => setReviewOpen("approve")}
+          onRequestChangesClick={() => setReviewOpen("request-changes")}
+          isWorking={submitMutation.isPending || reviewMutation.isPending}
+        />
       )}
 
       {/* Week / Month navigator */}
@@ -580,6 +682,35 @@ export default function SchedulingPage() {
           roster={roster}
           hours={hoursQuery.data ?? null}
           defaults={defaultsQuery.data ?? []}
+        />
+      )}
+
+      {/* Submit-for-review dialog (PD) */}
+      {submitOpen && siteId && (
+        <SubmitForReviewDialog
+          open={submitOpen}
+          onClose={() => setSubmitOpen(false)}
+          weekLabel={weekDays[0].toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+          isSubmitting={submitMutation.isPending}
+          onSubmit={(note) => submitMutation.mutate({ weekStart: fromKey, submitterNote: note || undefined })}
+        />
+      )}
+
+      {/* Review dialog (RPD/CPO) */}
+      {reviewOpen && submissionQuery.data && (
+        <ReviewSubmissionDialog
+          open={!!reviewOpen}
+          mode={reviewOpen}
+          onClose={() => setReviewOpen(null)}
+          submission={submissionQuery.data}
+          isWorking={reviewMutation.isPending}
+          onConfirm={(note) =>
+            reviewMutation.mutate({
+              id: submissionQuery.data!.id,
+              action: reviewOpen,
+              reviewNote: note || undefined,
+            })
+          }
         />
       )}
     </div>
@@ -1254,6 +1385,271 @@ function DayDetailDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} data-testid="button-close-day-detail">Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+// ── Submission Banner ──────────────────────────────────────────────────────
+
+const SUBMISSION_STATUS_STYLE: Record<
+  "pending" | "approved" | "changes_requested",
+  { label: string; cls: string; Icon: typeof CheckCircle2 }
+> = {
+  pending: {
+    label: "Pending RPD review",
+    cls: "bg-amber-50 border-amber-200 text-amber-900",
+    Icon: AlertCircle,
+  },
+  approved: {
+    label: "Approved",
+    cls: "bg-emerald-50 border-emerald-200 text-emerald-900",
+    Icon: CheckCircle2,
+  },
+  changes_requested: {
+    label: "Changes requested",
+    cls: "bg-rose-50 border-rose-200 text-rose-900",
+    Icon: AlertCircle,
+  },
+};
+
+function SubmissionBanner({
+  submission,
+  isPD,
+  isReviewer,
+  weekLabel,
+  onSubmitClick,
+  onApproveClick,
+  onRequestChangesClick,
+  isWorking,
+}: {
+  submission: ScheduleSubmission | null;
+  isPD: boolean;
+  isReviewer: boolean;
+  weekLabel: string;
+  onSubmitClick: () => void;
+  onApproveClick: () => void;
+  onRequestChangesClick: () => void;
+  isWorking: boolean;
+}) {
+  if (!submission) {
+    if (!isPD) return null;
+    return (
+      <Card data-testid="card-submission-banner">
+        <CardContent className="py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
+            This week's schedule has not been submitted to your Regional Director yet.
+          </div>
+          <Button
+            size="sm"
+            onClick={onSubmitClick}
+            disabled={isWorking}
+            data-testid="button-submit-schedule"
+          >
+            <Send className="w-4 h-4 mr-1.5" />
+            Submit week to RPD
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const meta = SUBMISSION_STATUS_STYLE[submission.status];
+  const Icon = meta.Icon;
+  const submittedAt = new Date(submission.submittedAt).toLocaleString(undefined, {
+    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
+  const reviewedAt = submission.reviewedAt
+    ? new Date(submission.reviewedAt).toLocaleString(undefined, {
+        month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+      })
+    : null;
+
+  return (
+    <Card className={`border ${meta.cls}`} data-testid="card-submission-banner">
+      <CardContent className="py-3 space-y-2">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-2 min-w-0">
+            <Icon className="w-4 h-4 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <div className="text-sm font-semibold" data-testid="text-submission-status">
+                {meta.label} — week of {weekLabel}
+              </div>
+              <div className="text-xs opacity-80">
+                Submitted by {submission.submittedByName} · {submittedAt}
+                {reviewedAt && (
+                  <>
+                    {" "}· Reviewed by {submission.reviewedByName ?? "—"} · {reviewedAt}
+                  </>
+                )}
+              </div>
+              {submission.submitterNote && (
+                <div className="text-xs mt-1" data-testid="text-submitter-note">
+                  <span className="font-medium">PD note:</span> {submission.submitterNote}
+                </div>
+              )}
+              {submission.reviewNote && (
+                <div className="text-xs mt-1" data-testid="text-review-note">
+                  <span className="font-medium">Reviewer note:</span> {submission.reviewNote}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {isReviewer && submission.status === "pending" && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onRequestChangesClick}
+                  disabled={isWorking}
+                  data-testid="button-request-changes"
+                >
+                  Request changes
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={onApproveClick}
+                  disabled={isWorking}
+                  data-testid="button-approve-submission"
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                  Approve
+                </Button>
+              </>
+            )}
+            {isPD && submission.status !== "pending" && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onSubmitClick}
+                disabled={isWorking}
+                data-testid="button-resubmit-schedule"
+              >
+                <Send className="w-4 h-4 mr-1.5" />
+                Resubmit
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Submit-for-Review Dialog (PD) ──────────────────────────────────────────
+
+function SubmitForReviewDialog({
+  open,
+  onClose,
+  weekLabel,
+  isSubmitting,
+  onSubmit,
+}: {
+  open: boolean;
+  onClose: () => void;
+  weekLabel: string;
+  isSubmitting: boolean;
+  onSubmit: (note: string) => void;
+}) {
+  const [note, setNote] = useState("");
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o && !isSubmitting) onClose(); }}>
+      <DialogContent data-testid="dialog-submit-review">
+        <DialogHeader>
+          <DialogTitle>Submit week to Regional Director</DialogTitle>
+          <DialogDescription>
+            Send the schedule for the week of {weekLabel} to your RPD for review.
+          </DialogDescription>
+        </DialogHeader>
+        <div>
+          <Label className="text-xs">Note for the reviewer (optional)</Label>
+          <Textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Anything the RPD should know — coverage gaps, PTO requests, swaps…"
+            className="mt-1"
+            rows={4}
+            data-testid="input-submitter-note"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting} data-testid="button-cancel-submit">
+            Cancel
+          </Button>
+          <Button onClick={() => onSubmit(note.trim())} disabled={isSubmitting} data-testid="button-confirm-submit">
+            {isSubmitting && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
+            Submit for review
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Review Dialog (RPD/CPO) ────────────────────────────────────────────────
+
+function ReviewSubmissionDialog({
+  open,
+  mode,
+  onClose,
+  submission,
+  isWorking,
+  onConfirm,
+}: {
+  open: boolean;
+  mode: "approve" | "request-changes";
+  onClose: () => void;
+  submission: ScheduleSubmission;
+  isWorking: boolean;
+  onConfirm: (note: string) => void;
+}) {
+  const [note, setNote] = useState("");
+  const isApprove = mode === "approve";
+  const noteRequired = !isApprove;
+  const canConfirm = !noteRequired || note.trim().length > 0;
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o && !isWorking) onClose(); }}>
+      <DialogContent data-testid="dialog-review-submission">
+        <DialogHeader>
+          <DialogTitle>
+            {isApprove ? "Approve schedule" : "Request changes"}
+          </DialogTitle>
+          <DialogDescription>
+            {submission.siteName} — submitted by {submission.submittedByName}.
+          </DialogDescription>
+        </DialogHeader>
+        <div>
+          <Label className="text-xs">
+            {isApprove ? "Note for the PD (optional)" : "Tell the PD what to change"}
+            {noteRequired && <span className="text-rose-600"> *</span>}
+          </Label>
+          <Textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={isApprove
+              ? "e.g. Looks great — thanks for getting this in early."
+              : "e.g. Please add coverage for Tuesday afternoon and swap Anh's PTO request to Thursday."}
+            className="mt-1"
+            rows={4}
+            data-testid="input-review-note"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isWorking} data-testid="button-cancel-review">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => onConfirm(note.trim())}
+            disabled={isWorking || !canConfirm}
+            data-testid={isApprove ? "button-confirm-approve" : "button-confirm-request-changes"}
+          >
+            {isWorking && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
+            {isApprove ? "Approve" : "Send change request"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

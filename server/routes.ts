@@ -20,12 +20,16 @@ import {
   isPharmacyDirector,
   isCPO,
   getAssignedRegion,
+  getRPDsByRegion,
+  getCPOs,
 } from "../client/src/lib/userProfile";
 import { findStoreRegion, ALL_STORES } from "../client/src/lib/storeDirectory";
 import {
   upsertPharmacyHoursSchema,
   upsertStaffScheduleDefaultSchema,
   upsertScheduleEntrySchema,
+  createScheduleSubmissionSchema,
+  reviewScheduleSubmissionSchema,
 } from "@shared/schema";
 import { storage } from "./storage";
 import { runOutreachNow } from "./lib/outreachScheduler";
@@ -1291,6 +1295,180 @@ Write in professional clinical language for medical record documentation. Be spe
       return res.status(400).json({ message: "date must be YYYY-MM-DD" });
     }
     await storage.deleteScheduleEntry(siteId, staffId, date);
+    return res.json({ ok: true });
+  });
+
+  // ── Schedule Submissions (PD → RPD review) ────────────────────────────
+
+  function formatWeekRange(weekStart: string): string {
+    // weekStart is YYYY-MM-DD (Sunday). Build a friendly "MMM D – MMM D, YYYY".
+    const [y, m, d] = weekStart.split("-").map((n) => parseInt(n, 10));
+    const start = new Date(y, m - 1, d);
+    const end = new Date(y, m - 1, d + 6);
+    const fmt = (dt: Date) =>
+      dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return `${fmt(start)} – ${fmt(end)}, ${end.getFullYear()}`;
+  }
+
+  // PD submits the displayed week to their RPD(s) for review.
+  app.post("/api/scheduling/:siteId/submissions", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    // Only the Pharmacy Director of this store may submit (not CPO/RPD/non-director).
+    if (!isPharmacyDirector(access.profile.role) || access.profile.siteId !== siteId) {
+      return res.status(403).json({ message: "Only the store's Pharmacy Director can submit." });
+    }
+    const parsed = createScheduleSubmissionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid submission payload", errors: parsed.error.issues });
+    }
+    const region = findStoreRegion(siteId)?.region;
+    const siteName = findStoreRegion(siteId)?.stores.find((s) => s.id === siteId)?.name
+      ?? access.profile.siteName;
+    if (!region) return res.status(400).json({ message: "Site has no region configured" });
+
+    const submission = await storage.createScheduleSubmission({
+      siteId,
+      siteName,
+      region,
+      weekStart: parsed.data.weekStart,
+      submittedByEmail: access.profile.email,
+      submittedByName: access.profile.name || access.profile.email,
+      submitterNote: parsed.data.submitterNote,
+    });
+
+    // Notify all RPDs of this region (and CPOs).
+    const recipients = [...getRPDsByRegion(region), ...getCPOs()];
+    const seen = new Set<string>();
+    const friendlyWeek = formatWeekRange(parsed.data.weekStart);
+    for (const r of recipients) {
+      const key = r.email.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      await storage.addNotification({
+        toEmail: r.email,
+        type: "schedule_submitted",
+        title: `Schedule submitted: ${siteName}`,
+        body: `${submission.submittedByName} submitted the schedule for the week of ${friendlyWeek} for review.${parsed.data.submitterNote ? ` Note: ${parsed.data.submitterNote}` : ""}`,
+        link: `/app/scheduling?site=${siteId}&week=${parsed.data.weekStart}`,
+        submissionId: submission.id,
+        siteId,
+        siteName,
+        weekStart: parsed.data.weekStart,
+        fromName: submission.submittedByName,
+      });
+    }
+
+    return res.json(submission);
+  });
+
+  // Get the latest submission for a site/week (or list all for site).
+  app.get("/api/scheduling/:siteId/submissions", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    if (!access.canViewSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const weekStart = String(req.query.weekStart ?? "");
+    if (weekStart) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
+        return res.status(400).json({ message: "weekStart must be YYYY-MM-DD" });
+      }
+      const sub = await storage.getLatestSubmissionForWeek(siteId, weekStart);
+      return res.json(sub ?? null);
+    }
+    const list = await storage.getScheduleSubmissionsForSite(siteId);
+    return res.json(list);
+  });
+
+  // Approve or request-changes on a submission. RPD (same region) or CPO only.
+  async function reviewHandler(
+    req: any,
+    res: any,
+    nextStatus: "approved" | "changes_requested",
+  ) {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { id } = req.params;
+    const submission = await storage.getScheduleSubmission(id);
+    if (!submission) return res.status(404).json({ message: "Submission not found" });
+
+    // Only RPD of region or CPO can review.
+    const isReviewer =
+      isCPO(access.profile.role) ||
+      (access.profile.role === "regional_pharmacy_director" &&
+        getAssignedRegion(access.profile) === submission.region);
+    if (!isReviewer) {
+      return res.status(403).json({ message: "Only the Regional Director or CPO can review." });
+    }
+    const parsed = reviewScheduleSubmissionSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid review payload", errors: parsed.error.issues });
+    }
+    if (nextStatus === "changes_requested" && !parsed.data.reviewNote) {
+      return res.status(400).json({ message: "A note is required when requesting changes." });
+    }
+    const reviewerName = access.profile.name || access.profile.email;
+    const updated = await storage.reviewScheduleSubmission(
+      id,
+      nextStatus,
+      { email: access.profile.email, name: reviewerName },
+      parsed.data.reviewNote,
+    );
+    if (!updated) return res.status(404).json({ message: "Submission not found" });
+
+    // Notify the original submitter.
+    const friendlyWeek = formatWeekRange(submission.weekStart);
+    await storage.addNotification({
+      toEmail: submission.submittedByEmail,
+      type: nextStatus === "approved" ? "schedule_approved" : "schedule_changes_requested",
+      title:
+        nextStatus === "approved"
+          ? `Schedule approved: ${submission.siteName}`
+          : `Changes requested: ${submission.siteName}`,
+      body:
+        nextStatus === "approved"
+          ? `${reviewerName} approved the schedule for the week of ${friendlyWeek}.${parsed.data.reviewNote ? ` Note: ${parsed.data.reviewNote}` : ""}`
+          : `${reviewerName} requested changes to the schedule for the week of ${friendlyWeek}. Note: ${parsed.data.reviewNote}`,
+      link: `/app/scheduling?site=${submission.siteId}&week=${submission.weekStart}`,
+      submissionId: submission.id,
+      siteId: submission.siteId,
+      siteName: submission.siteName,
+      weekStart: submission.weekStart,
+      fromName: reviewerName,
+    });
+
+    return res.json(updated);
+  }
+  app.post("/api/scheduling/submissions/:id/approve", (req, res) =>
+    reviewHandler(req, res, "approved"),
+  );
+  app.post("/api/scheduling/submissions/:id/request-changes", (req, res) =>
+    reviewHandler(req, res, "changes_requested"),
+  );
+
+  // ── Notifications ─────────────────────────────────────────────────────
+
+  app.get("/api/notifications", async (req, res) => {
+    const sessionEmail = req.session?.userId;
+    if (!sessionEmail) return res.status(401).json({ message: "Not authenticated" });
+    const list = await storage.getNotifications(sessionEmail);
+    return res.json(list);
+  });
+
+  app.post("/api/notifications/:id/read", async (req, res) => {
+    const sessionEmail = req.session?.userId;
+    if (!sessionEmail) return res.status(401).json({ message: "Not authenticated" });
+    await storage.markNotificationRead(req.params.id, sessionEmail);
+    return res.json({ ok: true });
+  });
+
+  app.post("/api/notifications/read-all", async (req, res) => {
+    const sessionEmail = req.session?.userId;
+    if (!sessionEmail) return res.status(401).json({ message: "Not authenticated" });
+    await storage.markAllNotificationsRead(sessionEmail);
     return res.json({ ok: true });
   });
 

@@ -3,6 +3,8 @@ import {
   type PharmacyHours,
   type StaffScheduleDefault,
   type ScheduleEntry,
+  type ScheduleSubmission,
+  type AppNotification,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -48,6 +50,31 @@ export interface IStorage {
     staffId: string,
     date: string,
   ): Promise<void>;
+
+  // ── Schedule Submissions & Notifications ──────────────────────────────
+  createScheduleSubmission(
+    s: Omit<ScheduleSubmission, "id" | "submittedAt" | "status">,
+  ): Promise<ScheduleSubmission>;
+  getScheduleSubmission(id: string): Promise<ScheduleSubmission | undefined>;
+  getScheduleSubmissionsForSite(siteId: string): Promise<ScheduleSubmission[]>;
+  getScheduleSubmissionsForRegion(region: string): Promise<ScheduleSubmission[]>;
+  getLatestSubmissionForWeek(
+    siteId: string,
+    weekStart: string,
+  ): Promise<ScheduleSubmission | undefined>;
+  reviewScheduleSubmission(
+    id: string,
+    status: "approved" | "changes_requested",
+    reviewer: { email: string; name: string },
+    note?: string,
+  ): Promise<ScheduleSubmission | undefined>;
+
+  addNotification(
+    n: Omit<AppNotification, "id" | "createdAt" | "read">,
+  ): Promise<AppNotification>;
+  getNotifications(toEmail: string): Promise<AppNotification[]>;
+  markNotificationRead(id: string, toEmail: string): Promise<void>;
+  markAllNotificationsRead(toEmail: string): Promise<void>;
 }
 
 function entryKey(siteId: string, staffId: string, date: string) {
@@ -63,6 +90,8 @@ export class MemStorage implements IStorage {
   private hours: Map<string, PharmacyHours>;
   private scheduleDefaults: Map<string, StaffScheduleDefault>;
   private scheduleEntries: Map<string, ScheduleEntry>;
+  private submissions: Map<string, ScheduleSubmission>;
+  private notifications: Map<string, AppNotification>;
 
   constructor() {
     this.users = new Map();
@@ -70,6 +99,8 @@ export class MemStorage implements IStorage {
     this.hours = new Map();
     this.scheduleDefaults = new Map();
     this.scheduleEntries = new Map();
+    this.submissions = new Map();
+    this.notifications = new Map();
     this.seedSchedulingExamples();
   }
 
@@ -233,6 +264,106 @@ export class MemStorage implements IStorage {
     date: string,
   ): Promise<void> {
     this.scheduleEntries.delete(entryKey(siteId, staffId, date));
+  }
+
+  // ── Schedule Submissions ─────────────────────────────────────────────
+
+  async createScheduleSubmission(
+    s: Omit<ScheduleSubmission, "id" | "submittedAt" | "status">,
+  ): Promise<ScheduleSubmission> {
+    const id = `sub-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const record: ScheduleSubmission = {
+      ...s,
+      id,
+      status: "pending",
+      submittedAt: new Date().toISOString(),
+    };
+    this.submissions.set(id, record);
+    return record;
+  }
+
+  async getScheduleSubmission(id: string): Promise<ScheduleSubmission | undefined> {
+    return this.submissions.get(id);
+  }
+
+  async getScheduleSubmissionsForSite(siteId: string): Promise<ScheduleSubmission[]> {
+    return Array.from(this.submissions.values())
+      .filter((s) => s.siteId === siteId)
+      .sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1));
+  }
+
+  async getScheduleSubmissionsForRegion(region: string): Promise<ScheduleSubmission[]> {
+    return Array.from(this.submissions.values())
+      .filter((s) => s.region === region)
+      .sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1));
+  }
+
+  async getLatestSubmissionForWeek(
+    siteId: string,
+    weekStart: string,
+  ): Promise<ScheduleSubmission | undefined> {
+    return Array.from(this.submissions.values())
+      .filter((s) => s.siteId === siteId && s.weekStart === weekStart)
+      .sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1))[0];
+  }
+
+  async reviewScheduleSubmission(
+    id: string,
+    status: "approved" | "changes_requested",
+    reviewer: { email: string; name: string },
+    note?: string,
+  ): Promise<ScheduleSubmission | undefined> {
+    const existing = this.submissions.get(id);
+    if (!existing) return undefined;
+    const updated: ScheduleSubmission = {
+      ...existing,
+      status,
+      reviewedByEmail: reviewer.email,
+      reviewedByName: reviewer.name,
+      reviewedAt: new Date().toISOString(),
+      reviewNote: note,
+    };
+    this.submissions.set(id, updated);
+    return updated;
+  }
+
+  // ── Notifications ────────────────────────────────────────────────────
+
+  async addNotification(
+    n: Omit<AppNotification, "id" | "createdAt" | "read">,
+  ): Promise<AppNotification> {
+    const id = `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const record: AppNotification = {
+      ...n,
+      id,
+      createdAt: new Date().toISOString(),
+      read: false,
+    };
+    this.notifications.set(id, record);
+    return record;
+  }
+
+  async getNotifications(toEmail: string): Promise<AppNotification[]> {
+    const lc = toEmail.toLowerCase();
+    return Array.from(this.notifications.values())
+      .filter((n) => n.toEmail.toLowerCase() === lc)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  }
+
+  async markNotificationRead(id: string, toEmail: string): Promise<void> {
+    const n = this.notifications.get(id);
+    if (n && n.toEmail.toLowerCase() === toEmail.toLowerCase()) {
+      this.notifications.set(id, { ...n, read: true });
+    }
+  }
+
+  async markAllNotificationsRead(toEmail: string): Promise<void> {
+    const lc = toEmail.toLowerCase();
+    for (const [id, n] of Array.from(this.notifications.entries())) {
+      if (n.toEmail.toLowerCase() === lc && !n.read) {
+        this.notifications.set(id, { ...n, read: true });
+      }
+    }
   }
 }
 

@@ -109,6 +109,65 @@ export const upsertScheduleEntrySchema = z
   .refine(scheduleEntryRefine, scheduleEntryRefineMsg);
 export type UpsertScheduleEntry = z.infer<typeof upsertScheduleEntrySchema>;
 
+// ── Schedule Submissions (PD → RPD review workflow) ───────────────────────
+
+export const SUBMISSION_STATUSES = ["pending", "approved", "changes_requested"] as const;
+export type SubmissionStatus = typeof SUBMISSION_STATUSES[number];
+
+export const scheduleSubmissionSchema = z.object({
+  id: z.string(),
+  siteId: z.string().min(1),
+  siteName: z.string().min(1),
+  region: z.string().min(1),
+  weekStart: dateStringSchema, // Sunday YYYY-MM-DD
+  status: z.enum(SUBMISSION_STATUSES),
+  submittedByEmail: z.string().email(),
+  submittedByName: z.string().min(1),
+  submittedAt: z.string(),
+  submitterNote: z.string().optional(),
+  reviewedByEmail: z.string().email().optional(),
+  reviewedByName: z.string().optional(),
+  reviewedAt: z.string().optional(),
+  reviewNote: z.string().optional(),
+});
+export type ScheduleSubmission = z.infer<typeof scheduleSubmissionSchema>;
+
+export const createScheduleSubmissionSchema = z.object({
+  weekStart: dateStringSchema,
+  submitterNote: z.string().max(2000).optional(),
+});
+export type CreateScheduleSubmission = z.infer<typeof createScheduleSubmissionSchema>;
+
+export const reviewScheduleSubmissionSchema = z.object({
+  reviewNote: z.string().max(2000).optional(),
+});
+export type ReviewScheduleSubmission = z.infer<typeof reviewScheduleSubmissionSchema>;
+
+// ── Notifications ─────────────────────────────────────────────────────────
+
+export const NOTIFICATION_TYPES = [
+  "schedule_submitted",
+  "schedule_approved",
+  "schedule_changes_requested",
+] as const;
+export type NotificationType = typeof NOTIFICATION_TYPES[number];
+
+export interface AppNotification {
+  id: string;
+  toEmail: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  link?: string;
+  submissionId?: string;
+  siteId?: string;
+  siteName?: string;
+  weekStart?: string;
+  fromName?: string;
+  createdAt: string;
+  read: boolean;
+}
+
 // ── Retention Patient ────────────────────────────────────────────────────────
 
 export type RetentionIssueType =

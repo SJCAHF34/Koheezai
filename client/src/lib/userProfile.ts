@@ -755,6 +755,12 @@ export function getRPDsByRegion(region: string): PersonRef[] {
     .map(([email, p]) => ({ name: p.name ?? email, email }));
 }
 
+export function getCPOs(): PersonRef[] {
+  return Object.entries(PROFILE_MAP)
+    .filter(([, p]) => p.role === "chief_pharmacy_officer")
+    .map(([email, p]) => ({ name: p.name ?? email, email }));
+}
+
 export interface StoreStaffMember extends PersonRef {
   role: UserRole;
 }

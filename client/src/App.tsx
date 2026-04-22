@@ -22,7 +22,9 @@ import SchedulingPage from "@/pages/SchedulingPage";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell } from "lucide-react";
+import type { AppNotification } from "@shared/schema";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
@@ -52,6 +54,118 @@ function Spinner() {
     <div className="min-h-screen flex items-center justify-center">
       <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
+  );
+}
+
+// ── Notifications bell ────────────────────────────────────────────────────
+function NotificationsBell() {
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+  const [open, setOpen] = useState(false);
+  const qClient = useQueryClient();
+
+  const { data: notifications } = useQuery<AppNotification[]>({
+    queryKey: ["/api/notifications"],
+    enabled: isAuthenticated,
+    refetchInterval: 30 * 1000,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+
+  const list = notifications ?? [];
+  const unread = list.filter((n) => !n.read).length;
+
+  const markRead = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest(`/api/notifications/${id}/read`, { method: "POST" }),
+    onSuccess: () => qClient.invalidateQueries({ queryKey: ["/api/notifications"] }),
+  });
+
+  const markAll = useMutation({
+    mutationFn: () => apiRequest(`/api/notifications/read-all`, { method: "POST" }),
+    onSuccess: () => qClient.invalidateQueries({ queryKey: ["/api/notifications"] }),
+  });
+
+  if (!isAuthenticated) return null;
+
+  const formatRel = (iso: string) => {
+    const ms = Date.now() - new Date(iso).getTime();
+    const m = Math.round(ms / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return `${m}m ago`;
+    const h = Math.round(m / 60);
+    if (h < 24) return `${h}h ago`;
+    const d = Math.round(h / 24);
+    return `${d}d ago`;
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          data-testid="btn-notifications"
+          aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ""}`}
+          className="relative inline-flex items-center justify-center w-9 h-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <Bell className="w-5 h-5" />
+          {unread > 0 && (
+            <span
+              data-testid="badge-notifications-unread"
+              className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-semibold inline-flex items-center justify-center"
+            >
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[360px] p-0" data-testid="popover-notifications">
+        <div className="flex items-center justify-between px-3 py-2 border-b">
+          <div className="text-sm font-semibold">Notifications</div>
+          {unread > 0 && (
+            <button
+              type="button"
+              data-testid="btn-mark-all-read"
+              onClick={() => markAll.mutate()}
+              className="text-xs text-purple-600 hover:underline"
+            >
+              Mark all read
+            </button>
+          )}
+        </div>
+        <div className="max-h-[420px] overflow-y-auto">
+          {list.length === 0 ? (
+            <div className="px-3 py-8 text-center text-sm text-muted-foreground" data-testid="text-no-notifications">
+              You're all caught up.
+            </div>
+          ) : (
+            list.map((n) => (
+              <button
+                key={n.id}
+                type="button"
+                data-testid={`row-notification-${n.id}`}
+                onClick={() => {
+                  if (!n.read) markRead.mutate(n.id);
+                  if (n.link) {
+                    setOpen(false);
+                    setLocation(n.link);
+                  }
+                }}
+                className={`w-full text-left px-3 py-2.5 border-b hover-elevate ${n.read ? "" : "bg-purple-50/40"}`}
+              >
+                <div className="flex items-start gap-2">
+                  {!n.read && <span className="mt-1.5 inline-block w-1.5 h-1.5 rounded-full bg-purple-600 shrink-0" />}
+                  <div className={`flex-1 min-w-0 ${n.read ? "" : ""}`}>
+                    <div className="text-xs font-medium truncate">{n.title}</div>
+                    <div className="text-[11px] text-muted-foreground line-clamp-3 whitespace-pre-wrap">{n.body}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{formatRel(n.createdAt)}</div>
+                  </div>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -127,8 +241,9 @@ function AppNav() {
               </span>
             </Link>
 
-            {/* Right side: hamburger + logout */}
+            {/* Right side: notifications + hamburger + logout */}
             <div className="flex items-center gap-1">
+              <NotificationsBell />
               <button
                 data-testid="btn-logout"
                 onClick={() => logoutMutation.mutate()}
