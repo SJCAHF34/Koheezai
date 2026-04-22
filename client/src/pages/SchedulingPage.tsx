@@ -81,6 +81,17 @@ const STATUS_BADGE_CLASS: Record<ScheduleStatus, string> = {
   floating_holiday: "bg-purple-100 text-purple-800 border-purple-200",
 };
 
+function formatTime(hhmm: string): string {
+  const [hStr, mStr] = hhmm.split(":");
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  const mm = String(m).padStart(2, "0");
+  return `${h12}:${mm} ${period}`;
+}
+
 function emptyShift() {
   return { start: "09:00", end: "17:00" } as { start: string; end: string };
 }
@@ -288,7 +299,7 @@ export default function SchedulingPage() {
                           {label}
                         </div>
                         <div className="text-xs font-medium">
-                          {day ? `${day.open}–${day.close}` : <span className="italic text-muted-foreground">Closed</span>}
+                          {day ? `${formatTime(day.open)} – ${formatTime(day.close)}` : <span className="italic text-muted-foreground">Closed</span>}
                         </div>
                       </div>
                     );
@@ -389,7 +400,7 @@ export default function SchedulingPage() {
                               </Badge>
                               {cell.status === "scheduled" && cell.start && cell.end && (
                                 <div className="text-[10px] mt-1 text-muted-foreground">
-                                  {cell.start}–{cell.end}
+                                  {formatTime(cell.start)} – {formatTime(cell.end)}
                                 </div>
                               )}
                               {cell.fromDefault && (
