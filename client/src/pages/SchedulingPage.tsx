@@ -65,6 +65,36 @@ function addDays(d: Date, n: number): Date {
   return out;
 }
 
+function addMonths(d: Date, n: number): Date {
+  const out = new Date(d);
+  out.setHours(0, 0, 0, 0);
+  out.setDate(1);
+  out.setMonth(out.getMonth() + n);
+  return out;
+}
+
+function startOfMonth(d: Date): Date {
+  const out = new Date(d);
+  out.setHours(0, 0, 0, 0);
+  out.setDate(1);
+  return out;
+}
+
+// Returns the array of dates that fill a calendar month grid:
+// from the Sunday on/before the 1st through the Saturday on/after the last day.
+function monthGridDays(anchor: Date): Date[] {
+  const first = startOfMonth(anchor);
+  const gridStart = startOfWeek(first);
+  // last day of month
+  const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0);
+  const gridEndExclusive = addDays(startOfWeek(lastDay), 7); // following Sunday
+  const days: Date[] = [];
+  for (let d = new Date(gridStart); d < gridEndExclusive; d = addDays(d, 1)) {
+    days.push(new Date(d));
+  }
+  return days;
+}
+
 const STATUS_LABEL: Record<ScheduleStatus, string> = {
   scheduled: "Scheduled",
   unscheduled: "Unscheduled",
@@ -158,10 +188,14 @@ export default function SchedulingPage() {
     }
   }, [sitesQuery.data, siteId, profile?.siteId]);
 
+  const [viewMode, setViewMode] = useState<"week" | "month">("week");
   const [weekAnchor, setWeekAnchor] = useState<Date>(startOfWeek(new Date()));
+  const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(new Date()));
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekAnchor, i)), [weekAnchor]);
-  const fromKey = toDateKey(weekDays[0]);
-  const toKey = toDateKey(weekDays[6]);
+  const monthDays = useMemo(() => monthGridDays(monthAnchor), [monthAnchor]);
+  const rangeDays = viewMode === "week" ? weekDays : monthDays;
+  const fromKey = toDateKey(rangeDays[0]);
+  const toKey = toDateKey(rangeDays[rangeDays.length - 1]);
 
   // Roster comes from client-side store (existing taskStorage)
   const roster = useMemo<StaffMember[]>(
@@ -220,6 +254,9 @@ export default function SchedulingPage() {
 
   // ── Cell editor dialog ───────────────────────────────────────────────────
   const [editing, setEditing] = useState<{ staff: StaffMember; date: Date } | null>(null);
+
+  // ── Day detail dialog (month view) ───────────────────────────────────────
+  const [dayDetail, setDayDetail] = useState<Date | null>(null);
 
   // ── Settings dialog (defaults + hours) ───────────────────────────────────
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -317,23 +354,59 @@ export default function SchedulingPage() {
         </Card>
       )}
 
-      {/* Week navigator */}
+      {/* Week / Month navigator */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
+        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3 flex-wrap">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Clock className="w-4 h-4" />
-            Week of {weekDays[0].toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+            {viewMode === "week"
+              ? `Week of ${weekDays[0].toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+              : monthAnchor.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
           </CardTitle>
-          <div className="flex items-center gap-1">
-            <Button size="sm" variant="ghost" onClick={() => setWeekAnchor((d) => addDays(d, -7))} data-testid="button-prev-week">
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setWeekAnchor(startOfWeek(new Date()))} data-testid="button-this-week">
-              This week
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setWeekAnchor((d) => addDays(d, 7))} data-testid="button-next-week">
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex rounded-md border overflow-hidden" data-testid="toggle-view-mode">
+              <button
+                type="button"
+                className={`px-2.5 py-1 text-xs ${viewMode === "week" ? "bg-purple-600 text-white" : "bg-background text-foreground hover-elevate"}`}
+                onClick={() => setViewMode("week")}
+                data-testid="button-view-week"
+              >
+                Week
+              </button>
+              <button
+                type="button"
+                className={`px-2.5 py-1 text-xs border-l ${viewMode === "month" ? "bg-purple-600 text-white" : "bg-background text-foreground hover-elevate"}`}
+                onClick={() => setViewMode("month")}
+                data-testid="button-view-month"
+              >
+                Month
+              </button>
+            </div>
+            {viewMode === "week" ? (
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" onClick={() => setWeekAnchor((d) => addDays(d, -7))} data-testid="button-prev-week">
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setWeekAnchor(startOfWeek(new Date()))} data-testid="button-this-week">
+                  This week
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setWeekAnchor((d) => addDays(d, 7))} data-testid="button-next-week">
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" onClick={() => setMonthAnchor((d) => addMonths(d, -1))} data-testid="button-prev-month">
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setMonthAnchor(startOfMonth(new Date()))} data-testid="button-this-month">
+                  This month
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setMonthAnchor((d) => addMonths(d, 1))} data-testid="button-next-month">
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -347,6 +420,16 @@ export default function SchedulingPage() {
             <div className="p-8 text-center text-sm text-muted-foreground inline-flex items-center justify-center gap-2 w-full">
               <Loader2 className="w-4 h-4 animate-spin" /> Loading schedule…
             </div>
+          ) : viewMode === "month" ? (
+            <MonthGrid
+              monthAnchor={monthAnchor}
+              days={monthDays}
+              roster={roster}
+              hours={hoursQuery.data ?? null}
+              defaults={defaultsQuery.data ?? []}
+              entries={entriesQuery.data ?? []}
+              onPickDay={(d) => setDayDetail(d)}
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-xs">
@@ -444,6 +527,22 @@ export default function SchedulingPage() {
             });
             setEditing(null);
             toast({ title: "Override removed", description: "Reverted to default schedule." });
+          }}
+        />
+      )}
+
+      {/* Day detail (month view) */}
+      {dayDetail && siteId && (
+        <DayDetailDialog
+          open={!!dayDetail}
+          onClose={() => setDayDetail(null)}
+          date={dayDetail}
+          roster={roster}
+          defaults={defaultsQuery.data ?? []}
+          entries={entriesQuery.data ?? []}
+          onEditStaff={(staff) => {
+            setDayDetail(null);
+            setEditing({ staff, date: dayDetail });
           }}
         />
       )}
@@ -932,5 +1031,186 @@ function HoursEditor({
         </Button>
       </div>
     </div>
+  );
+}
+
+// ── Month Grid ─────────────────────────────────────────────────────────────
+
+function MonthGrid({
+  monthAnchor,
+  days,
+  roster,
+  hours,
+  defaults,
+  entries,
+  onPickDay,
+}: {
+  monthAnchor: Date;
+  days: Date[];
+  roster: StaffMember[];
+  hours: PharmacyHours | null;
+  defaults: StaffScheduleDefault[];
+  entries: ScheduleEntry[];
+  onPickDay: (d: Date) => void;
+}) {
+  const currentMonth = monthAnchor.getMonth();
+  const todayKey = toDateKey(new Date());
+
+  return (
+    <div className="p-2">
+      <div className="grid grid-cols-7 gap-px bg-border rounded overflow-hidden border" data-testid="grid-month">
+        {WEEKDAY_LABELS.map((label) => (
+          <div
+            key={label}
+            className="bg-muted/40 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground text-center py-1.5"
+          >
+            {label}
+          </div>
+        ))}
+        {days.map((d) => {
+          const dateKey = toDateKey(d);
+          const inMonth = d.getMonth() === currentMonth;
+          const isToday = dateKey === todayKey;
+          const closed =
+            hours?.weekdays?.[d.getDay()] === null ||
+            (hours?.holidayClosures ?? []).includes(dateKey);
+
+          // Per-day staff status counts
+          let scheduled = 0;
+          let off = 0; // sick/pto/floating_holiday
+          const scheduledNames: string[] = [];
+          const offEntries: { name: string; status: ScheduleStatus }[] = [];
+          for (const staff of roster) {
+            const cell = computeEffective(d, staff.id, defaults, entries);
+            if (cell.status === "scheduled") {
+              scheduled++;
+              scheduledNames.push(staff.name);
+            } else if (cell.status !== "unscheduled") {
+              off++;
+              offEntries.push({ name: staff.name, status: cell.status });
+            }
+          }
+
+          return (
+            <button
+              key={dateKey}
+              type="button"
+              onClick={() => onPickDay(d)}
+              className={`relative bg-background min-h-[88px] p-1.5 text-left hover-elevate active-elevate-2 ${inMonth ? "" : "opacity-50"}`}
+              data-testid={`cell-month-day-${dateKey}`}
+            >
+              <div className="flex items-center justify-between">
+                <span
+                  className={`text-xs font-semibold ${isToday ? "inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-600 text-white" : "text-foreground"}`}
+                >
+                  {d.getDate()}
+                </span>
+                {closed && (
+                  <span className="text-[9px] italic text-muted-foreground">Closed</span>
+                )}
+              </div>
+              <div className="mt-1 space-y-0.5">
+                {scheduled > 0 && (
+                  <div
+                    className="text-[10px] truncate"
+                    title={scheduledNames.join(", ")}
+                    data-testid={`text-scheduled-count-${dateKey}`}
+                  >
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 align-middle" />
+                    {scheduled} scheduled
+                  </div>
+                )}
+                {off > 0 && (
+                  <div className="text-[10px] truncate text-muted-foreground" data-testid={`text-off-count-${dateKey}`}>
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1 align-middle" />
+                    {off} off
+                  </div>
+                )}
+                {scheduled === 0 && off === 0 && (
+                  <div className="text-[10px] text-muted-foreground italic">No staff set</div>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        Click any day to view or edit each staff member's schedule.
+      </p>
+    </div>
+  );
+}
+
+// ── Day Detail Dialog (month view) ─────────────────────────────────────────
+
+function DayDetailDialog({
+  open,
+  onClose,
+  date,
+  roster,
+  defaults,
+  entries,
+  onEditStaff,
+}: {
+  open: boolean;
+  onClose: () => void;
+  date: Date;
+  roster: StaffMember[];
+  defaults: StaffScheduleDefault[];
+  entries: ScheduleEntry[];
+  onEditStaff: (staff: StaffMember) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg" data-testid="dialog-day-detail">
+        <DialogHeader>
+          <DialogTitle>
+            {date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          </DialogTitle>
+          <DialogDescription>Click any staff member to edit their schedule for this day.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
+          {roster.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No staff to show.</p>
+          ) : (
+            roster.map((staff) => {
+              const cell = computeEffective(date, staff.id, defaults, entries);
+              return (
+                <button
+                  key={staff.id}
+                  type="button"
+                  onClick={() => onEditStaff(staff)}
+                  className="w-full flex items-center justify-between gap-3 rounded border px-3 py-2 text-left hover-elevate active-elevate-2"
+                  data-testid={`row-day-staff-${staff.id}`}
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{staff.name}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">
+                      {staff.roles.map((r) => r.replace(/_/g, " ")).join(", ")}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {cell.status === "scheduled" && cell.start && cell.end && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {formatTime(cell.start)} – {formatTime(cell.end)}
+                      </span>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] font-medium border ${STATUS_BADGE_CLASS[cell.status]}`}
+                    >
+                      {STATUS_LABEL[cell.status]}
+                    </Badge>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} data-testid="button-close-day-detail">Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
