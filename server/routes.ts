@@ -63,6 +63,7 @@ const DEMO_USERS = [
   { email: "debbie.nguyen@aidshealth.org", password: "AHF1", name: "Debbie Nguyen" },
   { email: "uyen-vy.nguyen@aidshealth.org",password: "AHF1", name: "Uyen-Vy Nguyen" },
   { email: "roshanak.mohaghegh@ahfrx.org", password: "AHF1", name: "Roshanak Mohaghegh" },
+  { email: "roshanak.mohaghegh@aidshealth.org", password: "AHF1", name: "Roshanak Mohaghegh" },
   // ── Western Region pharmacy directors ───────────────────────────────────────
   { email: "ryan.leong@aidshealth.org",            password: "AHF1", name: "Ryan Leong" },
   { email: "jrockwoodpharmd@gmail.com",             password: "AHF1", name: "Jason Rockwood" },

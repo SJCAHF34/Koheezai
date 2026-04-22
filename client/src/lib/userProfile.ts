@@ -675,6 +675,13 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     region: "Western Region",
     taskRoles: ["pharmacist_1"],
   },
+  "roshanak.mohaghegh@aidshealth.org": {
+    name: "Roshanak Mohaghegh",
+    role: "regional_pharmacy_director",
+    siteId: "1417",
+    siteName: "Western Region",
+    region: "Western Region",
+  },
 };
 
 const DEFAULT_PROFILE: Pick<UserProfile, "role" | "siteId" | "siteName"> = {
