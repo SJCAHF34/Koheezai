@@ -73,6 +73,8 @@ import {
   X,
   Link2,
   FileText,
+  Upload,
+  Paperclip,
 } from "lucide-react";
 
 // ── Status helpers ──────────────────────────────────────────────────────────
@@ -278,7 +280,25 @@ function StaffInterviewPrepView() {
 // ── URL validation helper ─────────────────────────────────────────────────────
 
 function isValidHttpUrl(url: string): boolean {
+  if (/^data:/i.test(url)) return true;
   try { return /^https?:\/\//i.test(new URL(url).href); } catch { return false; }
+}
+
+const MAX_UPLOAD_BYTES = 3 * 1024 * 1024; // 3 MB cap (localStorage friendly)
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error ?? new Error("File read failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 // ── Document Section component ────────────────────────────────────────────────
@@ -320,6 +340,7 @@ function DocumentSection({
   // Foundation doc editing: which template id is currently in edit mode
   const [editingFd, setEditingFd] = useState<string | null>(null);
   const [fdUrlDraft, setFdUrlDraft] = useState("");
+  const [fdFileDraft, setFdFileDraft] = useState<{ dataUrl: string; name: string; type: string } | null>(null);
   // Saved confirmation flash
   const [savedFd, setSavedFd] = useState<string | null>(null);
 
@@ -327,12 +348,41 @@ function DocumentSection({
   const [addingStore, setAddingStore] = useState(false);
   const [newStoreLabel, setNewStoreLabel] = useState("");
   const [newStoreUrl, setNewStoreUrl] = useState("");
+  const [newStoreFile, setNewStoreFile] = useState<{ dataUrl: string; name: string; type: string } | null>(null);
 
   // Store doc editing: which store doc id is being edited
   const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
   const [editStoreLabel, setEditStoreLabel] = useState("");
   const [editStoreUrl, setEditStoreUrl] = useState("");
+  const [editStoreFile, setEditStoreFile] = useState<{ dataUrl: string; name: string; type: string } | null>(null);
   const [savedSd, setSavedSd] = useState<string | null>(null);
+
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function pickFile(): Promise<{ dataUrl: string; name: string; type: string } | null> {
+    setUploadError(null);
+    return new Promise((resolve) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.csv,application/pdf,image/*";
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return resolve(null);
+        if (file.size > MAX_UPLOAD_BYTES) {
+          setUploadError(`File too large (${formatBytes(file.size)}). Limit is ${formatBytes(MAX_UPLOAD_BYTES)}; paste a URL instead for larger files.`);
+          return resolve(null);
+        }
+        try {
+          const dataUrl = await readFileAsDataUrl(file);
+          resolve({ dataUrl, name: file.name, type: file.type || "application/octet-stream" });
+        } catch {
+          setUploadError("Could not read file. Try again or paste a URL instead.");
+          resolve(null);
+        }
+      };
+      input.click();
+    });
+  }
 
   function getFoundationRecord(templateId: string): FoundationDocRecord | undefined {
     return foundationDocs.find((d) => d.id === templateId);
@@ -341,13 +391,38 @@ function DocumentSection({
   function startEditFd(template: FoundationDocTemplate) {
     if (!canEditFoundation) return;
     const existing = getFoundationRecord(template.id);
-    setFdUrlDraft(existing?.url ?? "");
+    setFdUrlDraft(existing && !existing.fileName ? existing.url : "");
+    setFdFileDraft(
+      existing?.fileName
+        ? { dataUrl: existing.url, name: existing.fileName, type: existing.fileType ?? "" }
+        : null,
+    );
     setEditingFd(template.id);
     setSavedFd(null);
+    setUploadError(null);
   }
 
   function commitFdUrl(template: FoundationDocTemplate) {
     const trimmed = fdUrlDraft.trim();
+    if (fdFileDraft) {
+      onFoundationDocSaved({
+        id: template.id,
+        itemId: template.itemId,
+        label: template.label,
+        description: template.description,
+        url: fdFileDraft.dataUrl,
+        fileName: fdFileDraft.name,
+        fileType: fdFileDraft.type,
+        addedBy: editorName,
+        addedAt: new Date().toISOString(),
+      });
+      setSavedFd(template.id);
+      setTimeout(() => setSavedFd(null), 2000);
+      setEditingFd(null);
+      setFdUrlDraft("");
+      setFdFileDraft(null);
+      return;
+    }
     if (trimmed && isValidHttpUrl(trimmed)) {
       onFoundationDocSaved({
         id: template.id,
@@ -372,40 +447,85 @@ function DocumentSection({
 
   function commitStoreDoc() {
     const label = newStoreLabel.trim();
-    const url = newStoreUrl.trim();
-    if (!label || !url || !isValidHttpUrl(url)) return;
-    const id = `sd-${siteId}-${itemId}-${Date.now()}`;
-    onStoreDocSaved({
-      id,
-      siteId,
-      itemId,
-      label,
-      url,
-      uploadedBy: editorName,
-      uploadedAt: new Date().toISOString(),
-    });
+    if (!label) return;
+    if (newStoreFile) {
+      const id = `sd-${siteId}-${itemId}-${Date.now()}`;
+      onStoreDocSaved({
+        id,
+        siteId,
+        itemId,
+        label,
+        url: newStoreFile.dataUrl,
+        fileName: newStoreFile.name,
+        fileType: newStoreFile.type,
+        uploadedBy: editorName,
+        uploadedAt: new Date().toISOString(),
+      });
+    } else {
+      const url = newStoreUrl.trim();
+      if (!url || !isValidHttpUrl(url)) return;
+      const id = `sd-${siteId}-${itemId}-${Date.now()}`;
+      onStoreDocSaved({
+        id,
+        siteId,
+        itemId,
+        label,
+        url,
+        uploadedBy: editorName,
+        uploadedAt: new Date().toISOString(),
+      });
+    }
     setNewStoreLabel("");
     setNewStoreUrl("");
+    setNewStoreFile(null);
     setAddingStore(false);
+    setUploadError(null);
   }
 
   function startEditStoreDoc(doc: StoreDocRecord) {
     setEditingStoreId(doc.id);
     setEditStoreLabel(doc.label);
-    setEditStoreUrl(doc.url);
+    setEditStoreUrl(doc.fileName ? "" : doc.url);
+    setEditStoreFile(
+      doc.fileName ? { dataUrl: doc.url, name: doc.fileName, type: doc.fileType ?? "" } : null,
+    );
     setSavedSd(null);
+    setUploadError(null);
   }
 
   function commitStoreEdit(doc: StoreDocRecord) {
     const label = editStoreLabel.trim();
-    const url = editStoreUrl.trim();
-    if (!label || !url || !isValidHttpUrl(url)) return;
-    onStoreDocSaved({ ...doc, label, url, uploadedBy: editorName, uploadedAt: new Date().toISOString() });
+    if (!label) return;
+    if (editStoreFile) {
+      onStoreDocSaved({
+        ...doc,
+        label,
+        url: editStoreFile.dataUrl,
+        fileName: editStoreFile.name,
+        fileType: editStoreFile.type,
+        uploadedBy: editorName,
+        uploadedAt: new Date().toISOString(),
+      });
+    } else {
+      const url = editStoreUrl.trim();
+      if (!url || !isValidHttpUrl(url)) return;
+      onStoreDocSaved({
+        ...doc,
+        label,
+        url,
+        fileName: undefined,
+        fileType: undefined,
+        uploadedBy: editorName,
+        uploadedAt: new Date().toISOString(),
+      });
+    }
     setSavedSd(doc.id);
     setTimeout(() => setSavedSd(null), 2000);
     setEditingStoreId(null);
     setEditStoreLabel("");
     setEditStoreUrl("");
+    setEditStoreFile(null);
+    setUploadError(null);
   }
 
   const hasAnyDocs = myTemplates.some((t) => !!getFoundationRecord(t.id)?.url) || myStoreDocs.length > 0;
@@ -427,7 +547,9 @@ function DocumentSection({
                   <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
                   <div className="flex flex-col flex-1 min-w-0">
                     <span className="text-xs text-foreground" title={template.description}>{template.label}</span>
-                    <span className="text-xs text-muted-foreground">Foundation</span>
+                    <span className="text-xs text-muted-foreground">
+                      Foundation{record?.fileName ? ` · ${record.fileName}` : ""}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {justSaved && (
@@ -436,13 +558,14 @@ function DocumentSection({
                     {hasUrl && !isEditing && !justSaved && (
                       <a
                         href={record!.url}
-                        target="_blank"
+                        download={record!.fileName}
+                        target={record!.fileName ? undefined : "_blank"}
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
                         data-testid={`workbook-fd-view-${template.id}`}
                       >
                         <ExternalLink className="w-3 h-3" />
-                        View
+                        {record!.fileName ? "Open" : "View"}
                       </a>
                     )}
                     {canEditFoundation && !isEditing && (
@@ -452,47 +575,80 @@ function DocumentSection({
                         className="text-xs text-muted-foreground hover:text-foreground underline"
                         data-testid={`workbook-fd-edit-${template.id}`}
                       >
-                        {hasUrl ? "Edit URL" : "Add URL"}
+                        {hasUrl ? "Edit" : "Add URL / Upload"}
                       </button>
                     )}
                     {!hasUrl && !canEditFoundation && (
-                      <span className="text-xs text-muted-foreground italic">No URL yet</span>
+                      <span className="text-xs text-muted-foreground italic">Not yet attached</span>
                     )}
                   </div>
                 </div>
                 {isEditing && (
-                  <div className="flex items-center gap-1.5 pl-5" data-testid={`workbook-fd-editor-${template.id}`}>
-                    <Input
-                      type="url"
-                      placeholder="Paste SharePoint / Box / Dropbox URL…"
-                      value={fdUrlDraft}
-                      onChange={(e) => setFdUrlDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") commitFdUrl(template);
-                        if (e.key === "Escape") { setEditingFd(null); setFdUrlDraft(""); }
-                      }}
-                      onBlur={() => commitFdUrl(template)}
-                      className="text-xs h-7 flex-1 min-w-0"
-                      autoFocus
-                      data-testid={`workbook-fd-url-input-${template.id}`}
-                    />
-                    <Button
-                      size="sm"
-                      className="h-7 text-xs px-2 shrink-0"
-                      onMouseDown={(e) => { e.preventDefault(); commitFdUrl(template); }}
-                      data-testid={`workbook-fd-save-${template.id}`}
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 shrink-0"
-                      onMouseDown={(e) => { e.preventDefault(); setEditingFd(null); setFdUrlDraft(""); }}
-                      data-testid={`workbook-fd-cancel-${template.id}`}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
+                  <div className="space-y-1 pl-5" data-testid={`workbook-fd-editor-${template.id}`}>
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        type="url"
+                        placeholder="Paste SharePoint / Box / Dropbox URL…"
+                        value={fdUrlDraft}
+                        onChange={(e) => { setFdUrlDraft(e.target.value); if (e.target.value) setFdFileDraft(null); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitFdUrl(template);
+                          if (e.key === "Escape") { setEditingFd(null); setFdUrlDraft(""); setFdFileDraft(null); }
+                        }}
+                        disabled={!!fdFileDraft}
+                        className="text-xs h-7 flex-1 min-w-0"
+                        autoFocus
+                        data-testid={`workbook-fd-url-input-${template.id}`}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs px-2 shrink-0 gap-1"
+                        onClick={async () => {
+                          const f = await pickFile();
+                          if (f) { setFdFileDraft(f); setFdUrlDraft(""); }
+                        }}
+                        data-testid={`workbook-fd-upload-${template.id}`}
+                      >
+                        <Upload className="w-3 h-3" />
+                        Upload
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs px-2 shrink-0"
+                        onMouseDown={(e) => { e.preventDefault(); commitFdUrl(template); }}
+                        data-testid={`workbook-fd-save-${template.id}`}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 shrink-0"
+                        onMouseDown={(e) => { e.preventDefault(); setEditingFd(null); setFdUrlDraft(""); setFdFileDraft(null); }}
+                        data-testid={`workbook-fd-cancel-${template.id}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    {fdFileDraft && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Paperclip className="w-3 h-3" />
+                        <span className="truncate" data-testid={`workbook-fd-file-name-${template.id}`}>{fdFileDraft.name}</span>
+                        <button
+                          type="button"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => setFdFileDraft(null)}
+                          data-testid={`workbook-fd-file-clear-${template.id}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    {uploadError && (
+                      <p className="text-xs text-red-600" data-testid={`workbook-upload-error-${template.id}`}>{uploadError}</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -512,7 +668,10 @@ function DocumentSection({
                 <div className="flex flex-wrap items-start gap-2">
                   <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                   <div className="flex flex-col flex-1 min-w-0">
-                    <span className="text-xs text-foreground">{doc.label}</span>
+                    <span className="text-xs text-foreground">
+                      {doc.label}
+                      {doc.fileName ? <span className="text-muted-foreground"> · {doc.fileName}</span> : null}
+                    </span>
                     <span className="text-xs text-muted-foreground">Store — {doc.uploadedBy}</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -522,13 +681,14 @@ function DocumentSection({
                     {!isEditingThis && !justSaved && (
                       <a
                         href={doc.url}
-                        target="_blank"
+                        download={doc.fileName}
+                        target={doc.fileName ? undefined : "_blank"}
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
                         data-testid={`workbook-sd-view-${doc.id}`}
                       >
                         <ExternalLink className="w-3 h-3" />
-                        View
+                        {doc.fileName ? "Open" : "View"}
                       </a>
                     )}
                     {canEditStore && !isEditingThis && (
@@ -555,32 +715,63 @@ function DocumentSection({
                 </div>
                 {isEditingThis && (
                   <div className="space-y-1.5 pl-5" data-testid={`workbook-sd-edit-form-${doc.id}`}>
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-1.5 flex-wrap">
                       <Input
                         type="text"
                         placeholder="Label…"
                         value={editStoreLabel}
                         onChange={(e) => setEditStoreLabel(e.target.value)}
-                        className="text-xs h-7 flex-1"
+                        className="text-xs h-7 flex-1 min-w-[160px]"
                         data-testid={`workbook-sd-edit-label-${doc.id}`}
                       />
                       <Input
                         type="url"
                         placeholder="URL…"
                         value={editStoreUrl}
-                        onChange={(e) => setEditStoreUrl(e.target.value)}
+                        onChange={(e) => { setEditStoreUrl(e.target.value); if (e.target.value) setEditStoreFile(null); }}
                         onKeyDown={(e) => { if (e.key === "Enter") commitStoreEdit(doc); if (e.key === "Escape") setEditingStoreId(null); }}
-                        onBlur={() => { if (editStoreLabel.trim() && editStoreUrl.trim()) commitStoreEdit(doc); }}
-                        className="text-xs h-7 flex-1"
+                        disabled={!!editStoreFile}
+                        className="text-xs h-7 flex-1 min-w-[160px]"
                         data-testid={`workbook-sd-edit-url-${doc.id}`}
                       />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs px-2 gap-1"
+                        onClick={async () => {
+                          const f = await pickFile();
+                          if (f) { setEditStoreFile(f); setEditStoreUrl(""); }
+                        }}
+                        data-testid={`workbook-sd-edit-upload-${doc.id}`}
+                      >
+                        <Upload className="w-3 h-3" />
+                        Upload
+                      </Button>
                     </div>
+                    {editStoreFile && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Paperclip className="w-3 h-3" />
+                        <span className="truncate" data-testid={`workbook-sd-edit-file-name-${doc.id}`}>{editStoreFile.name}</span>
+                        <button
+                          type="button"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => setEditStoreFile(null)}
+                          data-testid={`workbook-sd-edit-file-clear-${doc.id}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    {uploadError && (
+                      <p className="text-xs text-red-600">{uploadError}</p>
+                    )}
                     <div className="flex gap-1.5">
                       <Button
                         size="sm"
                         className="h-7 text-xs px-2"
                         onClick={() => commitStoreEdit(doc)}
-                        disabled={!editStoreLabel.trim() || !editStoreUrl.trim()}
+                        disabled={!editStoreLabel.trim() || (!editStoreUrl.trim() && !editStoreFile)}
                         data-testid={`workbook-sd-edit-save-${doc.id}`}
                       >
                         Save
@@ -589,7 +780,7 @@ function DocumentSection({
                         size="sm"
                         variant="ghost"
                         className="h-7 text-xs px-2"
-                        onClick={() => { setEditingStoreId(null); setEditStoreLabel(""); setEditStoreUrl(""); }}
+                        onClick={() => { setEditingStoreId(null); setEditStoreLabel(""); setEditStoreUrl(""); setEditStoreFile(null); }}
                         data-testid={`workbook-sd-edit-cancel-${doc.id}`}
                       >
                         Cancel
@@ -622,32 +813,63 @@ function DocumentSection({
       )}
       {canEditStore && addingStore && (
         <div className="space-y-1.5 pt-1" data-testid={`workbook-sd-add-form-${itemId}`}>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 flex-wrap">
             <Input
               type="text"
               placeholder="Document label…"
               value={newStoreLabel}
               onChange={(e) => setNewStoreLabel(e.target.value)}
-              className="text-xs h-7 flex-1"
+              className="text-xs h-7 flex-1 min-w-[160px]"
               data-testid={`workbook-sd-label-input-${itemId}`}
             />
             <Input
               type="url"
               placeholder="URL…"
               value={newStoreUrl}
-              onChange={(e) => setNewStoreUrl(e.target.value)}
+              onChange={(e) => { setNewStoreUrl(e.target.value); if (e.target.value) setNewStoreFile(null); }}
               onKeyDown={(e) => { if (e.key === "Enter") commitStoreDoc(); }}
-              onBlur={() => { if (newStoreLabel.trim() && newStoreUrl.trim()) commitStoreDoc(); }}
-              className="text-xs h-7 flex-1"
+              disabled={!!newStoreFile}
+              className="text-xs h-7 flex-1 min-w-[160px]"
               data-testid={`workbook-sd-url-input-${itemId}`}
             />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs px-2 gap-1"
+              onClick={async () => {
+                const f = await pickFile();
+                if (f) { setNewStoreFile(f); setNewStoreUrl(""); }
+              }}
+              data-testid={`workbook-sd-upload-btn-${itemId}`}
+            >
+              <Upload className="w-3 h-3" />
+              Upload
+            </Button>
           </div>
+          {newStoreFile && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Paperclip className="w-3 h-3" />
+              <span className="truncate" data-testid={`workbook-sd-file-name-${itemId}`}>{newStoreFile.name}</span>
+              <button
+                type="button"
+                className="text-red-500 hover:text-red-700"
+                onClick={() => setNewStoreFile(null)}
+                data-testid={`workbook-sd-file-clear-${itemId}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+          {uploadError && (
+            <p className="text-xs text-red-600" data-testid={`workbook-sd-upload-error-${itemId}`}>{uploadError}</p>
+          )}
           <div className="flex items-center gap-1.5">
             <Button
               size="sm"
               className="h-7 text-xs px-2"
               onClick={commitStoreDoc}
-              disabled={!newStoreLabel.trim() || !newStoreUrl.trim()}
+              disabled={!newStoreLabel.trim() || (!newStoreUrl.trim() && !newStoreFile)}
               data-testid={`workbook-sd-save-btn-${itemId}`}
             >
               Save
@@ -656,7 +878,7 @@ function DocumentSection({
               size="sm"
               variant="ghost"
               className="h-7 text-xs px-2"
-              onClick={() => { setAddingStore(false); setNewStoreLabel(""); setNewStoreUrl(""); }}
+              onClick={() => { setAddingStore(false); setNewStoreLabel(""); setNewStoreUrl(""); setNewStoreFile(null); setUploadError(null); }}
               data-testid={`workbook-sd-cancel-btn-${itemId}`}
             >
               Cancel

@@ -686,13 +686,18 @@ export function saveRoster(roster: SiteRoster): void {
 const FOUNDATION_DOCS_KEY = "koheez_achc_foundation_docs";
 const STORE_DOCS_KEY = "koheez_achc_store_docs";
 
-/** A foundation-wide document record: template info + optional URL set by CPO/RPD */
+/** A foundation-wide document record: template info + optional URL or uploaded file set by CPO/RPD */
 export interface FoundationDocRecord {
   id: string;
   itemId: string;
   label: string;
   description: string;
+  /** Either an https URL or a `data:` URL produced by an inline file upload. */
   url: string;
+  /** Original filename when the source is an uploaded file. */
+  fileName?: string;
+  /** MIME type when the source is an uploaded file. */
+  fileType?: string;
   addedBy: string;
   addedAt: string;
 }
@@ -703,7 +708,12 @@ export interface StoreDocRecord {
   siteId: string;
   itemId: string;
   label: string;
+  /** Either an https URL or a `data:` URL produced by an inline file upload. */
   url: string;
+  /** Original filename when the source is an uploaded file. */
+  fileName?: string;
+  /** MIME type when the source is an uploaded file. */
+  fileType?: string;
   uploadedBy: string;
   uploadedAt: string;
 }
@@ -728,8 +738,9 @@ export function loadFoundationDocs(): FoundationDocRecord[] {
   return readFoundationDocs();
 }
 
-/** Validate URL scheme as http(s) only. Returns false for javascript:, data:, etc. */
+/** Validate URL scheme as http(s) or a data: URL produced by an inline file upload. */
 function isHttpUrlFd(url: string): boolean {
+  if (/^data:/i.test(url)) return true;
   try { return /^https?:\/\//i.test(new URL(url).href); } catch { return false; }
 }
 
@@ -775,8 +786,9 @@ export function loadStoreDocs(siteId: string): StoreDocRecord[] {
   return readStoreDocs().filter((d) => d.siteId === siteId);
 }
 
-/** Validate URL scheme as http(s) only. Returns false for javascript:, data:, etc. */
+/** Validate URL scheme as http(s) or a data: URL produced by an inline file upload. */
 function isHttpUrl(url: string): boolean {
+  if (/^data:/i.test(url)) return true;
   try { return /^https?:\/\//i.test(new URL(url).href); } catch { return false; }
 }
 
