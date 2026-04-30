@@ -54,6 +54,7 @@ import {
   searchControlledDrugs,
   findControlledDrugByNdc,
   normalizeNdc,
+  addCustomControlledDrug,
 } from "@/lib/controlledDrugs";
 import {
   appendAdjustment,
@@ -234,7 +235,12 @@ export default function ControlledInventory() {
         </TabsContent>
 
         <TabsContent value="ledger" className="mt-4">
-          <LedgerPanel key={`ledger-${selectedSiteId}-${tick}`} siteId={selectedSiteId} />
+          <LedgerPanel
+            key={`ledger-${selectedSiteId}-${tick}`}
+            siteId={selectedSiteId}
+            canEdit={userIsPharmacist}
+            onChanged={bump}
+          />
         </TabsContent>
       </Tabs>
     </main>
@@ -1318,10 +1324,11 @@ function SummaryTile({ label, value, tone }: { label: string; value: string; ton
 // Adjustment ledger panel
 // ─────────────────────────────────────────────────────────────────────────────
 
-function LedgerPanel({ siteId }: { siteId: string }) {
+function LedgerPanel({ siteId, canEdit, onChanged }: { siteId: string; canEdit: boolean; onChanged: () => void }) {
   const adjustments = getAdjustmentsForSite(siteId);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<AdjustmentType | "ALL">("ALL");
+  const [showAddNdc, setShowAddNdc] = useState(false);
 
   const filtered = useMemo(() => {
     return adjustments.filter((a) => {
@@ -1380,6 +1387,12 @@ function LedgerPanel({ siteId }: { siteId: string }) {
                 ))}
               </SelectContent>
             </Select>
+            {canEdit && (
+              <Button onClick={() => setShowAddNdc(true)} data-testid="button-add-new-ndc">
+                <PlusCircle className="w-4 h-4 mr-1.5" />
+                Add new NDC
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -1422,6 +1435,219 @@ function LedgerPanel({ siteId }: { siteId: string }) {
           </div>
         )}
       </CardContent>
+
+      <AddCustomNdcDialog
+        open={showAddNdc}
+        onOpenChange={setShowAddNdc}
+        onSaved={() => {
+          setShowAddNdc(false);
+          onChanged();
+        }}
+      />
     </Card>
+  );
+}
+
+// ── Add new NDC (custom catalog entry) dialog ───────────────────────────────
+
+interface AddCustomNdcDialogProps {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onSaved: () => void;
+}
+
+function AddCustomNdcDialog({ open, onOpenChange, onSaved }: AddCustomNdcDialogProps) {
+  const { toast } = useToast();
+  const [ndc, setNdc] = useState("");
+  const [name, setName] = useState("");
+  const [strength, setStrength] = useState("");
+  const [form, setForm] = useState("");
+  const [packageSize, setPackageSize] = useState("");
+  const [manufacturer, setManufacturer] = useState("");
+  const [schedule, setSchedule] = useState<DeaSchedule>("C-II");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Reset whenever the dialog re-opens.
+  useEffect(() => {
+    if (open) {
+      setNdc("");
+      setName("");
+      setStrength("");
+      setForm("");
+      setPackageSize("");
+      setManufacturer("");
+      setSchedule("C-II");
+      setSubmitting(false);
+    }
+  }, [open]);
+
+  const ndcDigits = ndc.replace(/[^0-9]/g, "");
+  const ndcValid = ndcDigits.length === 10 || ndcDigits.length === 11;
+  const allValid =
+    ndcValid &&
+    name.trim().length > 0 &&
+    strength.trim().length > 0 &&
+    form.trim().length > 0 &&
+    packageSize.trim().length > 0 &&
+    manufacturer.trim().length > 0;
+
+  function save() {
+    if (!allValid || submitting) return;
+    setSubmitting(true);
+    try {
+      const saved = addCustomControlledDrug({
+        ndc,
+        name,
+        strength,
+        form,
+        packageSize,
+        manufacturer,
+        schedule,
+      });
+      toast({
+        title: "NDC added to catalog",
+        description: `${saved.name} (${saved.ndc}) is now searchable from Add NDC and the bi-annual count.`,
+      });
+      onSaved();
+    } catch (err) {
+      toast({
+        title: "Could not add NDC",
+        description: err instanceof Error ? err.message : "Unexpected error.",
+        variant: "destructive",
+      });
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <PlusCircle className="w-5 h-5" />
+            Add new NDC to catalog
+          </DialogTitle>
+          <DialogDescription>
+            Register a controlled-substance NDC that isn't in the built-in
+            catalog. Once saved it can be searched from the perpetual inventory
+            and is included in the next bi-annual count.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="new-ndc" className="text-xs font-medium text-muted-foreground">
+              NDC <span className="text-red-500">*</span>
+            </label>
+            <Input
+              id="new-ndc"
+              value={ndc}
+              onChange={(e) => setNdc(e.target.value)}
+              placeholder="e.g. 00574-0820-01"
+              data-testid="input-new-ndc"
+              autoFocus
+            />
+            {ndc && !ndcValid && (
+              <p className="text-xs text-red-600 mt-1">
+                Enter a 10- or 11-digit NDC. Hyphens are optional.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="new-name" className="text-xs font-medium text-muted-foreground">
+              Drug name <span className="text-red-500">*</span>
+            </label>
+            <Input
+              id="new-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Oxycodone HCl"
+              data-testid="input-new-drug-name"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="new-strength" className="text-xs font-medium text-muted-foreground">
+                Strength <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="new-strength"
+                value={strength}
+                onChange={(e) => setStrength(e.target.value)}
+                placeholder="e.g. 5 mg"
+                data-testid="input-new-strength"
+              />
+            </div>
+            <div>
+              <label htmlFor="new-form" className="text-xs font-medium text-muted-foreground">
+                Formulation <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="new-form"
+                value={form}
+                onChange={(e) => setForm(e.target.value)}
+                placeholder="e.g. Tablet, Injection"
+                data-testid="input-new-form"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="new-pkg" className="text-xs font-medium text-muted-foreground">
+                Package size <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="new-pkg"
+                value={packageSize}
+                onChange={(e) => setPackageSize(e.target.value)}
+                placeholder="e.g. 100 ct, 10 mL vial"
+                data-testid="input-new-package-size"
+              />
+            </div>
+            <div>
+              <label htmlFor="new-mfr" className="text-xs font-medium text-muted-foreground">
+                Manufacturer <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="new-mfr"
+                value={manufacturer}
+                onChange={(e) => setManufacturer(e.target.value)}
+                placeholder="e.g. Mallinckrodt"
+                data-testid="input-new-manufacturer"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">
+              DEA schedule <span className="text-red-500">*</span>
+            </label>
+            <Select value={schedule} onValueChange={(v) => setSchedule(v as DeaSchedule)}>
+              <SelectTrigger data-testid="select-new-schedule">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="C-II">C-II</SelectItem>
+                <SelectItem value="C-III">C-III</SelectItem>
+                <SelectItem value="C-IV">C-IV</SelectItem>
+                <SelectItem value="C-V">C-V</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-new-ndc">
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={!allValid || submitting} data-testid="button-save-new-ndc">
+            Save NDC
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

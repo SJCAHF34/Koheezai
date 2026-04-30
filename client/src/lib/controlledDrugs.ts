@@ -81,6 +81,65 @@ export const CONTROLLED_DRUG_CATALOG: ControlledDrug[] = [
   { ndc: "13668-0226-01", name: "Lacosamide (Vimpat)",                   strength: "100 mg",   form: "Tablet",  schedule: "C-V",   manufacturer: "Torrent",       packageSize: "60 ct" },
 ];
 
+// ── Custom (user-added) NDC catalog (localStorage) ──────────────────────────
+//
+// Pharmacists may register additional NDCs from the Adjustment Ledger when a
+// drug they need to track is missing from the seed catalog. These are stored
+// client-side so the demo persists without a backend round-trip.
+
+const CUSTOM_CATALOG_KEY = "koheez_custom_controlled_catalog";
+
+function readCustomCatalog(): ControlledDrug[] {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(CUSTOM_CATALOG_KEY) : null;
+    return raw ? (JSON.parse(raw) as ControlledDrug[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCustomCatalog(items: ControlledDrug[]): void {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(CUSTOM_CATALOG_KEY, JSON.stringify(items));
+    }
+  } catch (err) {
+    console.error("Custom NDC catalog: write failed", err);
+  }
+}
+
+export function getCustomControlledDrugs(): ControlledDrug[] {
+  return readCustomCatalog();
+}
+
+/**
+ * Persist a user-added NDC. Returns the saved entry (NDC normalized).
+ * Throws if the NDC already exists in the seed catalog or custom catalog.
+ */
+export function addCustomControlledDrug(input: ControlledDrug): ControlledDrug {
+  const normalized: ControlledDrug = {
+    ...input,
+    ndc: normalizeNdc(input.ndc),
+    name: input.name.trim(),
+    strength: input.strength.trim(),
+    form: input.form.trim(),
+    manufacturer: input.manufacturer?.trim() || undefined,
+    packageSize: input.packageSize?.trim() || undefined,
+  };
+  if (findControlledDrugByNdc(normalized.ndc)) {
+    throw new Error(`NDC ${normalized.ndc} is already in the catalog.`);
+  }
+  const all = readCustomCatalog();
+  all.push(normalized);
+  writeCustomCatalog(all);
+  return normalized;
+}
+
+/** Combined seed + custom catalog. */
+function mergedCatalog(): ControlledDrug[] {
+  return [...CONTROLLED_DRUG_CATALOG, ...readCustomCatalog()];
+}
+
 // ── Lookup helpers ──────────────────────────────────────────────────────────
 
 /**
@@ -102,7 +161,7 @@ export function normalizeNdc(input: string): string {
 export function findControlledDrugByNdc(ndc: string): ControlledDrug | undefined {
   const normalized = normalizeNdc(ndc);
   const digits = ndc.replace(/[^0-9]/g, "");
-  return CONTROLLED_DRUG_CATALOG.find((d) => {
+  return mergedCatalog().find((d) => {
     if (d.ndc === normalized) return true;
     return d.ndc.replace(/[^0-9]/g, "") === digits;
   });
@@ -110,11 +169,12 @@ export function findControlledDrugByNdc(ndc: string): ControlledDrug | undefined
 
 /** Free-text + NDC search; returns up to `limit` matches scored by relevance. */
 export function searchControlledDrugs(query: string, limit = 12): ControlledDrug[] {
+  const catalog = mergedCatalog();
   const q = query.trim().toLowerCase();
-  if (!q) return CONTROLLED_DRUG_CATALOG.slice(0, limit);
+  if (!q) return catalog.slice(0, limit);
   const qDigits = q.replace(/[^0-9]/g, "");
 
-  const scored = CONTROLLED_DRUG_CATALOG.map((d) => {
+  const scored = catalog.map((d) => {
     const ndcDigits = d.ndc.replace(/[^0-9]/g, "");
     const hay = `${d.name} ${d.strength} ${d.form} ${d.schedule} ${d.manufacturer ?? ""}`.toLowerCase();
     let score = 0;
@@ -133,11 +193,11 @@ export function searchControlledDrugs(query: string, limit = 12): ControlledDrug
 }
 
 export function getAllControlledDrugs(): ControlledDrug[] {
-  return CONTROLLED_DRUG_CATALOG.slice();
+  return mergedCatalog();
 }
 
 export function getDrugsBySchedule(schedule: DeaSchedule): ControlledDrug[] {
-  return CONTROLLED_DRUG_CATALOG.filter((d) => d.schedule === schedule);
+  return mergedCatalog().filter((d) => d.schedule === schedule);
 }
 
 // ── Adjustment types ────────────────────────────────────────────────────────
