@@ -91,7 +91,7 @@ const STORE_GROUP_ROLES: Record<string, TaskRole> = {
 export const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(120, "Max 120 characters"),
   description: z.string().optional(),
-  frequency: z.enum(["daily", "weekly", "biweekly", "monthly", "quarterly", "one_time"] as const),
+  frequency: z.enum(["daily", "weekly", "biweekly", "monthly", "quarterly", "biannual", "one_time"] as const),
   role: z.enum(["data_entry_tech", "pv2_tech", "delivery_tech", "pharmacist_1", "pharmacist_2", "director", "all_staff"] as const),
   category: z.enum(["operations", "achc", "state_board", "retention"] as const),
   taskGroup: z.string(),

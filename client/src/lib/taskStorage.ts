@@ -65,6 +65,7 @@ export function getPeriodKey(frequency: TaskFrequency): string {
   }
   if (frequency === "monthly") return `${y}-${pad(m)}`;
   if (frequency === "quarterly") return `${y}-Q${Math.ceil(m / 3)}`;
+  if (frequency === "biannual") return `${y}-${m <= 6 ? "H1" : "H2"}`;
   if (frequency === "one_time") return "one-time";
   return `${y}-${pad(m)}-${pad(d)}`;
 }

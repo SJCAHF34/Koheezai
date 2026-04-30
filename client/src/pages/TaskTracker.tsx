@@ -60,6 +60,7 @@ const FREQ_LABELS: Record<string, string> = {
   biweekly: "Biweekly",
   monthly: "Monthly",
   quarterly: "Quarterly",
+  biannual: "Bi-Annual",
   one_time: "One-Time",
 };
 

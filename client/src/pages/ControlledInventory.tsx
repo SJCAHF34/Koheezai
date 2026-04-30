@@ -124,6 +124,15 @@ export default function ControlledInventory() {
   const [tick, setTick] = useState(0);
   const bump = () => setTick((t) => t + 1);
 
+  // Allow deep-links from elsewhere (e.g. the bi-annual count task in Task
+  // Manager) to land on a specific tab via ?tab=biannual / ?tab=ledger.
+  const initialTab = useMemo(() => {
+    if (typeof window === "undefined") return "perpetual";
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return t === "biannual" || t === "ledger" || t === "perpetual" ? t : "perpetual";
+  }, []);
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+
   if (!profile) {
     return (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -196,7 +205,7 @@ export default function ControlledInventory() {
       )}
 
       {/* Tabs */}
-      <Tabs defaultValue="perpetual" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-3 w-full max-w-2xl">
           <TabsTrigger value="perpetual" data-testid="tab-perpetual">
             <ListChecks className="w-4 h-4 mr-1.5" />

@@ -189,8 +189,12 @@ const FREQUENCY_TABS: { value: TaskFrequency; label: string; sub: string }[] = [
   { value: "biweekly", label: "Biweekly", sub: "Every other week" },
   { value: "monthly", label: "Monthly", sub: "This month" },
   { value: "quarterly", label: "Quarterly", sub: "This quarter" },
+  { value: "biannual", label: "Bi-Annual", sub: "This half-year" },
   { value: "one_time", label: "One-Time", sub: "Ad hoc tasks" },
 ];
+
+// Cadence selector that also accepts an "All tasks" view across every cadence.
+type FrequencyView = TaskFrequency | "all";
 
 type ViewingRole = TaskRole | "own" | "all";
 
@@ -3848,9 +3852,10 @@ const FREQ_LABEL: Record<string, string> = {
   biweekly: "Biweekly",
   monthly: "Monthly",
   quarterly: "Quarterly",
+  biannual: "Bi-Annual",
   one_time: "One-Time",
 };
-const FREQ_ORDER = ["daily", "weekly", "biweekly", "monthly", "quarterly", "one_time"];
+const FREQ_ORDER: TaskFrequency[] = ["daily", "weekly", "biweekly", "monthly", "quarterly", "biannual", "one_time"];
 
 // Expanded drill-down panel — shows all 4 periods for a single category + tasks list
 function CategoryDrillDownPanel({
@@ -3890,7 +3895,7 @@ function CategoryDrillDownPanel({
     for (const freq of FREQ_ORDER) {
       const freqTasks = catTasks.filter((t) => t.frequency === freq);
       if (freqTasks.length === 0) continue;
-      const comps = loadCompletions(siteId, freq as any);
+      const comps = loadCompletions(siteId, freq);
       groups.push({
         freq,
         label: FREQ_LABEL[freq] ?? freq,
@@ -4135,7 +4140,7 @@ export default function TaskManager() {
     effectiveRawSiteId && isRegionalDir ? effectiveRawSiteId : null;
   const readOnly = false;
 
-  const [frequency, setFrequency] = useState<TaskFrequency>(
+  const [frequency, setFrequency] = useState<FrequencyView>(
     highlightedTask ? highlightedTask.frequency : "daily"
   );
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(rawHighlightId);
@@ -4179,7 +4184,17 @@ export default function TaskManager() {
     } else {
       roleFilter = profile.role;
     }
-    setCompletions(loadCompletions(siteId, frequency, roleFilter));
+    if (frequency === "all") {
+      // Merge completions across every cadence so the "All tasks" view shows
+      // each task's correct done state for its own period.
+      const merged = new Set<string>();
+      for (const f of FREQ_ORDER) {
+        for (const id of loadCompletions(siteId, f, roleFilter)) merged.add(id);
+      }
+      setCompletions(merged);
+    } else {
+      setCompletions(loadCompletions(siteId, frequency, roleFilter));
+    }
     const aList = loadAssignments(siteId);
     setAssignments(new Map(aList.map((a) => [a.taskId, a])));
     const pList = loadPriorities(siteId);
@@ -4414,13 +4429,22 @@ export default function TaskManager() {
     return Array.from(merged);
   }, [profile, siteId]);
 
-  const baseVisible = getVisibleTasks(frequency, profile.role, viewingRole, extraRoles);
+  // When the cadence selector is set to "All tasks", we union the per-cadence
+  // visible lists so the existing per-cadence filtering rules still apply.
+  const baseVisible = useMemo(() => {
+    if (frequency !== "all") {
+      return getVisibleTasks(frequency, profile.role, viewingRole, extraRoles);
+    }
+    return FREQ_ORDER.flatMap((f) =>
+      getVisibleTasks(f, profile.role, viewingRole, extraRoles)
+    );
+  }, [frequency, profile.role, viewingRole, extraRoles]);
   // Merge in custom tasks that match the current frequency and role view.
   // Mirror getVisibleTasks semantics exactly: director tasks are only visible
   // to directors; non-directors see only their assigned role(s) + all_staff.
   const extraRoleSet = new Set<string>(extraRoles ?? []);
   const relevantCustom = customTasks.filter((ct) => {
-    if (ct.frequency !== frequency) return false;
+    if (frequency !== "all" && ct.frequency !== frequency) return false;
     if (viewingRole === "all") return true;
     if (viewingRole === "own") {
       if (isDir) {
@@ -4441,7 +4465,9 @@ export default function TaskManager() {
   const crossAssigned: PharmacyTask[] = [];
   if (!isDir && viewingRole === "own") {
     const userRoles = new Set<string>(extraRoles && extraRoles.length > 0 ? extraRoles : [profile.role]);
-    const byFreq = TASKS.filter((t) => t.frequency === frequency && !t.hidden);
+    const byFreq = TASKS.filter(
+      (t) => (frequency === "all" || t.frequency === frequency) && !t.hidden,
+    );
     for (const task of byFreq) {
       // Skip tasks already visible via the user's own roles
       if (userRoles.has(task.role) || task.role === "all_staff") continue;
@@ -4662,74 +4688,33 @@ export default function TaskManager() {
           <StorePerformancePanel trend7d={perfTrendLive} catStats={perfCatStats} />
         )}
 
-        {/* Frequency tabs + New Task button */}
-
-        {/* Mobile layout: row 1 = Daily/Weekly/Biweekly, row 2 = Monthly/Quarterly/One-Time + Create Task */}
-        <div className="flex flex-col gap-1.5 sm:hidden">
-          <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1">
-            {FREQUENCY_TABS.slice(0, 3).map((tab) => (
-              <button
-                key={tab.value}
-                data-testid={`freq-tab-${tab.value}`}
-                onClick={() => setFrequency(tab.value)}
-                className={`flex-1 px-2 py-2 rounded text-sm font-semibold transition-all ${
-                  frequency === tab.value
-                    ? "bg-purple-600 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1 flex-1">
-              {FREQUENCY_TABS.slice(3).map((tab) => (
-                <button
+        {/* Cadence dropdown + New Task button (single row, mobile + desktop) */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Select
+            value={frequency}
+            onValueChange={(v) => setFrequency(v as FrequencyView)}
+          >
+            <SelectTrigger
+              data-testid="select-frequency"
+              className="flex-1 bg-white"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" data-testid="freq-option-all">
+                All tasks
+              </SelectItem>
+              {FREQUENCY_TABS.map((tab) => (
+                <SelectItem
                   key={tab.value}
-                  data-testid={`freq-tab-${tab.value}`}
-                  onClick={() => setFrequency(tab.value)}
-                  className={`flex-1 px-2 py-2 rounded text-sm font-semibold transition-all ${
-                    frequency === tab.value
-                      ? "bg-purple-600 text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
+                  value={tab.value}
+                  data-testid={`freq-option-${tab.value}`}
                 >
                   {tab.label}
-                </button>
+                </SelectItem>
               ))}
-            </div>
-            {canCreateTask && (
-              <Button
-                data-testid="button-new-task"
-                onClick={() => setShowCreateModal(true)}
-                className="shrink-0 gap-1.5"
-              >
-                <Plus className="w-4 h-4" />
-                Create Task
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Desktop layout: all tabs + button in one row */}
-        <div className="hidden sm:flex sm:items-center gap-3">
-          <div className="flex gap-1 bg-white border border-slate-100 rounded-md p-1 flex-1">
-            {FREQUENCY_TABS.map((tab) => (
-              <button
-                key={tab.value}
-                data-testid={`freq-tab-${tab.value}`}
-                onClick={() => setFrequency(tab.value)}
-                className={`flex-1 px-3 py-2 rounded text-sm font-semibold transition-all ${
-                  frequency === tab.value
-                    ? "bg-purple-600 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+            </SelectContent>
+          </Select>
           {canCreateTask && (
             <Button
               data-testid="button-new-task"
@@ -4811,8 +4796,8 @@ export default function TaskManager() {
           </div>
         )}
 
-        {/* Director site overview cards (by role) */}
-        {isDir && !readOnly && (
+        {/* Director site overview cards (by role) — per-cadence stats only */}
+        {isDir && !readOnly && frequency !== "all" && (
           <SiteOverviewPanel
             siteId={siteId}
             frequency={frequency}
@@ -4821,8 +4806,8 @@ export default function TaskManager() {
           />
         )}
 
-        {/* Director category performance overview */}
-        {isDir && !readOnly && (
+        {/* Director category performance overview — per-cadence stats only */}
+        {isDir && !readOnly && frequency !== "all" && (
           <CategoryOverviewPanel
             siteId={siteId}
             frequency={frequency}
@@ -4881,6 +4866,55 @@ export default function TaskManager() {
             <p className="text-slate-400 text-sm">
               No tasks for this period and role combination.
             </p>
+          </div>
+        ) : frequency === "all" ? (
+          // "All tasks" view: group the visible tasks by cadence, with a
+          // heading for each cadence, then render the existing role sections
+          // within each cadence bucket.
+          <div className="space-y-6">
+            {FREQ_ORDER.map((freq) => {
+              const tasksForFreq = filteredVisible.filter((t) => t.frequency === freq);
+              if (tasksForFreq.length === 0) return null;
+              const groupsForFreq = buildRoleGroups(tasksForFreq, viewingRole, profile.role);
+              const doneForFreq = tasksForFreq.filter((t) => completions.has(t.id)).length;
+              return (
+                <section key={freq} data-testid={`cadence-section-${freq}`}>
+                  <div className="flex items-baseline justify-between mb-2">
+                    <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                      {FREQ_LABEL[freq]}
+                    </h2>
+                    <span className="text-xs text-slate-400">
+                      {doneForFreq}/{tasksForFreq.length} done
+                    </span>
+                  </div>
+                  {groupsForFreq.map(({ role, groups }) => (
+                    <RoleSection
+                      key={`${freq}-${role}`}
+                      role={role}
+                      groups={groups}
+                      completions={completions}
+                      animating={animating}
+                      assignments={assignments}
+                      priorities={priorityIds}
+                      urgentIds={urgentIds}
+                      urgentDetails={urgentDetails}
+                      canAssign={isDir}
+                      canPrioritize={canPrioritize}
+                      canMarkUrgent={canMarkUrgent}
+                      canDeleteCustom={canDeleteCustom}
+                      readOnly={readOnly}
+                      siteId={siteId}
+                      highlightTaskId={highlightTaskId}
+                      onToggle={toggleCompletion}
+                      onAssign={setAssigningTask}
+                      onPrioritize={setPrioritizingTask}
+                      onMarkUrgent={handleMarkUrgent}
+                      onDeleteCustom={handleDeleteCustom}
+                    />
+                  ))}
+                </section>
+              );
+            })}
           </div>
         ) : (
           <div>
