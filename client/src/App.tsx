@@ -19,10 +19,11 @@ import CQIMeeting from "@/pages/CQIMeeting";
 import StoreDashboard from "@/pages/StoreDashboard";
 import TaskTracker from "@/pages/TaskTracker";
 import SchedulingPage from "@/pages/SchedulingPage";
+import ControlledInventory from "@/pages/ControlledInventory";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck } from "lucide-react";
 import type { AppNotification } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -300,6 +301,8 @@ function AppNav() {
 
             <NavMenuItem href="/app/scheduling" icon={CalendarDays} label="Team Scheduling" testId="nav-scheduling" onClick={close} />
 
+            <NavMenuItem href="/app/controlled-inventory" icon={ShieldCheck} label="Controlled Inv Mgmt" testId="nav-controlled-inventory" onClick={close} />
+
             <NavMenuItem href="/app/patient-assistance" icon={HeartHandshake} label="Patient Assistance" testId="nav-assistance" onClick={close} />
 
             <button
@@ -430,6 +433,10 @@ function Router() {
       {/* Team Scheduling — directors edit, all authenticated staff view (own site) */}
       <Route path="/app/scheduling">
         <Protected component={SchedulingPage} />
+      </Route>
+      {/* Controlled Inventory Management — view by all authenticated; pharmacist-only writes */}
+      <Route path="/app/controlled-inventory">
+        <Protected component={ControlledInventory} />
       </Route>
       <Route component={NotFound} />
     </Switch>

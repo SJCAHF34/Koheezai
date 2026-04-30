@@ -715,6 +715,20 @@ export function isPharmacyDirector(role: UserRole): boolean {
   return role === "pharmacy_director";
 }
 
+/**
+ * Anyone licensed to dispense / sign for controlled substances.
+ * Includes staff pharmacists and every level of pharmacy director.
+ */
+export function isPharmacist(role: UserRole): boolean {
+  return (
+    role === "pharmacist_1" ||
+    role === "pharmacist_2" ||
+    role === "pharmacy_director" ||
+    role === "regional_pharmacy_director" ||
+    role === "chief_pharmacy_officer"
+  );
+}
+
 export function isTechRole(role: UserRole): boolean {
   return (
     role === "data_entry_tech" ||
