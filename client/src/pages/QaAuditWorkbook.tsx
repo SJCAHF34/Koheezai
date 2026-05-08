@@ -208,20 +208,6 @@ export default function QaAuditWorkbook() {
     if (i) setHighlightItemId(i);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => {
-    if (!highlightItemId) return;
-    const el = document.querySelector(`[data-testid="item-${highlightItemId}"]`);
-    if (el) {
-      (el as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("ring-2", "ring-amber-500");
-      const t = setTimeout(() => el.classList.remove("ring-2", "ring-amber-500"), 4000);
-      return () => clearTimeout(t);
-    }
-  }, [highlightItemId, workbookQueryDataReady()]);
-  function workbookQueryDataReady() {
-    return !!responses.length;
-  }
-
   const selectedStore = findStore(selectedSiteId);
   const selectedRegion = findStoreRegion(selectedSiteId)?.region ?? "";
 
@@ -276,6 +262,18 @@ export default function QaAuditWorkbook() {
 
   const submitted = workbookQuery.data?.status === "submitted";
   const readOnly = !canEdit || submitted;
+
+  // Scroll-to + highlight a deep-linked failing item once responses render.
+  useEffect(() => {
+    if (!highlightItemId || responses.length === 0) return;
+    const el = document.querySelector(`[data-testid="item-${highlightItemId}"]`);
+    if (el) {
+      (el as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-amber-500");
+      const t = setTimeout(() => el.classList.remove("ring-2", "ring-amber-500"), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [highlightItemId, responses.length]);
 
   // ── Mutations ────────────────────────────────────────────────────────────
 
