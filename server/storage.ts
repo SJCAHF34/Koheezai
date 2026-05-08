@@ -7,6 +7,7 @@ import {
   type AppNotification,
   type QaAuditWorkbook,
   type UpsertQaAuditWorkbook,
+  type QaAuditTask,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -105,6 +106,12 @@ export interface IStorage {
     file: Omit<QaAuditEvidenceFile, "id" | "uploadedAt">,
   ): Promise<QaAuditEvidenceFile>;
   getQaAuditEvidence(id: string): Promise<QaAuditEvidenceFile | undefined>;
+
+  addQaAuditTask(t: Omit<QaAuditTask, "id" | "createdAt">): Promise<QaAuditTask>;
+  listQaAuditTasksForUser(email: string): Promise<QaAuditTask[]>;
+  getQaAuditTask(id: string): Promise<QaAuditTask | undefined>;
+  completeQaAuditTask(id: string, user: { email: string; name: string }): Promise<QaAuditTask | undefined>;
+  setQaAuditResponseTaskId(siteId: string, year: string, itemId: string, taskId: string): Promise<void>;
 }
 
 function entryKey(siteId: string, staffId: string, date: string) {
@@ -124,6 +131,7 @@ export class MemStorage implements IStorage {
   private notifications: Map<string, AppNotification>;
   private qaAuditWorkbooks: Map<string, QaAuditWorkbook>;
   private qaAuditEvidence: Map<string, QaAuditEvidenceFile>;
+  private qaAuditTasks: Map<string, QaAuditTask>;
 
   constructor() {
     this.users = new Map();
@@ -135,6 +143,7 @@ export class MemStorage implements IStorage {
     this.notifications = new Map();
     this.qaAuditWorkbooks = new Map();
     this.qaAuditEvidence = new Map();
+    this.qaAuditTasks = new Map();
     this.seedSchedulingExamples();
   }
 
@@ -480,6 +489,60 @@ export class MemStorage implements IStorage {
 
   async getQaAuditEvidence(id: string): Promise<QaAuditEvidenceFile | undefined> {
     return this.qaAuditEvidence.get(id);
+  }
+
+  async addQaAuditTask(
+    t: Omit<QaAuditTask, "id" | "createdAt">,
+  ): Promise<QaAuditTask> {
+    const id = `qat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const record: QaAuditTask = { ...t, id, createdAt: new Date().toISOString() };
+    this.qaAuditTasks.set(id, record);
+    return record;
+  }
+
+  async listQaAuditTasksForUser(email: string): Promise<QaAuditTask[]> {
+    const lc = email.toLowerCase();
+    return Array.from(this.qaAuditTasks.values())
+      .filter((t) => t.assignedToEmail.toLowerCase() === lc)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  }
+
+  async getQaAuditTask(id: string): Promise<QaAuditTask | undefined> {
+    return this.qaAuditTasks.get(id);
+  }
+
+  async completeQaAuditTask(
+    id: string,
+    user: { email: string; name: string },
+  ): Promise<QaAuditTask | undefined> {
+    const t = this.qaAuditTasks.get(id);
+    if (!t) return undefined;
+    const updated: QaAuditTask = {
+      ...t,
+      completedAt: new Date().toISOString(),
+      completedByEmail: user.email,
+    };
+    this.qaAuditTasks.set(id, updated);
+    return updated;
+  }
+
+  async setQaAuditResponseTaskId(
+    siteId: string,
+    year: string,
+    itemId: string,
+    taskId: string,
+  ): Promise<void> {
+    const key = `${siteId}|${year}`;
+    const wb = this.qaAuditWorkbooks.get(key);
+    if (!wb) return;
+    const responses = wb.responses.map((r) =>
+      r.itemId === itemId ? { ...r, taskCreatedId: taskId } : r,
+    );
+    this.qaAuditWorkbooks.set(key, {
+      ...wb,
+      responses,
+      lastUpdatedAt: new Date().toISOString(),
+    });
   }
 }
 

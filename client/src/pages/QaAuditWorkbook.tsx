@@ -382,7 +382,7 @@ export default function QaAuditWorkbook() {
       const meta = findQaAuditItem(itemId);
       const resp = responses.find((r) => r.itemId === itemId);
       if (!meta || !resp || !selectedStore) throw new Error("Missing item context");
-      return apiRequest<{ ok: boolean; link: string; recipients: string[] }>(
+      return apiRequest<{ ok: boolean; link: string; recipients: string[]; taskIds: string[] }>(
         "/api/qa-audit/follow-up",
         {
           method: "POST",
@@ -399,25 +399,18 @@ export default function QaAuditWorkbook() {
       );
     },
     onSuccess: (res, itemId) => {
-      // If we're the PD (canEdit), record on the workbook; otherwise just track
-      // locally so the UI shows the "sent" state for this session.
-      if (canEdit) {
-        setResponses((prev) =>
-          prev.map((r) =>
-            r.itemId === itemId
-              ? { ...r, taskCreatedId: `notif-${Date.now()}` }
-              : r,
-          ),
-        );
-        setDirty(true);
-      } else {
-        setSentItemIds((prev) => new Set(prev).add(itemId));
-      }
+      // The server stamps taskCreatedId on the workbook response, so just
+      // refetch — every viewer (PD/RPD/CPO) will then see the "sent" badge.
+      queryClient.invalidateQueries({ queryKey: [wbKey] });
+      queryClient.invalidateQueries({ queryKey: [`/api/qa-audit/workbooks?year=${year}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/qa-audit/tasks"] });
+      setSentItemIds((prev) => new Set(prev).add(itemId));
+      const taskCount = res.taskIds?.length ?? 0;
       toast({
-        title: "Urgent follow-up sent",
+        title: "Urgent task created",
         description:
-          res.recipients.length > 0
-            ? `Notified ${res.recipients.length} Pharmacy Director${res.recipients.length === 1 ? "" : "s"} for ${selectedStore?.name ?? selectedSiteId}.`
+          taskCount > 0
+            ? `Assigned to ${taskCount} Pharmacy Director${taskCount === 1 ? "" : "s"} for ${selectedStore?.name ?? selectedSiteId}.`
             : `Recorded urgent follow-up for ${selectedStore?.name ?? selectedSiteId}.`,
       });
     },

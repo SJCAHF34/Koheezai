@@ -4208,7 +4208,47 @@ export default function TaskManager() {
     // Load custom tasks for this site (including regional and national tasks)
     const storeRegionForLoad = findStoreRegion(siteId)?.region ?? profile?.region;
     const rawCustom = loadCustomTasks(siteId, storeRegionForLoad);
-    setCustomTasks(rawCustom.map((ct) => ({ ...ct, isCustom: true } as PharmacyTask)));
+    const localTasks = rawCustom.map(
+      (ct) => ({ ...ct, isCustom: true } as PharmacyTask),
+    );
+    // Merge in server-persisted QA Audit follow-up tasks assigned to this user
+    // (only those for the currently viewed site). These survive across sessions
+    // and devices, unlike the localStorage custom tasks above.
+    apiRequest<
+      Array<{
+        id: string;
+        siteId: string;
+        siteName: string;
+        year: string;
+        itemId: string;
+        itemTitle: string;
+        sectionTitle: string;
+        notes: string;
+        link: string;
+        completedAt?: string;
+      }>
+    >("/api/qa-audit/tasks")
+      .then((qa) => {
+        const qaTasks: PharmacyTask[] = qa
+          .filter((t) => t.siteId === siteId && !t.completedAt)
+          .map((t) => ({
+            id: t.id,
+            title: `QA Audit: ${t.itemTitle}`,
+            description: `${t.sectionTitle} — ${t.siteName} (${t.year})${t.notes ? `\n\nAuditor notes: ${t.notes}` : ""}`,
+            role: "director",
+            frequency: "one_time",
+            category: "achc",
+            taskGroup: "QA Audit Follow-Ups",
+            isUrgent: true,
+            isCustom: true,
+            url: t.link,
+            urlLabel: "Open failing item",
+          }));
+        setCustomTasks([...localTasks, ...qaTasks]);
+      })
+      .catch(() => {
+        setCustomTasks(localTasks);
+      });
   }, [frequency, siteId, profile?.email, viewingRole]);
 
   // Scroll to and highlight the task coming from a trouble-spot click-through

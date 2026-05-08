@@ -233,6 +233,26 @@ export const qaAuditEvidenceUploadSchema = z.object({
 });
 export type QaAuditEvidenceUpload = z.infer<typeof qaAuditEvidenceUploadSchema>;
 
+export interface QaAuditTask {
+  id: string;
+  siteId: string;
+  siteName: string;
+  year: string;
+  itemId: string;
+  itemTitle: string;
+  sectionTitle: string;
+  notes: string;
+  assignedToEmail: string;
+  assignedToName: string;
+  createdByEmail: string;
+  createdByName: string;
+  createdAt: string;
+  link: string;
+  urgent: true;
+  completedAt?: string;
+  completedByEmail?: string;
+}
+
 export const qaAuditFollowUpSchema = z.object({
   siteId: z.string().min(1),
   year: z.string().regex(/^\d{4}$/),

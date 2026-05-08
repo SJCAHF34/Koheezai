@@ -1571,6 +1571,18 @@ FORMATTING RULES (strict):
     return res.json(wb);
   });
 
+  // Whitelist of safe MIME types for evidence uploads. Inline rendering is
+  // only permitted for image types; PDFs are sent as attachments. Anything
+  // else is rejected to avoid stored XSS via SVG/HTML/JS payloads.
+  const QA_EVIDENCE_INLINE_TYPES = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "image/heic",
+  ]);
+  const QA_EVIDENCE_ATTACHMENT_TYPES = new Set(["application/pdf"]);
+
   app.post("/api/qa-audit/evidence", async (req, res) => {
     const auth = getQaAuditUser(req);
     if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
@@ -1580,6 +1592,13 @@ FORMATTING RULES (strict):
     }
     if (!canEditQaAudit(auth.profile, parsed.data.siteId)) {
       return res.status(403).json({ message: "Only the assigned Pharmacy Director may upload evidence for this site." });
+    }
+    const ft = (parsed.data.fileType || "").toLowerCase();
+    if (!QA_EVIDENCE_INLINE_TYPES.has(ft) && !QA_EVIDENCE_ATTACHMENT_TYPES.has(ft)) {
+      return res.status(400).json({
+        message:
+          "Unsupported file type. Allowed: JPEG, PNG, WEBP, GIF, HEIC, or PDF.",
+      });
     }
     let buffer: Buffer;
     try {
@@ -1593,7 +1612,7 @@ FORMATTING RULES (strict):
     }
     const file = await storage.addQaAuditEvidence({
       fileName: parsed.data.fileName,
-      fileType: parsed.data.fileType,
+      fileType: ft,
       uploadedBy: auth.user.name,
       siteId: parsed.data.siteId,
       year: parsed.data.year,
@@ -1618,16 +1637,27 @@ FORMATTING RULES (strict):
     if (!canViewQaAudit(auth.profile, file.siteId)) {
       return res.status(403).json({ message: "You do not have permission to view this evidence." });
     }
-    res.setHeader("Content-Type", file.fileType || "application/octet-stream");
+    const ft = (file.fileType || "").toLowerCase();
+    const isInlineSafe = QA_EVIDENCE_INLINE_TYPES.has(ft);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader(
+      "Content-Type",
+      isInlineSafe ? ft : "application/octet-stream",
+    );
+    const safeName = file.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
     res.setHeader(
       "Content-Disposition",
-      `inline; filename="${file.fileName.replace(/"/g, "")}"`,
+      `${isInlineSafe ? "inline" : "attachment"}; filename="${safeName}"`,
     );
     return res.end(file.data);
   });
 
-  // Send a failing-item follow-up notification to the site's Pharmacy Director(s).
-  // Returns a deterministic deep link any viewer can use to jump back to the item.
+  // Send a failing-item follow-up to the site's Pharmacy Director(s):
+  //  1) creates an urgent server-persisted QaAuditTask assigned to each PD
+  //     (visible in their Task Manager + survives sessions),
+  //  2) records the first task id back on the workbook response so the
+  //     "sent" state is durable and visible to every viewer,
+  //  3) sends a notification linking back to the failing item.
   app.post("/api/qa-audit/follow-up", async (req, res) => {
     const auth = getQaAuditUser(req);
     if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
@@ -1642,9 +1672,25 @@ FORMATTING RULES (strict):
     const siteName = store?.name ?? parsed.data.siteId;
     const link = `/app/qa-audit?site=${encodeURIComponent(parsed.data.siteId)}&year=${encodeURIComponent(parsed.data.year)}&item=${encodeURIComponent(parsed.data.itemId)}`;
     const directors = getDirectorsByStore(parsed.data.siteId);
-    const recipients = directors.length > 0 ? directors : [];
-    const created: string[] = [];
-    for (const d of recipients) {
+    const taskIds: string[] = [];
+    const notificationIds: string[] = [];
+    for (const d of directors) {
+      const t = await storage.addQaAuditTask({
+        siteId: parsed.data.siteId,
+        siteName,
+        year: parsed.data.year,
+        itemId: parsed.data.itemId,
+        itemTitle: parsed.data.itemTitle,
+        sectionTitle: parsed.data.sectionTitle,
+        notes: parsed.data.notes,
+        assignedToEmail: d.email,
+        assignedToName: d.name,
+        createdByEmail: auth.user.email,
+        createdByName: auth.user.name,
+        link,
+        urgent: true,
+      });
+      taskIds.push(t.id);
       const n = await storage.addNotification({
         toEmail: d.email,
         type: "qa_audit_failure",
@@ -1655,9 +1701,44 @@ FORMATTING RULES (strict):
         siteName,
         fromName: auth.user.name,
       });
-      created.push(n.id);
+      notificationIds.push(n.id);
     }
-    return res.json({ ok: true, link, recipients: recipients.map((r) => r.email), notificationIds: created });
+    if (taskIds.length > 0) {
+      await storage.setQaAuditResponseTaskId(
+        parsed.data.siteId,
+        parsed.data.year,
+        parsed.data.itemId,
+        taskIds[0],
+      );
+    }
+    return res.json({
+      ok: true,
+      link,
+      recipients: directors.map((r) => r.email),
+      taskIds,
+      notificationIds,
+    });
+  });
+
+  // Tasks for the signed-in user (used by Task Manager to merge in QA audit
+  // follow-ups alongside ordinary custom tasks).
+  app.get("/api/qa-audit/tasks", async (req, res) => {
+    const auth = getQaAuditUser(req);
+    if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
+    const tasks = await storage.listQaAuditTasksForUser(auth.user.email);
+    return res.json(tasks);
+  });
+
+  app.post("/api/qa-audit/tasks/:id/complete", async (req, res) => {
+    const auth = getQaAuditUser(req);
+    if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
+    const t = await storage.getQaAuditTask(req.params.id);
+    if (!t) return res.status(404).json({ message: "Task not found" });
+    if (t.assignedToEmail.toLowerCase() !== auth.user.email.toLowerCase()) {
+      return res.status(403).json({ message: "You can only complete tasks assigned to you." });
+    }
+    const done = await storage.completeQaAuditTask(req.params.id, auth.user);
+    return res.json(done);
   });
 
   // ── AI Performance Evaluator ────────────────────────────────────────────────
