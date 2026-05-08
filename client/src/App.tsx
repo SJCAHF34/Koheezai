@@ -428,7 +428,7 @@ function Router() {
         <Protected component={AchcWorkbook} />
       </Route>
       <Route path="/app/qa-audit">
-        <Protected component={QaAuditWorkbook} />
+        <DirectorProtected component={QaAuditWorkbook} />
       </Route>
       <Route path="/app/cqi-meeting">
         <Protected component={CQIMeeting} />

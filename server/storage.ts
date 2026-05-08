@@ -10,6 +10,20 @@ import {
   type QaAuditTask,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { dirname, resolve } from "path";
+
+// File-backed persistence for QA Audit data so workbooks, evidence and
+// follow-up tasks survive process restarts. Stored as JSON next to the
+// project root in `.local/qa-audit-state.json`. Evidence buffers are
+// base64-encoded for serialization. (Postgres migration is tracked as
+// follow-up task #62.)
+const QA_PERSIST_PATH = resolve(process.cwd(), ".local", "qa-audit-state.json");
+interface QaPersistShape {
+  workbooks: Array<[string, QaAuditWorkbook]>;
+  evidence: Array<[string, Omit<QaAuditEvidenceFile, "data"> & { dataB64: string }]>;
+  tasks: Array<[string, QaAuditTask]>;
+}
 
 export interface QaAuditEvidenceFile {
   id: string;
@@ -144,6 +158,7 @@ export class MemStorage implements IStorage {
     this.qaAuditWorkbooks = new Map();
     this.qaAuditEvidence = new Map();
     this.qaAuditTasks = new Map();
+    this.loadQaPersistedState();
     this.seedSchedulingExamples();
   }
 
@@ -448,6 +463,7 @@ export class MemStorage implements IStorage {
       lastUpdatedByName: user.name,
     };
     this.qaAuditWorkbooks.set(key, record);
+    this.persistQaState();
     return record;
   }
 
@@ -471,6 +487,7 @@ export class MemStorage implements IStorage {
       lastUpdatedByName: user.name,
     };
     this.qaAuditWorkbooks.set(key, updated);
+    this.persistQaState();
     return updated;
   }
 
@@ -484,6 +501,7 @@ export class MemStorage implements IStorage {
       uploadedAt: new Date().toISOString(),
     };
     this.qaAuditEvidence.set(id, record);
+    this.persistQaState();
     return record;
   }
 
@@ -497,6 +515,7 @@ export class MemStorage implements IStorage {
     const id = `qat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const record: QaAuditTask = { ...t, id, createdAt: new Date().toISOString() };
     this.qaAuditTasks.set(id, record);
+    this.persistQaState();
     return record;
   }
 
@@ -523,7 +542,57 @@ export class MemStorage implements IStorage {
       completedByEmail: user.email,
     };
     this.qaAuditTasks.set(id, updated);
+    this.persistQaState();
     return updated;
+  }
+
+  private loadQaPersistedState(): void {
+    try {
+      if (!existsSync(QA_PERSIST_PATH)) return;
+      const raw = readFileSync(QA_PERSIST_PATH, "utf-8");
+      const data = JSON.parse(raw) as Partial<QaPersistShape>;
+      if (data.workbooks) {
+        for (const [k, v] of data.workbooks) this.qaAuditWorkbooks.set(k, v);
+      }
+      if (data.evidence) {
+        for (const [k, v] of data.evidence) {
+          const { dataB64, ...rest } = v as any;
+          this.qaAuditEvidence.set(k, { ...rest, data: Buffer.from(dataB64, "base64") });
+        }
+      }
+      if (data.tasks) {
+        for (const [k, v] of data.tasks) this.qaAuditTasks.set(k, v);
+      }
+    } catch (err) {
+      console.warn("[qa-audit] failed to load persisted state:", err);
+    }
+  }
+
+  private persistQaState(): void {
+    try {
+      const dir = dirname(QA_PERSIST_PATH);
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      const shape: QaPersistShape = {
+        workbooks: Array.from(this.qaAuditWorkbooks.entries()),
+        evidence: Array.from(this.qaAuditEvidence.entries()).map(([k, v]) => [
+          k,
+          {
+            id: v.id,
+            fileName: v.fileName,
+            fileType: v.fileType,
+            uploadedBy: v.uploadedBy,
+            uploadedAt: v.uploadedAt,
+            siteId: v.siteId,
+            year: v.year,
+            dataB64: v.data.toString("base64"),
+          },
+        ]),
+        tasks: Array.from(this.qaAuditTasks.entries()),
+      };
+      writeFileSync(QA_PERSIST_PATH, JSON.stringify(shape));
+    } catch (err) {
+      console.warn("[qa-audit] failed to persist state:", err);
+    }
   }
 
   async setQaAuditResponseTaskId(
@@ -543,6 +612,7 @@ export class MemStorage implements IStorage {
       responses,
       lastUpdatedAt: new Date().toISOString(),
     });
+    this.persistQaState();
   }
 }
 
