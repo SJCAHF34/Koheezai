@@ -22,6 +22,7 @@ import {
   getAssignedRegion,
   getRPDsByRegion,
   getCPOs,
+  getDirectorsByStore,
 } from "../client/src/lib/userProfile";
 import { findStoreRegion, ALL_STORES } from "../client/src/lib/storeDirectory";
 import {
@@ -32,7 +33,9 @@ import {
   reviewScheduleSubmissionSchema,
   upsertQaAuditWorkbookSchema,
   qaAuditEvidenceUploadSchema,
+  qaAuditFollowUpSchema,
 } from "@shared/schema";
+import { QA_AUDIT_TOTAL_ITEMS } from "../client/src/lib/qaAuditData";
 import { storage } from "./storage";
 import { runOutreachNow } from "./lib/outreachScheduler";
 import { logRetentionEvent } from "./lib/salesforceClient";
@@ -1493,11 +1496,16 @@ FORMATTING RULES (strict):
     return { ok: true, profile, user: { email: sessionEmail, name: profile.name } };
   }
 
+  // Pharmacy Director may edit only their own store's workbook.
   function canEditQaAudit(profile: ReturnType<typeof getUserProfile>, siteId: string): boolean {
+    return isPharmacyDirector(profile.role) && profile.siteId === siteId;
+  }
+
+  // PD = own site; RPD = sites in their region; CPO = all sites.
+  function canViewQaAudit(profile: ReturnType<typeof getUserProfile>, siteId: string): boolean {
     if (!isDirectorRole(profile.role)) return false;
     if (isCPO(profile.role)) return true;
     if (isPharmacyDirector(profile.role)) return profile.siteId === siteId;
-    // RPD — same region
     const region = getAssignedRegion(profile);
     const sr = findStoreRegion(siteId);
     return !!sr && !!region && sr.region === region;
@@ -1511,14 +1519,15 @@ FORMATTING RULES (strict):
     }
     const year = typeof req.query.year === "string" ? req.query.year : undefined;
     const list = await storage.listQaAuditWorkbooks(year);
-    return res.json(list);
+    const filtered = list.filter((w) => canViewQaAudit(auth.profile, w.siteId));
+    return res.json(filtered);
   });
 
   app.get("/api/qa-audit/workbooks/:siteId/:year", async (req, res) => {
     const auth = getQaAuditUser(req);
     if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
-    if (!isDirectorRole(auth.profile.role)) {
-      return res.status(403).json({ message: "Access restricted to Pharmacy Directors and above." });
+    if (!canViewQaAudit(auth.profile, req.params.siteId)) {
+      return res.status(403).json({ message: "You do not have permission to view this site's audit." });
     }
     const wb = await storage.getQaAuditWorkbook(req.params.siteId, req.params.year);
     return res.json(wb ?? null);
@@ -1536,7 +1545,7 @@ FORMATTING RULES (strict):
       return res.status(400).json({ message: "Invalid workbook data", errors: parsed.error.errors });
     }
     if (!canEditQaAudit(auth.profile, parsed.data.siteId)) {
-      return res.status(403).json({ message: "You do not have permission to edit this site's audit." });
+      return res.status(403).json({ message: "Only the assigned Pharmacy Director may edit this site's audit." });
     }
     const wb = await storage.upsertQaAuditWorkbook(parsed.data, auth.user);
     return res.json(wb);
@@ -1546,22 +1555,31 @@ FORMATTING RULES (strict):
     const auth = getQaAuditUser(req);
     if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
     if (!canEditQaAudit(auth.profile, req.params.siteId)) {
-      return res.status(403).json({ message: "You do not have permission to submit this site's audit." });
+      return res.status(403).json({ message: "Only the assigned Pharmacy Director may submit this site's audit." });
+    }
+    const existing = await storage.getQaAuditWorkbook(req.params.siteId, req.params.year);
+    if (!existing) {
+      return res.status(404).json({ message: "Workbook not found — save responses before submitting." });
+    }
+    const answered = existing.responses.filter((r) => !!r.status).length;
+    if (answered < QA_AUDIT_TOTAL_ITEMS) {
+      return res.status(400).json({
+        message: `All ${QA_AUDIT_TOTAL_ITEMS} items must be answered before submitting (currently ${answered}).`,
+      });
     }
     const wb = await storage.submitQaAuditWorkbook(req.params.siteId, req.params.year, auth.user);
-    if (!wb) return res.status(404).json({ message: "Workbook not found — save responses before submitting." });
     return res.json(wb);
   });
 
   app.post("/api/qa-audit/evidence", async (req, res) => {
     const auth = getQaAuditUser(req);
     if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
-    if (!isDirectorRole(auth.profile.role)) {
-      return res.status(403).json({ message: "Access restricted to Pharmacy Directors and above." });
-    }
     const parsed = qaAuditEvidenceUploadSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid evidence upload", errors: parsed.error.errors });
+    }
+    if (!canEditQaAudit(auth.profile, parsed.data.siteId)) {
+      return res.status(403).json({ message: "Only the assigned Pharmacy Director may upload evidence for this site." });
     }
     let buffer: Buffer;
     try {
@@ -1569,7 +1587,7 @@ FORMATTING RULES (strict):
     } catch {
       return res.status(400).json({ message: "Invalid base64 payload" });
     }
-    const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+    const MAX_BYTES = 10 * 1024 * 1024;
     if (buffer.byteLength === 0 || buffer.byteLength > MAX_BYTES) {
       return res.status(400).json({ message: "File must be between 1 byte and 10 MB" });
     }
@@ -1577,6 +1595,8 @@ FORMATTING RULES (strict):
       fileName: parsed.data.fileName,
       fileType: parsed.data.fileType,
       uploadedBy: auth.user.name,
+      siteId: parsed.data.siteId,
+      year: parsed.data.year,
       data: buffer,
     });
     return res.json({
@@ -1585,23 +1605,59 @@ FORMATTING RULES (strict):
       fileType: file.fileType,
       uploadedBy: file.uploadedBy,
       uploadedAt: file.uploadedAt,
+      siteId: file.siteId,
+      year: file.year,
     });
   });
 
   app.get("/api/qa-audit/evidence/:id", async (req, res) => {
     const auth = getQaAuditUser(req);
     if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
-    if (!isDirectorRole(auth.profile.role)) {
-      return res.status(403).json({ message: "Access restricted to Pharmacy Directors and above." });
-    }
     const file = await storage.getQaAuditEvidence(req.params.id);
     if (!file) return res.status(404).json({ message: "Evidence not found" });
+    if (!canViewQaAudit(auth.profile, file.siteId)) {
+      return res.status(403).json({ message: "You do not have permission to view this evidence." });
+    }
     res.setHeader("Content-Type", file.fileType || "application/octet-stream");
     res.setHeader(
       "Content-Disposition",
       `inline; filename="${file.fileName.replace(/"/g, "")}"`,
     );
     return res.end(file.data);
+  });
+
+  // Send a failing-item follow-up notification to the site's Pharmacy Director(s).
+  // Returns a deterministic deep link any viewer can use to jump back to the item.
+  app.post("/api/qa-audit/follow-up", async (req, res) => {
+    const auth = getQaAuditUser(req);
+    if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
+    const parsed = qaAuditFollowUpSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid follow-up payload", errors: parsed.error.errors });
+    }
+    if (!canViewQaAudit(auth.profile, parsed.data.siteId)) {
+      return res.status(403).json({ message: "You do not have permission to file a follow-up for this site." });
+    }
+    const store = ALL_STORES.find((s) => s.id === parsed.data.siteId);
+    const siteName = store?.name ?? parsed.data.siteId;
+    const link = `/app/qa-audit?site=${encodeURIComponent(parsed.data.siteId)}&year=${encodeURIComponent(parsed.data.year)}&item=${encodeURIComponent(parsed.data.itemId)}`;
+    const directors = getDirectorsByStore(parsed.data.siteId);
+    const recipients = directors.length > 0 ? directors : [];
+    const created: string[] = [];
+    for (const d of recipients) {
+      const n = await storage.addNotification({
+        toEmail: d.email,
+        type: "qa_audit_failure",
+        title: `URGENT: QA Audit failure — ${parsed.data.sectionTitle}`,
+        body: `${parsed.data.itemTitle}${parsed.data.notes ? `\n\nAuditor notes: ${parsed.data.notes}` : ""}`,
+        link,
+        siteId: parsed.data.siteId,
+        siteName,
+        fromName: auth.user.name,
+      });
+      created.push(n.id);
+    }
+    return res.json({ ok: true, link, recipients: recipients.map((r) => r.email), notificationIds: created });
   });
 
   // ── AI Performance Evaluator ────────────────────────────────────────────────

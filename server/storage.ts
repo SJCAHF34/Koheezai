@@ -16,6 +16,8 @@ export interface QaAuditEvidenceFile {
   fileType: string;
   uploadedBy: string;
   uploadedAt: string;
+  siteId: string;
+  year: string;
   data: Buffer;
 }
 

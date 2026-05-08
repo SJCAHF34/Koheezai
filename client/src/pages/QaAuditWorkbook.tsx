@@ -11,13 +11,13 @@ import {
 } from "@/lib/userProfile";
 import { ALL_STORES, findStore, findStoreRegion, STORE_REGIONS } from "@/lib/storeDirectory";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { saveCustomTask, type CustomTask } from "@/lib/taskStorage";
 import {
   QA_AUDIT_SECTIONS,
   QA_AUDIT_TOTAL_ITEMS,
   findQaAuditItem,
   getCurrentAuditYear,
   type QaAuditItem,
+  type QaAuditSection,
 } from "@/lib/qaAuditData";
 import type {
   QaAuditEvidence,
@@ -195,19 +195,43 @@ export default function QaAuditWorkbook() {
   });
   const [year, setYear] = useState<string>(CURRENT_YEAR);
 
+  // Honor deep links: ?site=X&year=Y&item=Z (used by failure notifications)
+  const [highlightItemId, setHighlightItemId] = useState<string>("");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const s = sp.get("site");
+    const y = sp.get("year");
+    const i = sp.get("item");
+    if (s && visibleStores.some((v) => v.id === s)) setSelectedSiteId(s);
+    if (y && YEAR_OPTIONS.includes(y)) setYear(y);
+    if (i) setHighlightItemId(i);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!highlightItemId) return;
+    const el = document.querySelector(`[data-testid="item-${highlightItemId}"]`);
+    if (el) {
+      (el as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-amber-500");
+      const t = setTimeout(() => el.classList.remove("ring-2", "ring-amber-500"), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [highlightItemId, workbookQueryDataReady()]);
+  function workbookQueryDataReady() {
+    return !!responses.length;
+  }
+
   const selectedStore = findStore(selectedSiteId);
   const selectedRegion = findStoreRegion(selectedSiteId)?.region ?? "";
 
+  // Only the assigned Pharmacy Director may edit their own store's workbook.
+  // RPDs and the CPO have read-only access.
   const canEdit = useMemo(() => {
     if (!selectedSiteId) return false;
-    if (isCpo) return true;
     if (isPd) return profile.siteId === selectedSiteId;
-    if (isRegional) {
-      const sr = findStoreRegion(selectedSiteId);
-      return !!sr && !!region && sr.region === region;
-    }
     return false;
-  }, [isCpo, isPd, isRegional, profile.siteId, region, selectedSiteId]);
+  }, [isPd, profile.siteId, selectedSiteId]);
 
   // ── Roll-up query ────────────────────────────────────────────────────────
   const rollupQuery = useQuery<QaAuditWorkbook[]>({
@@ -319,6 +343,8 @@ export default function QaAuditWorkbook() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          siteId: selectedSiteId,
+          year,
           fileName: file.name,
           fileType: file.type || "application/octet-stream",
           dataBase64,
@@ -348,44 +374,62 @@ export default function QaAuditWorkbook() {
     setDirty(true);
   }
 
-  function sendFailToTaskManager(itemId: string) {
-    const meta = findQaAuditItem(itemId);
-    const resp = responses.find((r) => r.itemId === itemId);
-    if (!meta || !resp || !selectedStore || !profile) return;
-    const taskId = `qa-${selectedSiteId}-${year}-${itemId}-${Date.now()}`;
-    const customTask: CustomTask = {
-      id: taskId,
-      siteId: selectedSiteId,
-      scope: "site",
-      selectedStore: selectedSiteId,
-      title: `[QA Audit ${year}] ${meta.item.title}`,
-      description: [
-        `Failed during QA Audit Readiness — ${meta.section.title}.`,
-        resp.notes ? `\nAuditor notes:\n${resp.notes}` : "",
-        `\nSite: ${selectedStore.name} (${selectedSiteId})`,
-        resp.verifierName ? `Verified by: ${resp.verifierName}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      role: "director",
-      assignedToLabel: "All Pharmacy Directors",
-      frequency: "one_time",
-      category: "achc",
-      taskGroup: "QA Audit Follow-Ups",
-      createdBy: `${profile.name}`,
-      createdByRole: profile.role,
-      createdAt: new Date().toISOString(),
-    };
-    saveCustomTask(customTask);
-    setResponses((prev) =>
-      prev.map((r) => (r.itemId === itemId ? { ...r, taskCreatedId: taskId } : r)),
-    );
-    setDirty(true);
-    toast({
-      title: "Sent to Task Manager",
-      description: `Follow-up task created for ${selectedStore.name}.`,
-    });
-  }
+  // Server-persisted handoff: notifies the site's PD(s) with a deep link to the
+  // failing item. Works for any viewer (PD on own site, RPD on region sites,
+  // CPO on any site) and survives across users / sessions.
+  const followUpMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      const meta = findQaAuditItem(itemId);
+      const resp = responses.find((r) => r.itemId === itemId);
+      if (!meta || !resp || !selectedStore) throw new Error("Missing item context");
+      return apiRequest<{ ok: boolean; link: string; recipients: string[] }>(
+        "/api/qa-audit/follow-up",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            siteId: selectedSiteId,
+            year,
+            itemId,
+            itemTitle: meta.item.title,
+            sectionTitle: meta.section.title,
+            notes: resp.notes ?? "",
+          }),
+        },
+      );
+    },
+    onSuccess: (res, itemId) => {
+      // If we're the PD (canEdit), record on the workbook; otherwise just track
+      // locally so the UI shows the "sent" state for this session.
+      if (canEdit) {
+        setResponses((prev) =>
+          prev.map((r) =>
+            r.itemId === itemId
+              ? { ...r, taskCreatedId: `notif-${Date.now()}` }
+              : r,
+          ),
+        );
+        setDirty(true);
+      } else {
+        setSentItemIds((prev) => new Set(prev).add(itemId));
+      }
+      toast({
+        title: "Urgent follow-up sent",
+        description:
+          res.recipients.length > 0
+            ? `Notified ${res.recipients.length} Pharmacy Director${res.recipients.length === 1 ? "" : "s"} for ${selectedStore?.name ?? selectedSiteId}.`
+            : `Recorded urgent follow-up for ${selectedStore?.name ?? selectedSiteId}.`,
+      });
+    },
+    onError: (e: any) => {
+      toast({
+        title: "Could not send follow-up",
+        description: e?.message ?? "Try again.",
+        variant: "destructive",
+      });
+    },
+  });
+  const [sentItemIds, setSentItemIds] = useState<Set<string>>(new Set());
 
   // ── Counts ───────────────────────────────────────────────────────────────
 
@@ -406,6 +450,34 @@ export default function QaAuditWorkbook() {
   function exportPdf() {
     window.print();
   }
+
+  // Roll-up: failing counts by section and a flat "not started" list
+  const rollupBySection = useMemo(() => {
+    const all = rollupQuery.data ?? [];
+    const visibleIds = new Set(visibleStores.map((s) => s.id));
+    const sites = all.filter((w) => visibleIds.has(w.siteId));
+    const bySection: Record<string, { section: QaAuditSection; failingSites: { siteId: string; siteName: string; n: number }[]; totalFails: number }> = {};
+    for (const sec of QA_AUDIT_SECTIONS) {
+      bySection[sec.id] = { section: sec, failingSites: [], totalFails: 0 };
+    }
+    for (const wb of sites) {
+      for (const sec of QA_AUDIT_SECTIONS) {
+        const ids = new Set(sec.items.map((i) => i.id));
+        const n = wb.responses.filter((r) => ids.has(r.itemId) && r.status === "fail").length;
+        if (n > 0) {
+          bySection[sec.id].failingSites.push({ siteId: wb.siteId, siteName: wb.siteName, n });
+          bySection[sec.id].totalFails += n;
+        }
+      }
+    }
+    const submittedSiteIds = new Set(sites.filter((w) => w.status === "submitted").map((w) => w.siteId));
+    const notStarted = visibleStores.filter((s) => !sites.some((w) => w.siteId === s.id));
+    const inProgressNotSubmitted = sites.filter((w) => w.status !== "submitted");
+    const pctComplete = visibleStores.length > 0
+      ? Math.round((submittedSiteIds.size / visibleStores.length) * 100)
+      : 0;
+    return { bySection, notStarted, inProgressNotSubmitted, pctComplete, submittedCount: submittedSiteIds.size };
+  }, [rollupQuery.data, visibleStores]);
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -483,9 +555,108 @@ export default function QaAuditWorkbook() {
 
       {/* Roll-up across sites */}
       {(isRegional || isCpo) && (
+        <>
+          {/* Dashboard tiles */}
+          <Card className="no-print">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">
+                Roll-Up Dashboard — {year}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-4">
+              <div className="rounded-md border p-3">
+                <div className="text-xs text-muted-foreground">Sites Submitted</div>
+                <div className="text-2xl font-semibold" data-testid="stat-rollup-submitted">
+                  {rollupBySection.submittedCount} / {visibleStores.length}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {rollupBySection.pctComplete}% complete
+                </div>
+              </div>
+              <div className="rounded-md border p-3">
+                <div className="text-xs text-muted-foreground">In Progress</div>
+                <div className="text-2xl font-semibold text-amber-700 dark:text-amber-300" data-testid="stat-rollup-inprogress">
+                  {rollupBySection.inProgressNotSubmitted.length}
+                </div>
+              </div>
+              <div className="rounded-md border p-3 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900">
+                <div className="text-xs text-red-800 dark:text-red-200">
+                  Stores Not Started
+                </div>
+                <div
+                  className="text-2xl font-semibold text-red-700 dark:text-red-300"
+                  data-testid="stat-rollup-notstarted"
+                >
+                  {rollupBySection.notStarted.length}
+                </div>
+                {rollupBySection.notStarted.length > 0 && (
+                  <div className="text-xs text-red-700 dark:text-red-300 mt-1 line-clamp-2">
+                    {rollupBySection.notStarted.map((s) => s.id).join(", ")}
+                  </div>
+                )}
+              </div>
+              <div className="rounded-md border p-3">
+                <div className="text-xs text-muted-foreground">Total Failing Items</div>
+                <div className="text-2xl font-semibold text-red-700 dark:text-red-300" data-testid="stat-rollup-fails">
+                  {Object.values(rollupBySection.bySection).reduce((a, b) => a + b.totalFails, 0)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Failing items by section */}
+          <Card className="no-print">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Failing Items by Section</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 md:grid-cols-2">
+              {QA_AUDIT_SECTIONS.map((sec) => {
+                const entry = rollupBySection.bySection[sec.id];
+                const total = entry?.totalFails ?? 0;
+                return (
+                  <div
+                    key={sec.id}
+                    className="rounded-md border p-3 flex flex-col gap-1"
+                    data-testid={`rollup-section-${sec.id}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-medium">
+                        {sec.number}. {sec.title}
+                      </div>
+                      <Badge
+                        className={
+                          total > 0
+                            ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200"
+                            : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+                        }
+                      >
+                        {total} failing
+                      </Badge>
+                    </div>
+                    {total > 0 && (
+                      <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2 gap-y-1">
+                        {entry.failingSites.map((f) => (
+                          <button
+                            key={f.siteId}
+                            type="button"
+                            className="hover:underline"
+                            onClick={() => setSelectedSiteId(f.siteId)}
+                            data-testid={`rollup-fail-${sec.id}-${f.siteId}`}
+                          >
+                            {f.siteId} ({f.n})
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
         <Card className="no-print">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">All Sites Roll-Up — {year}</CardTitle>
+            <CardTitle className="text-base">All Sites — {year}</CardTitle>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -537,6 +708,7 @@ export default function QaAuditWorkbook() {
             </table>
           </CardContent>
         </Card>
+        </>
       )}
 
       {/* Summary for selected workbook */}
@@ -622,7 +794,9 @@ export default function QaAuditWorkbook() {
                         onChangeVerifier={(v) => updateResponse(item.id, { verifierName: v })}
                         onUpload={(file) => handleUpload(item.id, file)}
                         onRemoveEvidence={(eid) => removeEvidence(item.id, eid)}
-                        onSendToTask={() => sendFailToTaskManager(item.id)}
+                        onSendToTask={() => followUpMutation.mutate(item.id)}
+                        sendingTask={followUpMutation.isPending && followUpMutation.variables === item.id}
+                        alreadySent={!!r.taskCreatedId || sentItemIds.has(item.id)}
                       />
                     );
                   })}
@@ -656,12 +830,27 @@ export default function QaAuditWorkbook() {
               {saveMutation.isPending ? "Saving…" : "Save"}
             </Button>
             <Button
-              disabled={readOnly || dirty || submitMutation.isPending || !workbookQuery.data}
+              disabled={
+                readOnly ||
+                dirty ||
+                submitMutation.isPending ||
+                !workbookQuery.data ||
+                counts.pending > 0
+              }
               onClick={() => submitMutation.mutate()}
               data-testid="button-qa-submit"
+              title={
+                counts.pending > 0
+                  ? `Answer all items before submitting (${counts.pending} remaining).`
+                  : undefined
+              }
             >
               <Send className="w-4 h-4 mr-2" />
-              {submitMutation.isPending ? "Submitting…" : "Submit Audit"}
+              {submitMutation.isPending
+                ? "Submitting…"
+                : counts.pending > 0
+                  ? `Submit (${counts.pending} pending)`
+                  : "Submit Audit"}
             </Button>
           </div>
         </div>
@@ -709,6 +898,8 @@ function ItemRow({
   onUpload,
   onRemoveEvidence,
   onSendToTask,
+  sendingTask,
+  alreadySent,
 }: {
   item: QaAuditItem;
   response: QaAuditItemResponse;
@@ -719,6 +910,8 @@ function ItemRow({
   onUpload: (f: File) => void;
   onRemoveEvidence: (eid: string) => void;
   onSendToTask: () => void;
+  sendingTask: boolean;
+  alreadySent: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   return (
@@ -786,35 +979,57 @@ function ItemRow({
       <div>
         <Label className="text-xs">Evidence</Label>
         <div className="flex items-center gap-2 flex-wrap mt-1">
-          {response.evidence.map((e) => (
-            <Badge
-              key={e.id}
-              variant="outline"
-              className="text-xs gap-1 max-w-full"
-              data-testid={`badge-evidence-${item.id}-${e.id}`}
-            >
-              <a
-                href={`/api/qa-audit/evidence/${e.id}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1 truncate max-w-[160px]"
+          {response.evidence.map((e) => {
+            const isImage = (e.fileType ?? "").startsWith("image/");
+            return (
+              <div
+                key={e.id}
+                className="flex items-center gap-2"
+                data-testid={`evidence-${item.id}-${e.id}`}
               >
-                <FileText className="w-3 h-3" />
-                <span className="truncate">{e.fileName}</span>
-              </a>
-              {!readOnly && (
-                <button
-                  type="button"
-                  className="ml-1 opacity-70 hover:opacity-100"
-                  onClick={() => onRemoveEvidence(e.id)}
-                  aria-label="Remove evidence"
-                  data-testid={`button-remove-evidence-${item.id}-${e.id}`}
+                {isImage && (
+                  <a
+                    href={`/api/qa-audit/evidence/${e.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block"
+                  >
+                    <img
+                      src={`/api/qa-audit/evidence/${e.id}`}
+                      alt={e.fileName}
+                      className="h-12 w-12 object-cover rounded border print:h-24 print:w-24"
+                    />
+                  </a>
+                )}
+                <Badge
+                  variant="outline"
+                  className="text-xs gap-1 max-w-full"
+                  data-testid={`badge-evidence-${item.id}-${e.id}`}
                 >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </Badge>
-          ))}
+                  <a
+                    href={`/api/qa-audit/evidence/${e.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1 truncate max-w-[160px]"
+                  >
+                    <FileText className="w-3 h-3" />
+                    <span className="truncate">{e.fileName}</span>
+                  </a>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      className="ml-1 opacity-70 hover:opacity-100"
+                      onClick={() => onRemoveEvidence(e.id)}
+                      aria-label="Remove evidence"
+                      data-testid={`button-remove-evidence-${item.id}-${e.id}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </Badge>
+              </div>
+            );
+          })}
           {!readOnly && (
             <>
               <input
@@ -841,23 +1056,26 @@ function ItemRow({
         </div>
       </div>
 
-      {response.status === "fail" && !readOnly && (
+      {response.status === "fail" && (
         <div className="flex items-center justify-between gap-2 pt-1 border-t mt-2 flex-wrap">
           <div className="text-xs text-red-700 dark:text-red-300 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" /> Marked as fail — create a follow-up task.
+            <AlertCircle className="w-3 h-3" /> Marked as fail — escalate to the
+            store's Pharmacy Director.
           </div>
-          {response.taskCreatedId ? (
+          {alreadySent ? (
             <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200 text-xs">
-              <CheckCircle2 className="w-3 h-3 mr-1" /> Task created
+              <CheckCircle2 className="w-3 h-3 mr-1" /> Urgent follow-up sent
             </Badge>
           ) : (
             <Button
               size="sm"
               variant="outline"
               onClick={onSendToTask}
+              disabled={sendingTask}
               data-testid={`button-send-to-task-${item.id}`}
             >
-              <Plus className="w-3 h-3 mr-1" /> Send to Task Manager
+              <Plus className="w-3 h-3 mr-1" />
+              {sendingTask ? "Sending…" : "Send to Task Manager"}
             </Button>
           )}
         </div>

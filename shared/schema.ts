@@ -149,6 +149,7 @@ export const NOTIFICATION_TYPES = [
   "schedule_submitted",
   "schedule_approved",
   "schedule_changes_requested",
+  "qa_audit_failure",
 ] as const;
 export type NotificationType = typeof NOTIFICATION_TYPES[number];
 
@@ -182,6 +183,8 @@ export const qaAuditEvidenceSchema = z.object({
   fileType: z.string().min(1),
   uploadedBy: z.string().min(1),
   uploadedAt: z.string().min(1),
+  siteId: z.string().optional(),
+  year: z.string().optional(),
 });
 export type QaAuditEvidence = z.infer<typeof qaAuditEvidenceSchema>;
 
@@ -222,11 +225,23 @@ export const upsertQaAuditWorkbookSchema = z.object({
 export type UpsertQaAuditWorkbook = z.infer<typeof upsertQaAuditWorkbookSchema>;
 
 export const qaAuditEvidenceUploadSchema = z.object({
+  siteId: z.string().min(1),
+  year: z.string().regex(/^\d{4}$/),
   fileName: z.string().min(1).max(200),
   fileType: z.string().min(1).max(100),
   dataBase64: z.string().min(1),
 });
 export type QaAuditEvidenceUpload = z.infer<typeof qaAuditEvidenceUploadSchema>;
+
+export const qaAuditFollowUpSchema = z.object({
+  siteId: z.string().min(1),
+  year: z.string().regex(/^\d{4}$/),
+  itemId: z.string().min(1),
+  itemTitle: z.string().min(1),
+  sectionTitle: z.string().min(1),
+  notes: z.string().default(""),
+});
+export type QaAuditFollowUp = z.infer<typeof qaAuditFollowUpSchema>;
 
 // ── Retention Patient ────────────────────────────────────────────────────────
 
