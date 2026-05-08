@@ -922,11 +922,11 @@ function ItemRow({
             disabled={readOnly}
           >
             <SelectTrigger className="w-[160px]" data-testid={`select-status-${item.id}`}>
-              <SelectValue />
+              <SelectValue placeholder="Not Reviewed" />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_OPTIONS.map((o) => (
-                <SelectItem key={o.value || "none"} value={o.value}>
+              {STATUS_OPTIONS.filter((o) => o.value !== "").map((o) => (
+                <SelectItem key={o.value} value={o.value}>
                   {o.label}
                 </SelectItem>
               ))}
