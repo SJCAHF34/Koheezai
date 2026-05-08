@@ -5,8 +5,19 @@ import {
   type ScheduleEntry,
   type ScheduleSubmission,
   type AppNotification,
+  type QaAuditWorkbook,
+  type UpsertQaAuditWorkbook,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+
+export interface QaAuditEvidenceFile {
+  id: string;
+  fileName: string;
+  fileType: string;
+  uploadedBy: string;
+  uploadedAt: string;
+  data: Buffer;
+}
 
 export interface User {
   id: string;
@@ -75,6 +86,23 @@ export interface IStorage {
   getNotifications(toEmail: string): Promise<AppNotification[]>;
   markNotificationRead(id: string, toEmail: string): Promise<void>;
   markAllNotificationsRead(toEmail: string): Promise<void>;
+
+  // ── QA Audit Workbooks ────────────────────────────────────────────────
+  listQaAuditWorkbooks(year?: string): Promise<QaAuditWorkbook[]>;
+  getQaAuditWorkbook(siteId: string, year: string): Promise<QaAuditWorkbook | undefined>;
+  upsertQaAuditWorkbook(
+    data: UpsertQaAuditWorkbook,
+    user: { email: string; name: string },
+  ): Promise<QaAuditWorkbook>;
+  submitQaAuditWorkbook(
+    siteId: string,
+    year: string,
+    user: { email: string; name: string },
+  ): Promise<QaAuditWorkbook | undefined>;
+  addQaAuditEvidence(
+    file: Omit<QaAuditEvidenceFile, "id" | "uploadedAt">,
+  ): Promise<QaAuditEvidenceFile>;
+  getQaAuditEvidence(id: string): Promise<QaAuditEvidenceFile | undefined>;
 }
 
 function entryKey(siteId: string, staffId: string, date: string) {
@@ -92,6 +120,8 @@ export class MemStorage implements IStorage {
   private scheduleEntries: Map<string, ScheduleEntry>;
   private submissions: Map<string, ScheduleSubmission>;
   private notifications: Map<string, AppNotification>;
+  private qaAuditWorkbooks: Map<string, QaAuditWorkbook>;
+  private qaAuditEvidence: Map<string, QaAuditEvidenceFile>;
 
   constructor() {
     this.users = new Map();
@@ -101,6 +131,8 @@ export class MemStorage implements IStorage {
     this.scheduleEntries = new Map();
     this.submissions = new Map();
     this.notifications = new Map();
+    this.qaAuditWorkbooks = new Map();
+    this.qaAuditEvidence = new Map();
     this.seedSchedulingExamples();
   }
 
@@ -364,6 +396,88 @@ export class MemStorage implements IStorage {
         this.notifications.set(id, { ...n, read: true });
       }
     }
+  }
+
+  // ── QA Audit Workbooks ────────────────────────────────────────────────
+
+  async listQaAuditWorkbooks(year?: string): Promise<QaAuditWorkbook[]> {
+    const all = Array.from(this.qaAuditWorkbooks.values());
+    return year ? all.filter((w) => w.year === year) : all;
+  }
+
+  async getQaAuditWorkbook(siteId: string, year: string): Promise<QaAuditWorkbook | undefined> {
+    return this.qaAuditWorkbooks.get(`${siteId}|${year}`);
+  }
+
+  async upsertQaAuditWorkbook(
+    data: UpsertQaAuditWorkbook,
+    user: { email: string; name: string },
+  ): Promise<QaAuditWorkbook> {
+    const key = `${data.siteId}|${data.year}`;
+    const existing = this.qaAuditWorkbooks.get(key);
+    if (existing && existing.status === "submitted") {
+      return existing;
+    }
+    const reviewed = data.responses.filter((r) => !!r.status).length;
+    const status =
+      reviewed === 0 ? "not_started" : "in_progress";
+    const now = new Date().toISOString();
+    const record: QaAuditWorkbook = {
+      siteId: data.siteId,
+      siteName: data.siteName,
+      region: data.region ?? "",
+      year: data.year,
+      responses: data.responses,
+      status,
+      submittedByEmail: existing?.submittedByEmail,
+      submittedByName: existing?.submittedByName,
+      submittedAt: existing?.submittedAt,
+      lastUpdatedAt: now,
+      lastUpdatedByEmail: user.email,
+      lastUpdatedByName: user.name,
+    };
+    this.qaAuditWorkbooks.set(key, record);
+    return record;
+  }
+
+  async submitQaAuditWorkbook(
+    siteId: string,
+    year: string,
+    user: { email: string; name: string },
+  ): Promise<QaAuditWorkbook | undefined> {
+    const key = `${siteId}|${year}`;
+    const existing = this.qaAuditWorkbooks.get(key);
+    if (!existing) return undefined;
+    const now = new Date().toISOString();
+    const updated: QaAuditWorkbook = {
+      ...existing,
+      status: "submitted",
+      submittedByEmail: user.email,
+      submittedByName: user.name,
+      submittedAt: now,
+      lastUpdatedAt: now,
+      lastUpdatedByEmail: user.email,
+      lastUpdatedByName: user.name,
+    };
+    this.qaAuditWorkbooks.set(key, updated);
+    return updated;
+  }
+
+  async addQaAuditEvidence(
+    file: Omit<QaAuditEvidenceFile, "id" | "uploadedAt">,
+  ): Promise<QaAuditEvidenceFile> {
+    const id = `qae-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const record: QaAuditEvidenceFile = {
+      ...file,
+      id,
+      uploadedAt: new Date().toISOString(),
+    };
+    this.qaAuditEvidence.set(id, record);
+    return record;
+  }
+
+  async getQaAuditEvidence(id: string): Promise<QaAuditEvidenceFile | undefined> {
+    return this.qaAuditEvidence.get(id);
   }
 }
 

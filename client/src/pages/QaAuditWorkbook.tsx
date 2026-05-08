@@ -1,0 +1,867 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/App";
+import {
+  getUserProfile,
+  isCPO,
+  isPharmacyDirector,
+  isRegionalOrAbove,
+  isTechRole,
+  getAssignedRegion,
+} from "@/lib/userProfile";
+import { ALL_STORES, findStore, findStoreRegion, STORE_REGIONS } from "@/lib/storeDirectory";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { saveCustomTask, type CustomTask } from "@/lib/taskStorage";
+import {
+  QA_AUDIT_SECTIONS,
+  QA_AUDIT_TOTAL_ITEMS,
+  findQaAuditItem,
+  getCurrentAuditYear,
+  type QaAuditItem,
+} from "@/lib/qaAuditData";
+import type {
+  QaAuditEvidence,
+  QaAuditItemResponse,
+  QaAuditStatus,
+  QaAuditWorkbook,
+} from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ClipboardCheck,
+  Clock,
+  Download,
+  FileText,
+  Lock,
+  MinusCircle,
+  Paperclip,
+  Plus,
+  Send,
+  Upload,
+  X,
+} from "lucide-react";
+
+// ── Status helpers ─────────────────────────────────────────────────────────
+
+const STATUS_OPTIONS: { value: QaAuditStatus; label: string }[] = [
+  { value: "", label: "Not Reviewed" },
+  { value: "pass", label: "Pass" },
+  { value: "fail", label: "Fail" },
+  { value: "na", label: "N/A" },
+];
+
+function statusBadge(status: QaAuditStatus) {
+  if (status === "pass")
+    return (
+      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200 shrink-0 text-xs">
+        <CheckCircle2 className="w-3 h-3 mr-1" /> Pass
+      </Badge>
+    );
+  if (status === "fail")
+    return (
+      <Badge className="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200 shrink-0 text-xs">
+        <AlertCircle className="w-3 h-3 mr-1" /> Fail
+      </Badge>
+    );
+  if (status === "na")
+    return (
+      <Badge className="bg-muted text-muted-foreground shrink-0 text-xs">
+        <MinusCircle className="w-3 h-3 mr-1" /> N/A
+      </Badge>
+    );
+  return (
+    <Badge variant="outline" className="shrink-0 text-xs">
+      <Clock className="w-3 h-3 mr-1" /> Not Reviewed
+    </Badge>
+  );
+}
+
+function workbookStatusBadge(status: QaAuditWorkbook["status"] | "not_started") {
+  if (status === "submitted")
+    return (
+      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+        <Lock className="w-3 h-3 mr-1" /> Submitted
+      </Badge>
+    );
+  if (status === "in_progress")
+    return (
+      <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+        <Clock className="w-3 h-3 mr-1" /> In Progress
+      </Badge>
+    );
+  return (
+    <Badge variant="outline">
+      <Clock className="w-3 h-3 mr-1" /> Not Started
+    </Badge>
+  );
+}
+
+// ── Page ────────────────────────────────────────────────────────────────────
+
+const CURRENT_YEAR = getCurrentAuditYear();
+const YEAR_OPTIONS = [
+  String(Number(CURRENT_YEAR) + 1),
+  CURRENT_YEAR,
+  String(Number(CURRENT_YEAR) - 1),
+  String(Number(CURRENT_YEAR) - 2),
+];
+
+function buildEmptyResponses(verifierName: string): QaAuditItemResponse[] {
+  const items: QaAuditItem[] = QA_AUDIT_SECTIONS.flatMap((s) => s.items);
+  return items.map((i) => ({
+    itemId: i.id,
+    status: "" as QaAuditStatus,
+    notes: "",
+    verifierName,
+    evidence: [] as QaAuditEvidence[],
+  }));
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("File read failed"));
+    reader.onload = () => {
+      const result = String(reader.result ?? "");
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+export default function QaAuditWorkbook() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const profile = useMemo(
+    () => (user ? getUserProfile(user.email, user.name ?? "") : null),
+    [user],
+  );
+
+  if (!profile || isTechRole(profile.role)) {
+    return (
+      <main className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground" data-testid="text-qa-no-access">
+            QA Audit Readiness is restricted to Pharmacy Directors and above.
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  const isCpo = isCPO(profile.role);
+  const isRegional = isRegionalOrAbove(profile.role);
+  const isPd = isPharmacyDirector(profile.role);
+  const region = getAssignedRegion(profile);
+
+  // Site selector — PDs default to their store; RPDs to first in region; CPO to first overall
+  const visibleStores = useMemo(() => {
+    if (isCpo) return ALL_STORES;
+    if (isRegional && region) {
+      const r = STORE_REGIONS.find((g) => g.region === region);
+      return r ? r.stores : ALL_STORES;
+    }
+    if (isPd && profile.siteId && profile.siteId !== "ALL") {
+      const s = findStore(profile.siteId);
+      return s ? [s] : [];
+    }
+    return [];
+  }, [isCpo, isRegional, isPd, region, profile.siteId]);
+
+  const [selectedSiteId, setSelectedSiteId] = useState<string>(() => {
+    if (isPd && profile.siteId && profile.siteId !== "ALL") return profile.siteId;
+    return visibleStores[0]?.id ?? "";
+  });
+  const [year, setYear] = useState<string>(CURRENT_YEAR);
+
+  const selectedStore = findStore(selectedSiteId);
+  const selectedRegion = findStoreRegion(selectedSiteId)?.region ?? "";
+
+  const canEdit = useMemo(() => {
+    if (!selectedSiteId) return false;
+    if (isCpo) return true;
+    if (isPd) return profile.siteId === selectedSiteId;
+    if (isRegional) {
+      const sr = findStoreRegion(selectedSiteId);
+      return !!sr && !!region && sr.region === region;
+    }
+    return false;
+  }, [isCpo, isPd, isRegional, profile.siteId, region, selectedSiteId]);
+
+  // ── Roll-up query ────────────────────────────────────────────────────────
+  const rollupQuery = useQuery<QaAuditWorkbook[]>({
+    queryKey: [`/api/qa-audit/workbooks?year=${year}`],
+  });
+
+  // ── Selected workbook query ──────────────────────────────────────────────
+  const wbKey = `/api/qa-audit/workbooks/${selectedSiteId}/${year}`;
+  const workbookQuery = useQuery<QaAuditWorkbook | null>({
+    queryKey: [wbKey],
+    enabled: !!selectedSiteId,
+  });
+
+  const [responses, setResponses] = useState<QaAuditItemResponse[]>([]);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (!selectedSiteId) {
+      setResponses([]);
+      setDirty(false);
+      return;
+    }
+    const wb = workbookQuery.data;
+    if (wb && wb.responses.length > 0) {
+      // ensure every catalog item present
+      const existing = new Map(wb.responses.map((r) => [r.itemId, r]));
+      const merged = QA_AUDIT_SECTIONS.flatMap((s) => s.items).map((i) =>
+        existing.get(i.id) ?? {
+          itemId: i.id,
+          status: "" as QaAuditStatus,
+          notes: "",
+          verifierName: profile.name,
+          evidence: [],
+        },
+      );
+      setResponses(merged);
+    } else if (workbookQuery.isFetched) {
+      setResponses(buildEmptyResponses(profile.name));
+    }
+    setDirty(false);
+  }, [selectedSiteId, year, workbookQuery.data, workbookQuery.isFetched, profile.name]);
+
+  const submitted = workbookQuery.data?.status === "submitted";
+  const readOnly = !canEdit || submitted;
+
+  // ── Mutations ────────────────────────────────────────────────────────────
+
+  const saveMutation = useMutation({
+    mutationFn: async (rs: QaAuditItemResponse[]) => {
+      return apiRequest<QaAuditWorkbook>(wbKey, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          siteId: selectedSiteId,
+          siteName: selectedStore?.name ?? selectedSiteId,
+          region: selectedRegion,
+          year,
+          responses: rs,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [wbKey] });
+      queryClient.invalidateQueries({ queryKey: [`/api/qa-audit/workbooks?year=${year}`] });
+      setDirty(false);
+      toast({ title: "Saved", description: "Audit responses saved." });
+    },
+    onError: (e: any) => {
+      toast({ title: "Save failed", description: e?.message ?? "Try again.", variant: "destructive" });
+    },
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: async () =>
+      apiRequest<QaAuditWorkbook>(`${wbKey}/submit`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [wbKey] });
+      queryClient.invalidateQueries({ queryKey: [`/api/qa-audit/workbooks?year=${year}`] });
+      toast({ title: "Submitted", description: "Audit locked and submitted." });
+    },
+    onError: (e: any) => {
+      toast({ title: "Submit failed", description: e?.message ?? "Save first.", variant: "destructive" });
+    },
+  });
+
+  function updateResponse(itemId: string, patch: Partial<QaAuditItemResponse>) {
+    if (readOnly) return;
+    setResponses((prev) =>
+      prev.map((r) =>
+        r.itemId === itemId
+          ? {
+              ...r,
+              ...patch,
+              verifiedAt:
+                patch.status !== undefined && patch.status !== ""
+                  ? new Date().toISOString()
+                  : r.verifiedAt,
+            }
+          : r,
+      ),
+    );
+    setDirty(true);
+  }
+
+  async function handleUpload(itemId: string, file: File) {
+    try {
+      const dataBase64 = await fileToBase64(file);
+      const evidence = await apiRequest<QaAuditEvidence>("/api/qa-audit/evidence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type || "application/octet-stream",
+          dataBase64,
+        }),
+      });
+      setResponses((prev) =>
+        prev.map((r) =>
+          r.itemId === itemId ? { ...r, evidence: [...r.evidence, evidence] } : r,
+        ),
+      );
+      setDirty(true);
+      toast({ title: "Uploaded", description: file.name });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e?.message ?? "Try again.", variant: "destructive" });
+    }
+  }
+
+  function removeEvidence(itemId: string, evidenceId: string) {
+    if (readOnly) return;
+    setResponses((prev) =>
+      prev.map((r) =>
+        r.itemId === itemId
+          ? { ...r, evidence: r.evidence.filter((e) => e.id !== evidenceId) }
+          : r,
+      ),
+    );
+    setDirty(true);
+  }
+
+  function sendFailToTaskManager(itemId: string) {
+    const meta = findQaAuditItem(itemId);
+    const resp = responses.find((r) => r.itemId === itemId);
+    if (!meta || !resp || !selectedStore || !profile) return;
+    const taskId = `qa-${selectedSiteId}-${year}-${itemId}-${Date.now()}`;
+    const customTask: CustomTask = {
+      id: taskId,
+      siteId: selectedSiteId,
+      scope: "site",
+      selectedStore: selectedSiteId,
+      title: `[QA Audit ${year}] ${meta.item.title}`,
+      description: [
+        `Failed during QA Audit Readiness — ${meta.section.title}.`,
+        resp.notes ? `\nAuditor notes:\n${resp.notes}` : "",
+        `\nSite: ${selectedStore.name} (${selectedSiteId})`,
+        resp.verifierName ? `Verified by: ${resp.verifierName}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      role: "director",
+      assignedToLabel: "All Pharmacy Directors",
+      frequency: "one_time",
+      category: "achc",
+      taskGroup: "QA Audit Follow-Ups",
+      createdBy: `${profile.name}`,
+      createdByRole: profile.role,
+      createdAt: new Date().toISOString(),
+    };
+    saveCustomTask(customTask);
+    setResponses((prev) =>
+      prev.map((r) => (r.itemId === itemId ? { ...r, taskCreatedId: taskId } : r)),
+    );
+    setDirty(true);
+    toast({
+      title: "Sent to Task Manager",
+      description: `Follow-up task created for ${selectedStore.name}.`,
+    });
+  }
+
+  // ── Counts ───────────────────────────────────────────────────────────────
+
+  const counts = useMemo(() => {
+    let pass = 0,
+      fail = 0,
+      na = 0,
+      pending = 0;
+    for (const r of responses) {
+      if (r.status === "pass") pass++;
+      else if (r.status === "fail") fail++;
+      else if (r.status === "na") na++;
+      else pending++;
+    }
+    return { pass, fail, na, pending, total: QA_AUDIT_TOTAL_ITEMS };
+  }, [responses]);
+
+  function exportPdf() {
+    window.print();
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────
+
+  return (
+    <main className="container mx-auto p-4 md:p-6 space-y-4 print:p-0">
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          [data-radix-accordion-content] { display: block !important; height: auto !important; overflow: visible !important; }
+          [data-state="closed"] [data-radix-accordion-content] { display: block !important; }
+        }
+      `}</style>
+
+      {/* Header */}
+      <Card className="no-print">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-2xl" data-testid="title-qa-audit">
+                <ClipboardCheck className="w-6 h-6 text-primary" />
+                QA Audit Readiness Workbook
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Yearly self-audit for AHF pharmacies. Document Pass / Fail / N/A with notes,
+                verifier, and supporting evidence for every item.
+              </p>
+            </div>
+            <Button variant="outline" onClick={exportPdf} data-testid="button-export-pdf">
+              <Download className="w-4 h-4 mr-2" /> Export PDF
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <div>
+            <Label className="text-xs">Site</Label>
+            <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
+              <SelectTrigger data-testid="select-qa-site">
+                <SelectValue placeholder="Select a site" />
+              </SelectTrigger>
+              <SelectContent>
+                {visibleStores.map((s) => (
+                  <SelectItem key={s.id} value={s.id} data-testid={`option-qa-site-${s.id}`}>
+                    {s.id} — {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Audit Year</Label>
+            <Select value={year} onValueChange={setYear}>
+              <SelectTrigger data-testid="select-qa-year">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {YEAR_OPTIONS.map((y) => (
+                  <SelectItem key={y} value={y} data-testid={`option-qa-year-${y}`}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-end gap-2 flex-wrap">
+            {workbookStatusBadge(workbookQuery.data?.status ?? "not_started")}
+            {workbookQuery.data?.submittedAt && (
+              <span className="text-xs text-muted-foreground" data-testid="text-qa-submitted-at">
+                Submitted {new Date(workbookQuery.data.submittedAt).toLocaleDateString()}{" "}
+                by {workbookQuery.data.submittedByName ?? ""}
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Roll-up across sites */}
+      {(isRegional || isCpo) && (
+        <Card className="no-print">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">All Sites Roll-Up — {year}</CardTitle>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground border-b">
+                  <th className="py-2 pr-2">Site</th>
+                  <th className="py-2 pr-2">Region</th>
+                  <th className="py-2 pr-2">Status</th>
+                  <th className="py-2 pr-2 text-right">Pass</th>
+                  <th className="py-2 pr-2 text-right">Fail</th>
+                  <th className="py-2 pr-2 text-right">N/A</th>
+                  <th className="py-2 pr-2 text-right">Pending</th>
+                  <th className="py-2 pr-2">Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleStores.map((s) => {
+                  const wb = rollupQuery.data?.find((w) => w.siteId === s.id);
+                  const rs = wb?.responses ?? [];
+                  const p = rs.filter((r) => r.status === "pass").length;
+                  const f = rs.filter((r) => r.status === "fail").length;
+                  const n = rs.filter((r) => r.status === "na").length;
+                  const pending = QA_AUDIT_TOTAL_ITEMS - (p + f + n);
+                  return (
+                    <tr
+                      key={s.id}
+                      className="border-b last:border-b-0 hover-elevate cursor-pointer"
+                      onClick={() => setSelectedSiteId(s.id)}
+                      data-testid={`row-qa-rollup-${s.id}`}
+                    >
+                      <td className="py-2 pr-2 font-medium">{s.id} — {s.name}</td>
+                      <td className="py-2 pr-2 text-muted-foreground">
+                        {findStoreRegion(s.id)?.region ?? "—"}
+                      </td>
+                      <td className="py-2 pr-2">{workbookStatusBadge(wb?.status ?? "not_started")}</td>
+                      <td className="py-2 pr-2 text-right text-emerald-700 dark:text-emerald-300">{p}</td>
+                      <td className="py-2 pr-2 text-right text-red-700 dark:text-red-300">{f}</td>
+                      <td className="py-2 pr-2 text-right text-muted-foreground">{n}</td>
+                      <td className="py-2 pr-2 text-right">{pending}</td>
+                      <td className="py-2 pr-2 text-muted-foreground text-xs">
+                        {wb?.lastUpdatedAt
+                          ? new Date(wb.lastUpdatedAt).toLocaleDateString()
+                          : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Summary for selected workbook */}
+      <Card>
+        <CardContent className="p-4 grid grid-cols-2 md:grid-cols-5 gap-3">
+          <SummaryStat label="Items" value={counts.total} />
+          <SummaryStat label="Pass" value={counts.pass} accent="emerald" />
+          <SummaryStat label="Fail" value={counts.fail} accent="red" />
+          <SummaryStat label="N/A" value={counts.na} />
+          <SummaryStat label="Pending" value={counts.pending} accent="amber" />
+        </CardContent>
+      </Card>
+
+      {!selectedSiteId ? (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            Select a site to begin.
+          </CardContent>
+        </Card>
+      ) : workbookQuery.isLoading ? (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">Loading…</CardContent>
+        </Card>
+      ) : (
+        <Accordion type="multiple" className="space-y-3" defaultValue={QA_AUDIT_SECTIONS.map((s) => s.id)}>
+          {QA_AUDIT_SECTIONS.map((section) => {
+            const sectionResponses = responses.filter((r) =>
+              section.items.some((i) => i.id === r.itemId),
+            );
+            const passN = sectionResponses.filter((r) => r.status === "pass").length;
+            const failN = sectionResponses.filter((r) => r.status === "fail").length;
+            return (
+              <AccordionItem
+                key={section.id}
+                value={section.id}
+                className="border rounded-md bg-card"
+                data-testid={`section-${section.id}`}
+              >
+                <AccordionTrigger className="px-4">
+                  <div className="flex flex-1 items-center justify-between gap-3 flex-wrap pr-2">
+                    <div className="text-left">
+                      <div className="font-semibold">
+                        {section.number}. {section.title}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{section.description}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {sectionResponses.filter((r) => r.status !== "").length}/
+                        {section.items.length} reviewed
+                      </Badge>
+                      {failN > 0 && (
+                        <Badge className="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200 text-xs">
+                          {failN} fail
+                        </Badge>
+                      )}
+                      {passN === section.items.length && (
+                        <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200 text-xs">
+                          All pass
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 space-y-3">
+                  {section.items.map((item) => {
+                    const r =
+                      responses.find((x) => x.itemId === item.id) ?? {
+                        itemId: item.id,
+                        status: "" as QaAuditStatus,
+                        notes: "",
+                        verifierName: "",
+                        evidence: [] as QaAuditEvidence[],
+                      };
+                    return (
+                      <ItemRow
+                        key={item.id}
+                        item={item}
+                        response={r}
+                        readOnly={readOnly}
+                        onChangeStatus={(s) => updateResponse(item.id, { status: s })}
+                        onChangeNotes={(n) => updateResponse(item.id, { notes: n })}
+                        onChangeVerifier={(v) => updateResponse(item.id, { verifierName: v })}
+                        onUpload={(file) => handleUpload(item.id, file)}
+                        onRemoveEvidence={(eid) => removeEvidence(item.id, eid)}
+                        onSendToTask={() => sendFailToTaskManager(item.id)}
+                      />
+                    );
+                  })}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      )}
+
+      {/* Action bar */}
+      {selectedSiteId && (
+        <div className="no-print sticky bottom-0 z-50 bg-background/95 backdrop-blur border-t p-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-xs text-muted-foreground">
+            {readOnly
+              ? submitted
+                ? "This audit has been submitted and is locked."
+                : "You do not have permission to edit this site's audit."
+              : dirty
+                ? "Unsaved changes."
+                : "All changes saved."}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={readOnly || !dirty || saveMutation.isPending}
+              onClick={() => saveMutation.mutate(responses)}
+              data-testid="button-qa-save"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {saveMutation.isPending ? "Saving…" : "Save"}
+            </Button>
+            <Button
+              disabled={readOnly || dirty || submitMutation.isPending || !workbookQuery.data}
+              onClick={() => submitMutation.mutate()}
+              data-testid="button-qa-submit"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              {submitMutation.isPending ? "Submitting…" : "Submit Audit"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
+// ── Subcomponents ──────────────────────────────────────────────────────────
+
+function SummaryStat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number;
+  accent?: "emerald" | "red" | "amber";
+}) {
+  const color =
+    accent === "emerald"
+      ? "text-emerald-700 dark:text-emerald-300"
+      : accent === "red"
+        ? "text-red-700 dark:text-red-300"
+        : accent === "amber"
+          ? "text-amber-700 dark:text-amber-300"
+          : "";
+  return (
+    <div className="rounded-md border p-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={`text-2xl font-semibold ${color}`} data-testid={`stat-qa-${label.toLowerCase()}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ItemRow({
+  item,
+  response,
+  readOnly,
+  onChangeStatus,
+  onChangeNotes,
+  onChangeVerifier,
+  onUpload,
+  onRemoveEvidence,
+  onSendToTask,
+}: {
+  item: QaAuditItem;
+  response: QaAuditItemResponse;
+  readOnly: boolean;
+  onChangeStatus: (s: QaAuditStatus) => void;
+  onChangeNotes: (n: string) => void;
+  onChangeVerifier: (v: string) => void;
+  onUpload: (f: File) => void;
+  onRemoveEvidence: (eid: string) => void;
+  onSendToTask: () => void;
+}) {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  return (
+    <div className="rounded-md border p-3 space-y-2" data-testid={`item-${item.id}`}>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex-1 min-w-[240px]">
+          <div className="font-medium text-sm">{item.title}</div>
+          {item.detail && (
+            <div className="text-xs text-muted-foreground mt-0.5">{item.detail}</div>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {statusBadge(response.status)}
+          <Select
+            value={response.status}
+            onValueChange={(v) => onChangeStatus(v as QaAuditStatus)}
+            disabled={readOnly}
+          >
+            <SelectTrigger className="w-[160px]" data-testid={`select-status-${item.id}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((o) => (
+                <SelectItem key={o.value || "none"} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid gap-2 md:grid-cols-2">
+        <div>
+          <Label className="text-xs">Notes</Label>
+          <Textarea
+            rows={2}
+            value={response.notes}
+            disabled={readOnly}
+            onChange={(e) => onChangeNotes(e.target.value)}
+            placeholder="Observations, location, next steps…"
+            data-testid={`input-notes-${item.id}`}
+          />
+        </div>
+        <div className="space-y-2">
+          <div>
+            <Label className="text-xs">Verifier</Label>
+            <Input
+              value={response.verifierName}
+              disabled={readOnly}
+              onChange={(e) => onChangeVerifier(e.target.value)}
+              placeholder="Name of person who verified"
+              data-testid={`input-verifier-${item.id}`}
+            />
+          </div>
+          {response.verifiedAt && (
+            <div className="text-xs text-muted-foreground" data-testid={`text-verified-at-${item.id}`}>
+              Last set: {new Date(response.verifiedAt).toLocaleString()}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Evidence */}
+      <div>
+        <Label className="text-xs">Evidence</Label>
+        <div className="flex items-center gap-2 flex-wrap mt-1">
+          {response.evidence.map((e) => (
+            <Badge
+              key={e.id}
+              variant="outline"
+              className="text-xs gap-1 max-w-full"
+              data-testid={`badge-evidence-${item.id}-${e.id}`}
+            >
+              <a
+                href={`/api/qa-audit/evidence/${e.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 truncate max-w-[160px]"
+              >
+                <FileText className="w-3 h-3" />
+                <span className="truncate">{e.fileName}</span>
+              </a>
+              {!readOnly && (
+                <button
+                  type="button"
+                  className="ml-1 opacity-70 hover:opacity-100"
+                  onClick={() => onRemoveEvidence(e.id)}
+                  aria-label="Remove evidence"
+                  data-testid={`button-remove-evidence-${item.id}-${e.id}`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </Badge>
+          ))}
+          {!readOnly && (
+            <>
+              <input
+                ref={fileRef}
+                type="file"
+                hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) onUpload(f);
+                  if (fileRef.current) fileRef.current.value = "";
+                }}
+                data-testid={`file-input-${item.id}`}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fileRef.current?.click()}
+                data-testid={`button-upload-${item.id}`}
+              >
+                <Paperclip className="w-3 h-3 mr-1" /> Attach
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {response.status === "fail" && !readOnly && (
+        <div className="flex items-center justify-between gap-2 pt-1 border-t mt-2 flex-wrap">
+          <div className="text-xs text-red-700 dark:text-red-300 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" /> Marked as fail — create a follow-up task.
+          </div>
+          {response.taskCreatedId ? (
+            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200 text-xs">
+              <CheckCircle2 className="w-3 h-3 mr-1" /> Task created
+            </Badge>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onSendToTask}
+              data-testid={`button-send-to-task-${item.id}`}
+            >
+              <Plus className="w-3 h-3 mr-1" /> Send to Task Manager
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

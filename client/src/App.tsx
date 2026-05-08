@@ -15,6 +15,7 @@ import TaskManager from "@/pages/TaskManager";
 import RegionalDashboard from "@/pages/RegionalDashboard";
 import CategoryReport from "@/pages/CategoryReport";
 import AchcWorkbook from "@/pages/AchcWorkbook";
+import QaAuditWorkbook from "@/pages/QaAuditWorkbook";
 import CQIMeeting from "@/pages/CQIMeeting";
 import StoreDashboard from "@/pages/StoreDashboard";
 import TaskTracker from "@/pages/TaskTracker";
@@ -23,7 +24,7 @@ import ControlledInventory from "@/pages/ControlledInventory";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, FileCheck2 } from "lucide-react";
 import type { AppNotification } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -294,6 +295,9 @@ function AppNav() {
             {showWorkbook && (
               <NavMenuItem href="/app/achc-workbook" icon={BookCheck} label="ACHC Workbook" testId="nav-achc-workbook" onClick={close} />
             )}
+            {showWorkbook && (
+              <NavMenuItem href="/app/qa-audit" icon={FileCheck2} label="QA Audit Readiness" testId="nav-qa-audit" onClick={close} />
+            )}
 
             {showCQI && (
               <NavMenuItem href="/app/cqi-meeting" icon={ClipboardCheck} label="CQI Meeting" testId="nav-cqi-meeting" onClick={close} />
@@ -422,6 +426,9 @@ function Router() {
       </Route>
       <Route path="/app/achc-workbook">
         <Protected component={AchcWorkbook} />
+      </Route>
+      <Route path="/app/qa-audit">
+        <Protected component={QaAuditWorkbook} />
       </Route>
       <Route path="/app/cqi-meeting">
         <Protected component={CQIMeeting} />

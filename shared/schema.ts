@@ -168,6 +168,66 @@ export interface AppNotification {
   read: boolean;
 }
 
+// ── QA Audit Workbook (yearly) ────────────────────────────────────────────
+
+export const QA_AUDIT_STATUSES = ["pass", "fail", "na", ""] as const;
+export type QaAuditStatus = typeof QA_AUDIT_STATUSES[number];
+
+export const QA_AUDIT_WORKBOOK_STATUSES = ["not_started", "in_progress", "submitted"] as const;
+export type QaAuditWorkbookStatus = typeof QA_AUDIT_WORKBOOK_STATUSES[number];
+
+export const qaAuditEvidenceSchema = z.object({
+  id: z.string().min(1),
+  fileName: z.string().min(1),
+  fileType: z.string().min(1),
+  uploadedBy: z.string().min(1),
+  uploadedAt: z.string().min(1),
+});
+export type QaAuditEvidence = z.infer<typeof qaAuditEvidenceSchema>;
+
+export const qaAuditItemResponseSchema = z.object({
+  itemId: z.string().min(1),
+  status: z.enum(QA_AUDIT_STATUSES),
+  notes: z.string().default(""),
+  verifierName: z.string().default(""),
+  verifiedAt: z.string().optional(),
+  evidence: z.array(qaAuditEvidenceSchema).default([]),
+  taskCreatedId: z.string().optional(),
+});
+export type QaAuditItemResponse = z.infer<typeof qaAuditItemResponseSchema>;
+
+export const qaAuditWorkbookSchema = z.object({
+  siteId: z.string().min(1),
+  siteName: z.string().min(1),
+  region: z.string().default(""),
+  year: z.string().regex(/^\d{4}$/),
+  responses: z.array(qaAuditItemResponseSchema).default([]),
+  status: z.enum(QA_AUDIT_WORKBOOK_STATUSES).default("not_started"),
+  submittedByEmail: z.string().optional(),
+  submittedByName: z.string().optional(),
+  submittedAt: z.string().optional(),
+  lastUpdatedAt: z.string(),
+  lastUpdatedByEmail: z.string().optional(),
+  lastUpdatedByName: z.string().optional(),
+});
+export type QaAuditWorkbook = z.infer<typeof qaAuditWorkbookSchema>;
+
+export const upsertQaAuditWorkbookSchema = z.object({
+  siteId: z.string().min(1),
+  siteName: z.string().min(1),
+  region: z.string().default(""),
+  year: z.string().regex(/^\d{4}$/),
+  responses: z.array(qaAuditItemResponseSchema).default([]),
+});
+export type UpsertQaAuditWorkbook = z.infer<typeof upsertQaAuditWorkbookSchema>;
+
+export const qaAuditEvidenceUploadSchema = z.object({
+  fileName: z.string().min(1).max(200),
+  fileType: z.string().min(1).max(100),
+  dataBase64: z.string().min(1),
+});
+export type QaAuditEvidenceUpload = z.infer<typeof qaAuditEvidenceUploadSchema>;
+
 // ── Retention Patient ────────────────────────────────────────────────────────
 
 export type RetentionIssueType =

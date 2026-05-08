@@ -30,6 +30,8 @@ import {
   upsertScheduleEntrySchema,
   createScheduleSubmissionSchema,
   reviewScheduleSubmissionSchema,
+  upsertQaAuditWorkbookSchema,
+  qaAuditEvidenceUploadSchema,
 } from "@shared/schema";
 import { storage } from "./storage";
 import { runOutreachNow } from "./lib/outreachScheduler";
@@ -1478,6 +1480,128 @@ FORMATTING RULES (strict):
     if (!sessionEmail) return res.status(401).json({ message: "Not authenticated" });
     await storage.markAllNotificationsRead(sessionEmail);
     return res.json({ ok: true });
+  });
+
+  // ── QA Audit Workbooks ────────────────────────────────────────────────
+
+  function getQaAuditUser(req: any):
+    | { ok: true; profile: ReturnType<typeof getUserProfile>; user: { email: string; name: string } }
+    | { ok: false; status: number; message: string } {
+    const sessionEmail = req.session?.userId;
+    if (!sessionEmail) return { ok: false, status: 401, message: "Not authenticated" };
+    const profile = getUserProfile(sessionEmail, req.session.user?.name ?? "");
+    return { ok: true, profile, user: { email: sessionEmail, name: profile.name } };
+  }
+
+  function canEditQaAudit(profile: ReturnType<typeof getUserProfile>, siteId: string): boolean {
+    if (!isDirectorRole(profile.role)) return false;
+    if (isCPO(profile.role)) return true;
+    if (isPharmacyDirector(profile.role)) return profile.siteId === siteId;
+    // RPD — same region
+    const region = getAssignedRegion(profile);
+    const sr = findStoreRegion(siteId);
+    return !!sr && !!region && sr.region === region;
+  }
+
+  app.get("/api/qa-audit/workbooks", async (req, res) => {
+    const auth = getQaAuditUser(req);
+    if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
+    if (!isDirectorRole(auth.profile.role)) {
+      return res.status(403).json({ message: "Access restricted to Pharmacy Directors and above." });
+    }
+    const year = typeof req.query.year === "string" ? req.query.year : undefined;
+    const list = await storage.listQaAuditWorkbooks(year);
+    return res.json(list);
+  });
+
+  app.get("/api/qa-audit/workbooks/:siteId/:year", async (req, res) => {
+    const auth = getQaAuditUser(req);
+    if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
+    if (!isDirectorRole(auth.profile.role)) {
+      return res.status(403).json({ message: "Access restricted to Pharmacy Directors and above." });
+    }
+    const wb = await storage.getQaAuditWorkbook(req.params.siteId, req.params.year);
+    return res.json(wb ?? null);
+  });
+
+  app.put("/api/qa-audit/workbooks/:siteId/:year", async (req, res) => {
+    const auth = getQaAuditUser(req);
+    if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
+    const parsed = upsertQaAuditWorkbookSchema.safeParse({
+      ...req.body,
+      siteId: req.params.siteId,
+      year: req.params.year,
+    });
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid workbook data", errors: parsed.error.errors });
+    }
+    if (!canEditQaAudit(auth.profile, parsed.data.siteId)) {
+      return res.status(403).json({ message: "You do not have permission to edit this site's audit." });
+    }
+    const wb = await storage.upsertQaAuditWorkbook(parsed.data, auth.user);
+    return res.json(wb);
+  });
+
+  app.post("/api/qa-audit/workbooks/:siteId/:year/submit", async (req, res) => {
+    const auth = getQaAuditUser(req);
+    if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
+    if (!canEditQaAudit(auth.profile, req.params.siteId)) {
+      return res.status(403).json({ message: "You do not have permission to submit this site's audit." });
+    }
+    const wb = await storage.submitQaAuditWorkbook(req.params.siteId, req.params.year, auth.user);
+    if (!wb) return res.status(404).json({ message: "Workbook not found — save responses before submitting." });
+    return res.json(wb);
+  });
+
+  app.post("/api/qa-audit/evidence", async (req, res) => {
+    const auth = getQaAuditUser(req);
+    if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
+    if (!isDirectorRole(auth.profile.role)) {
+      return res.status(403).json({ message: "Access restricted to Pharmacy Directors and above." });
+    }
+    const parsed = qaAuditEvidenceUploadSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid evidence upload", errors: parsed.error.errors });
+    }
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.from(parsed.data.dataBase64, "base64");
+    } catch {
+      return res.status(400).json({ message: "Invalid base64 payload" });
+    }
+    const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+    if (buffer.byteLength === 0 || buffer.byteLength > MAX_BYTES) {
+      return res.status(400).json({ message: "File must be between 1 byte and 10 MB" });
+    }
+    const file = await storage.addQaAuditEvidence({
+      fileName: parsed.data.fileName,
+      fileType: parsed.data.fileType,
+      uploadedBy: auth.user.name,
+      data: buffer,
+    });
+    return res.json({
+      id: file.id,
+      fileName: file.fileName,
+      fileType: file.fileType,
+      uploadedBy: file.uploadedBy,
+      uploadedAt: file.uploadedAt,
+    });
+  });
+
+  app.get("/api/qa-audit/evidence/:id", async (req, res) => {
+    const auth = getQaAuditUser(req);
+    if (!auth.ok) return res.status(auth.status).json({ message: auth.message });
+    if (!isDirectorRole(auth.profile.role)) {
+      return res.status(403).json({ message: "Access restricted to Pharmacy Directors and above." });
+    }
+    const file = await storage.getQaAuditEvidence(req.params.id);
+    if (!file) return res.status(404).json({ message: "Evidence not found" });
+    res.setHeader("Content-Type", file.fileType || "application/octet-stream");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${file.fileName.replace(/"/g, "")}"`,
+    );
+    return res.end(file.data);
   });
 
   // ── AI Performance Evaluator ────────────────────────────────────────────────
