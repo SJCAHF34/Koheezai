@@ -476,11 +476,44 @@ export default function QaAuditWorkbook() {
     <main className="container mx-auto p-4 md:p-6 space-y-4 print:p-0">
       <style>{`
         @media print {
+          @page { size: letter; margin: 0.5in; }
+          html, body { background: #fff !important; color: #000 !important; }
           .no-print { display: none !important; }
+          .print-only { display: block !important; }
           [data-radix-accordion-content] { display: block !important; height: auto !important; overflow: visible !important; }
           [data-state="closed"] [data-radix-accordion-content] { display: block !important; }
+          [data-radix-accordion-trigger] svg.lucide-chevron-down { display: none !important; }
+          [role="combobox"], button[aria-haspopup="dialog"], button[aria-haspopup="listbox"] { display: none !important; }
+          [data-testid^="button-upload-"],
+          [data-testid^="button-send-to-task-"],
+          [data-testid^="button-remove-evidence-"] { display: none !important; }
+          [data-testid^="item-"] { break-inside: avoid; page-break-inside: avoid; }
+          [data-testid^="section-"] { break-inside: avoid-page; }
+          textarea, input { border: 1px solid #999 !important; background: #fff !important; color: #000 !important; box-shadow: none !important; }
+          textarea { min-height: 2.5em !important; height: auto !important; }
         }
+        .print-only { display: none; }
       `}</style>
+
+      {/* Print-only cover header */}
+      <div className="print-only mb-4">
+        <div className="text-2xl font-semibold">QA Audit Readiness Workbook</div>
+        <div className="text-sm mt-1">
+          Site: {workbookQuery.data?.siteId ?? selectedSiteId} — {workbookQuery.data?.siteName ?? ""}
+        </div>
+        <div className="text-sm">Audit Year: {year}</div>
+        <div className="text-sm">
+          Status: {workbookQuery.data?.status ?? "not_started"}
+          {workbookQuery.data?.submittedAt && (
+            <> &nbsp;·&nbsp; Submitted {new Date(workbookQuery.data.submittedAt).toLocaleDateString()} by {workbookQuery.data.submittedByName ?? ""}</>
+          )}
+        </div>
+        <div className="text-sm mt-1">
+          Pass: {counts.pass} &nbsp;·&nbsp; Fail: {counts.fail} &nbsp;·&nbsp; N/A: {counts.na} &nbsp;·&nbsp; Pending: {counts.pending} &nbsp;·&nbsp; Total: {counts.total}
+        </div>
+        <div className="text-xs mt-1">Printed {new Date().toLocaleString()}</div>
+        <hr className="mt-2" />
+      </div>
 
       {/* Header */}
       <Card className="no-print">
