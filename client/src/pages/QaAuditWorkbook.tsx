@@ -476,44 +476,102 @@ export default function QaAuditWorkbook() {
     <main className="container mx-auto p-4 md:p-6 space-y-4 print:p-0">
       <style>{`
         @media print {
-          @page { size: letter; margin: 0.5in; }
-          html, body { background: #fff !important; color: #000 !important; }
-          .no-print { display: none !important; }
+          @page { size: letter; margin: 0.35in; }
+          html, body { background: #fff !important; color: #000 !important; font-size: 9pt !important; line-height: 1.2 !important; }
+          .no-print, .screen-only { display: none !important; }
           .print-only { display: block !important; }
-          [data-radix-accordion-content] { display: block !important; height: auto !important; overflow: visible !important; }
-          [data-state="closed"] [data-radix-accordion-content] { display: block !important; }
-          [data-radix-accordion-trigger] svg.lucide-chevron-down { display: none !important; }
-          [role="combobox"], button[aria-haspopup="dialog"], button[aria-haspopup="listbox"] { display: none !important; }
-          [data-testid^="button-upload-"],
-          [data-testid^="button-send-to-task-"],
-          [data-testid^="button-remove-evidence-"] { display: none !important; }
-          [data-testid^="item-"] { break-inside: avoid; page-break-inside: avoid; }
-          [data-testid^="section-"] { break-inside: avoid-page; }
-          textarea, input { border: 1px solid #999 !important; background: #fff !important; color: #000 !important; box-shadow: none !important; }
-          textarea { min-height: 2.5em !important; height: auto !important; }
+          .qa-print-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 6pt; }
+          .qa-print-table th, .qa-print-table td { border: 1px solid #999; padding: 2pt 4pt; vertical-align: top; font-size: 8.5pt; word-wrap: break-word; overflow-wrap: anywhere; }
+          .qa-print-table th { background: #eee !important; text-align: left; font-weight: 600; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .qa-print-section { break-inside: auto; page-break-inside: auto; margin-bottom: 8pt; }
+          .qa-print-section h3 { font-size: 10.5pt; margin: 6pt 0 3pt; font-weight: 700; }
+          .qa-print-row-fail td { background: #fdecec !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .qa-print-row-pass td { background: #effaf0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .qa-print-status { font-weight: 700; text-transform: uppercase; font-size: 8pt; }
         }
         .print-only { display: none; }
       `}</style>
 
-      {/* Print-only cover header */}
-      <div className="print-only mb-4">
-        <div className="text-2xl font-semibold">QA Audit Readiness Workbook</div>
-        <div className="text-sm mt-1">
-          Site: {workbookQuery.data?.siteId ?? selectedSiteId} — {workbookQuery.data?.siteName ?? ""}
+      {/* Print-only compact layout */}
+      <div className="print-only">
+        <div className="mb-2">
+          <div style={{ fontSize: "14pt", fontWeight: 700 }}>QA Audit Readiness Workbook</div>
+          <div style={{ fontSize: "9pt", marginTop: 2 }}>
+            <strong>Site:</strong> {workbookQuery.data?.siteId ?? selectedSiteId} — {workbookQuery.data?.siteName ?? ""}
+            &nbsp;·&nbsp; <strong>Year:</strong> {year}
+            &nbsp;·&nbsp; <strong>Status:</strong> {workbookQuery.data?.status ?? "not_started"}
+            {workbookQuery.data?.submittedAt && (
+              <> &nbsp;·&nbsp; Submitted {new Date(workbookQuery.data.submittedAt).toLocaleDateString()} by {workbookQuery.data.submittedByName ?? ""}</>
+            )}
+          </div>
+          <div style={{ fontSize: "9pt" }}>
+            <strong>Pass</strong> {counts.pass} &nbsp;·&nbsp; <strong>Fail</strong> {counts.fail} &nbsp;·&nbsp; <strong>N/A</strong> {counts.na} &nbsp;·&nbsp; <strong>Pending</strong> {counts.pending} &nbsp;·&nbsp; <strong>Total</strong> {counts.total}
+            &nbsp;·&nbsp; Printed {new Date().toLocaleString()}
+          </div>
         </div>
-        <div className="text-sm">Audit Year: {year}</div>
-        <div className="text-sm">
-          Status: {workbookQuery.data?.status ?? "not_started"}
-          {workbookQuery.data?.submittedAt && (
-            <> &nbsp;·&nbsp; Submitted {new Date(workbookQuery.data.submittedAt).toLocaleDateString()} by {workbookQuery.data.submittedByName ?? ""}</>
-          )}
-        </div>
-        <div className="text-sm mt-1">
-          Pass: {counts.pass} &nbsp;·&nbsp; Fail: {counts.fail} &nbsp;·&nbsp; N/A: {counts.na} &nbsp;·&nbsp; Pending: {counts.pending} &nbsp;·&nbsp; Total: {counts.total}
-        </div>
-        <div className="text-xs mt-1">Printed {new Date().toLocaleString()}</div>
-        <hr className="mt-2" />
+
+        {QA_AUDIT_SECTIONS.map((section) => (
+          <div key={section.id} className="qa-print-section">
+            <h3>{section.number}. {section.title}</h3>
+            <table className="qa-print-table">
+              <colgroup>
+                <col style={{ width: "4%" }} />
+                <col style={{ width: "34%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "30%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "10%" }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Item</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                  <th>Verifier</th>
+                  <th>Evidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {section.items.map((item, idx) => {
+                  const r = responses.find((x) => x.itemId === item.id);
+                  const status = r?.status ?? "";
+                  const rowClass =
+                    status === "fail" ? "qa-print-row-fail" :
+                    status === "pass" ? "qa-print-row-pass" : "";
+                  const statusLabel = status === "" ? "—" : status === "na" ? "N/A" : status;
+                  return (
+                    <tr key={item.id} className={rowClass}>
+                      <td>{idx + 1}</td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{item.title}</div>
+                        {item.detail && <div style={{ fontSize: "7.5pt", color: "#444" }}>{item.detail}</div>}
+                      </td>
+                      <td className="qa-print-status">{statusLabel}</td>
+                      <td>{r?.notes || ""}</td>
+                      <td>
+                        {r?.verifierName || ""}
+                        {r?.verifiedAt && (
+                          <div style={{ fontSize: "7pt", color: "#555" }}>
+                            {new Date(r.verifiedAt).toLocaleDateString()}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ fontSize: "7.5pt" }}>
+                        {(r?.evidence ?? []).length === 0
+                          ? ""
+                          : (r?.evidence ?? []).map((e) => e.fileName).join(", ")}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ))}
       </div>
+
+      <div className="screen-only contents">
 
       {/* Header */}
       <Card className="no-print">
@@ -879,6 +937,7 @@ export default function QaAuditWorkbook() {
           </div>
         </div>
       )}
+      </div>
     </main>
   );
 }
