@@ -233,6 +233,12 @@ export default function QaAuditWorkbook() {
 
   const [responses, setResponses] = useState<QaAuditItemResponse[]>([]);
   const [dirty, setDirty] = useState(false);
+  const responsesRef = useRef<QaAuditItemResponse[]>([]);
+  useEffect(() => {
+    responsesRef.current = responses;
+  }, [responses]);
+  // Serialize evidence auto-saves so an older PUT can't overwrite a newer one.
+  const evidenceSaveChainRef = useRef<Promise<unknown>>(Promise.resolve());
 
   useEffect(() => {
     if (!selectedSiteId) {
@@ -317,20 +323,20 @@ export default function QaAuditWorkbook() {
 
   function updateResponse(itemId: string, patch: Partial<QaAuditItemResponse>) {
     if (readOnly) return;
-    setResponses((prev) =>
-      prev.map((r) =>
-        r.itemId === itemId
-          ? {
-              ...r,
-              ...patch,
-              verifiedAt:
-                patch.status !== undefined && patch.status !== ""
-                  ? new Date().toISOString()
-                  : r.verifiedAt,
-            }
-          : r,
-      ),
+    const next = responsesRef.current.map((r) =>
+      r.itemId === itemId
+        ? {
+            ...r,
+            ...patch,
+            verifiedAt:
+              patch.status !== undefined && patch.status !== ""
+                ? new Date().toISOString()
+                : r.verifiedAt,
+          }
+        : r,
     );
+    responsesRef.current = next;
+    setResponses(next);
     setDirty(true);
   }
 
@@ -348,28 +354,36 @@ export default function QaAuditWorkbook() {
           dataBase64,
         }),
       });
-      setResponses((prev) =>
-        prev.map((r) =>
-          r.itemId === itemId ? { ...r, evidence: [...r.evidence, evidence] } : r,
-        ),
+      const nextResponses = responsesRef.current.map((r) =>
+        r.itemId === itemId ? { ...r, evidence: [...r.evidence, evidence] } : r,
       );
+      responsesRef.current = nextResponses;
+      setResponses(nextResponses);
       setDirty(true);
       toast({ title: "Uploaded", description: file.name });
+      evidenceSaveChainRef.current = evidenceSaveChainRef.current
+        .catch(() => undefined)
+        .then(() => saveMutation.mutateAsync(nextResponses).catch(() => undefined));
+      await evidenceSaveChainRef.current;
     } catch (e: any) {
       toast({ title: "Upload failed", description: e?.message ?? "Try again.", variant: "destructive" });
     }
   }
 
-  function removeEvidence(itemId: string, evidenceId: string) {
+  async function removeEvidence(itemId: string, evidenceId: string) {
     if (readOnly) return;
-    setResponses((prev) =>
-      prev.map((r) =>
-        r.itemId === itemId
-          ? { ...r, evidence: r.evidence.filter((e) => e.id !== evidenceId) }
-          : r,
-      ),
+    const nextResponses = responsesRef.current.map((r) =>
+      r.itemId === itemId
+        ? { ...r, evidence: r.evidence.filter((e) => e.id !== evidenceId) }
+        : r,
     );
+    responsesRef.current = nextResponses;
+    setResponses(nextResponses);
     setDirty(true);
+    evidenceSaveChainRef.current = evidenceSaveChainRef.current
+      .catch(() => undefined)
+      .then(() => saveMutation.mutateAsync(nextResponses).catch(() => undefined));
+    await evidenceSaveChainRef.current;
   }
 
   // Server-persisted handoff: notifies the site's PD(s) with a deep link to the
