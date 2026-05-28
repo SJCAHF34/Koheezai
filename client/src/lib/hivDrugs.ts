@@ -93,8 +93,8 @@ export const hivDrugs: HIVDrug[] = [
   },
   {
     id: "darunavir",
-    name: "Darunavir",
-    brandName: "Prezista",
+    name: "Darunavir/Ritonavir",
+    brandName: "Prezista + Norvir",
     dosage: "800mg + ritonavir 100mg QD",
     class: "PI"
   },

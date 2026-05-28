@@ -15,6 +15,7 @@ import { checkLiverpoolInteractions, isConfigured as liverpoolConfigured } from 
 import { hivDrugs } from "../client/src/lib/hivDrugs";
 import {
   getUserProfile,
+  getRoleLabel,
   isRegionalOrAbove,
   isDirectorRole,
   isPharmacyDirector,
@@ -34,6 +35,7 @@ import {
   upsertQaAuditWorkbookSchema,
   qaAuditEvidenceUploadSchema,
   qaAuditFollowUpSchema,
+  consentRecordSchema,
 } from "@shared/schema";
 import { QA_AUDIT_TOTAL_ITEMS } from "../client/src/lib/qaAuditData";
 import { storage } from "./storage";
@@ -663,6 +665,7 @@ ${audienceHtml}
     oeQuery: z.string(),
     oeResponse: z.string(),
     consultationQuestions: z.array(z.string()),
+    consent: consentRecordSchema,
   });
 
   app.post("/api/generate-note", async (req, res) => {
@@ -671,6 +674,9 @@ ${audienceHtml}
     }
     try {
       const data = generateNoteSchema.parse(req.body);
+      const sessionEmail = req.session.userId as string;
+      const sessionName = req.session.user?.name ?? "";
+      const sessionProfile = getUserProfile(sessionEmail, sessionName);
       const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
       const prompt = `You are an expert HIV clinical pharmacist. Generate a comprehensive pharmacy consultation note for medical record documentation.
@@ -731,7 +737,25 @@ FORMATTING RULES (strict):
         temperature: 0.4,
       });
 
-      res.json({ note: completion.choices[0].message.content || "" });
+      const rawNote = completion.choices[0].message.content || "";
+      // Bind signer identity to the authenticated session — never trust
+      // client-supplied signerName / signerRole on a legal consent record.
+      const authoritativeSignerName = sessionProfile.name || sessionName || sessionEmail;
+      const authoritativeSignerRole = getRoleLabel(sessionProfile.role);
+      const c = data.consent;
+      const consentFooter = [
+        "",
+        "────────────────────────────────────────",
+        "PHARMACIST CONSENT",
+        `Signed by: ${authoritativeSignerName} (${authoritativeSignerRole})`,
+        `Account: ${sessionEmail}`,
+        `Typed signature: ${c.typedName}`,
+        `Signed at: ${c.timestamp}`,
+        `Waiver version: ${c.waiverVersion}`,
+      ].join("\n");
+      const note = `${rawNote.replace(/\s+$/, "")}\n${consentFooter}\n`;
+
+      res.json({ note });
     } catch (error) {
       console.error("Note generation error:", error);
       if (error instanceof z.ZodError) {

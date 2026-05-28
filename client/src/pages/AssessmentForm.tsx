@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, BookOpen, ExternalLink, Copy, Check, FileText, Save, ShieldAlert, AlertTriangle, Info } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import AssessorWaiver from "@/components/AssessorWaiver";
+import NoteConsentModal from "@/components/NoteConsentModal";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/App";
+import { getUserProfile, getRoleLabel } from "@/lib/userProfile";
 import PatientDemographics from "@/components/PatientDemographics";
 import TreatmentRegimenBuilder from "@/components/TreatmentRegimenBuilder";
 import ClinicalParameters from "@/components/ClinicalParameters";
@@ -15,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { derivePapContext, formatPapContextForNote, computePapProbability, type PapQuestion } from "@/lib/papQuestions";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { type AssessmentResult } from "@shared/schema";
+import { type AssessmentResult, type ConsentRecord, CURRENT_WAIVER_VERSION } from "@shared/schema";
 import {
   generatePatientId,
   loadAssessment,
@@ -298,9 +300,10 @@ export default function AssessmentForm() {
   const { toast } = useToast();
   const search = useSearch();
 
-  const [waiverAccepted, setWaiverAccepted] = useState(() =>
-    localStorage.getItem("koheez_waiver_accepted") === "true"
-  );
+  const { user } = useAuth();
+  const profile = user ? getUserProfile(user.email, user.name) : null;
+  const signerName = user?.name || profile?.name || "";
+  const signerRole = profile ? getRoleLabel(profile.role) : "";
 
   // ── HIV / PrEP mode ────────────────────────────────────────────────────
   const [mode, setMode] = useState<"hiv" | "prep">("hiv");
@@ -367,6 +370,11 @@ export default function AssessmentForm() {
   const [comprehensiveNote, setComprehensiveNote] = useState<string | null>(saved?.comprehensiveNote ?? null);
   const [noteCopied, setNoteCopied] = useState(false);
 
+  // Per-note pharmacist consent
+  const [consent, setConsent] = useState<ConsentRecord | null>(saved?.consent ?? null);
+  const [consentModalOpen, setConsentModalOpen] = useState(false);
+  const sessionConsentRef = useRef(false);
+
   // ── Active step ────────────────────────────────────────────────────────
   const activeStep = !assessmentResult ? 1 : !oeResponse.trim() ? 3 : 4;
 
@@ -388,6 +396,7 @@ export default function AssessmentForm() {
         patientEmailStatus, patientEmail,
         papNotApplicable, papNotApplicableReason, papAnswers, papDetails,
         oeResponse, comprehensiveNote, assessmentResult,
+        consent,
       },
     });
     setLastSaved(new Date());
@@ -398,7 +407,7 @@ export default function AssessmentForm() {
     medicationAllergies, emergencyContactStatus, emergencyContactInfo,
     caseManagerStatus, caseManagerInfo, patientEmailStatus, patientEmail,
     papNotApplicable, papNotApplicableReason, papAnswers, papDetails,
-    oeResponse, comprehensiveNote, assessmentResult,
+    oeResponse, comprehensiveNote, assessmentResult, consent,
   ]);
 
   useEffect(() => {
@@ -453,7 +462,7 @@ export default function AssessmentForm() {
 
   // ── Mutation: Generate Comprehensive Note (Step 5) ────────────────────
   const noteMutation = useMutation({
-    mutationFn: async (data: { patientContext: string; oeQuery: string; oeResponse: string; consultationQuestions: string[] }) =>
+    mutationFn: async (data: { patientContext: string; oeQuery: string; oeResponse: string; consultationQuestions: string[]; consent: ConsentRecord }) =>
       apiRequest<{ note: string }>("/api/generate-note", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -559,11 +568,60 @@ export default function AssessmentForm() {
     const oeQuery = prepMode
       ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies })
       : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies });
+    const proceedConsent =
+      sessionConsentRef.current && consent && consent.waiverVersion === CURRENT_WAIVER_VERSION
+        ? consent
+        : null;
+
+    if (!proceedConsent) {
+      setConsentModalOpen(true);
+      return;
+    }
+
     noteMutation.mutate({
       patientContext: patientCtx,
       oeQuery,
       oeResponse,
       consultationQuestions: assessmentResult.consultationQuestions || [],
+      consent: proceedConsent,
+    });
+  };
+
+  const handleConfirmConsent = (c: ConsentRecord) => {
+    if (!assessmentResult) return;
+    setConsent(c);
+    sessionConsentRef.current = true;
+    setConsentModalOpen(false);
+
+    const emergencyContactStr = emergencyContactStatus === "yes" ? emergencyContactInfo.trim() : "None reported";
+    const caseManagerStr = caseManagerStatus === "yes" ? caseManagerInfo.trim() : "Not working with a case manager";
+    const patientEmailStr = patientEmailStatus === "yes" ? patientEmail.trim() : "No email on file";
+    const papBlock = formatPapContextForNote({
+      papNotApplicable, papNotApplicableReason, papAnswers, papDetails, context: papContext,
+    });
+    const patientCtx = buildPatientContext({
+      age, pregnancy, hlab5701, treatmentStatus,
+      cd4Count: prepMode ? undefined : cd4Count,
+      viralLoad: prepMode ? undefined : viralLoad,
+      egfr, hepaticFunction, selectedDrugs, concomitantMeds,
+      geneticResistanceNotes: prepMode ? undefined : geneticResistanceNotes,
+      additionalNotes: additionalNotes || undefined,
+      prepMode,
+      medicationAllergies,
+      emergencyContact: emergencyContactStr,
+      caseManager: caseManagerStr,
+      patientEmail: patientEmailStr,
+    }) + "\n\n" + papBlock;
+    const oeQuery = prepMode
+      ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies })
+      : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies });
+
+    noteMutation.mutate({
+      patientContext: patientCtx,
+      oeQuery,
+      oeResponse,
+      consultationQuestions: assessmentResult.consultationQuestions || [],
+      consent: c,
     });
   };
 
@@ -590,10 +648,6 @@ export default function AssessmentForm() {
   const oePrompt = prepMode
     ? buildPrepOePrompt({ age, pregnancy, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies })
     : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies });
-
-  if (!waiverAccepted) {
-    return <AssessorWaiver onAccept={() => setWaiverAccepted(true)} />;
-  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -1199,6 +1253,16 @@ export default function AssessmentForm() {
           </div>
         </main>
       </div>
+
+      <NoteConsentModal
+        open={consentModalOpen}
+        patientId={patientId}
+        signerName={signerName}
+        signerRole={signerRole}
+        priorConsent={consent}
+        onCancel={() => setConsentModalOpen(false)}
+        onConfirm={handleConfirmConsent}
+      />
     </div>
   );
 }

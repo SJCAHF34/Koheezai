@@ -1,4 +1,4 @@
-import { type AssessmentResult } from "@shared/schema";
+import { type AssessmentResult, type ConsentRecord } from "@shared/schema";
 
 const STORAGE_KEY = "koheez_assessments";
 
@@ -37,6 +37,7 @@ export interface AssessmentFormData {
   oeResponse: string;
   comprehensiveNote: string | null;
   assessmentResult: AssessmentResult | null;
+  consent?: ConsentRecord | null;
 }
 
 export interface SavedAssessment {

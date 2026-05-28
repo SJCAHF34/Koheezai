@@ -333,6 +333,23 @@ export const assessmentSchema = z.object({
 
 export type Assessment = z.infer<typeof assessmentSchema>;
 
+// ── Per-note pharmacist consent ──────────────────────────────────────────
+export const CURRENT_WAIVER_VERSION = "v1-2026-05";
+
+export const consentRecordSchema = z.object({
+  signerName: z.string().min(1, "Signer name required"),
+  signerRole: z.string().default(""),
+  typedName: z.string().min(1, "Typed name is required"),
+  signatureDataUrl: z
+    .string()
+    .min(1, "Signature is required")
+    .refine((s) => s.startsWith("data:image/"), "Signature must be an image data URL"),
+  timestamp: z.string().datetime({ message: "Timestamp must be an ISO datetime string" }),
+  waiverVersion: z.literal(CURRENT_WAIVER_VERSION),
+  patientId: z.string().min(1).optional(),
+});
+export type ConsentRecord = z.infer<typeof consentRecordSchema>;
+
 export type DrugInteraction = {
   id: string;
   drug1: string;
