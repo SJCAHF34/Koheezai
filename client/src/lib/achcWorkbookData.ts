@@ -20,6 +20,8 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
     services: string[];
     /** Applicable staff roles: PIC, RPh, Tech, PSL. */
     staff: string[];
+    /** Source document hyperlink from the AHF–ACHC crosswalk (omitted when the source cell had no link). */
+    ahfPolicyUrl?: string;
   }
 
   export interface InterviewQA {
@@ -119,6 +121,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Board of Directors Meeting Minutes · Interview · Observation",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EWBduTGb_6lJjd-36iYiOkoBe8cLdpR4SsDDK1WKfJDs0g?e=F5Yf5P",
         },
       {
           id: "s1-3",
@@ -131,6 +134,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Interview",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ET11apa2xixBmZ--9SnXX2sBLVhfl4O4O7_e3j-KRYCLEg?e=6ba0HX",
         },
       {
           id: "s1-4",
@@ -155,6 +159,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Org Chart · Interview",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://www.ahfconnect.org/sites/pharmacy/documents/preview/16466/-11-Org-Chart-1-2025",
         },
       {
           id: "s1-6",
@@ -167,6 +172,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Posted Permit (on-site) · Observation · Personnel files · Patient Records",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/Ee57fEykK_ZEmoSkMSUE4YEBJYO76_nfB9lVXF9Qnu8zkg?e=XuERlP",
         },
       {
           id: "s1-7",
@@ -191,6 +197,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Observation · Interview",
           services: ["SRX","HME"],
           staff: ["PIC","RPh","Tech"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ET11apa2xixBmZ--9SnXX2sBLVhfl4O4O7_e3j-KRYCLEg?e=Vf9rAQ",
         },
       {
           id: "s1-9",
@@ -247,6 +254,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Welcome Booklet · Patient Records · Observation",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EfDhvD27lxBBtc3xUVfnHJYByajYWrJ3JpLc5La0Z7HCNQ?e=S6Urj9",
         },
       {
           id: "s2-2",
@@ -259,6 +267,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records · Observation",
           services: ["SRX","MORX"],
           staff: [],
+          ahfPolicyUrl: "https://www.ahfconnect.org/sites/pharmacy/documents/preview/18571/-5-I-B-II-4-Welcome",
         },
       {
           id: "s2-3",
@@ -271,6 +280,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patietient Records · Welcome Booklet · Interview",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech"],
+          ahfPolicyUrl: "https://www.ahfconnect.org/sites/pharmacy/documents/preview/18571/-5-I-B-II-4-Welcome",
         },
       {
           id: "s2-4",
@@ -283,6 +293,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records",
           services: ["SRX"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ETtufLF7okNLs81U7X-SAZYBACZoL5Jij3iCHdxaTo6pxg?e=LP3JF3",
         },
       {
           id: "s2-5",
@@ -331,6 +342,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Records (RL Datix?) · Interview",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EaQh1H4ngftOp_6381uQ_44Bsa9JO1cNZ6nwaWiWfcd9Rw?e=WcQP73",
         },
       {
           id: "s2-9",
@@ -343,6 +355,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Complaint Log (RL Datix?) · Interview",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EcQDEp0CiUdAmomS0vVyYbYBpZtYguzEyXcsh0VCZtLZxQ?e=QWigRg",
         },
       {
           id: "s2-10",
@@ -355,6 +368,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Complaint Log (RL Datix?) · Interview",
           services: ["SRX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EVn3nj2ZL39LvtZfqFU5J-IBBsz1UXb0Q_U2SNGF_vd5uQ?e=9moqlV",
         },
       {
           id: "s2-11",
@@ -367,6 +381,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records · Welcome Booklet",
           services: ["HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ETtufLF7okNLs81U7X-SAZYBACZoL5Jij3iCHdxaTo6pxg?e=LP3JF3",
         },
       {
           id: "s2-12",
@@ -379,6 +394,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Signed Agreement · Observation · Interview · Patient Records",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EUCONuNDwDpOn3MBpS1W2GwBchjWq1KP3CfeWdKf-xoq-A?e=xZn3Rs",
         },
       {
           id: "s2-13",
@@ -391,6 +407,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Business Associate Agreement",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ERAcJ9w8ra5CuOe4XQssl3cBeaHucg8a5jh2XwO57CT5sg?e=D9OeAp",
         },
       {
           id: "s2-14",
@@ -403,6 +420,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Meeting Minutes (?) · Interview",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ET11apa2xixBmZ--9SnXX2sBLVhfl4O4O7_e3j-KRYCLEg?e=Vf9rAQ",
         },
       {
           id: "s2-15",
@@ -415,6 +433,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Meeting Minutes (?) · Interview",
           services: ["MORX"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ET11apa2xixBmZ--9SnXX2sBLVhfl4O4O7_e3j-KRYCLEg?e=Yhv1IA",
         },
       {
           id: "s2-16",
@@ -427,6 +446,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ET_lkAc5x4xKkqWrL7A5BjIB-FZLXw5x0atGfWRHaj1cxA?e=3okQ9s",
         },
       {
           id: "s2-17",
@@ -439,6 +459,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EahnHbkrT_pJk3ClOhFLcXUBI1pAQY9izEL3DrPucnqKRQ?e=4X4mFy",
         },
       {
           id: "s2-18",
@@ -451,6 +472,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · PI Activities · Interview",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EcaBmveAQy5Ci9A4ZGciqSgBxeubfkt1XYKVQ6DNblRHoQ?e=aatO8C",
         },
       {
           id: "s2-19",
@@ -463,6 +485,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "On-Call Logs · Posted Hours of Operations",
           services: ["HME"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EdhQ7T0NFYNPnAcsOaZ5JeYBLKAt-9Z5eCvF0hlxWJXLYQ?e=mKkHO6",
         },
       {
           id: "s2-20",
@@ -475,6 +498,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Interview · Observation · Welcome Booklet",
           services: ["SRX","MORX"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ETHuuRDUshtFuPuN7d4klo0BXD8dyG9oPHb1AWX31bedzw?e=JPVZYb",
         },
       ],
     },
@@ -555,6 +579,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Observation",
           services: ["SRX","HME"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/Ef19FUdGATBImRSwvZG3IJcBjjnLCfatofqLUgl9JLnaeQ?e=rAbMfe",
         },
       {
           id: "s3-7",
@@ -567,6 +592,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records · Interview · Observation",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EWIJsj3-bpxFhPuq-6EJyfwBnj_cc2YFNUtceKZDw4PtlA?e=3kAaaJ",
         },
       ],
     },
@@ -587,6 +613,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Personnel Files · Observation",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EcSd0E3vV4VAqQ4YwH_2UwoBfcSGqVT24IMSOXJzfG_dcw?e=wRcve4",
         },
       {
           id: "s4-2",
@@ -611,6 +638,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Personnel Files",
           services: ["SRX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EQ2y-lpIANdJoXPsRIgcxPYBxxOXyI8UiUPIbnLqRWZsSg?e=nCCxqF",
         },
       {
           id: "s4-4",
@@ -623,6 +651,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Personnel Files",
           services: ["SRX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ETQAPHiEMeFErc4SYHxvsisBhcL2HGKHZKCK909CDkU7Xg?e=7I3RnG",
         },
       {
           id: "s4-5",
@@ -635,6 +664,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Job Description · Interview · Personnel Files",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EcSd0E3vV4VAqQ4YwH_2UwoBfcSGqVT24IMSOXJzfG_dcw?e=wRcve4",
         },
       {
           id: "s4-6",
@@ -659,6 +689,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Personnel Files",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EZ8d-akcbU1GlC9BpUdOCgkBKwLRkzPocXmnxY_ukrZu8Q?e=esQMEd",
         },
       {
           id: "s4-8",
@@ -671,6 +702,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Personnel Files · Observation",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EdkYBUCoXgNCnh76Y05TDy4BzLm5PjjvDRbcpWhK_XxtLA?e=8MdGcv",
         },
       {
           id: "s4-9",
@@ -683,6 +715,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Personnel Files · Interview",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ERlIfh3bA5lJppW4eBoZyC8B2Vc7wIe93S68WIGYZ2oNIw?e=IQ33AO",
         },
       {
           id: "s4-10",
@@ -695,6 +728,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Personnel Files",
           services: ["SRX","MORX"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EXUkeDdn92JKpM-AOMw7nAUBzXvUhn4dWx_uDfMC4PVmpw?e=lyhGbg",
         },
       {
           id: "s4-11",
@@ -719,6 +753,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Personnel Files · Interview",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EaOerk8UoMBEjw_7-vuy5zwBFm8ZPyIayIYTC_m0nRitcA?e=yhSmo5",
         },
       {
           id: "s4-13",
@@ -731,6 +766,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Compency Assessment",
           services: ["SRX","MORX","HME"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/Ed8Wn5GaHv9PkOTnY4utG-kByvW8-nSMR_IyGRAi46PCfg?e=jCUgDJ",
         },
       {
           id: "s4-14",
@@ -743,6 +779,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Interview · Training Record",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EfJVDSZchpVLquvqgZQ2xB0Bm6f-I1A8FxezeRIX0XzN3g?e=82CIBr",
         },
       {
           id: "s4-15",
@@ -767,6 +804,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · On-Call Log",
           services: ["SRX","MORX"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EeRxDcRYuVVBs3aeCeIAmqABbtIksDim5b202_PAWewxaA?e=Nr84zW",
         },
       {
           id: "s4-17",
@@ -779,6 +817,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Contract/Agreement · Liablity Insurance",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ERAcJ9w8ra5CuOe4XQssl3cBeaHucg8a5jh2XwO57CT5sg?e=nLkL2K",
         },
       {
           id: "s4-18",
@@ -803,6 +842,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Personnel Files",
           services: ["SRX","MORX"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/Eb1a-2bsVnVAuKHtN9YPdYoBNdUk0s7C2vbeCCb0cqg1vg?e=ZbBavY",
         },
       {
           id: "s4-20",
@@ -859,6 +899,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EX3n8kFFDFVOmn5sFizfBSUBFbX_tNXcpw5tOj4Ae95BWw?e=tegFR2",
         },
       {
           id: "s5-2",
@@ -871,6 +912,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records · Interview",
           services: ["SRX"],
           staff: ["PIC","RPh","Tech"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EbEatI4Q89dNtVc-3HuTWMsBf6eI2zx2_IRlM3eeawFT-w?e=AIWrLf",
         },
       {
           id: "s5-3",
@@ -883,6 +925,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EY7Z8AUbgj9Miif-L6v4AkkBwmi4Wx73slyy-PinTzT5Bw?e=f8xL82",
         },
       {
           id: "s5-4",
@@ -895,6 +938,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EX3n8kFFDFVOmn5sFizfBSUBFbX_tNXcpw5tOj4Ae95BWw?e=j7eZrX",
         },
       {
           id: "s5-5",
@@ -907,6 +951,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records · Observation",
           services: ["SRX"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EWT-2kd6u-BOhVxrnq5_SYEB6iqEJTCSZ15fqaQLINPxUQ?e=67iZS5",
         },
       {
           id: "s5-6",
@@ -919,6 +964,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records · Interview",
           services: ["SRX"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://www.ahfconnect.org/sites/pharmacy/documents/preview/18572/-6-I-B-II-5-Initial",
         },
       {
           id: "s5-7",
@@ -931,6 +977,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records · Interview",
           services: ["MORX"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EWT-2kd6u-BOhVxrnq5_SYEB6iqEJTCSZ15fqaQLINPxUQ?e=67iZS5",
         },
       {
           id: "s5-8",
@@ -943,6 +990,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records · Observation",
           services: ["HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EWT-2kd6u-BOhVxrnq5_SYEB6iqEJTCSZ15fqaQLINPxUQ?e=67iZS5",
         },
       {
           id: "s5-9",
@@ -967,6 +1015,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Patient Records · Interview",
           services: ["SRX"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EdaNrd9Vr99Hth9KEngJ9tEBzH8whE0LH3o86756Mh96xg?e=LYzDzt",
         },
       {
           id: "s5-11",
@@ -979,6 +1028,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Recordsx · Interview · Patient Records",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EQoVhm-1HrtDldpXyEEf_q4BvAe7QA1boNhdZ4PpvrPxNA?e=3G1g1t",
         },
       {
           id: "s5-12",
@@ -991,6 +1041,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records · Observation",
           services: ["SRX"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EQoVhm-1HrtDldpXyEEf_q4BvAe7QA1boNhdZ4PpvrPxNA?e=gGtxog",
         },
       {
           id: "s5-13",
@@ -1063,6 +1114,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation · Interview",
           services: ["SRX","MORX"],
           staff: ["PIC","RPh","Tech"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EWYvsLjhxbdKpdPVNdSJOfQB3Fw4ljVz5fZMRQf6oXoWJA?e=V8vso6",
         },
       {
           id: "s5-19",
@@ -1087,6 +1139,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records",
           services: ["SRX","MORX","HME"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ESIxLboKuxNJlTDDr-mrt3gBIwmP6x0AHdDWyUj_muzheA?e=ciQqIo",
         },
       {
           id: "s5-21",
@@ -1099,6 +1152,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation",
           services: ["SRX","MORX"],
           staff: ["PIC","RPh","Tech"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/Ed5_1RMrZpNPihdh2MZP6nQBJu5CRG4gtiSoA8wwo9JWZA?e=8VcP6C",
         },
       ],
     },
@@ -1119,6 +1173,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · PI Plan · Observation",
           services: ["SRX","MORX","HME"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EV6oMBaIuJlAgwyr9EVitrIBybtqwgwt0W0DE0E6RxJUgA?e=b0xMKz",
         },
       {
           id: "s6-2",
@@ -1131,6 +1186,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Job Description",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EXu_1iBfjb1JqGpWYcxY_dUBm5i9pA82E0nRO1bsh8vHbg?e=T7hIOV",
         },
       {
           id: "s6-3",
@@ -1263,6 +1319,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · PI Plan · Incident/Variance Report",
           services: ["SRX","MORX","HME"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EfWQrNJf_K1OqKgYQ66Z-1kB3JAWopb_dF6fnJoMPLygbA?e=4hSfVb",
         },
       {
           id: "s6-14",
@@ -1331,6 +1388,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation · Interview · Patient Records · Infection Control Tracking Log · (AHF Connect) · PI Report",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ES6jeklp0h9KppeXhktjvNcBxC50IqstmMN1R-EHVm49WQ?e=o31lt9",
         },
       {
           id: "s7-2",
@@ -1343,6 +1401,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation · Interview",
           services: ["SRX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EZaGGy3ogwtHvmuJehNNhSgBnUJFpZprN3WJwN-fgvq5bA?e=fakZM1",
         },
       {
           id: "s7-3",
@@ -1355,6 +1414,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation · Interview",
           services: ["SRX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ETtufLF7okNLs81U7X-SAZYBACZoL5Jij3iCHdxaTo6pxg?e=LZShMc",
         },
       {
           id: "s7-4",
@@ -1379,6 +1439,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Drill Log · Observation · Patient Records · Interviews",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EVWOOxGy4VlNtg7Wy9Pivl4BNTJ1TUOg2TiJQoriWY6Gug?e=2pQTj6",
         },
       {
           id: "s7-6",
@@ -1391,6 +1452,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Patient Education Material · Patient Records",
           services: ["SRX","HME"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ETtufLF7okNLs81U7X-SAZYBACZoL5Jij3iCHdxaTo6pxg?e=LP3JF3",
         },
       {
           id: "s7-7",
@@ -1403,6 +1465,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation",
           services: ["SRX","MORX","HME"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EavxEmN7q7ZCrbYuABHR2fQBQSaSOnBIDB3exYVJnwxvGA?e=HfjzBV",
         },
       {
           id: "s7-8",
@@ -1415,6 +1478,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation · Patient Records",
           services: ["SRX","MORX","HME"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ER_Y3oucpv5JqmO_cx6sdhoB1IOm8Hq-T5sTMyeW8CziYg?e=F3GeoB",
         },
       {
           id: "s7-9",
@@ -1427,6 +1491,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation",
           services: ["SRX","HME"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/Edh7hmEg5aJAkBy3RKG-egUBDsqfHTjWG_W8Kp9gzuIqFA?e=q7dYfp",
         },
       {
           id: "s7-10",
@@ -1439,6 +1504,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation · Patient Records · Interview",
           services: ["SRX","MORX"],
           staff: ["PIC","RPh","Tech"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EaYL-71hcz5BhwB4VMOLBakBUmp5IGjfYj3b7_m3Ma21iw?e=serTuX",
         },
       {
           id: "s7-11",
@@ -1451,6 +1517,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation",
           services: ["SRX","MORX"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EfhKEIQiul1FgJ9uCYJvLBEBDCPbfNso96KhQBqnb_QGTw?e=Khpadj",
         },
       {
           id: "s7-12",
@@ -1475,6 +1542,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation · Interview · Temperature/Cleaning Log",
           services: [],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EUIDKF_WC85GvKe5_ef1DagBtsHMu3dKMAJ3QyhIh9Cqkw?e=xQWztj",
         },
       {
           id: "s7-14",
@@ -1487,6 +1555,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Observation · Shipping Records · Interview",
           services: ["SRX","MORX"],
           staff: ["PIC","RPh","Tech"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EZimKFN3-ZlOpcJ2xF4EUIYBT5mUleEaiWD96Yf8GY6S9A?e=0X8CVe",
         },
       {
           id: "s7-15",
@@ -1523,6 +1592,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Incident Report · Interview · PI Reports",
           services: ["SRX","MORX","HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EQFouT4A0lJFmLVzlPLUA-YB6LAYTZftNAzNYFL32k6z9w?e=MGlnl5",
         },
       {
           id: "s7-18",
@@ -1535,6 +1605,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Maintenance Log · Observation · Interview",
           services: ["SRX"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://www.ahfconnect.org/sites/pharmacy/documents/preview/16474/-8-I-A-II-5-a-Maintenance-Logs",
         },
       {
           id: "s7-19",
@@ -1547,6 +1618,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation · Interview",
           services: ["HME"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://www.ahfconnect.org/sites/pharmacy/documents/preview/16533/-7-I-A-XVI-6-DME",
         },
       {
           id: "s7-20",
@@ -1571,6 +1643,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · MFG Manual/Guideline · Observation · Interview",
           services: ["SRX","MORX"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EXXz-XRPREhEveiA9NzvOREBWxVi62LFQ_9wmm3SSmcgGQ?e=9aeicp",
         },
       {
           id: "s7-22",
@@ -1595,6 +1668,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records",
           services: ["SRX"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EfON5BFej-JEr7biJG1B-MkBHPH1mkEKupsSuXtyiM3TkQ?e=TpqmAc",
         },
       {
           id: "s7-24",
@@ -1607,6 +1681,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation",
           services: ["SRX","MORX"],
           staff: [],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EeArn27UE2NCqa8TKHHpXhIB01nMnUW80KrfLpNiMYydHw?e=vprkeL",
         },
       {
           id: "s7-25",
@@ -1619,6 +1694,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records · Interview",
           services: ["SRX"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EWYvsLjhxbdKpdPVNdSJOfQB3Fw4ljVz5fZMRQf6oXoWJA?e=ymuvmG",
         },
       ],
     },
@@ -1651,6 +1727,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Personnel Files · Interview",
           services: ["HIV"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ERaTcUAbiN9OsvtCyF0MPwsBQIwdnYPBIyPtAMUbZYv6rQ?e=3p7VuT",
         },
       {
           id: "s12-3",
@@ -1663,6 +1740,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records",
           services: ["HIV"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EVeki37O_sxMkzKpNRSQs-EBdNyyNiriRJloH1WDYg-vvA?e=Giklr6",
         },
       {
           id: "s12-4",
@@ -1675,6 +1753,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "Patient Records",
           services: ["HIV"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ETtufLF7okNLs81U7X-SAZYBACZoL5Jij3iCHdxaTo6pxg?e=LP3JF3",
         },
       {
           id: "s12-5",
@@ -1699,6 +1778,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records · Observation",
           services: ["HIV"],
           staff: ["PIC","RPh","Tech"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EaytGPzq7gVJroHjZyo44GcB8ucisOZIKMr26M8QbDPpqQ?e=13xds0",
         },
       {
           id: "s12-7",
@@ -1735,6 +1815,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Med Error Reports (RL Datix)",
           services: ["HIV"],
           staff: ["PIC","RPh","Tech","PSL"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/EfWQrNJf_K1OqKgYQ66Z-1kB3JAWopb_dF6fnJoMPLygbA?e=4hSfVb",
         },
       {
           id: "s12-10",
@@ -1747,6 +1828,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Patient Records",
           services: ["HIV"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/Ebqup945x51PkAj34UkB6MEBEcPGqv4rLX_a8rEt_dDoRA?e=OCoFNc",
         },
       {
           id: "s12-11",
@@ -1759,6 +1841,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Personnel Files",
           services: ["HIV"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/ERZt5ozilLZCiU0exIZ7SxoByXEUPqtxEMZMGvLia9U8tA?e=l1tcyK",
         },
       {
           id: "s12-12",
@@ -1771,6 +1854,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation",
           services: ["HIV"],
           staff: ["PIC","RPh"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/Ed5_1RMrZpNPihdh2MZP6nQBJu5CRG4gtiSoA8wwo9JWZA?e=8VcP6C",
         },
       {
           id: "s12-13",
@@ -1783,6 +1867,7 @@ export type ItemStatus = "complete" | "in_progress" | "gap" | "na" | "";
           methods: "P&P · Observation · Personnel Files",
           services: ["HIV"],
           staff: ["PIC"],
+          ahfPolicyUrl: "https://aidshealth-my.sharepoint.com/:w:/g/personal/jennifer_yeon_aidshealth_org/Edh7hmEg5aJAkBy3RKG-egUBDsqfHTjWG_W8Kp9gzuIqFA?e=vtYW3a",
         },
       ],
     },

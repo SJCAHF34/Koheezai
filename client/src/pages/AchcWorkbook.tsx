@@ -1011,11 +1011,28 @@ function ItemRow({
         {(item.ahfPolicy || item.ahfPolicyTitle) && (
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">AHF Policy Reference</p>
-            <p className="text-xs text-foreground leading-relaxed" data-testid={`workbook-item-policy-${item.id}`}>
-              {item.ahfPolicy && <span className="font-mono font-medium">{item.ahfPolicy}</span>}
-              {item.ahfPolicy && item.ahfPolicyTitle && " — "}
-              {item.ahfPolicyTitle}
-            </p>
+            {item.ahfPolicyUrl ? (
+              <a
+                href={item.ahfPolicyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary leading-relaxed hover:underline"
+                data-testid={`workbook-item-policy-link-${item.id}`}
+              >
+                <span>
+                  {item.ahfPolicy && <span className="font-mono font-medium">{item.ahfPolicy}</span>}
+                  {item.ahfPolicy && item.ahfPolicyTitle && " — "}
+                  {item.ahfPolicyTitle}
+                </span>
+                <ExternalLink className="w-3 h-3 shrink-0" />
+              </a>
+            ) : (
+              <p className="text-xs text-foreground leading-relaxed" data-testid={`workbook-item-policy-${item.id}`}>
+                {item.ahfPolicy && <span className="font-mono font-medium">{item.ahfPolicy}</span>}
+                {item.ahfPolicy && item.ahfPolicyTitle && " — "}
+                {item.ahfPolicyTitle}
+              </p>
+            )}
           </div>
         )}
 
