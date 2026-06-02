@@ -166,6 +166,30 @@ function buildEmptyRecord(siteId: string, quarter: string): WorkbookRecord {
   };
 }
 
+// Merge the current ACHC_WORKBOOK_SECTIONS structure into a stored record,
+// preserving any saved status/notes by itemId while adding new items/sections
+// and dropping obsolete ones. Needed because the workbook content can be rebuilt
+// (new item IDs) while an in-quarter record already exists in localStorage.
+function reconcileRecord(record: WorkbookRecord): WorkbookRecord {
+  const prevSections = new Map(record.sections.map((s) => [s.sectionId, s]));
+  let changed = false;
+  const sections = ACHC_WORKBOOK_SECTIONS.map((sec) => {
+    const prevSec = prevSections.get(sec.id);
+    const prevItems = new Map((prevSec?.items ?? []).map((i) => [i.itemId, i]));
+    const items = sec.items.map((item) => {
+      const prev = prevItems.get(item.id);
+      if (prev) return prev;
+      changed = true;
+      return { itemId: item.id, status: "" as WorkbookItemStatus, notes: "" };
+    });
+    if (!prevSec || prevSec.items.length !== items.length) changed = true;
+    return { sectionId: sec.id, items, sectionNotes: prevSec?.sectionNotes ?? "" };
+  });
+  if (record.sections.length !== sections.length) changed = true;
+  if (!changed) return record;
+  return { ...record, sections };
+}
+
 function getSectionResponse(record: WorkbookRecord, sectionId: string): WorkbookSectionResponse {
   return (
     record.sections.find((s) => s.sectionId === sectionId) ?? {
@@ -888,9 +912,11 @@ function DocumentSection({
       )}
 
       {/* Evidence hint */}
-      <p className="text-xs text-muted-foreground leading-relaxed mt-1" data-testid={`workbook-item-evidence-${itemId}`}>
-        <span className="font-medium">Hint:</span> {evidenceHint}
-      </p>
+      {evidenceHint && (
+        <p className="text-xs text-muted-foreground leading-relaxed mt-1" data-testid={`workbook-item-evidence-${itemId}`}>
+          <span className="font-medium">Hint:</span> {evidenceHint}
+        </p>
+      )}
     </div>
   );
 }
@@ -937,12 +963,26 @@ function ItemRow({
     >
       {/* Item header row */}
       <div className="px-4 py-3 flex flex-wrap items-start gap-3">
-        <span className="text-xs font-mono font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded shrink-0 mt-0.5" data-testid={`workbook-item-standard-${item.id}`}>
-          {item.standard}
-        </span>
-        <span className="text-sm text-foreground flex-1 min-w-0 leading-snug" data-testid={`workbook-item-req-${item.id}`}>
-          {item.requirement}
-        </span>
+        {item.standard && (
+          <span className="text-xs font-mono font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded shrink-0 mt-0.5" data-testid={`workbook-item-standard-${item.id}`}>
+            {item.standard}
+          </span>
+        )}
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <span className="block text-sm text-foreground leading-snug" data-testid={`workbook-item-req-${item.id}`}>
+            {item.requirement}
+          </span>
+          {(item.services.length > 0 || item.staff.length > 0) && (
+            <div className="flex flex-wrap items-center gap-1" data-testid={`workbook-item-tags-${item.id}`}>
+              {item.services.map((s) => (
+                <Badge key={`svc-${s}`} variant="secondary" className="text-[10px]" data-testid={`badge-service-${item.id}-${s}`}>{s}</Badge>
+              ))}
+              {item.staff.map((s) => (
+                <Badge key={`staff-${s}`} variant="outline" className="text-[10px]" data-testid={`badge-staff-${item.id}-${s}`}>{s}</Badge>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="shrink-0">
           {isEditable ? (
             <Select
@@ -968,10 +1008,30 @@ function ItemRow({
 
       {/* Item detail rows */}
       <div className="border-t bg-muted/20 px-4 py-3 space-y-2.5">
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">AHF Required Action</p>
-          <p className="text-xs text-foreground leading-relaxed" data-testid={`workbook-item-action-${item.id}`}>{item.ahfAction}</p>
-        </div>
+        {(item.ahfPolicy || item.ahfPolicyTitle) && (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">AHF Policy Reference</p>
+            <p className="text-xs text-foreground leading-relaxed" data-testid={`workbook-item-policy-${item.id}`}>
+              {item.ahfPolicy && <span className="font-mono font-medium">{item.ahfPolicy}</span>}
+              {item.ahfPolicy && item.ahfPolicyTitle && " — "}
+              {item.ahfPolicyTitle}
+            </p>
+          </div>
+        )}
+
+        {item.ahfAction && (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">AHF Required Action</p>
+            <p className="text-xs text-foreground leading-relaxed" data-testid={`workbook-item-action-${item.id}`}>{item.ahfAction}</p>
+          </div>
+        )}
+
+        {item.methods && (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Survey Evidence Methods</p>
+            <p className="text-xs text-muted-foreground leading-relaxed" data-testid={`workbook-item-methods-${item.id}`}>{item.methods}</p>
+          </div>
+        )}
 
         {/* Document vault */}
         <div>
@@ -1075,7 +1135,7 @@ export default function AchcWorkbook() {
   useEffect(() => {
     if (!activeSiteId) return;
     const existing = loadWorkbook(activeSiteId, quarter);
-    setRecord(existing ?? buildEmptyRecord(activeSiteId, quarter));
+    setRecord(existing ? reconcileRecord(existing) : buildEmptyRecord(activeSiteId, quarter));
   }, [activeSiteId, quarter]);
 
   // Load doc vault on mount (foundation docs are global; store docs are per-site)
