@@ -239,6 +239,20 @@ export default function QaAuditWorkbook() {
   }, [responses]);
   // Serialize evidence auto-saves so an older PUT can't overwrite a newer one.
   const evidenceSaveChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  // Monotonic edit counter so a completing save only clears the dirty flag when
+  // no newer edits have landed since that save was kicked off.
+  const changeSeqRef = useRef(0);
+  // The edit version most recently handed to a save, so the debounce won't queue
+  // a redundant PUT for edits already being saved (e.g. after an evidence upload
+  // that saves immediately).
+  const lastQueuedSeqRef = useRef(-1);
+  // Tracks the currently-loaded workbook (site/year) so a debounced auto-save
+  // scheduled before a site/year switch is dropped instead of writing the wrong
+  // workbook.
+  const wbKeyRef = useRef(wbKey);
+  useEffect(() => {
+    wbKeyRef.current = wbKey;
+  }, [wbKey]);
 
   useEffect(() => {
     if (!selectedSiteId) {
@@ -298,10 +312,12 @@ export default function QaAuditWorkbook() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [wbKey] });
+      // Don't invalidate the per-workbook query here — a refetch would run the
+      // load effect and could overwrite edits the user made while this save was
+      // in flight. Local `responses` is the source of truth while editing; the
+      // dirty flag is cleared version-aware in performSave(). Only refresh the
+      // roll-up summary, which does not feed the editable responses.
       queryClient.invalidateQueries({ queryKey: [`/api/qa-audit/workbooks?year=${year}`] });
-      setDirty(false);
-      toast({ title: "Saved", description: "Audit responses saved." });
     },
     onError: (e: any) => {
       toast({ title: "Save failed", description: e?.message ?? "Try again.", variant: "destructive" });
@@ -321,6 +337,69 @@ export default function QaAuditWorkbook() {
     },
   });
 
+  // Mark a local edit: bump the change counter and flag unsaved state.
+  function markDirty() {
+    changeSeqRef.current += 1;
+    setDirty(true);
+  }
+
+  // Serialized, version-aware save. Runs through evidenceSaveChainRef so saves
+  // never clobber each other, and clears the dirty flag only if no further edits
+  // landed while the request was in flight — so edits made during an in-flight
+  // save are never silently dropped and Submit stays disabled until the latest
+  // edits are actually persisted.
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function performSave() {
+    // Cancel any pending debounced save so an explicit/queued save can't be
+    // followed by a redundant second PUT for the same edits.
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+    // Snapshot the payload, edit version, and workbook key at enqueue time so a
+    // save queued behind an in-flight one can't pick up another workbook's
+    // responses (or write to the wrong endpoint) after a site/year switch.
+    const seq = changeSeqRef.current;
+    lastQueuedSeqRef.current = seq;
+    const scheduledWbKey = wbKey;
+    const payload = responsesRef.current;
+    evidenceSaveChainRef.current = evidenceSaveChainRef.current
+      .catch(() => undefined)
+      .then(() => {
+        if (wbKeyRef.current !== scheduledWbKey) return undefined;
+        return saveMutation.mutateAsync(payload);
+      })
+      .then(() => {
+        if (wbKeyRef.current === scheduledWbKey && changeSeqRef.current === seq) {
+          setDirty(false);
+        }
+      })
+      .catch(() => undefined);
+    return evidenceSaveChainRef.current;
+  }
+
+  // Auto-save notes and Pass/Fail/N/A changes (debounced) so nothing is lost if
+  // the user refreshes or navigates away without clicking Save. Evidence uploads
+  // already auto-save; this brings notes/status to parity.
+  useEffect(() => {
+    if (readOnly || !dirty) return;
+    // Skip when the current edit version is already being saved (e.g. an evidence
+    // upload that saved immediately) to avoid a redundant second PUT.
+    if (lastQueuedSeqRef.current === changeSeqRef.current) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    const scheduledWbKey = wbKey;
+    autoSaveTimerRef.current = setTimeout(() => {
+      // Drop the save if the user switched site/year before it fired — otherwise
+      // we'd persist edits against the wrong workbook.
+      if (wbKeyRef.current !== scheduledWbKey) return;
+      performSave();
+    }, 1000);
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, responses, readOnly, wbKey]);
+
   function updateResponse(itemId: string, patch: Partial<QaAuditItemResponse>) {
     if (readOnly) return;
     const next = responsesRef.current.map((r) =>
@@ -337,7 +416,7 @@ export default function QaAuditWorkbook() {
     );
     responsesRef.current = next;
     setResponses(next);
-    setDirty(true);
+    markDirty();
   }
 
   async function handleUpload(itemId: string, file: File) {
@@ -359,12 +438,9 @@ export default function QaAuditWorkbook() {
       );
       responsesRef.current = nextResponses;
       setResponses(nextResponses);
-      setDirty(true);
+      markDirty();
       toast({ title: "Uploaded", description: file.name });
-      evidenceSaveChainRef.current = evidenceSaveChainRef.current
-        .catch(() => undefined)
-        .then(() => saveMutation.mutateAsync(nextResponses).catch(() => undefined));
-      await evidenceSaveChainRef.current;
+      await performSave();
     } catch (e: any) {
       toast({ title: "Upload failed", description: e?.message ?? "Try again.", variant: "destructive" });
     }
@@ -379,11 +455,8 @@ export default function QaAuditWorkbook() {
     );
     responsesRef.current = nextResponses;
     setResponses(nextResponses);
-    setDirty(true);
-    evidenceSaveChainRef.current = evidenceSaveChainRef.current
-      .catch(() => undefined)
-      .then(() => saveMutation.mutateAsync(nextResponses).catch(() => undefined));
-    await evidenceSaveChainRef.current;
+    markDirty();
+    await performSave();
   }
 
   // Server-persisted handoff: notifies the site's PD(s) with a deep link to the
@@ -911,15 +984,17 @@ export default function QaAuditWorkbook() {
               ? submitted
                 ? "This audit has been submitted and is locked."
                 : "You do not have permission to edit this site's audit."
-              : dirty
-                ? "Unsaved changes."
-                : "All changes saved."}
+              : saveMutation.isPending
+                ? "Saving…"
+                : dirty
+                  ? "Saving changes…"
+                  : "All changes saved."}
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
               disabled={readOnly || !dirty || saveMutation.isPending}
-              onClick={() => saveMutation.mutate(responses)}
+              onClick={() => performSave()}
               data-testid="button-qa-save"
             >
               <Upload className="w-4 h-4 mr-2" />
