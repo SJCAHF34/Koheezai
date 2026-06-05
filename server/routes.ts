@@ -138,6 +138,8 @@ const DEMO_USERS = [
   { email: "tamara.applewhite@aidshealth.org",      password: "AHF1", name: "Tamara Applewhite" },
   { email: "fareed.choudhry@aidshealth.org",        password: "AHF1", name: "Fareed Choudhry" },
   { email: "lawrence.goldstein@aidshealth.org",     password: "AHF1", name: "Lawrence Goldstein" },
+  // ── RX Downtown (1402) — Western ────────────────────────────────────────────
+  { email: "albert.chen@aidshealth.org",            password: "AHF1", name: "Albert Chen" },
 ];
 
 const inMemoryUsers: Array<{ email: string; password: string; name: string }> = [];

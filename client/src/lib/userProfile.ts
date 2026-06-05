@@ -152,6 +152,15 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     region: "Western Region",
   },
 
+  // ── RX Downtown (1402) — Western ────────────────────────────────────────────
+  "albert.chen@aidshealth.org": {
+    name: "Albert Chen",
+    role: "pharmacy_director",
+    siteId: "1402",
+    siteName: "RX Downtown",
+    region: "Western Region",
+  },
+
   // ── RX Hollywood Flagship (1410) — Western ──────────────────────────────────
   "jrockwoodpharmd@gmail.com": {
     name: "Jason Rockwood",
