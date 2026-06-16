@@ -4631,50 +4631,57 @@ export default function TaskManager() {
                 {displaySiteName} · {today}
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="flex items-center justify-end gap-1.5 mb-1.5">
-                  <span className="text-sm font-bold text-slate-800">{overallPct}%</span>
-                  <span className="text-xs text-slate-400">overall</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-32 h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        overallPct === 100 ? "bg-green-500" : "bg-purple-500"
-                      }`}
-                      style={{ width: `${overallPct}%` }}
-                    />
+            {/* Overall completion percentage — Regional/CPO only */}
+            {isRegionalOrAbove(profile.role) && (
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className="flex items-center justify-end gap-1.5 mb-1.5">
+                    <span className="text-sm font-bold text-slate-800">{overallPct}%</span>
+                    <span className="text-xs text-slate-400">overall</span>
                   </div>
-                  <span className="text-xs text-slate-400">
-                    {doneTasks}/{totalTasks}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-32 h-2 rounded-full bg-slate-100 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          overallPct === 100 ? "bg-green-500" : "bg-purple-500"
+                        }`}
+                        style={{ width: `${overallPct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-slate-400">
+                      {doneTasks}/{totalTasks}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Category performance mini-cards — clickable to expand drill-down */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
-            {PERF_CAT_ORDER.map((cat) => (
-              <CategoryMiniCard
-                key={cat}
-                cat={cat}
-                trend7d={perfTrendLive}
-                onClick={() => setExpandedCat(expandedCat === cat ? null : cat)}
-                isExpanded={expandedCat === cat}
-              />
-            ))}
-          </div>
+          {/* Category performance mini-cards — Regional/CPO only; clickable to expand drill-down */}
+          {isRegionalOrAbove(profile.role) && (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
+                {PERF_CAT_ORDER.map((cat) => (
+                  <CategoryMiniCard
+                    key={cat}
+                    cat={cat}
+                    trend7d={perfTrendLive}
+                    onClick={() => setExpandedCat(expandedCat === cat ? null : cat)}
+                    isExpanded={expandedCat === cat}
+                  />
+                ))}
+              </div>
 
-          {/* Drill-down panel — appears below mini-cards when one is selected */}
-          {expandedCat && (
-            <CategoryDrillDownPanel
-              cat={expandedCat}
-              buildTrend={buildTrendForScope}
-              onClose={() => setExpandedCat(null)}
-              siteId={siteId}
-            />
+              {/* Drill-down panel — appears below mini-cards when one is selected */}
+              {expandedCat && (
+                <CategoryDrillDownPanel
+                  cat={expandedCat}
+                  buildTrend={buildTrendForScope}
+                  onClose={() => setExpandedCat(null)}
+                  siteId={siteId}
+                />
+              )}
+            </>
           )}
 
           {/* ── My Store Dashboard banner — Director/Regional/CPO only ── */}
@@ -4701,15 +4708,17 @@ export default function TaskManager() {
                 </p>
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-bold text-slate-900">{displaySiteName}</p>
-                  <span className={`text-sm font-bold ${
-                    perfTrendLive.overallAvg >= 80
-                      ? "text-green-600"
-                      : perfTrendLive.overallAvg >= 65
-                      ? "text-amber-600"
-                      : "text-red-500"
-                  }`}>
-                    {perfTrendLive.overallAvg}% 7d avg
-                  </span>
+                  {isRegionalOrAbove(profile.role) && (
+                    <span className={`text-sm font-bold ${
+                      perfTrendLive.overallAvg >= 80
+                        ? "text-green-600"
+                        : perfTrendLive.overallAvg >= 65
+                        ? "text-amber-600"
+                        : "text-red-500"
+                    }`}>
+                      {perfTrendLive.overallAvg}% 7d avg
+                    </span>
+                  )}
                 </div>
               </div>
               <span className="text-sm font-semibold text-purple-600 group-hover:text-purple-800 whitespace-nowrap flex items-center gap-1 transition-colors">
