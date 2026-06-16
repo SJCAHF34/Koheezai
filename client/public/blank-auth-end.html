@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign-in</title>
+    <script src="https://res.cdn.office.net/teams-js/2.24.0/js/MicrosoftTeams.min.js"></script>
+  </head>
+  <body>
+    <script>
+      // Silent-auth landing page used by the Teams SSO flow. It simply hands the
+      // current URL hash back to the host so the token can be picked up.
+      microsoftTeams.app.initialize().then(function () {
+        microsoftTeams.authentication.notifySuccess(window.location.hash.substring(1) || "ok");
+      });
+    </script>
+  </body>
+</html>

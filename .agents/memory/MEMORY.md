@@ -1,0 +1,1 @@
+- [CSP frame-ancestors vs Replit preview](csp-frame-ancestors-dev.md) — gate Teams-embedding CSP to production only, or the Replit dev preview iframe is blocked.

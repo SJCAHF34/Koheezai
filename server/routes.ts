@@ -24,7 +24,14 @@ import {
   getRPDsByRegion,
   getCPOs,
   getDirectorsByStore,
+  isKnownUser,
 } from "../client/src/lib/userProfile";
+import {
+  verifyTeamsSsoToken,
+  getTeamsSsoConfig,
+  isTeamsSsoConfigured,
+  TeamsSsoError,
+} from "./lib/teamsAuth";
 import { findStoreRegion, ALL_STORES } from "../client/src/lib/storeDirectory";
 import {
   upsertPharmacyHoursSchema,
@@ -436,14 +443,96 @@ ${audienceHtml}
     return res.json({ ok: true });
   });
 
+  // ── Microsoft Teams SSO ────────────────────────────────────────────────────
+  // Non-secret config the Teams frontend needs to request an Entra token.
+  app.get("/api/teams-config", (_req, res) => {
+    const cfg = getTeamsSsoConfig();
+    return res.json({
+      enabled: cfg !== null,
+      clientId: cfg?.clientId ?? null,
+      resource: cfg?.resource ?? null,
+    });
+  });
+
+  // Exchange a validated Entra access token for an app session. Identity is the
+  // user's AHF work email, reused against the same PROFILE_MAP as browser login.
+  app.post("/api/auth/teams-sso-login", async (req, res) => {
+    if (!isTeamsSsoConfigured()) {
+      return res.status(503).json({ error: "Microsoft Teams SSO is not configured" });
+    }
+    const { token } = req.body as { token?: string };
+    if (!token) {
+      return res.status(400).json({ error: "Missing token" });
+    }
+    try {
+      const { email, name } = await verifyTeamsSsoToken(token);
+      // Only provisioned AHF users may sign in via Teams.
+      if (!isKnownUser(email)) {
+        return res.status(403).json({ error: "Your account is not provisioned for Koheez.ai" });
+      }
+      req.session.userId = email;
+      req.session.user = { email, name };
+      await recordAccess(req, "auth.teams-sso-login", "session");
+      return res.json({ user: req.session.user });
+    } catch (err) {
+      if (err instanceof TeamsSsoError) {
+        return res.status(401).json({ error: err.message });
+      }
+      return res.status(500).json({ error: "Teams sign-in failed" });
+    }
+  });
+
+  // ── HIPAA access audit helper ──────────────────────────────────────────────
+  // Records WHO did WHAT and WHEN against PHI-bearing endpoints. The entry never
+  // contains PHI itself — `resource` holds only non-PHI identifiers.
+  async function recordAccess(req: any, action: string, resource: string) {
+    try {
+      const email = (req.session?.userId as string) ?? "anonymous";
+      const name = req.session?.user?.name ?? "";
+      const role = getUserProfile(email, name).role;
+      await storage.addAuditLog({
+        at: new Date().toISOString(),
+        actorEmail: email,
+        actorName: name,
+        role,
+        action,
+        resource,
+        method: req.method,
+        path: req.path,
+      });
+    } catch (err) {
+      console.warn("[audit-log] failed to record access:", err);
+    }
+  }
+
+  // CPO-only view of the HIPAA access audit log.
+  app.get("/api/audit-log", async (req, res) => {
+    if (!req.session?.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    const email = req.session.userId as string;
+    const name = req.session.user?.name ?? "";
+    const profile = getUserProfile(email, name);
+    if (!isCPO(profile.role)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const limit = Math.min(Number(req.query.limit) || 500, 2000);
+    const entries = await storage.listAuditLogs(limit);
+    return res.json(entries);
+  });
+
   // ── Assessment route ──────────────────────────────────────────────────────
-  app.post("/api/assessment", async (req, res) => {
+  // Requires auth: this endpoint processes patient clinical inputs (PHI), so a
+  // real authenticated actor must be attributable in the access audit log.
+  app.post("/api/assessment", requireAuth, async (req, res) => {
     try {
       const data = assessmentRequestSchema.parse(req.body);
 
       if (data.selectedDrugs.length === 0) {
         return res.status(400).json({ error: "At least one HIV medication must be selected" });
       }
+
+      await recordAccess(req, "assessment.generate", "assessment");
 
       const localInteractions = checkDrugInteractions(data.selectedDrugs, data.concomitantMeds);
 
@@ -683,6 +772,7 @@ ${audienceHtml}
       const sessionEmail = req.session.userId as string;
       const sessionName = req.session.user?.name ?? "";
       const sessionProfile = getUserProfile(sessionEmail, sessionName);
+      await recordAccess(req, "note.generate", "note");
       const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
       const prompt = `You are an expert HIV clinical pharmacist. Generate a comprehensive pharmacy consultation note for medical record documentation.
@@ -906,6 +996,7 @@ FORMATTING RULES (strict):
   app.get("/api/retention/patients/:siteId", requireAuth, async (req, res) => {
     try {
       const patients = await storage.getPatients(req.params.siteId);
+      await recordAccess(req, "patient.read", req.params.siteId);
       return res.json(patients);
     } catch (err) {
       return res.status(500).json({ message: "Failed to fetch patients" });
@@ -948,6 +1039,7 @@ FORMATTING RULES (strict):
         outreachComplete: body.outreachComplete ?? false,
         retentionReason: body.retentionReason ?? "",
       });
+      await recordAccess(req, "patient.create", patient.id);
       fireSalesforce(patient.phone1, patient.initials, "Patient Added to Retention Tracker",
         `Issue type: ${patient.issueType}`);
       return res.status(201).json(patient);
@@ -964,6 +1056,7 @@ FORMATTING RULES (strict):
       }
       const existing = (await storage.getPatients(body.siteId ?? "")).find((p) => p.id === body.id);
       const updated = await storage.updatePatient(body);
+      await recordAccess(req, "patient.update", updated.id);
       if (existing) {
         if (updated.attemptCount > existing.attemptCount) {
           const lastEntry = updated.attemptLog?.[updated.attemptLog.length - 1];
@@ -986,6 +1079,7 @@ FORMATTING RULES (strict):
     try {
       const toDelete = await storage.getPatient(req.params.id);
       await storage.deletePatient(req.params.id);
+      await recordAccess(req, "patient.delete", req.params.id);
       if (toDelete) {
         fireSalesforce(toDelete.phone1, toDelete.initials, "Patient Removed from Tracker",
           `Status was: ${toDelete.status}`);

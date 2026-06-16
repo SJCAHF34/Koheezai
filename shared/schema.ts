@@ -169,6 +169,22 @@ export interface AppNotification {
   read: boolean;
 }
 
+// ── Access audit log (HIPAA) ──────────────────────────────────────────────
+// Records WHO accessed WHAT patient/assessment action and WHEN. The entry
+// itself never contains PHI — `resource` holds only non-PHI identifiers such as
+// a site id or an internal record UUID.
+export interface AuditLogEntry {
+  id: string;
+  at: string; // ISO timestamp
+  actorEmail: string;
+  actorName: string;
+  role: string;
+  action: string; // e.g. "assessment.generate", "patient.read", "patient.update"
+  resource: string; // non-PHI: siteId, record UUID, or "assessment"
+  method: string;
+  path: string;
+}
+
 // ── QA Audit Workbook (yearly) ────────────────────────────────────────────
 
 export const QA_AUDIT_STATUSES = ["pass", "fail", "na", ""] as const;

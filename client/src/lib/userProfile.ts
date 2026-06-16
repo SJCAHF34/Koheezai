@@ -704,6 +704,15 @@ export function getUserProfile(email: string, name: string): UserProfile {
   return { email, name, ...(override ?? DEFAULT_PROFILE) };
 }
 
+/**
+ * True only when the email has an explicit entry in the profile map. Used by
+ * Microsoft Teams SSO to deny sign-in for AHF accounts that are not provisioned
+ * in the app (browser email/password login is unaffected by this).
+ */
+export function isKnownUser(email: string): boolean {
+  return Object.prototype.hasOwnProperty.call(PROFILE_MAP, email.toLowerCase());
+}
+
 export function isDirectorRole(role: UserRole): boolean {
   return (
     role === "pharmacy_director" ||

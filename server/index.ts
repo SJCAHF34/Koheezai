@@ -11,13 +11,49 @@ declare module 'http' {
     rawBody: unknown
   }
 }
+
+const isProduction = process.env.NODE_ENV === "production";
+
+// Behind a TLS-terminating proxy (Aptible / Replit deploys) so that
+// `secure` cookies are emitted based on the forwarded protocol.
+app.set("trust proxy", 1);
+
+// Allow Microsoft Teams host clients to embed the app in their iframe.
+// Adding these frame-ancestors does NOT affect normal browser use — it only
+// declares who is allowed to frame the app (the app itself plus Teams hosts).
+const TEAMS_FRAME_ANCESTORS = [
+  "'self'",
+  "https://teams.microsoft.com",
+  "https://*.teams.microsoft.com",
+  "https://*.teams.microsoft.us",
+  "https://*.skype.com",
+  "https://*.office.com",
+  "https://*.microsoftonline.com",
+  "https://outlook.office.com",
+  "https://outlook.office365.com",
+  "https://*.microsoft365.com",
+].join(" ");
+// Only enforce frame-ancestors in production. In local/Replit dev the app is
+// shown inside the Replit preview iframe, so leave framing unrestricted there.
+if (isProduction) {
+  app.use((_req, res, next) => {
+    res.setHeader("Content-Security-Policy", `frame-ancestors ${TEAMS_FRAME_ANCESTORS};`);
+    next();
+  });
+}
+
 app.use(session({
   secret: process.env.SESSION_SECRET || "koheez-dev-secret",
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: false,
+    // In production the app may be embedded inside the Teams iframe, which is a
+    // cross-site context — the cookie must be SameSite=None and Secure to be
+    // sent. In local dev (http) keep the original Lax/insecure behavior so the
+    // normal browser login keeps working.
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   },
 }));
@@ -34,27 +70,13 @@ app.use(express.text({ type: ["text/csv", "text/plain"], limit: "1mb" }));
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
+      // HIPAA: never log response bodies — assessment/patient endpoints return
+      // PHI. Log only the method, path, status code, and timing.
+      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
     }
   });
 

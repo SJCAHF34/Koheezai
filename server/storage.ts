@@ -8,6 +8,7 @@ import {
   type QaAuditWorkbook,
   type UpsertQaAuditWorkbook,
   type QaAuditTask,
+  type AuditLogEntry,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -24,6 +25,12 @@ interface QaPersistShape {
   evidence: Array<[string, Omit<QaAuditEvidenceFile, "data"> & { dataB64: string }]>;
   tasks: Array<[string, QaAuditTask]>;
 }
+
+// File-backed persistence for the HIPAA access audit log so entries survive
+// process restarts. Kept as a flat JSON array, capped to the most recent
+// AUDIT_LOG_CAP entries to bound file size.
+const AUDIT_PERSIST_PATH = resolve(process.cwd(), ".local", "audit-log-state.json");
+const AUDIT_LOG_CAP = 10000;
 
 export interface QaAuditEvidenceFile {
   id: string;
@@ -126,6 +133,10 @@ export interface IStorage {
   getQaAuditTask(id: string): Promise<QaAuditTask | undefined>;
   completeQaAuditTask(id: string, user: { email: string; name: string }): Promise<QaAuditTask | undefined>;
   setQaAuditResponseTaskId(siteId: string, year: string, itemId: string, taskId: string): Promise<void>;
+
+  // ── Access audit log (HIPAA) ───────────────────────────────────────────
+  addAuditLog(entry: Omit<AuditLogEntry, "id">): Promise<AuditLogEntry>;
+  listAuditLogs(limit?: number): Promise<AuditLogEntry[]>;
 }
 
 function entryKey(siteId: string, staffId: string, date: string) {
@@ -146,6 +157,7 @@ export class MemStorage implements IStorage {
   private qaAuditWorkbooks: Map<string, QaAuditWorkbook>;
   private qaAuditEvidence: Map<string, QaAuditEvidenceFile>;
   private qaAuditTasks: Map<string, QaAuditTask>;
+  private auditLogs: AuditLogEntry[];
 
   constructor() {
     this.users = new Map();
@@ -158,8 +170,47 @@ export class MemStorage implements IStorage {
     this.qaAuditWorkbooks = new Map();
     this.qaAuditEvidence = new Map();
     this.qaAuditTasks = new Map();
+    this.auditLogs = [];
     this.loadQaPersistedState();
+    this.loadAuditPersistedState();
     this.seedSchedulingExamples();
+  }
+
+  // ── Access audit log persistence ─────────────────────────────────────────
+  private loadAuditPersistedState(): void {
+    try {
+      if (!existsSync(AUDIT_PERSIST_PATH)) return;
+      const raw = readFileSync(AUDIT_PERSIST_PATH, "utf-8");
+      const data = JSON.parse(raw);
+      if (Array.isArray(data)) this.auditLogs = data as AuditLogEntry[];
+    } catch (err) {
+      console.warn("[audit-log] failed to load persisted state:", err);
+    }
+  }
+
+  private persistAuditState(): void {
+    try {
+      const dir = dirname(AUDIT_PERSIST_PATH);
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      writeFileSync(AUDIT_PERSIST_PATH, JSON.stringify(this.auditLogs));
+    } catch (err) {
+      console.warn("[audit-log] failed to persist state:", err);
+    }
+  }
+
+  async addAuditLog(entry: Omit<AuditLogEntry, "id">): Promise<AuditLogEntry> {
+    const full: AuditLogEntry = { id: randomUUID(), ...entry };
+    this.auditLogs.push(full);
+    if (this.auditLogs.length > AUDIT_LOG_CAP) {
+      this.auditLogs = this.auditLogs.slice(-AUDIT_LOG_CAP);
+    }
+    this.persistAuditState();
+    return full;
+  }
+
+  async listAuditLogs(limit = 500): Promise<AuditLogEntry[]> {
+    // Most recent first.
+    return this.auditLogs.slice(-limit).reverse();
   }
 
   // Tiny first-load seed for site 1417 so the page isn't empty on first visit.

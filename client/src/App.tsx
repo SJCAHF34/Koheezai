@@ -1,4 +1,4 @@
-import { useState, type ReactNode, type ComponentType } from "react";
+import { useState, useEffect, type ReactNode, type ComponentType } from "react";
 import { Switch, Route, Link, useLocation, Redirect } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient as qc, apiRequest } from "./lib/queryClient";
@@ -21,12 +21,17 @@ import StoreDashboard from "@/pages/StoreDashboard";
 import TaskTracker from "@/pages/TaskTracker";
 import SchedulingPage from "@/pages/SchedulingPage";
 import ControlledInventory from "@/pages/ControlledInventory";
+import AuditLog from "@/pages/AuditLog";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
+import TeamsConfig from "@/pages/TeamsConfig";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
 import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, FileCheck2 } from "lucide-react";
 import type { AppNotification } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { isInTeams, teamsSilentLogin } from "@/lib/teams";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
@@ -309,6 +314,10 @@ function AppNav() {
 
             <NavMenuItem href="/app/patient-assistance" icon={HeartHandshake} label="Patient Assistance" testId="nav-assistance" onClick={close} />
 
+            {isCpoUser && (
+              <NavMenuItem href="/app/audit-log" icon={FileCheck2} label="Access Audit Log" testId="nav-audit-log" onClick={close} />
+            )}
+
             <button
               data-testid="button-clinical-tools-nav"
               onClick={() => { close(); setClinicalOpen(true); }}
@@ -383,6 +392,23 @@ function DirectorProtected({ component: Component }: { component: () => JSX.Elem
   );
 }
 
+// ── CpoProtected: CPO-only wrapper (e.g. access audit log) ──────────────────
+function CpoProtected({ component: Component }: { component: () => JSX.Element | null }) {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  if (isLoading) return <Spinner />;
+  if (!isAuthenticated) return <Redirect to="/login" />;
+  if (user) {
+    const profile = getUserProfile(user.email, user.name ?? "");
+    if (!isCPO(profile.role)) return <Redirect to="/app" />;
+  }
+  return (
+    <>
+      <AppNav />
+      <Component />
+    </>
+  );
+}
+
 // ── Main router ────────────────────────────────────────────────────────────
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -445,9 +471,49 @@ function Router() {
       <Route path="/app/controlled-inventory">
         <Protected component={ControlledInventory} />
       </Route>
+      {/* Access audit log — CPO only */}
+      <Route path="/app/audit-log">
+        <CpoProtected component={AuditLog} />
+      </Route>
+      {/* Public / Teams pages */}
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/teams/config" component={TeamsConfig} />
       <Route component={NotFound} />
     </Switch>
   );
+}
+
+// ── Teams auto-login gate ───────────────────────────────────────────────────
+// When the app loads inside Microsoft Teams, silently sign the user in with
+// their Entra identity before rendering the router. In a normal browser this
+// resolves immediately and has no effect on the standard login flow.
+function AppContent() {
+  const queryClient = useQueryClient();
+  const [resolving, setResolving] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const inTeams = await isInTeams();
+        if (!inTeams) return;
+        const result = await teamsSilentLogin();
+        if (cancelled) return;
+        if (result.ok) {
+          await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+        }
+      } finally {
+        if (!cancelled) setResolving(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [queryClient]);
+
+  if (resolving) return <Spinner />;
+  return <Router />;
 }
 
 function App() {
@@ -455,7 +521,7 @@ function App() {
     <QueryClientProvider client={qc}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <AppContent />
       </TooltipProvider>
     </QueryClientProvider>
   );
