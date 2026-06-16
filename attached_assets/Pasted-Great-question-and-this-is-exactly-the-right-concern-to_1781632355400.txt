@@ -1,0 +1,131 @@
+Great question — and this is exactly the right concern to have before you embed something like Koheez in Teams.
+I’ll give you the real answer, not the marketing one:
+👉 Nothing in Teams or the app itself “automatically prevents HIPAA violations.”
+Compliance is entirely about how the app and your tenant are designed, governed, and contracted.
+🔴 First — critical reality (don’t skip this)
+No app is “HIPAA compliant” by default
+Compliance depends on:
+configuration
+contracts (BAAs)
+how data flows
+how users behave [hipaajournal.com]
+👉 So the question isn’t:
+“What prevents PHI from leaking?”
+👉 It’s:
+“Where are the controls across the full data path?”
+🧠 Think of it as a chain of responsibility
+For your Koheez + Teams scenario, PHI flows like this:
+User → Teams → Koheez (web app/API/backend) → Storage
+HIPAA must be enforced at every step, NOT just Teams.
+✅ 1. What protects PHI in Teams itself
+Teams can support HIPAA, but only if configured.
+Core controls you must enforce:
+Identity & access
+MFA + Conditional Access
+RBAC / least privilege access
+Session controls
+👉 Prevents unauthorized access to PHI [accountablehq.com]
+Data protection
+Encryption (in transit + at rest)
+Sensitivity labels
+DLP policies to block PHI sharing
+👉 Controls what users can see/share [accountablehq.com]
+Governance
+Audit logs
+Retention policies
+Monitoring and alerting
+👉 Detects misuse or breaches
+⚠️ 2. The biggest gap: Koheez (this is where risk is)
+This is what most teams miss:
+✅ Microsoft’s BAA does NOT cover Koheez
+👉 You need a separate Business Associate Agreement with Koheez
+Otherwise:
+You are automatically out of compliance
+Because:
+Any SaaS handling PHI becomes a Business Associate
+Must sign a BAA + meet HIPAA controls [accountablehq.com]
+✅ 3. What Koheez MUST implement (non-negotiable)
+If Koheez handles patient data, it must enforce:
+🔐 Technical safeguards
+Encryption (TLS + data at rest)
+Secure APIs (OAuth / token-based auth)
+Audit logging of all access
+Strict access controls (RBAC)
+👉 Required for HIPAA Security Rule [censinet.com]
+🔎 Data handling controls
+“Minimum necessary” access (role-based)
+No PHI in logs / debug outputs
+De-identification where possible
+👉 Limits exposure of patient data [accountablehq.com]
+📊 Operational controls
+Risk assessments
+Incident response (breach notification)
+Staff training
+Vendor security reviews
+👉 Required administrative safeguards [accountablehq.com]
+✅ 4. What you must control (shared responsibility)
+This is the part people get burned on:
+Microsoft secures the platform
+YOU secure the data usage
+Your responsibilities include:
+Tenant / Teams controls
+Block risky third-party apps
+Restrict external sharing
+Enforce DLP and retention
+Integration governance (your specialty area)
+Validate Koheez data flows
+Control what the agent can send to Koheez
+Prevent PHI from entering Copilot prompts unintentionally
+App-level governance
+Review Koheez architecture:
+Where is data stored?
+What logs are kept?
+Who has access?
+🚨 5. What actually prevents PHI exposure
+Nothing “magical” — it’s these layered controls:
+
+
+Layer
+Control
+Identity
+MFA + RBAC
+App
+Secure auth + API controls
+Data
+Encryption + DLP
+Process
+Risk analysis + policies
+Legal
+BAA with Microsoft + Koheez
+👉 If one layer is missing → compliance breaks
+⚠️ Real risks in your scenario (call these out)
+Based on what you shared:
+🔴 HIGH RISK
+Replit-hosted app (may NOT be HIPAA-ready)
+DUO-based login (not necessarily mapped to Entra identity)
+Unknown backend storage/security posture
+🔴 BIGGEST GAP
+No confirmation of:
+Koheez BAA
+HIPAA-compliant infrastructure
+API security controls
+✅ What I would tell your customer (clean, direct)
+Teams can support HIPAA compliance, but it does not make third-party apps compliant. If Koheez handles PHI, it must independently meet HIPAA requirements—including a signed BAA, encryption, access controls, and audit logging. Our responsibility is to ensure the Microsoft 365 tenant is configured securely and that integrations do not introduce uncontrolled data exposure.
+✅ What you should do next (actionable checklist)
+Governance checklist (fast)
+ Confirm Koheez signs a BAA
+ Validate Koheez hosting (HIPAA-eligible provider like Azure/AWS w/ BAA)
+ Review API auth model (OAuth/token-based)
+ Confirm encryption (at rest + in transit)
+ Ensure audit logging exists
+Your tenant controls
+ Enable DLP for PHI patterns
+ Restrict external apps via Teams/App policies
+ Enforce MFA + Conditional Access
+ Apply sensitivity labels
+🧠 Bottom line
+👉 Teams doesn’t prevent HIPAA violations
+👉 Koheez doesn’t become compliant just by being embedded
+✅ Compliance =
+Contracts (BAA) + Controls (security) + Governance (you)
+If you want, I can build you a customer-facing HIPAA risk assessment slide or one-pager specifically for Koheez + Teams — that’s usually what lands this conversation cleanly.

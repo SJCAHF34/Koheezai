@@ -1,0 +1,193 @@
+1. Teams app manifest — manifest.json
+Replace these placeholders:
+{{TEAMS_APP_ID}} = new GUID for the Teams app package
+{{AAD_APP_CLIENT_ID}} = Entra App Registration Application/client ID
+{{PUBLISHER_NAME}} = customer/org name, e.g. AIDS Healthcare Foundation
+URLs for privacy/terms/support = real published URLs
+{
+"$schema": "https://developer.microsoft.com/json-schemas/teams/v1.19/MicrosoftTeams.schema.json",
+"manifestVersion": "1.19",
+"version": "1.0.0",
+"id": "{{TEAMS_APP_ID}}",
+"packageName": "com.koheez.ai.teams",
+"developer": {
+"name": "{{PUBLISHER_NAME}}",
+"websiteUrl": "https://hiv-rx-consult-sjcpharmacy.replit.app",
+"privacyUrl": "https://hiv-rx-consult-sjcpharmacy.replit.app/privacy",
+"termsOfUseUrl": "https://hiv-rx-consult-sjcpharmacy.replit.app/terms"
+},
+"name": {
+"short": "Koheez",
+"full": "Koheez Clinical Decision Support"
+},
+"description": {
+"short": "Clinical decision support and pharmacy operations dashboard.",
+"full": "Koheez provides clinical decision support and operational management for HIV pharmacy leadership in Microsoft Teams."
+},
+"icons": {
+"outline": "outline.png",
+"color": "color.png"
+},
+"accentColor": "#6264A7",
+"staticTabs": [
+{
+"entityId": "koheezHome",
+"name": "Koheez",
+"contentUrl": "https://hiv-rx-consult-sjcpharmacy.replit.app",
+"websiteUrl": "https://hiv-rx-consult-sjcpharmacy.replit.app",
+"scopes": [
+"personal"
+]
+}
+],
+"configurableTabs": [
+{
+"configurationUrl": "https://hiv-rx-consult-sjcpharmacy.replit.app/teams/config",
+"canUpdateConfiguration": true,
+"scopes": [
+"team",
+"groupChat"
+]
+}
+],
+"permissions": [
+"identity"
+],
+"validDomains": [
+"hiv-rx-consult-sjcpharmacy.replit.app"
+],
+"webApplicationInfo": {
+"id": "{{AAD_APP_CLIENT_ID}}",
+"resource": "api://hiv-rx-consult-sjcpharmacy.replit.app/{{AAD_APP_CLIENT_ID}}"
+}
+}
+Why those fields matter:
+webApplicationInfo.id must be the Entra App Registration app/client ID. [Update Man...O for Tabs]
+webApplicationInfo.resource must match the Application ID URI you expose in Entra, commonly in the api://subdomain.example.com/{Microsoft Entra AppId} format. [Update Man...O for Tabs]
+contentUrl, configurationUrl, and validDomains need to match the hosted app domain. [Update Man...O for Tabs]
+The manifest/package must be zipped with manifest.json plus app icons before upload to Teams. [Update Man...O for Tabs]
+2. App package files
+Your Teams app package ZIP should contain exactly:
+manifest.json
+color.png
+outline.png
+Icon requirements are enforced by Teams app packaging, but at minimum make sure:
+color.png = full-color square icon
+outline.png = transparent outline icon
+3. Entra ID / AAD app registration config
+Create a new App Registration for Koheez SSO.
+App registration
+Name: Koheez Teams SSO
+Supported account types: Single tenant
+Redirect URI type: Single-page application or Web, depending on Koheez implementation
+Microsoft’s Teams tab SSO docs say the tab app must be registered in Microsoft Entra ID, and Entra generates the app ID that you later place in the Teams manifest. [Register T...t Entra ID]
+4. Expose an API
+In the Entra App Registration:
+Expose an API
+Application ID URI:
+api://hiv-rx-consult-sjcpharmacy.replit.app/{{AAD_APP_CLIENT_ID}}
+
+Scope name:
+access_as_user
+
+Who can consent:
+Admins and users, or Admins only depending on AHF policy
+
+Admin consent display name:
+Access Koheez as the signed-in user
+
+Admin consent description:
+Allows Koheez to access the application as the currently signed-in Teams user.
+The Application ID URI identifies the web API exposed for the app’s access through scopes, and it should include the app ID and the subdomain where the app is hosted. [Register T...t Entra ID]
+5. Pre-authorize Teams clients
+Under Expose an API → Authorized client applications, add the Teams clients.
+Teams desktop client:
+1fec8e78-bce4-4aaf-ab1b-5451cc387264
+
+Teams web client:
+5e3ce6c0-2b1f-4285-8d4b-75ee78787346
+
+Authorized scope:
+api://hiv-rx-consult-sjcpharmacy.replit.app/{{AAD_APP_CLIENT_ID}}/access_as_user
+The Teams SDK SSO setup guidance lists those Teams desktop and Teams web client IDs for preauthorization. [microsoft.github.io]
+6. Authentication redirect URIs
+You need redirect endpoints that Koheez actually serves. If Koheez does not currently have these routes, the developer needs to add them.
+Recommended:
+SPA redirect URI:
+https://hiv-rx-consult-sjcpharmacy.replit.app/auth-end.html
+
+Optional blank/silent redirect URI:
+https://hiv-rx-consult-sjcpharmacy.replit.app/blank-auth-end.html
+Agents Toolkit guidance shows Teams tab SSO using redirect URIs such as /auth-end.html and /blank-auth-end.html for returning tokens. [Enable SSO...Teams App]
+7. API permissions
+Minimum delegated permissions:
+Microsoft Graph delegated permissions:
+openid
+profile
+email
+offline_access
+Teams tab SSO documentation states that user-level Graph permissions such as email, profile, offline_access, and OpenId are supported. [Register T...t Entra ID]
+If Koheez needs Graph data beyond identity, add only what is needed, for example:
+User.Read
+But do not add broader Graph scopes unless the app has a real requirement.
+8. Koheez application code requirement
+The Koheez Teams tab must include logic similar to this.
+Front-end pseudo-code
+import { app, authentication } from "@microsoft/teams-js";
+
+await app.initialize();
+
+const token = await authentication.getAuthToken({
+resources: ["api://hiv-rx-consult-sjcpharmacy.replit.app/{{AAD_APP_CLIENT_ID}}"]
+});
+
+const response = await fetch("/api/teams-sso-login", {
+method: "POST",
+headers: {
+"Authorization": Bearer ${token},
+"Content-Type": "application/json"
+}
+});
+This is the key part: Teams SSO depends on app code calling getAuthToken() and handling the token. [Update Man...O for Tabs]
+Backend responsibility
+Koheez backend should:
+1. Receive the Teams SSO token.
+2. Validate issuer, audience, tenant, expiration, and signature.
+3. Map the Entra user to a Koheez user.
+4. Create a Koheez session cookie.
+5. Redirect or return authenticated app state.
+This backend mapping is not provided by the manifest; it must be implemented by the Koheez application.
+9. Minimal Entra manifest snippet
+If the customer wants an Entra app manifest-style reference, use this as the conceptual mapping.
+{
+"displayName": "Koheez Teams SSO",
+"signInAudience": "AzureADMyOrg",
+"identifierUris": [
+"api://hiv-rx-consult-sjcpharmacy.replit.app/{{AAD_APP_CLIENT_ID}}"
+],
+"web": {
+"redirectUris": [
+"https://hiv-rx-consult-sjcpharmacy.replit.app/auth-end.html"
+]
+},
+"spa": {
+"redirectUris": [
+"https://hiv-rx-consult-sjcpharmacy.replit.app/auth-end.html",
+"https://hiv-rx-consult-sjcpharmacy.replit.app/blank-auth-end.html"
+]
+}
+}
+Agents Toolkit guidance shows identifierUris using the api://${{TAB_DOMAIN}}/${{AAD_APP_CLIENT_ID}} pattern and redirect URIs pointing to tab endpoints such as /auth-end.html. [Enable SSO...Teams App]
+10. Deployment path in Teams
+After the manifest and icons are zipped:
+Open Teams.
+Go to Apps → Manage your apps → Upload an app.
+Choose Upload a custom app.
+Select the ZIP package.
+Accept the permissions prompt if shown.
+Microsoft’s Teams SSO manifest guidance says the app package is a ZIP file containing the app manifest and icons, and it can be uploaded through Apps → Manage your apps → Upload an app → Upload a custom app. [Update Man...O for Tabs]
+For tenant-wide availability, the Teams admin can upload it to the org app catalog and control availability through Teams app permission policies; Microsoft Support documents this app catalog and permission policy path for making a custom app available in Teams. [Install Se...our tenant]
+11. What to tell AHF / Koheez developers
+Use this wording:
+We can package Koheez as a custom Microsoft Teams app with a Teams tab and Entra-backed SSO. The Teams manifest will declare webApplicationInfo, and Entra will expose an access_as_user scope using the app’s Application ID URI. However, Koheez must implement Teams SDK token acquisition using getAuthToken() and validate or exchange that token server-side. Without that code change, the Teams tab will embed Koheez but will not provide true auto-login.
+That is the clean answer: manifest + Entra config enables the SSO path; Koheez code completes the auto-login.
