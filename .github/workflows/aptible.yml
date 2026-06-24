@@ -17,6 +17,6 @@ jobs:
         with:
           type: git
           app: koheez.ai
-          environment: ahfl417
+          environment: ahf1417
           username: ${{ secrets.APTIBLE_USERNAME }}
           password: ${{ secrets.APTIBLE_PASSWORD }}
