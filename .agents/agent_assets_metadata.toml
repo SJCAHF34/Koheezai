@@ -6,3 +6,9 @@ id = "CtB9W8ZUU_NEalLzBx9S5"
 uri = "file://.local/deliverables/koheez-security-summary.md"
 type = "text"
 title = "Koheez.ai — Cloud Hosting & Security Summary (for IT/Compliance)"
+
+[[outputs]]
+id = "PlMLdDw9xCVRYiM4-cgNL"
+uri = "file://.local/deliverables/koheez-cto-summary.md"
+type = "text"
+title = "Koheez.ai — CTO Summary"
