@@ -7,6 +7,10 @@ WORKDIR /app
 
 # Install dependencies (including dev deps needed for the build step).
 COPY package*.json ./
+# Some lockfile entries resolve to Replit's internal package proxy, which is not
+# reachable outside Replit. Rewrite those to the public npm registry so the build
+# works on Aptible.
+RUN sed -i 's#http://package-firewall.replit.local/npm/#https://registry.npmjs.org/#g' package-lock.json
 RUN npm ci
 
 # Copy the rest of the source and build the client + server bundle.
