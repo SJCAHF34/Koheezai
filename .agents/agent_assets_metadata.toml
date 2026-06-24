@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "CtB9W8ZUU_NEalLzBx9S5"
+uri = "file://.local/deliverables/koheez-security-summary.md"
+type = "text"
+title = "Koheez.ai — Cloud Hosting & Security Summary (for IT/Compliance)"
