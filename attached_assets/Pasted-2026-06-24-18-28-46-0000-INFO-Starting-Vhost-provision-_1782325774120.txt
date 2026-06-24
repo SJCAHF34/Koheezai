@@ -1,0 +1,372 @@
+2026-06-24 18:28:46 +0000 INFO -- : Starting Vhost provision operation with ID: 106190931
+2026-06-24 18:28:46 +0000 INFO -- : Logs will also be available here once complete: https://app.aptible.com/operations/106190931
+2026-06-24 18:28:48 +0000 INFO -- : Provisioning endpoint...
+2026-06-24 18:28:50 +0000 INFO -- : STARTING: Extract previous configuration for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:50 +0000 INFO -- : COMPLETED (after 0.0s): Extract previous configuration for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:50 +0000 INFO -- : STARTING: Extract new configuration for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:50 +0000 INFO -- : COMPLETED (after 0.0s): Extract new configuration for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:50 +0000 INFO -- : STARTING: Cache maintenance page for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:50 +0000 INFO -- : COMPLETED (after 0.23s): Cache maintenance page for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:50 +0000 INFO -- : STARTING: Import certificate for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:50 +0000 INFO -- : COMPLETED (after 0.0s): Import certificate for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:50 +0000 INFO -- : STARTING: Wait up to 180s for service to respond to HTTP health checks on port 5000
+2026-06-24 18:28:51 +0000 INFO -- : STARTING: Ensure ALB exists for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:52 +0000 INFO -- : COMPLETED (after 0.82s): Ensure ALB exists for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:52 +0000 INFO -- : STARTING: Start proxy containers for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:52 +0000 INFO -- : STARTING: Configure IP filtering for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:52 +0000 INFO -- : COMPLETED (after 0.03s): Configure IP filtering for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:53 +0000 ERROR -- : 1 of 1 HTTP health checks failed on port 5000 of service cmd
+2026-06-24 18:28:53 +0000 ERROR -- : Container for cmd (running ["npm", "start"]) failed to start (exited with status 1 after 0 seconds).
+2026-06-24 18:28:53 +0000 ERROR -- : ╔═══ Last 500 log lines from your container start here ═══
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > rest-express@1.0.0 start
+2026-06-24 18:28:53 +0000 ERROR -- : ║ > NODE_ENV=production node dist/index.js
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ file:///app/node_modules/openai/client.mjs:89
+2026-06-24 18:28:53 +0000 ERROR -- : ║             throw new Errors.OpenAIError('Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.');
+2026-06-24 18:28:53 +0000 ERROR -- : ║                   ^
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ OpenAIError: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at new OpenAI (file:///app/node_modules/openai/client.mjs:89:19)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at file:///app/dist/index.js:5022:14
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-06-24 18:28:53 +0000 ERROR -- : ║     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-06-24 18:28:53 +0000 ERROR -- : ║ 
+2026-06-24 18:28:53 +0000 ERROR -- : ║ Node.js v20.20.2
+2026-06-24 18:28:53 +0000 ERROR -- : ╚═══ Last 500 log lines from your container end here ═══
+2026-06-24 18:28:53 +0000 ERROR -- : For more information, review: https://www.aptible.com/docs/how-to-guides/troubleshooting/common-errors-issues/http-health-check-failed
+2026-06-24 18:28:53 +0000 ERROR -- : FAILED: Wait up to 180s for service to respond to HTTP health checks on port 5000
+2026-06-24 18:28:53 +0000 WARN -- : STARTING ROLLBACK: This operation encountered an error, Aptible is now attempting to rollback your infrastructure to its initial state.
+2026-06-24 18:28:53 +0000 INFO -- : ROLLING BACK: Extract previous configuration for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:53 +0000 INFO -- : ROLLED BACK: Extract previous configuration for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:53 +0000 INFO -- : ROLLING BACK: Cache maintenance page for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:53 +0000 INFO -- : ROLLED BACK: Cache maintenance page for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:53 +0000 INFO -- : ROLLING BACK: Configure IP filtering for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:53 +0000 INFO -- : ROLLED BACK: Configure IP filtering for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:54 +0000 INFO -- : ROLLING BACK: Wait up to 180s for service to respond to HTTP health checks on port 5000
+2026-06-24 18:28:54 +0000 INFO -- : ROLLED BACK: Wait up to 180s for service to respond to HTTP health checks on port 5000
+2026-06-24 18:28:54 +0000 INFO -- : ROLLING BACK: Import certificate for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:54 +0000 INFO -- : ROLLED BACK: Import certificate for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:54 +0000 INFO -- : ROLLING BACK: Ensure ALB exists for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:54 +0000 INFO -- : ROLLED BACK: Ensure ALB exists for endpoint app-109346.on-aptible.com
+2026-06-24 18:28:54 +0000 INFO -- : WAITING FOR: Rollback Start proxy containers for endpoint app-109346.on-aptible.com
+2026-06-24 18:29:00 +0000 INFO -- : COMPLETED (after 8.47s): Start proxy containers for endpoint app-109346.on-aptible.com
+2026-06-24 18:29:00 +0000 INFO -- : ROLLING BACK: Start proxy containers for endpoint app-109346.on-aptible.com
+2026-06-24 18:29:02 +0000 INFO -- : ROLLED BACK: Start proxy containers for endpoint app-109346.on-aptible.com
+2026-06-24 18:29:02 +0000 INFO -- : ROLLING BACK: Extract new configuration for endpoint app-109346.on-aptible.com
+2026-06-24 18:29:02 +0000 INFO -- : ROLLED BACK: Extract new configuration for endpoint app-109346.on-aptible.com
+2026-06-24 18:29:02 +0000 WARN -- : ROLLBACK COMPLETE: This operation failed, but Aptible was able to rollback your infrastructure to its initial state. Consider retrying.
+2026-06-24 18:29:02 +0000 WARN -- : 
+2026-06-24 18:29:02 +0000 ERROR -- : SUMMARY: Execution failed because of:
+2026-06-24 18:29:02 +0000 ERROR -- : - FAILED: Wait up to 180s for service to respond to HTTP health checks on port 5000
+2026-06-24 18:29:02 +0000 WARN -- : 
+2026-06-24 18:29:03 +0000 WARN -- : WARNINGS: The following warnings or errors were logged during execution, review them now:
+2026-06-24 18:29:03 +0000 ERROR -- : 1 of 1 HTTP health checks failed on port 5000 of service cmd
+2026-06-24 18:29:03 +0000 ERROR -- : For more information, review: https://www.aptible.com/docs/how-to-guides/troubleshooting/common-errors-issues/http-health-check-failed
+2026-06-24 18:29:03 +0000 WARN -- : 
+2026-06-24 18:29:03 +0000 WARN -- : If you contact Aptible support about this operation, make sure you reference the following Operation ID: 106190931.
