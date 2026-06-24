@@ -18,5 +18,5 @@ jobs:
           type: git
           app: koheez.ai
           environment: ahf1417
-          username: ${{ secrets.APTIBLE_USERNAME }}
-          password: ${{ secrets.APTIBLE_PASSWORD }}
+          username: ${{ secrets.APTIBLEUN }}
+          password: ${{ secrets.APTIBLEPW }}
