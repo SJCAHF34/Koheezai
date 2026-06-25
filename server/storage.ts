@@ -9,6 +9,9 @@ import {
   type UpsertQaAuditWorkbook,
   type QaAuditTask,
   type AuditLogEntry,
+  type CQIMeetingRecord,
+  type CQIAttendee,
+  type UpsertCqiMeeting,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -31,6 +34,10 @@ interface QaPersistShape {
 // AUDIT_LOG_CAP entries to bound file size.
 const AUDIT_PERSIST_PATH = resolve(process.cwd(), ".local", "audit-log-state.json");
 const AUDIT_LOG_CAP = 10000;
+
+// File-backed persistence for CQI-QRE quarterly meeting records so they survive
+// process restarts and are shared across every user at a site.
+const CQI_PERSIST_PATH = resolve(process.cwd(), ".local", "cqi-meeting-state.json");
 
 export interface QaAuditEvidenceFile {
   id: string;
@@ -134,6 +141,19 @@ export interface IStorage {
   completeQaAuditTask(id: string, user: { email: string; name: string }): Promise<QaAuditTask | undefined>;
   setQaAuditResponseTaskId(siteId: string, year: string, itemId: string, taskId: string): Promise<void>;
 
+  // ── CQI-QRE Quarterly Meetings ─────────────────────────────────────────
+  getCqiMeeting(siteId: string, quarter: string): Promise<CQIMeetingRecord | undefined>;
+  upsertCqiMeeting(
+    data: UpsertCqiMeeting,
+    user: { email: string; name: string },
+  ): Promise<CQIMeetingRecord>;
+  signCqiMeeting(
+    siteId: string,
+    quarter: string,
+    attendee: Omit<CQIAttendee, "id" | "signedAt">,
+    base: { siteName?: string; pharmacyLocation?: string },
+  ): Promise<CQIMeetingRecord>;
+
   // ── Access audit log (HIPAA) ───────────────────────────────────────────
   addAuditLog(entry: Omit<AuditLogEntry, "id">): Promise<AuditLogEntry>;
   listAuditLogs(limit?: number): Promise<AuditLogEntry[]>;
@@ -157,6 +177,7 @@ export class MemStorage implements IStorage {
   private qaAuditWorkbooks: Map<string, QaAuditWorkbook>;
   private qaAuditEvidence: Map<string, QaAuditEvidenceFile>;
   private qaAuditTasks: Map<string, QaAuditTask>;
+  private cqiMeetings: Map<string, CQIMeetingRecord>;
   private auditLogs: AuditLogEntry[];
 
   constructor() {
@@ -170,9 +191,11 @@ export class MemStorage implements IStorage {
     this.qaAuditWorkbooks = new Map();
     this.qaAuditEvidence = new Map();
     this.qaAuditTasks = new Map();
+    this.cqiMeetings = new Map();
     this.auditLogs = [];
     this.loadQaPersistedState();
     this.loadAuditPersistedState();
+    this.loadCqiPersistedState();
     this.seedSchedulingExamples();
   }
 
@@ -664,6 +687,130 @@ export class MemStorage implements IStorage {
       lastUpdatedAt: new Date().toISOString(),
     });
     this.persistQaState();
+  }
+
+  // ── CQI-QRE Quarterly Meetings ─────────────────────────────────────────
+
+  private cqiKey(siteId: string, quarter: string): string {
+    return `${siteId}|${quarter}`;
+  }
+
+  private computeCqiStatus(r: CQIMeetingRecord): CQIMeetingRecord["status"] {
+    if (r.status === "submitted") return "submitted";
+    const hasAny =
+      r.selectedQuarter !== "" ||
+      r.pharmacyLocation.trim() !== "" ||
+      r.pic.trim() !== "" ||
+      Object.values(r.safetyChecks).some(Boolean) ||
+      Object.values(r.agendaItems).some(Boolean) ||
+      r.qreIssues.trim() !== "" ||
+      r.actionPlan.trim() !== "" ||
+      r.attendees.length > 0;
+    return hasAny ? "in_progress" : "not_started";
+  }
+
+  private emptyCqiMeeting(
+    siteId: string,
+    quarter: string,
+    base: { siteName?: string; pharmacyLocation?: string },
+  ): CQIMeetingRecord {
+    return {
+      siteId,
+      quarter,
+      siteName: base.siteName ?? "",
+      pharmacyLocation: base.pharmacyLocation ?? "",
+      pic: "",
+      selectedQuarter: "",
+      otherDate: "",
+      safetyChecks: { fireExtinguisher: false, smokeDetector: false, evacuationPlan: false },
+      agendaItems: {
+        regulatoryUpdates: false,
+        workflowUpdates: false,
+        qreIssues: false,
+        policyUpdates: false,
+        qmcMeetingMinutes: false,
+      },
+      qreIssues: "",
+      actionPlan: "",
+      attendees: [],
+      status: "not_started",
+      lastUpdatedAt: new Date().toISOString(),
+    };
+  }
+
+  async getCqiMeeting(siteId: string, quarter: string): Promise<CQIMeetingRecord | undefined> {
+    return this.cqiMeetings.get(this.cqiKey(siteId, quarter));
+  }
+
+  async upsertCqiMeeting(
+    data: UpsertCqiMeeting,
+    _user: { email: string; name: string },
+  ): Promise<CQIMeetingRecord> {
+    const key = this.cqiKey(data.siteId, data.quarter);
+    const existing = this.cqiMeetings.get(key);
+    const record: CQIMeetingRecord = {
+      ...data,
+      // Attendees and submission metadata are preserved across director edits.
+      attendees: existing?.attendees ?? [],
+      submittedBy: existing?.submittedBy,
+      submittedAt: existing?.submittedAt,
+      status: existing?.status ?? "not_started",
+      lastUpdatedAt: new Date().toISOString(),
+    };
+    record.status = this.computeCqiStatus(record);
+    this.cqiMeetings.set(key, record);
+    this.persistCqiState();
+    return record;
+  }
+
+  async signCqiMeeting(
+    siteId: string,
+    quarter: string,
+    attendee: Omit<CQIAttendee, "id" | "signedAt">,
+    base: { siteName?: string; pharmacyLocation?: string },
+  ): Promise<CQIMeetingRecord> {
+    const key = this.cqiKey(siteId, quarter);
+    const record = this.cqiMeetings.get(key) ?? this.emptyCqiMeeting(siteId, quarter, base);
+    // One signature per user — ignore duplicates.
+    const already = record.attendees.some(
+      (a) => a.userEmail.toLowerCase() === attendee.userEmail.toLowerCase(),
+    );
+    if (!already) {
+      const full: CQIAttendee = {
+        ...attendee,
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        signedAt: new Date().toISOString(),
+      };
+      record.attendees = [...record.attendees, full];
+    }
+    record.lastUpdatedAt = new Date().toISOString();
+    record.status = this.computeCqiStatus(record);
+    this.cqiMeetings.set(key, record);
+    this.persistCqiState();
+    return record;
+  }
+
+  private loadCqiPersistedState(): void {
+    try {
+      if (!existsSync(CQI_PERSIST_PATH)) return;
+      const raw = readFileSync(CQI_PERSIST_PATH, "utf-8");
+      const data = JSON.parse(raw) as Array<[string, CQIMeetingRecord]>;
+      if (Array.isArray(data)) {
+        for (const [k, v] of data) this.cqiMeetings.set(k, v);
+      }
+    } catch (err) {
+      console.warn("[cqi-meeting] failed to load persisted state:", err);
+    }
+  }
+
+  private persistCqiState(): void {
+    try {
+      const dir = dirname(CQI_PERSIST_PATH);
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      writeFileSync(CQI_PERSIST_PATH, JSON.stringify(Array.from(this.cqiMeetings.entries())));
+    } catch (err) {
+      console.warn("[cqi-meeting] failed to persist state:", err);
+    }
   }
 }
 

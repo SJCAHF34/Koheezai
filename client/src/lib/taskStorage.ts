@@ -605,68 +605,11 @@ const DEFAULT_ROSTERS: Record<string, SiteRoster> = {
 };
 
 // ── CQI-QRE Meeting ──────────────────────────────────────────────────────────
-
-const CQI_MEETINGS_KEY = "koheez_cqi_meetings";
-
-export interface CQIAttendee {
-  id: string;
-  userEmail: string;
-  printName: string;
-  signatureName: string;
-  role: string;
-  signedAt: string;
-}
-
-export interface CQIMeetingRecord {
-  siteId: string;
-  quarter: string;
-  pharmacyLocation: string;
-  pic: string;
-  selectedQuarter: "Q1" | "Q2" | "Q3" | "Q4" | "Other" | "";
-  otherDate: string;
-  safetyChecks: {
-    fireExtinguisher: boolean;
-    smokeDetector: boolean;
-    evacuationPlan: boolean;
-  };
-  agendaItems: {
-    regulatoryUpdates: boolean;
-    workflowUpdates: boolean;
-    qreIssues: boolean;
-    policyUpdates: boolean;
-    qmcMeetingMinutes: boolean;
-  };
-  qreIssues: string;
-  actionPlan: string;
-  attendees: CQIAttendee[];
-  status: "not_started" | "in_progress" | "submitted";
-  lastUpdatedAt: string;
-  submittedBy?: string;
-  submittedAt?: string;
-}
-
-function readCQIMeetings(): CQIMeetingRecord[] {
-  try {
-    const raw = localStorage.getItem(CQI_MEETINGS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function loadCQIMeeting(siteId: string, quarter: string): CQIMeetingRecord | null {
-  return readCQIMeetings().find((r) => r.siteId === siteId && r.quarter === quarter) ?? null;
-}
-
-export function saveCQIMeeting(record: CQIMeetingRecord): void {
-  try {
-    const all = readCQIMeetings().filter(
-      (r) => !(r.siteId === record.siteId && r.quarter === record.quarter)
-    );
-    all.push({ ...record, lastUpdatedAt: new Date().toISOString() });
-    localStorage.setItem(CQI_MEETINGS_KEY, JSON.stringify(all));
-  } catch {}
-}
+// CQI meeting records are now stored server-side (see server/storage.ts and the
+// /api/cqi routes) so the same record is shared across every user at a site —
+// directors edit it, and technicians / staff pharmacists view it read-only and
+// sign attendance. Types are re-exported from the shared schema for convenience.
+export type { CQIAttendee, CQIMeetingRecord } from "@shared/schema";
 
 // ── Roster ──────────────────────────────────────────────────────────────────
 

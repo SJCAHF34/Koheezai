@@ -45,6 +45,8 @@ import {
   qaAuditEvidenceUploadSchema,
   qaAuditFollowUpSchema,
   consentRecordSchema,
+  upsertCqiMeetingSchema,
+  signCqiMeetingSchema,
 } from "@shared/schema";
 import { QA_AUDIT_TOTAL_ITEMS } from "../client/src/lib/qaAuditData";
 import { storage } from "./storage";
@@ -1074,6 +1076,75 @@ FORMATTING RULES (strict):
       console.error("[CQI] email-signers error:", err);
       return res.status(500).json({ message: "Failed to send meeting sign requests." });
     }
+  });
+
+  // ── CQI-QRE Quarterly Meeting: shared site-level record ──────────────────
+  // Directors edit the meeting details; all staff at the site (technicians,
+  // staff pharmacists, etc.) can view it read-only and sign attendance.
+
+  // Read the meeting for a site/quarter. Any staff member assigned to the site
+  // (or a director who oversees it) may view.
+  app.get("/api/cqi/:siteId/meeting", requireAuth, async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    const quarter = String(req.query.quarter ?? "");
+    if (!quarter) return res.status(400).json({ message: "quarter query param is required" });
+    if (!access.canViewSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const record = await storage.getCqiMeeting(siteId, quarter);
+    await recordAccess(req, "cqi.meeting.read", siteId);
+    return res.json(record ?? null);
+  });
+
+  // Save the meeting details. Directors (and above, for their scope) only.
+  app.put("/api/cqi/:siteId/meeting", requireAuth, async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    const parsed = upsertCqiMeetingSchema.safeParse({ ...req.body, siteId });
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid meeting data", errors: parsed.error.issues });
+    }
+    if (!access.canEditSite(siteId)) {
+      return res.status(403).json({ message: "Only directors can edit the meeting form." });
+    }
+    const record = await storage.upsertCqiMeeting(parsed.data, {
+      email: access.profile.email,
+      name: access.profile.name,
+    });
+    await recordAccess(req, "cqi.meeting.save", siteId);
+    return res.json(record);
+  });
+
+  // Sign attendance. Any staff member assigned to the site may sign.
+  app.post("/api/cqi/:siteId/meeting/sign", requireAuth, async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    const quarter = String(req.query.quarter ?? req.body?.quarter ?? "");
+    if (!quarter) return res.status(400).json({ message: "quarter query param is required" });
+    if (!access.canViewSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const parsed = signCqiMeetingSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid signature", errors: parsed.error.issues });
+    }
+    const record = await storage.signCqiMeeting(
+      siteId,
+      quarter,
+      {
+        userEmail: access.profile.email,
+        printName: parsed.data.printName,
+        signatureName: parsed.data.signatureName,
+        role: access.profile.role,
+      },
+      { siteName: parsed.data.siteName, pharmacyLocation: parsed.data.pharmacyLocation },
+    );
+    await recordAccess(req, "cqi.meeting.sign", siteId);
+    return res.json(record);
   });
 
   app.get("/api/retention/patients/:siteId", requireAuth, async (req, res) => {

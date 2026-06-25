@@ -1,14 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/App";
 import { getUserProfile, isRegionalOrAbove, isDirectorRole, isTechRole, getRoleLabel, getStoreStaff, type StoreStaffMember } from "@/lib/userProfile";
-import { apiRequest } from "@/lib/queryClient";
-import {
-  loadCQIMeeting,
-  saveCQIMeeting,
-  getCurrentQuarter,
-  type CQIMeetingRecord,
-  type CQIAttendee,
-} from "@/lib/taskStorage";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getCurrentQuarter } from "@/lib/taskStorage";
+import type { CQIMeetingRecord, CQIAttendee } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,10 +39,11 @@ type QuarterOption = "Q1" | "Q2" | "Q3" | "Q4" | "Other" | "";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function buildEmptyRecord(siteId: string, quarter: string, pharmacyLocation: string, pic: string): CQIMeetingRecord {
+function buildEmptyRecord(siteId: string, quarter: string, siteName: string, pharmacyLocation: string, pic: string): CQIMeetingRecord {
   return {
     siteId,
     quarter,
+    siteName,
     pharmacyLocation,
     pic,
     selectedQuarter: "",
@@ -69,20 +66,6 @@ function buildEmptyRecord(siteId: string, quarter: string, pharmacyLocation: str
     status: "not_started",
     lastUpdatedAt: new Date().toISOString(),
   };
-}
-
-function computeStatus(record: CQIMeetingRecord): CQIMeetingRecord["status"] {
-  if (record.status === "submitted") return "submitted";
-  const hasAny =
-    record.selectedQuarter !== "" ||
-    record.pharmacyLocation.trim() !== "" ||
-    record.pic.trim() !== "" ||
-    Object.values(record.safetyChecks).some(Boolean) ||
-    Object.values(record.agendaItems).some(Boolean) ||
-    record.qreIssues.trim() !== "" ||
-    record.actionPlan.trim() !== "" ||
-    record.attendees.length > 0;
-  return hasAny ? "in_progress" : "not_started";
 }
 
 function formatRole(role: string): string {
@@ -635,61 +618,122 @@ export default function CQIMeeting() {
   const isTech = profile ? isTechRole(profile.role) : false;
   const canEdit = isDirectorOrAbove;
 
-  const [record, setRecord] = useState<CQIMeetingRecord | null>(null);
   const [signModalOpen, setSignModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const page1Ref = useRef<HTMLDivElement>(null);
   const page2Ref = useRef<HTMLDivElement>(null);
 
-  // Load or initialise record
+  // Server-stored record, shared across every user at the site.
+  const meetingQueryKey = ["/api/cqi", siteId, "meeting", quarter] as const;
+  const { data: serverRecord, isLoading } = useQuery<CQIMeetingRecord | null>({
+    queryKey: meetingQueryKey,
+    queryFn: () =>
+      apiRequest<CQIMeetingRecord | null>(
+        `/api/cqi/${encodeURIComponent(siteId)}/meeting?quarter=${encodeURIComponent(quarter)}`,
+      ),
+    enabled: !!siteId && !!quarter,
+  });
+
+  // Local editable copy. Directors edit fields locally and persist via Save;
+  // everyone else sees this as a read-only mirror of the server record.
+  // The draft is seeded ONCE per site/quarter so that later server updates
+  // (e.g. an attendance signature refreshing the query cache) never clobber a
+  // director's unsaved field edits. Attendees are always read live from the
+  // server record below.
+  const [draft, setDraft] = useState<CQIMeetingRecord | null>(null);
+  const loadedKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!siteId) return;
-    const existing = loadCQIMeeting(siteId, quarter);
-    if (existing) {
-      setRecord(existing);
-    } else {
-      setRecord(buildEmptyRecord(
-        siteId,
-        quarter,
-        profile?.siteName ?? "",
-        profile?.name ?? ""
-      ));
+    if (!siteId || !quarter) return;
+    const key = `${siteId}|${quarter}`;
+    if (loadedKeyRef.current === key) return;
+    if (serverRecord) {
+      setDraft(serverRecord);
+      loadedKeyRef.current = key;
+    } else if (!isLoading) {
+      setDraft(
+        buildEmptyRecord(
+          siteId,
+          quarter,
+          profile?.siteName ?? "",
+          profile?.siteName ?? "",
+          profile?.name ?? "",
+        ),
+      );
+      loadedKeyRef.current = key;
     }
-  }, [siteId, quarter]);
+  }, [serverRecord, isLoading, siteId, quarter]);
 
-  const persist = useCallback((updated: CQIMeetingRecord) => {
-    const withStatus = { ...updated, status: computeStatus(updated) };
-    setRecord(withStatus);
-    saveCQIMeeting(withStatus);
-  }, []);
+  // The attendance list always reflects the latest server state so signatures
+  // from other users appear without a manual refresh.
+  const record: CQIMeetingRecord | null = draft
+    ? { ...draft, attendees: serverRecord?.attendees ?? draft.attendees }
+    : null;
 
-  // ── Field handlers ──
+  const saveMutation = useMutation({
+    mutationFn: (data: CQIMeetingRecord) => {
+      const { attendees, status, lastUpdatedAt, submittedBy, submittedAt, ...payload } = data;
+      return apiRequest<CQIMeetingRecord>(
+        `/api/cqi/${encodeURIComponent(siteId)}/meeting`,
+        { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) },
+      );
+    },
+    onSuccess: (saved) => {
+      queryClient.setQueryData(meetingQueryKey, saved);
+      setDraft(saved);
+      toast({ title: "Saved", description: "Meeting form saved successfully." });
+    },
+    onError: () => {
+      toast({ title: "Save failed", description: "Could not save the meeting form. Please try again.", variant: "destructive" });
+    },
+  });
+
+  const signMutation = useMutation({
+    mutationFn: (fullName: string) =>
+      apiRequest<CQIMeetingRecord>(
+        `/api/cqi/${encodeURIComponent(siteId)}/meeting/sign?quarter=${encodeURIComponent(quarter)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            printName: fullName,
+            signatureName: fullName,
+            siteName: profile?.siteName ?? "",
+            pharmacyLocation: record?.pharmacyLocation ?? profile?.siteName ?? "",
+          }),
+        },
+      ),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(meetingQueryKey, saved);
+      toast({ title: "Signed", description: "Your attendance has been recorded." });
+    },
+    onError: () => {
+      toast({ title: "Sign failed", description: "Could not record your signature. Please try again.", variant: "destructive" });
+    },
+  });
+
+  const isSaving = saveMutation.isPending;
+
+  // ── Field handlers (directors only; local edits persisted on Save) ──
 
   function setField<K extends keyof CQIMeetingRecord>(key: K, val: CQIMeetingRecord[K]) {
-    if (!record || !canEdit) return;
-    persist({ ...record, [key]: val });
+    if (!draft || !canEdit) return;
+    setDraft({ ...draft, [key]: val });
   }
 
   function setSafetyCheck(key: keyof CQIMeetingRecord["safetyChecks"], val: boolean) {
-    if (!record || !canEdit) return;
-    persist({ ...record, safetyChecks: { ...record.safetyChecks, [key]: val } });
+    if (!draft || !canEdit) return;
+    setDraft({ ...draft, safetyChecks: { ...draft.safetyChecks, [key]: val } });
   }
 
   function setAgendaItem(key: keyof CQIMeetingRecord["agendaItems"], val: boolean) {
-    if (!record || !canEdit) return;
-    persist({ ...record, agendaItems: { ...record.agendaItems, [key]: val } });
+    if (!draft || !canEdit) return;
+    setDraft({ ...draft, agendaItems: { ...draft.agendaItems, [key]: val } });
   }
 
   function handleSave() {
-    if (!record) return;
-    setIsSaving(true);
-    saveCQIMeeting(record);
-    setTimeout(() => {
-      setIsSaving(false);
-      toast({ title: "Saved", description: "Meeting form saved successfully." });
-    }, 400);
+    if (!record || !canEdit) return;
+    saveMutation.mutate(record);
   }
 
   // ── Sign attendance ──
@@ -700,17 +744,8 @@ export default function CQIMeeting() {
   }
 
   function handleSign(fullName: string) {
-    if (!record || !profile || !user) return;
-    const newAttendee: CQIAttendee = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      userEmail: user.email,
-      printName: fullName,
-      signatureName: fullName,
-      role: profile.role,
-      signedAt: new Date().toISOString(),
-    };
-    persist({ ...record, attendees: [...record.attendees, newAttendee] });
-    toast({ title: "Signed", description: "Your attendance has been recorded." });
+    if (!profile || !user) return;
+    signMutation.mutate(fullName);
   }
 
   // ── PDF export (two-page controlled layout) ──
@@ -814,7 +849,7 @@ export default function CQIMeeting() {
       </div>
 
       {/* Site label */}
-      {profile && !isTech && (
+      {profile && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="cqi-site-label">
           <Building2 className="w-4 h-4" />
           <span>{profile.siteName} — Site {profile.siteId}</span>
@@ -836,13 +871,13 @@ export default function CQIMeeting() {
         <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-3 flex items-start gap-3" data-testid="cqi-tech-notice">
           <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
           <p className="text-sm text-blue-800">
-            Please sign the attendance list to confirm your participation in this CQI-QRE meeting.
+            You can review the meeting details below and sign the attendance list to confirm your participation. Only directors can edit the form.
           </p>
         </div>
       )}
 
       {/* ── Section 1: Header info ── */}
-      {(canEdit || isViewer) && (
+      {(canEdit || isViewer || isTech) && (
         <div className="rounded-md border p-5 space-y-4" data-testid="cqi-header-section">
           <h2 className="text-sm font-semibold text-foreground">Meeting Information</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -912,7 +947,7 @@ export default function CQIMeeting() {
       )}
 
       {/* ── Section 2: Safety Checks ── */}
-      {(canEdit || isViewer) && (
+      {(canEdit || isViewer || isTech) && (
         <div className="rounded-md border p-5 space-y-4" data-testid="cqi-safety-section">
           <h2 className="text-sm font-semibold text-foreground">Safety Checks</h2>
           <div className="space-y-3">
@@ -944,7 +979,7 @@ export default function CQIMeeting() {
       )}
 
       {/* ── Section 3: Agenda Items ── */}
-      {(canEdit || isViewer) && (
+      {(canEdit || isViewer || isTech) && (
         <div className="rounded-md border p-5 space-y-4" data-testid="cqi-agenda-section">
           <h2 className="text-sm font-semibold text-foreground">Agenda Items</h2>
           <div className="space-y-3">
@@ -978,7 +1013,7 @@ export default function CQIMeeting() {
       )}
 
       {/* ── Section 4: QRE Documentation ── */}
-      {(canEdit || isViewer) && (
+      {(canEdit || isViewer || isTech) && (
         <div className="rounded-md border p-5 space-y-4" data-testid="cqi-qre-section">
           <h2 className="text-sm font-semibold text-foreground">QRE Documentation</h2>
           <div className="space-y-1.5">

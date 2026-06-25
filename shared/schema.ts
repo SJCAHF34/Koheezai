@@ -169,6 +169,76 @@ export interface AppNotification {
   read: boolean;
 }
 
+// ── CQI-QRE Quarterly Meeting ─────────────────────────────────────────────
+// Site-level quarterly meeting record. Directors edit the details; all staff
+// at the site (including technicians and staff pharmacists) can view it
+// read-only and sign the attendance list. Stored server-side so the same
+// record is shared across every user at the site.
+
+export const cqiAttendeeSchema = z.object({
+  id: z.string(),
+  userEmail: z.string(),
+  printName: z.string(),
+  signatureName: z.string(),
+  role: z.string(),
+  signedAt: z.string(),
+});
+export type CQIAttendee = z.infer<typeof cqiAttendeeSchema>;
+
+export const CQI_QUARTER_OPTIONS = ["Q1", "Q2", "Q3", "Q4", "Other", ""] as const;
+export const CQI_STATUSES = ["not_started", "in_progress", "submitted"] as const;
+
+export const cqiMeetingSchema = z.object({
+  siteId: z.string(),
+  quarter: z.string(),
+  siteName: z.string().default(""),
+  pharmacyLocation: z.string(),
+  pic: z.string(),
+  selectedQuarter: z.enum(CQI_QUARTER_OPTIONS),
+  otherDate: z.string(),
+  safetyChecks: z.object({
+    fireExtinguisher: z.boolean(),
+    smokeDetector: z.boolean(),
+    evacuationPlan: z.boolean(),
+  }),
+  agendaItems: z.object({
+    regulatoryUpdates: z.boolean(),
+    workflowUpdates: z.boolean(),
+    qreIssues: z.boolean(),
+    policyUpdates: z.boolean(),
+    qmcMeetingMinutes: z.boolean(),
+  }),
+  qreIssues: z.string(),
+  actionPlan: z.string(),
+  attendees: z.array(cqiAttendeeSchema),
+  status: z.enum(CQI_STATUSES),
+  lastUpdatedAt: z.string(),
+  submittedBy: z.string().optional(),
+  submittedAt: z.string().optional(),
+});
+export type CQIMeetingRecord = z.infer<typeof cqiMeetingSchema>;
+
+// Director save payload. Attendees and server-managed fields (status,
+// lastUpdatedAt) are excluded — the server preserves attendees and recomputes
+// status on every save.
+export const upsertCqiMeetingSchema = cqiMeetingSchema.omit({
+  attendees: true,
+  status: true,
+  lastUpdatedAt: true,
+  submittedBy: true,
+  submittedAt: true,
+});
+export type UpsertCqiMeeting = z.infer<typeof upsertCqiMeetingSchema>;
+
+// Sign-attendance payload. Any authenticated staff member at the site may sign.
+export const signCqiMeetingSchema = z.object({
+  siteName: z.string().optional(),
+  pharmacyLocation: z.string().optional(),
+  printName: z.string().min(1),
+  signatureName: z.string().min(1),
+});
+export type SignCqiMeeting = z.infer<typeof signCqiMeetingSchema>;
+
 // ── Access audit log (HIPAA) ──────────────────────────────────────────────
 // Records WHO accessed WHAT patient/assessment action and WHEN. The entry
 // itself never contains PHI — `resource` holds only non-PHI identifiers such as
