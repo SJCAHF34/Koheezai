@@ -28,7 +28,7 @@ import TeamsConfig from "@/pages/TeamsConfig";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, FileCheck2 } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2 } from "lucide-react";
 import type { AppNotification } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { isInTeams, teamsSilentLogin } from "@/lib/teams";
@@ -494,6 +494,7 @@ function Router() {
 function AppContent() {
   const queryClient = useQueryClient();
   const [resolving, setResolving] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -505,6 +506,9 @@ function AppContent() {
         if (cancelled) return;
         if (result.ok) {
           await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+        } else if (result.denied) {
+          // The signed-in Microsoft account isn't provisioned in Koheez.ai.
+          setAccessDenied(true);
         }
       } finally {
         if (!cancelled) setResolving(false);
@@ -516,6 +520,25 @@ function AppContent() {
   }, [queryClient]);
 
   if (resolving) return <Spinner />;
+  if (accessDenied) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center p-6 bg-background"
+        data-testid="teams-access-denied"
+      >
+        <div className="max-w-md w-full text-center space-y-3">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+            <ShieldAlert className="h-6 w-6 text-destructive" />
+          </div>
+          <h1 className="text-lg font-semibold text-foreground">No access to Koheez.ai</h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Your Microsoft account isn't set up for Koheez.ai yet. Please contact your
+            pharmacy administrator to request access.
+          </p>
+        </div>
+      </div>
+    );
+  }
   return <Router />;
 }
 

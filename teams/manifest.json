@@ -33,8 +33,8 @@
     {
       "entityId": "koheez-home",
       "name": "Koheez.ai",
-      "contentUrl": "https://{{APP_DOMAIN}}/app",
-      "websiteUrl": "https://{{APP_DOMAIN}}/app",
+      "contentUrl": "https://{{APP_DOMAIN}}/",
+      "websiteUrl": "https://{{APP_DOMAIN}}/",
       "scopes": ["personal"]
     }
   ],

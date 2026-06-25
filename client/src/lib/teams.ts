@@ -41,6 +41,8 @@ export interface TeamsLoginResult {
   ok: boolean;
   user?: { email: string; name: string };
   error?: string;
+  /** True when the server explicitly denied access (account not provisioned). */
+  denied?: boolean;
 }
 
 /**
@@ -69,7 +71,11 @@ export async function teamsSilentLogin(): Promise<TeamsLoginResult> {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      return { ok: false, error: body.error || `Sign-in failed (${res.status})` };
+      return {
+        ok: false,
+        denied: res.status === 403,
+        error: body.error || `Sign-in failed (${res.status})`,
+      };
     }
     const body = await res.json();
     return { ok: true, user: body.user };
