@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/App";
-import { getUserProfile, isRegionalOrAbove, isDirectorRole, isTechRole, getRoleLabel } from "@/lib/userProfile";
+import { getUserProfile, isRegionalOrAbove, isDirectorRole, isTechRole, getRoleLabel, getStoreStaff, type StoreStaffMember } from "@/lib/userProfile";
+import { apiRequest } from "@/lib/queryClient";
 import {
   loadCQIMeeting,
   saveCQIMeeting,
@@ -30,6 +31,7 @@ import {
   UserCheck,
   PenLine,
   AlertCircle,
+  Mail,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
@@ -450,6 +452,174 @@ function SignAttendanceModal({
   );
 }
 
+// ── Email Team to Sign Modal ──────────────────────────────────────────────────
+
+function EmailTeamModal({
+  open,
+  onClose,
+  staff,
+  currentEmail,
+  quarter,
+  siteId,
+  signedEmails,
+}: {
+  open: boolean;
+  onClose: () => void;
+  staff: StoreStaffMember[];
+  currentEmail: string;
+  quarter: string;
+  siteId: string;
+  signedEmails: string[];
+}) {
+  const { toast } = useToast();
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [sending, setSending] = useState(false);
+
+  // Everyone on the store roster except the director sending the request.
+  const recipients = staff.filter(
+    (m) => m.email.toLowerCase() !== currentEmail.toLowerCase()
+  );
+  const signedSet = new Set(signedEmails.map((e) => e.toLowerCase()));
+
+  useEffect(() => {
+    if (open) {
+      const init: Record<string, boolean> = {};
+      // Pre-select those who have NOT yet signed.
+      recipients.forEach((m) => {
+        init[m.email] = !signedSet.has(m.email.toLowerCase());
+      });
+      setSelected(init);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const chosen = recipients.filter((m) => selected[m.email]);
+
+  async function handleSend() {
+    if (chosen.length === 0) return;
+    setSending(true);
+    try {
+      const result = await apiRequest<{
+        configured: boolean;
+        sent: number;
+        failed: number;
+        total: number;
+      }>("/api/cqi/email-signers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emails: chosen.map((m) => m.email),
+          quarter,
+          siteId,
+        }),
+      });
+
+      if (!result.configured) {
+        toast({
+          title: "Email not set up",
+          description:
+            "Email sending isn't configured yet. Ask your administrator to connect Outlook before sending sign requests.",
+          variant: "destructive",
+        });
+      } else if (result.sent > 0) {
+        toast({
+          title: "Sign requests sent",
+          description: `Emailed ${result.sent} team member${result.sent === 1 ? "" : "s"}.${
+            result.failed ? ` ${result.failed} could not be sent.` : ""
+          }`,
+        });
+        onClose();
+      } else {
+        toast({
+          title: "Could not send",
+          description: "No emails were sent. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to send sign requests. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md" data-testid="email-team-modal" aria-describedby="email-team-desc">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-blue-600" />
+            Email Team to Sign
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <p id="email-team-desc" className="text-sm text-muted-foreground leading-relaxed">
+            Select the team members to email. Each person receives a link to sign the
+            CQI-QRE Quarterly Meeting attendance record.
+          </p>
+          {recipients.length === 0 ? (
+            <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground" data-testid="email-team-empty">
+              No other team members are listed for this store.
+            </div>
+          ) : (
+            <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
+              {recipients.map((m) => {
+                const hasSigned = signedSet.has(m.email.toLowerCase());
+                return (
+                  <label
+                    key={m.email}
+                    className="flex items-center gap-3 rounded-md px-2 py-2 hover-elevate cursor-pointer"
+                    data-testid={`email-team-row-${m.email}`}
+                  >
+                    <Checkbox
+                      checked={!!selected[m.email]}
+                      onCheckedChange={(val) =>
+                        setSelected((prev) => ({ ...prev, [m.email]: !!val }))
+                      }
+                      data-testid={`email-team-checkbox-${m.email}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-foreground truncate">{m.name}</span>
+                        {hasSigned && (
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Signed
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {getRoleLabel(m.role)} · {m.email}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} data-testid="email-team-cancel-btn">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSend}
+            disabled={chosen.length === 0 || sending}
+            data-testid="email-team-send-btn"
+          >
+            <Mail className="w-4 h-4 mr-2" />
+            {sending ? "Sending…" : `Send to ${chosen.length || ""}`.trim()}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function CQIMeeting() {
@@ -467,6 +637,7 @@ export default function CQIMeeting() {
 
   const [record, setRecord] = useState<CQIMeetingRecord | null>(null);
   const [signModalOpen, setSignModalOpen] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const page1Ref = useRef<HTMLDivElement>(null);
@@ -845,15 +1016,27 @@ export default function CQIMeeting() {
       <div className="rounded-md border p-5 space-y-4" data-testid="cqi-attendance-section">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-foreground">Meeting Attendance</h2>
-          <Button
-            variant={signed ? "outline" : "default"}
-            onClick={() => setSignModalOpen(true)}
-            disabled={signed}
-            data-testid="cqi-sign-btn"
-          >
-            <PenLine className="w-4 h-4 mr-2" />
-            {signed ? "Already Signed" : "Sign Attendance"}
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {canEdit && (
+              <Button
+                variant="outline"
+                onClick={() => setEmailModalOpen(true)}
+                data-testid="cqi-email-team-btn"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Email Team to Sign
+              </Button>
+            )}
+            <Button
+              variant={signed ? "outline" : "default"}
+              onClick={() => setSignModalOpen(true)}
+              disabled={signed}
+              data-testid="cqi-sign-btn"
+            >
+              <PenLine className="w-4 h-4 mr-2" />
+              {signed ? "Already Signed" : "Sign Attendance"}
+            </Button>
+          </div>
         </div>
 
         {signed && (
@@ -927,6 +1110,19 @@ export default function CQIMeeting() {
         onSign={handleSign}
         defaultName={profile?.name ?? ""}
       />
+
+      {/* Email Team to Sign Modal (directors only) */}
+      {canEdit && (
+        <EmailTeamModal
+          open={emailModalOpen}
+          onClose={() => setEmailModalOpen(false)}
+          staff={getStoreStaff(siteId)}
+          currentEmail={user?.email ?? ""}
+          quarter={record.selectedQuarter || quarter}
+          siteId={siteId}
+          signedEmails={record.attendees.map((a) => a.userEmail)}
+        />
+      )}
     </div>
   );
 }

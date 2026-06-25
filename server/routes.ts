@@ -24,8 +24,10 @@ import {
   getRPDsByRegion,
   getCPOs,
   getDirectorsByStore,
+  getStoreStaff,
   isKnownUser,
 } from "../client/src/lib/userProfile";
+import { sendEmail } from "./lib/outlookClient";
 import {
   verifyTeamsSsoToken,
   getTeamsSsoConfig,
@@ -992,6 +994,87 @@ FORMATTING RULES (strict):
   function fireSalesforce(phone: string, initials: string, event: string, detail: string) {
     if (phone) logRetentionEvent(phone, initials, event, detail).catch(() => {});
   }
+
+  // ── CQI-QRE Meeting: email team members to sign attendance ──────────────────
+  app.post("/api/cqi/email-signers", requireAuth, async (req, res) => {
+    try {
+      const sessionEmail = req.session.userId as string;
+      const sessionName = req.session.user?.name ?? "";
+      const profile = getUserProfile(sessionEmail, sessionName);
+
+      if (!isDirectorRole(profile.role)) {
+        return res.status(403).json({ message: "Only pharmacy directors can email the team to sign." });
+      }
+
+      const body = req.body ?? {};
+      // Pharmacy directors are locked to their own store; regional/CPO may target a store.
+      const siteId: string = isPharmacyDirector(profile.role)
+        ? profile.siteId
+        : (typeof body.siteId === "string" && body.siteId ? body.siteId : profile.siteId);
+      const quarter: string =
+        typeof body.quarter === "string" && body.quarter.trim()
+          ? body.quarter.trim().slice(0, 40)
+          : "this quarter";
+
+      const staff = getStoreStaff(siteId);
+      const allowed = new Map(staff.map((m) => [m.email.toLowerCase(), m]));
+
+      // Recipients: client may pass a subset of emails; default to the whole store.
+      const requested: string[] =
+        Array.isArray(body.emails) && body.emails.length > 0
+          ? body.emails.filter((e: unknown): e is string => typeof e === "string")
+          : staff.map((m) => m.email);
+
+      // Only email people who are actually on this store's roster, never the sender,
+      // and never the same address twice.
+      const seen = new Set<string>();
+      const recipients = requested
+        .map((e) => allowed.get(e.toLowerCase()))
+        .filter((m): m is NonNullable<typeof m> => {
+          if (!m) return false;
+          const key = m.email.toLowerCase();
+          if (key === sessionEmail.toLowerCase() || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+      if (recipients.length === 0) {
+        return res.status(400).json({ message: "No valid team members to email for this store." });
+      }
+
+      const configured = !!process.env.OUTLOOK_ACCESS_TOKEN;
+      const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+      const signLink = `${baseUrl}/app/cqi-meeting`;
+      const subject = `Action Required: Sign the CQI-QRE Quarterly Meeting (${quarter})`;
+
+      const results: { email: string; ok: boolean }[] = [];
+      for (const m of recipients) {
+        const text =
+          `Hello ${m.name},\n\n` +
+          `${profile.name} is requesting that you electronically sign the CQI-QRE Quarterly ` +
+          `Meeting attendance record for ${profile.siteName} (${quarter}).\n\n` +
+          `Sign here: ${signLink}\n\n` +
+          `Open Koheez.ai, go to the CQI Meeting page, and click "Sign Attendance" to confirm ` +
+          `your participation.\n\nThank you,\nKoheez.ai`;
+        const ok = configured ? await sendEmail(m.email, subject, text) : false;
+        results.push({ email: m.email, ok });
+      }
+
+      await recordAccess(req, "cqi.email_signers", siteId);
+
+      const sent = results.filter((r) => r.ok).length;
+      return res.json({
+        configured,
+        sent,
+        failed: results.length - sent,
+        total: results.length,
+        results,
+      });
+    } catch (err) {
+      console.error("[CQI] email-signers error:", err);
+      return res.status(500).json({ message: "Failed to send meeting sign requests." });
+    }
+  });
 
   app.get("/api/retention/patients/:siteId", requireAuth, async (req, res) => {
     try {

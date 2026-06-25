@@ -219,7 +219,10 @@ function AppNav() {
   const isRegional = profile ? isRegionalOrAbove(profile.role) : false;
   const isCpoUser = profile ? isCPO(profile.role) : false;
   const showWorkbook = profile ? !isTechRole(profile.role) : false;
-  const showCQI = profile ? isDirectorRole(profile.role) : false;
+  // CQI meeting is visible to all staff: techs and staff pharmacists need to be
+  // able to reach the page to sign the attendance record. Editing the rest of the
+  // form stays director-only (enforced inside the CQIMeeting page).
+  const showCQI = !!profile;
 
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("/api/auth/logout", { method: "POST" }),
