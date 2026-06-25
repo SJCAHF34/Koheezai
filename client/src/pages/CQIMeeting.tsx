@@ -3,7 +3,7 @@ import { useAuth } from "@/App";
 import { getUserProfile, isRegionalOrAbove, isDirectorRole, isTechRole, getRoleLabel, getStoreStaff, type StoreStaffMember } from "@/lib/userProfile";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { getCurrentQuarter } from "@/lib/taskStorage";
+import { getCurrentQuarter, getSiteDirectorName } from "@/lib/taskStorage";
 import type { CQIMeetingRecord, CQIAttendee } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -657,7 +657,7 @@ export default function CQIMeeting() {
           quarter,
           profile?.siteName ?? "",
           profile?.siteName ?? "",
-          "",
+          getSiteDirectorName(siteId),
         ),
       );
       loadedKeyRef.current = key;

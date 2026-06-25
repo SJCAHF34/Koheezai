@@ -617,6 +617,17 @@ export function loadRoster(siteId: string): SiteRoster {
   return readRosters().find((r) => r.siteId === siteId) ?? DEFAULT_ROSTERS[siteId] ?? { siteId, members: [] };
 }
 
+/** Returns the name of the site's director (Pharmacist-in-Charge) from the
+ *  roster, or "" when no director is configured. If multiple directors are
+ *  active, the first one in the roster is used. */
+export function getSiteDirectorName(siteId: string, todayDate?: string): string {
+  const roster = loadRoster(siteId);
+  const director = roster.members.find((m) =>
+    getActiveRoles(m, todayDate).includes("director"),
+  );
+  return director?.name ?? "";
+}
+
 export function saveRoster(roster: SiteRoster): void {
   try {
     const all = readRosters().filter((r) => r.siteId !== roster.siteId);
