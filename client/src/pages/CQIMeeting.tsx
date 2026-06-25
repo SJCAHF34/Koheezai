@@ -657,7 +657,7 @@ export default function CQIMeeting() {
           quarter,
           profile?.siteName ?? "",
           profile?.siteName ?? "",
-          profile?.name ?? "",
+          "",
         ),
       );
       loadedKeyRef.current = key;
