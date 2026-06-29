@@ -613,6 +613,17 @@ function EmailTeamModal({
 
 // ── Main page ────────────────────────────────────────────────────────────────
 
+function cqiStatusLabel(status: CqiMeetingSummary["status"]): string {
+  switch (status) {
+    case "submitted":
+      return "Submitted";
+    case "in_progress":
+      return "In progress";
+    default:
+      return "Not started";
+  }
+}
+
 export default function CQIMeeting() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -672,8 +683,7 @@ export default function CQIMeeting() {
     const map = new Map<string, CqiMeetingSummary | null>();
     map.set(currentQuarter, null);
     for (const m of meetingList ?? []) {
-      if (!map.has(m.quarter)) map.set(m.quarter, m);
-      else if (m.quarter !== currentQuarter) map.set(m.quarter, m);
+      map.set(m.quarter, m);
     }
     return Array.from(map.entries())
       .sort((a, b) => b[0].localeCompare(a[0]))
@@ -913,11 +923,21 @@ export default function CQIMeeting() {
             <SelectContent>
               {quarterOptions.map(({ quarter: q, summary }) => (
                 <SelectItem key={q} value={q} data-testid={`cqi-archive-option-${q}`}>
-                  {q}
-                  {q === currentQuarter ? " (current)" : ""}
-                  {summary?.lastUpdatedAt
-                    ? ` — updated ${new Date(summary.lastUpdatedAt).toLocaleDateString()}`
-                    : ""}
+                  <span className="flex flex-col">
+                    <span>
+                      {q}
+                      {q === currentQuarter ? " (current)" : ""}
+                    </span>
+                    {summary && (
+                      <span className="text-xs text-muted-foreground">
+                        {cqiStatusLabel(summary.status)}
+                        {summary.pic ? ` · PIC: ${summary.pic}` : ""}
+                        {summary.lastUpdatedAt
+                          ? ` · updated ${new Date(summary.lastUpdatedAt).toLocaleDateString()}`
+                          : ""}
+                      </span>
+                    )}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>

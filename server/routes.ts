@@ -175,6 +175,13 @@ const assessmentRequestSchema = z.object({
   currentDrugs: z.array(z.string()).optional(),
 });
 
+// Current quarter as "YYYY-Q#". Must match the client's getCurrentQuarter()
+// (client/src/lib/taskStorage.ts) so past quarters are treated consistently.
+function getServerCurrentQuarter(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-Q${Math.ceil((now.getMonth() + 1) / 3)}`;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // ── Public crawlable info routes (must be before Vite catch-all) ─────────
   const KOHEEZ_INFO = {
@@ -1124,6 +1131,11 @@ FORMATTING RULES (strict):
     if (!access.canEditSite(siteId)) {
       return res.status(403).json({ message: "Only directors can edit the meeting form." });
     }
+    if (parsed.data.quarter !== getServerCurrentQuarter()) {
+      return res
+        .status(403)
+        .json({ message: "Past quarters are read-only and cannot be edited." });
+    }
     const record = await storage.upsertCqiMeeting(parsed.data, {
       email: access.profile.email,
       name: access.profile.name,
@@ -1141,6 +1153,11 @@ FORMATTING RULES (strict):
     if (!quarter) return res.status(400).json({ message: "quarter query param is required" });
     if (!access.canViewSite(siteId)) {
       return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    if (quarter !== getServerCurrentQuarter()) {
+      return res
+        .status(403)
+        .json({ message: "Past quarters are read-only and cannot be signed." });
     }
     const parsed = signCqiMeetingSchema.safeParse(req.body);
     if (!parsed.success) {
