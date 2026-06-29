@@ -230,6 +230,16 @@ export const upsertCqiMeetingSchema = cqiMeetingSchema.omit({
 });
 export type UpsertCqiMeeting = z.infer<typeof upsertCqiMeetingSchema>;
 
+// Lightweight summary of a saved meeting, used for the prior-meetings archive
+// list. Avoids sending the full record (and attendee PII) just to render a list.
+export const cqiMeetingSummarySchema = z.object({
+  quarter: z.string(),
+  status: z.enum(CQI_STATUSES),
+  pic: z.string(),
+  lastUpdatedAt: z.string(),
+});
+export type CqiMeetingSummary = z.infer<typeof cqiMeetingSummarySchema>;
+
 // Sign-attendance payload. Any authenticated staff member at the site may sign.
 export const signCqiMeetingSchema = z.object({
   siteName: z.string().optional(),

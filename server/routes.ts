@@ -1084,6 +1084,20 @@ FORMATTING RULES (strict):
 
   // Read the meeting for a site/quarter. Any staff member assigned to the site
   // (or a director who oversees it) may view.
+  // List all saved meetings for a site (lightweight summaries for the archive).
+  // Same view access as the current meeting.
+  app.get("/api/cqi/:siteId/meetings", requireAuth, async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    if (!access.canViewSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const meetings = await storage.listCqiMeetings(siteId);
+    await recordAccess(req, "cqi.meeting.list", siteId);
+    return res.json(meetings);
+  });
+
   app.get("/api/cqi/:siteId/meeting", requireAuth, async (req, res) => {
     const access = getSiteAccess(req);
     if (!access.ok) return res.status(access.status).json({ message: access.message });

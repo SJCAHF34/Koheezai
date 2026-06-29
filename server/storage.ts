@@ -12,6 +12,7 @@ import {
   type CQIMeetingRecord,
   type CQIAttendee,
   type UpsertCqiMeeting,
+  type CqiMeetingSummary,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -143,6 +144,7 @@ export interface IStorage {
 
   // ── CQI-QRE Quarterly Meetings ─────────────────────────────────────────
   getCqiMeeting(siteId: string, quarter: string): Promise<CQIMeetingRecord | undefined>;
+  listCqiMeetings(siteId: string): Promise<CqiMeetingSummary[]>;
   upsertCqiMeeting(
     data: UpsertCqiMeeting,
     user: { email: string; name: string },
@@ -740,6 +742,19 @@ export class MemStorage implements IStorage {
 
   async getCqiMeeting(siteId: string, quarter: string): Promise<CQIMeetingRecord | undefined> {
     return this.cqiMeetings.get(this.cqiKey(siteId, quarter));
+  }
+
+  async listCqiMeetings(siteId: string): Promise<CqiMeetingSummary[]> {
+    return Array.from(this.cqiMeetings.values())
+      .filter((rec) => rec.siteId === siteId)
+      .map((rec) => ({
+        quarter: rec.quarter,
+        status: rec.status,
+        pic: rec.pic,
+        lastUpdatedAt: rec.lastUpdatedAt,
+      }))
+      // Newest quarter first (keys are "YYYY-Q#", so a descending sort works).
+      .sort((a, b) => b.quarter.localeCompare(a.quarter));
   }
 
   async upsertCqiMeeting(

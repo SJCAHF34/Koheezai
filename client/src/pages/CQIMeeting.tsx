@@ -1,10 +1,18 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/App";
 import { getUserProfile, isRegionalOrAbove, isDirectorRole, isTechRole, getRoleLabel, getStoreStaff, type StoreStaffMember } from "@/lib/userProfile";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getCurrentQuarter, getSiteDirectorName } from "@/lib/taskStorage";
-import type { CQIMeetingRecord, CQIAttendee } from "@shared/schema";
+import type { CQIMeetingRecord, CQIAttendee, CqiMeetingSummary } from "@shared/schema";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { History } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -610,13 +618,24 @@ export default function CQIMeeting() {
   const { toast } = useToast();
   const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
 
-  const quarter = getCurrentQuarter();
+  const currentQuarter = getCurrentQuarter();
+  const [selectedQuarter, setSelectedQuarter] = useState(currentQuarter);
+  const quarter = selectedQuarter;
+  const isViewingPast = selectedQuarter !== currentQuarter;
   const siteId = profile?.siteId ?? "";
   const isViewer = profile ? isRegionalOrAbove(profile.role) : false;
 
   const isDirectorOrAbove = profile ? isDirectorRole(profile.role) : false;
   const isTech = profile ? isTechRole(profile.role) : false;
-  const canEdit = isDirectorOrAbove;
+  // Directors edit the current quarter only. Past quarters are always
+  // read-only (back-dating is out of scope) for everyone.
+  const canEdit = isDirectorOrAbove && !isViewingPast;
+  // Every staff member assigned to the site can view the meeting form
+  // (current or any archived quarter) read-only. Editing remains gated by
+  // canEdit (directors, current quarter only). The server already restricts
+  // who can fetch a site's records, so reaching here means the user is
+  // authorized to view this site.
+  const canViewForm = true;
 
   const [signModalOpen, setSignModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -634,6 +653,32 @@ export default function CQIMeeting() {
       ),
     enabled: !!siteId && !!quarter,
   });
+
+  // Archive: every saved meeting for this site (newest first). Shared across
+  // all roles — staff, techs and directors can browse prior quarters.
+  const listQueryKey = ["/api/cqi", siteId, "meetings"] as const;
+  const { data: meetingList } = useQuery<CqiMeetingSummary[]>({
+    queryKey: listQueryKey,
+    queryFn: () =>
+      apiRequest<CqiMeetingSummary[]>(
+        `/api/cqi/${encodeURIComponent(siteId)}/meetings`,
+      ),
+    enabled: !!siteId,
+  });
+
+  // Quarter options for the archive selector: the current quarter is always
+  // available (so the user can return to it) plus any saved past quarters.
+  const quarterOptions = useMemo(() => {
+    const map = new Map<string, CqiMeetingSummary | null>();
+    map.set(currentQuarter, null);
+    for (const m of meetingList ?? []) {
+      if (!map.has(m.quarter)) map.set(m.quarter, m);
+      else if (m.quarter !== currentQuarter) map.set(m.quarter, m);
+    }
+    return Array.from(map.entries())
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([q, summary]) => ({ quarter: q, summary }));
+  }, [meetingList, currentQuarter]);
 
   // Local editable copy. Directors edit fields locally and persist via Save;
   // everyone else sees this as a read-only mirror of the server record.
@@ -680,6 +725,7 @@ export default function CQIMeeting() {
     },
     onSuccess: (saved) => {
       queryClient.setQueryData(meetingQueryKey, saved);
+      queryClient.invalidateQueries({ queryKey: listQueryKey });
       setDraft(saved);
       toast({ title: "Saved", description: "Meeting form saved successfully." });
     },
@@ -705,6 +751,7 @@ export default function CQIMeeting() {
       ),
     onSuccess: (saved) => {
       queryClient.setQueryData(meetingQueryKey, saved);
+      queryClient.invalidateQueries({ queryKey: listQueryKey });
       toast({ title: "Signed", description: "Your attendance has been recorded." });
     },
     onError: () => {
@@ -819,34 +866,88 @@ export default function CQIMeeting() {
             </p>
           </div>
         </div>
-        {!isTech && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <StatusBadge status={record.status} />
-            {canEdit && (
-              <Button
-                variant="outline"
-                onClick={handleSave}
-                disabled={isSaving}
-                data-testid="cqi-save-btn"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {isSaving ? "Saving…" : "Save"}
-              </Button>
-            )}
-            {canEdit && (
-              <Button
-                variant="outline"
-                onClick={handleExportPDF}
-                disabled={isExporting}
-                data-testid="cqi-export-btn"
-              >
-                <FileDown className="w-4 h-4 mr-2" />
-                {isExporting ? "Exporting…" : "Export PDF"}
-              </Button>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {!isTech && <StatusBadge status={record.status} />}
+          {canEdit && (
+            <Button
+              variant="outline"
+              onClick={handleSave}
+              disabled={isSaving}
+              data-testid="cqi-save-btn"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isSaving ? "Saving…" : "Save"}
+            </Button>
+          )}
+          {/* Any staff member (including technicians) can export the PDF, for
+              the current quarter or any saved prior meeting. */}
+          <Button
+            variant="outline"
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            data-testid="cqi-export-btn"
+          >
+            <FileDown className="w-4 h-4 mr-2" />
+            {isExporting ? "Exporting…" : "Export PDF"}
+          </Button>
+        </div>
       </div>
+
+      {/* Prior meetings archive selector */}
+      {quarterOptions.length > 1 && (
+        <div
+          className="rounded-md border p-4 flex flex-wrap items-center gap-3"
+          data-testid="cqi-archive-selector"
+        >
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <History className="w-4 h-4" />
+            <span>Prior meetings</span>
+          </div>
+          <Select
+            value={selectedQuarter}
+            onValueChange={(val) => setSelectedQuarter(val)}
+          >
+            <SelectTrigger className="w-[260px]" data-testid="cqi-archive-select-trigger">
+              <SelectValue placeholder="Select a quarter" />
+            </SelectTrigger>
+            <SelectContent>
+              {quarterOptions.map(({ quarter: q, summary }) => (
+                <SelectItem key={q} value={q} data-testid={`cqi-archive-option-${q}`}>
+                  {q}
+                  {q === currentQuarter ? " (current)" : ""}
+                  {summary?.lastUpdatedAt
+                    ? ` — updated ${new Date(summary.lastUpdatedAt).toLocaleDateString()}`
+                    : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {isViewingPast && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedQuarter(currentQuarter)}
+              data-testid="cqi-archive-back-current"
+            >
+              Back to current quarter
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Read-only notice when viewing a past quarter */}
+      {isViewingPast && (
+        <div
+          className="rounded-md bg-muted px-4 py-3 flex items-start gap-3"
+          data-testid="cqi-past-notice"
+        >
+          <History className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-sm text-muted-foreground">
+            You are viewing a saved meeting from {selectedQuarter}. Past meetings are
+            read-only — you can review and export them, but not edit them.
+          </p>
+        </div>
+      )}
 
       {/* Site label */}
       {profile && (
@@ -857,7 +958,7 @@ export default function CQIMeeting() {
       )}
 
       {/* Read-only notice for non-editors (non-tech, non-director staff) */}
-      {!canEdit && !isViewer && !isTech && (
+      {!canEdit && !isViewer && !isTech && !isViewingPast && (
         <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3" data-testid="cqi-readonly-notice">
           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <p className="text-sm text-amber-800">
@@ -867,7 +968,7 @@ export default function CQIMeeting() {
       )}
 
       {/* Tech-role notice */}
-      {isTech && (
+      {isTech && !isViewingPast && (
         <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-3 flex items-start gap-3" data-testid="cqi-tech-notice">
           <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
           <p className="text-sm text-blue-800">
@@ -877,7 +978,7 @@ export default function CQIMeeting() {
       )}
 
       {/* ── Section 1: Header info ── */}
-      {(canEdit || isViewer || isTech) && (
+      {canViewForm && (
         <div className="rounded-md border p-5 space-y-4" data-testid="cqi-header-section">
           <h2 className="text-sm font-semibold text-foreground">Meeting Information</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -947,7 +1048,7 @@ export default function CQIMeeting() {
       )}
 
       {/* ── Section 2: Safety Checks ── */}
-      {(canEdit || isViewer || isTech) && (
+      {canViewForm && (
         <div className="rounded-md border p-5 space-y-4" data-testid="cqi-safety-section">
           <h2 className="text-sm font-semibold text-foreground">Safety Checks</h2>
           <div className="space-y-3">
@@ -979,7 +1080,7 @@ export default function CQIMeeting() {
       )}
 
       {/* ── Section 3: Agenda Items ── */}
-      {(canEdit || isViewer || isTech) && (
+      {canViewForm && (
         <div className="rounded-md border p-5 space-y-4" data-testid="cqi-agenda-section">
           <h2 className="text-sm font-semibold text-foreground">Agenda Items</h2>
           <div className="space-y-3">
@@ -1013,7 +1114,7 @@ export default function CQIMeeting() {
       )}
 
       {/* ── Section 4: QRE Documentation ── */}
-      {(canEdit || isViewer || isTech) && (
+      {canViewForm && (
         <div className="rounded-md border p-5 space-y-4" data-testid="cqi-qre-section">
           <h2 className="text-sm font-semibold text-foreground">QRE Documentation</h2>
           <div className="space-y-1.5">
@@ -1062,15 +1163,17 @@ export default function CQIMeeting() {
                 Email Team to Sign
               </Button>
             )}
-            <Button
-              variant={signed ? "outline" : "default"}
-              onClick={() => setSignModalOpen(true)}
-              disabled={signed}
-              data-testid="cqi-sign-btn"
-            >
-              <PenLine className="w-4 h-4 mr-2" />
-              {signed ? "Already Signed" : "Sign Attendance"}
-            </Button>
+            {!isViewingPast && (
+              <Button
+                variant={signed ? "outline" : "default"}
+                onClick={() => setSignModalOpen(true)}
+                disabled={signed}
+                data-testid="cqi-sign-btn"
+              >
+                <PenLine className="w-4 h-4 mr-2" />
+                {signed ? "Already Signed" : "Sign Attendance"}
+              </Button>
+            )}
           </div>
         </div>
 
