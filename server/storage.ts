@@ -14,9 +14,12 @@ import {
   type UpsertCqiMeeting,
   type CqiMeetingSummary,
 } from "@shared/schema";
+import { cqiMeetingsTable, auditLogsTable } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
+import { and, desc, eq } from "drizzle-orm";
+import { db } from "./db";
 
 // File-backed persistence for QA Audit data so workbooks, evidence and
 // follow-up tasks survive process restarts. Stored as JSON next to the
@@ -697,7 +700,7 @@ export class MemStorage implements IStorage {
     return `${siteId}|${quarter}`;
   }
 
-  private computeCqiStatus(r: CQIMeetingRecord): CQIMeetingRecord["status"] {
+  protected computeCqiStatus(r: CQIMeetingRecord): CQIMeetingRecord["status"] {
     if (r.status === "submitted") return "submitted";
     const hasAny =
       r.selectedQuarter !== "" ||
@@ -711,7 +714,7 @@ export class MemStorage implements IStorage {
     return hasAny ? "in_progress" : "not_started";
   }
 
-  private emptyCqiMeeting(
+  protected emptyCqiMeeting(
     siteId: string,
     quarter: string,
     base: { siteName?: string; pharmacyLocation?: string },
@@ -829,4 +832,213 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// ── PostgreSQL-backed storage ──────────────────────────────────────────────
+// Extends MemStorage but overrides the shared, server-side records that must
+// survive restarts/redeploys — the CQI-QRE quarterly meetings (including
+// attendee signatures) and the HIPAA access audit log — so they read and write
+// to PostgreSQL instead of in-memory maps and `.local` JSON files. Everything
+// else (scheduling, QA audit, notifications, patients) keeps the inherited
+// in-memory behavior, which is out of scope for this change.
+export class DbStorage extends MemStorage {
+  private rowToCqiRecord(row: typeof cqiMeetingsTable.$inferSelect): CQIMeetingRecord {
+    return {
+      siteId: row.siteId,
+      quarter: row.quarter,
+      siteName: row.siteName,
+      pharmacyLocation: row.pharmacyLocation,
+      pic: row.pic,
+      selectedQuarter: row.selectedQuarter,
+      otherDate: row.otherDate,
+      safetyChecks: row.safetyChecks,
+      agendaItems: row.agendaItems,
+      qreIssues: row.qreIssues,
+      actionPlan: row.actionPlan,
+      attendees: row.attendees,
+      status: row.status,
+      lastUpdatedAt: row.lastUpdatedAt,
+      submittedBy: row.submittedBy ?? undefined,
+      submittedAt: row.submittedAt ?? undefined,
+    };
+  }
+
+  private recordToRow(r: CQIMeetingRecord): typeof cqiMeetingsTable.$inferInsert {
+    return {
+      siteId: r.siteId,
+      quarter: r.quarter,
+      siteName: r.siteName,
+      pharmacyLocation: r.pharmacyLocation,
+      pic: r.pic,
+      selectedQuarter: r.selectedQuarter,
+      otherDate: r.otherDate,
+      safetyChecks: r.safetyChecks,
+      agendaItems: r.agendaItems,
+      qreIssues: r.qreIssues,
+      actionPlan: r.actionPlan,
+      attendees: r.attendees,
+      status: r.status,
+      lastUpdatedAt: r.lastUpdatedAt,
+      submittedBy: r.submittedBy ?? null,
+      submittedAt: r.submittedAt ?? null,
+    };
+  }
+
+  // Read-modify-write a single CQI meeting atomically. Two staff signing the
+  // same meeting at nearly the same time would otherwise race and overwrite each
+  // other's signatures. We first ensure the row exists (no-op insert), then lock
+  // it with SELECT ... FOR UPDATE so the mutate/write happens serially.
+  private async withLockedCqi(
+    siteId: string,
+    quarter: string,
+    base: { siteName?: string; pharmacyLocation?: string },
+    mutate: (current: CQIMeetingRecord) => CQIMeetingRecord,
+  ): Promise<CQIMeetingRecord> {
+    return db.transaction(async (tx) => {
+      await tx
+        .insert(cqiMeetingsTable)
+        .values(this.recordToRow(this.emptyCqiMeeting(siteId, quarter, base)))
+        .onConflictDoNothing();
+      const rows = await tx
+        .select()
+        .from(cqiMeetingsTable)
+        .where(
+          and(
+            eq(cqiMeetingsTable.siteId, siteId),
+            eq(cqiMeetingsTable.quarter, quarter),
+          ),
+        )
+        .for("update")
+        .limit(1);
+      const current = this.rowToCqiRecord(rows[0]);
+      const next = mutate(current);
+      const row = this.recordToRow(next);
+      await tx
+        .insert(cqiMeetingsTable)
+        .values(row)
+        .onConflictDoUpdate({
+          target: [cqiMeetingsTable.siteId, cqiMeetingsTable.quarter],
+          set: row,
+        });
+      return next;
+    });
+  }
+
+  override async getCqiMeeting(
+    siteId: string,
+    quarter: string,
+  ): Promise<CQIMeetingRecord | undefined> {
+    const rows = await db
+      .select()
+      .from(cqiMeetingsTable)
+      .where(
+        and(
+          eq(cqiMeetingsTable.siteId, siteId),
+          eq(cqiMeetingsTable.quarter, quarter),
+        ),
+      )
+      .limit(1);
+    return rows[0] ? this.rowToCqiRecord(rows[0]) : undefined;
+  }
+
+  override async listCqiMeetings(siteId: string): Promise<CqiMeetingSummary[]> {
+    const rows = await db
+      .select({
+        quarter: cqiMeetingsTable.quarter,
+        status: cqiMeetingsTable.status,
+        pic: cqiMeetingsTable.pic,
+        lastUpdatedAt: cqiMeetingsTable.lastUpdatedAt,
+      })
+      .from(cqiMeetingsTable)
+      .where(eq(cqiMeetingsTable.siteId, siteId));
+    // Newest quarter first (keys are "YYYY-Q#", so a descending sort works).
+    return rows.sort((a, b) => b.quarter.localeCompare(a.quarter));
+  }
+
+  override async upsertCqiMeeting(
+    data: UpsertCqiMeeting,
+    _user: { email: string; name: string },
+  ): Promise<CQIMeetingRecord> {
+    return this.withLockedCqi(
+      data.siteId,
+      data.quarter,
+      { siteName: data.siteName, pharmacyLocation: data.pharmacyLocation },
+      (current) => {
+        const record: CQIMeetingRecord = {
+          ...data,
+          // Attendees and submission metadata are preserved across director edits.
+          attendees: current.attendees,
+          submittedBy: current.submittedBy,
+          submittedAt: current.submittedAt,
+          status: current.status,
+          lastUpdatedAt: new Date().toISOString(),
+        };
+        record.status = this.computeCqiStatus(record);
+        return record;
+      },
+    );
+  }
+
+  override async signCqiMeeting(
+    siteId: string,
+    quarter: string,
+    attendee: Omit<CQIAttendee, "id" | "signedAt">,
+    base: { siteName?: string; pharmacyLocation?: string },
+  ): Promise<CQIMeetingRecord> {
+    return this.withLockedCqi(siteId, quarter, base, (record) => {
+      // One signature per user — ignore duplicates.
+      const already = record.attendees.some(
+        (a) => a.userEmail.toLowerCase() === attendee.userEmail.toLowerCase(),
+      );
+      if (!already) {
+        const full: CQIAttendee = {
+          ...attendee,
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          signedAt: new Date().toISOString(),
+        };
+        record.attendees = [...record.attendees, full];
+      }
+      record.lastUpdatedAt = new Date().toISOString();
+      record.status = this.computeCqiStatus(record);
+      return record;
+    });
+  }
+
+  override async addAuditLog(
+    entry: Omit<AuditLogEntry, "id">,
+  ): Promise<AuditLogEntry> {
+    const full: AuditLogEntry = { id: randomUUID(), ...entry };
+    await db.insert(auditLogsTable).values({
+      id: full.id,
+      at: full.at,
+      actorEmail: full.actorEmail,
+      actorName: full.actorName,
+      role: full.role,
+      action: full.action,
+      resource: full.resource,
+      method: full.method,
+      path: full.path,
+    });
+    return full;
+  }
+
+  override async listAuditLogs(limit = 500): Promise<AuditLogEntry[]> {
+    // Most recent first.
+    const rows = await db
+      .select()
+      .from(auditLogsTable)
+      .orderBy(desc(auditLogsTable.seq))
+      .limit(limit);
+    return rows.map((r) => ({
+      id: r.id,
+      at: r.at,
+      actorEmail: r.actorEmail,
+      actorName: r.actorName,
+      role: r.role,
+      action: r.action,
+      resource: r.resource,
+      method: r.method,
+      path: r.path,
+    }));
+  }
+}
+
+export const storage: IStorage = new DbStorage();

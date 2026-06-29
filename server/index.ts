@@ -1,8 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startOutreachScheduler } from "./lib/outreachScheduler";
+import { pool } from "./db";
 
 const app = express();
 
@@ -42,7 +44,16 @@ if (isProduction) {
   });
 }
 
+// Persist sessions in PostgreSQL so logins survive process restarts and
+// redeploys (Aptible recycles the container filesystem). The table is created
+// automatically on first boot if it does not already exist.
+const PgSession = connectPgSimple(session);
 app.use(session({
+  store: new PgSession({
+    pool,
+    tableName: "session",
+    createTableIfMissing: true,
+  }),
   secret: process.env.SESSION_SECRET || "koheez-dev-secret",
   resave: false,
   saveUninitialized: false,

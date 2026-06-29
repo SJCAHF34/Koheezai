@@ -33,7 +33,7 @@ The backend is an Express.js (Node.js, TypeScript) RESTful API. The primary `/ap
 -   **Automated Outreach Sequence**: Manages a 4-day automated contact sequence (SMS via Clerkchat, Email via Outlook) for retention patients, based on server-side stored patient data and a daily cron scheduler.
 
 ### Data Storage
-User data is currently in-memory. Drizzle ORM is configured for PostgreSQL, with Drizzle Kit for migrations, and prepared for Neon serverless databases. `express-session` with a PostgreSQL session store handles persistent session management.
+Storage is split: the shared server-side records that must survive restarts and redeploys — the CQI-QRE quarterly meetings (including attendee signatures) and the HIPAA access audit log — are persisted in PostgreSQL via Drizzle ORM (tables defined in `shared/schema.ts`, connection in `server/db.ts`, applied with `npm run db:push`). `DbStorage` in `server/storage.ts` extends `MemStorage` and overrides only those records. The remaining data (scheduling, QA audit workbooks, notifications, retention patients) is still in-memory/`.local` JSON and tracked for later migration. Sessions are persisted in PostgreSQL via `connect-pg-simple` (auto-created `session` table), so logins survive redeploys.
 
 ## External Dependencies
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pgTable, text, jsonb, bigserial, primaryKey } from "drizzle-orm/pg-core";
 
 // ── Scheduling ───────────────────────────────────────────────────────────────
 
@@ -505,3 +506,54 @@ export type AssessmentResult = {
   aiProvider?: "openevidence" | "openai";
   liverpoolDDI?: LiverpoolDDIStatus;
 };
+
+// ── Drizzle / PostgreSQL tables ───────────────────────────────────────────
+// These tables back the shared, server-side records that must survive process
+// restarts and redeploys (Aptible recycles the container filesystem). The
+// application-facing shapes remain the Zod types above; these mappers store
+// nested objects/arrays as JSONB so a row round-trips to a CQIMeetingRecord /
+// AuditLogEntry without losing structure.
+
+type CqiSafetyChecks = CQIMeetingRecord["safetyChecks"];
+type CqiAgendaItems = CQIMeetingRecord["agendaItems"];
+type CqiSelectedQuarter = CQIMeetingRecord["selectedQuarter"];
+type CqiStatus = CQIMeetingRecord["status"];
+
+export const cqiMeetingsTable = pgTable(
+  "cqi_meetings",
+  {
+    siteId: text("site_id").notNull(),
+    quarter: text("quarter").notNull(),
+    siteName: text("site_name").notNull().default(""),
+    pharmacyLocation: text("pharmacy_location").notNull().default(""),
+    pic: text("pic").notNull().default(""),
+    selectedQuarter: text("selected_quarter").$type<CqiSelectedQuarter>().notNull().default(""),
+    otherDate: text("other_date").notNull().default(""),
+    safetyChecks: jsonb("safety_checks").$type<CqiSafetyChecks>().notNull(),
+    agendaItems: jsonb("agenda_items").$type<CqiAgendaItems>().notNull(),
+    qreIssues: text("qre_issues").notNull().default(""),
+    actionPlan: text("action_plan").notNull().default(""),
+    attendees: jsonb("attendees").$type<CQIAttendee[]>().notNull().default([]),
+    status: text("status").$type<CqiStatus>().notNull().default("not_started"),
+    lastUpdatedAt: text("last_updated_at").notNull(),
+    submittedBy: text("submitted_by"),
+    submittedAt: text("submitted_at"),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.siteId, t.quarter] }),
+  }),
+);
+
+export const auditLogsTable = pgTable("audit_logs", {
+  // Monotonic insertion order — used to return the most recent entries first.
+  seq: bigserial("seq", { mode: "number" }).notNull(),
+  id: text("id").primaryKey(),
+  at: text("at").notNull(),
+  actorEmail: text("actor_email").notNull(),
+  actorName: text("actor_name").notNull(),
+  role: text("role").notNull(),
+  action: text("action").notNull(),
+  resource: text("resource").notNull(),
+  method: text("method").notNull(),
+  path: text("path").notNull(),
+});
