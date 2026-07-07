@@ -2258,53 +2258,70 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
   });
 
   // ── ADP Workforce Now Integration ─────────────────────────────────────
-  // Credentials live exclusively in environment variables on the server.
+  // All ADP endpoints require director-level role AND correct site access,
+  // derived from the server session (via getSiteAccess) — not req.user.
 
-  // ── ADP access helper — all ADP endpoints require director-level access ──
-  function requireAdpAccess(req: any, res: any): boolean {
-    const profile = getUserProfile(req.user as any);
-    if (!isDirectorRole(profile.role)) {
-      res.status(403).json({ message: "ADP access requires pharmacy director, RPD, or CPO role." });
-      return false;
-    }
-    return true;
-  }
-
-  // GET /api/adp/configured — tells the UI if ADP credentials are present.
-  // Director-gated: exposes integration status and which secrets are configured.
+  // GET /api/adp/configured — director-only: reveals which credential secrets
+  // are present. Intentionally not siteId-scoped (it's per-server, not per-site).
   app.get("/api/adp/configured", requireAuth, (req, res) => {
-    if (!requireAdpAccess(req, res)) return;
-    res.json({ configured: adpIsConfigured(), secrets: adpGetConfigStatus() });
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    if (!isDirectorRole(access.profile.role)) {
+      return res.status(403).json({ message: "ADP access requires director-level role." });
+    }
+    return res.json({ configured: adpIsConfigured(), secrets: adpGetConfigStatus() });
   });
 
-  // GET /api/adp/status?siteId= — last sync result for this site.
+  // GET /api/adp/status?siteId= — last sync result for the given site.
+  // Director must have view access to that siteId.
   app.get("/api/adp/status", requireAuth, async (req, res) => {
-    if (!requireAdpAccess(req, res)) return;
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
     const siteId = String(req.query.siteId ?? "");
     if (!siteId) return res.status(400).json({ message: "siteId required" });
+    if (!isDirectorRole(access.profile.role)) {
+      return res.status(403).json({ message: "ADP access requires director-level role." });
+    }
+    if (!access.canViewSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized to view ADP data for this site." });
+    }
     const status = await storage.getAdpSyncStatus(siteId);
     return res.json(status ?? null);
   });
 
-  // GET /api/adp/mappings?siteId= — worker→staff mapping table for this site.
+  // GET /api/adp/mappings?siteId= — worker→staff mappings for the given site.
+  // Director must have view access to that siteId.
   app.get("/api/adp/mappings", requireAuth, async (req, res) => {
-    if (!requireAdpAccess(req, res)) return;
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
     const siteId = String(req.query.siteId ?? "");
     if (!siteId) return res.status(400).json({ message: "siteId required" });
+    if (!isDirectorRole(access.profile.role)) {
+      return res.status(403).json({ message: "ADP access requires director-level role." });
+    }
+    if (!access.canViewSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized to view ADP data for this site." });
+    }
     const mappings = await storage.getAdpWorkerMappings(siteId);
     return res.json(mappings);
   });
 
-  // PUT /api/adp/mappings — save one mapping (director or above only).
+  // PUT /api/adp/mappings — save/confirm one worker→staff mapping.
+  // Director must have edit access to the mapping's siteId.
   app.put("/api/adp/mappings", requireAuth, async (req, res) => {
-    if (!requireAdpAccess(req, res)) return;
-
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
     const { siteId, adpWorkerId, adpDisplayName, staffId, staffName, confirm } = req.body as {
       siteId: string; adpWorkerId: string; adpDisplayName: string;
       staffId: string; staffName: string; confirm?: boolean;
     };
     if (!siteId || !adpWorkerId) return res.status(400).json({ message: "siteId and adpWorkerId required" });
-
+    if (!isDirectorRole(access.profile.role)) {
+      return res.status(403).json({ message: "ADP access requires director-level role." });
+    }
+    if (!access.canEditSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized to edit ADP data for this site." });
+    }
     const saved = await storage.upsertAdpWorkerMapping({
       siteId, adpWorkerId, adpDisplayName,
       staffId:     staffId   ?? "",
@@ -2314,33 +2331,43 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
     return res.json(saved);
   });
 
-  // DELETE /api/adp/mappings — remove one mapping entry (director or above only).
+  // DELETE /api/adp/mappings — remove a mapping entry.
+  // Director must have edit access to the mapping's siteId.
   app.delete("/api/adp/mappings", requireAuth, async (req, res) => {
-    if (!requireAdpAccess(req, res)) return;
-
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
     const { siteId, adpWorkerId } = req.body as { siteId: string; adpWorkerId: string };
     if (!siteId || !adpWorkerId) return res.status(400).json({ message: "siteId and adpWorkerId required" });
-
+    if (!isDirectorRole(access.profile.role)) {
+      return res.status(403).json({ message: "ADP access requires director-level role." });
+    }
+    if (!access.canEditSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized to edit ADP data for this site." });
+    }
     await storage.deleteAdpWorkerMapping(siteId, adpWorkerId);
     return res.json({ ok: true });
   });
 
-  // POST /api/adp/sync?siteId= — manually trigger a sync (director or above only).
+  // POST /api/adp/sync?siteId= — manually trigger a sync for one site.
+  // Director must have edit access to that siteId.
   // Body (optional): { roster: [{ staffId, staffName }] }
   app.post("/api/adp/sync", requireAuth, async (req, res) => {
-    if (!requireAdpAccess(req, res)) return;
-
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
     const siteId = String(req.query.siteId ?? "");
     if (!siteId) return res.status(400).json({ message: "siteId required" });
-
+    if (!isDirectorRole(access.profile.role)) {
+      return res.status(403).json({ message: "ADP access requires director-level role." });
+    }
+    if (!access.canEditSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized to sync ADP for this site." });
+    }
     if (!adpIsConfigured()) {
       return res.status(422).json({ message: "ADP credentials are not configured on this server." });
     }
-
     const roster = Array.isArray(req.body?.roster)
       ? (req.body.roster as { staffId: string; staffName: string }[])
       : undefined;
-
     try {
       const result = await runAdpSync(siteId, roster);
       return res.json(result);
