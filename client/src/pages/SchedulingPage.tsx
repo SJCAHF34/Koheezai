@@ -716,6 +716,7 @@ export default function SchedulingPage() {
               onPickDay={(d) => setDayDetail(d)}
               onQuickCreate={(d) => setQuickCreate({ date: d })}
               canEdit={canEdit}
+              onEditDefaults={(staff) => setStaffDefaultsTarget(staff)}
             />
           ) : (
             <div className="overflow-x-auto">
@@ -2276,6 +2277,7 @@ function MonthGrid({
   onPickDay,
   onQuickCreate,
   canEdit,
+  onEditDefaults,
 }: {
   monthAnchor: Date;
   days: Date[];
@@ -2286,6 +2288,7 @@ function MonthGrid({
   onPickDay: (d: Date) => void;
   onQuickCreate: (d: Date) => void;
   canEdit: boolean;
+  onEditDefaults?: (staff: StaffMember) => void;
 }) {
   const currentMonth = monthAnchor.getMonth();
   const todayKey = toDateKey(new Date());
@@ -2413,10 +2416,12 @@ function MonthGrid({
                 const widthPct = ((bar.endCol - bar.startCol + 1) / 7) * 100;
                 const topPx = bar.row * EVENT_H + 2;
                 const statusLabel = bar.entry.status === "pto" ? "PTO" : bar.entry.status === "sick" ? "Sick" : "FH";
+                const barStaff = roster.find((s) => s.id === bar.entry.staffId);
                 return (
-                  <div
+                  <button
                     key={`${bar.entry.staffId}-${bar.entry.date}-${wi}`}
-                    className="absolute flex items-center text-white text-[10px] font-medium pointer-events-auto cursor-pointer"
+                    type="button"
+                    className="absolute flex items-center text-white text-[10px] font-medium pointer-events-auto cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white"
                     style={{
                       left: `${leftPct}%`,
                       width: `calc(${widthPct}% - 2px)`,
@@ -2427,7 +2432,8 @@ function MonthGrid({
                       paddingLeft: bar.isStart ? 6 : 2,
                       marginLeft: 1,
                     }}
-                    title={`${bar.staffName} — ${STATUS_LABEL[bar.entry.status]}${bar.entry.note ? `: ${bar.entry.note}` : ""}`}
+                    title={`${bar.staffName} — ${STATUS_LABEL[bar.entry.status]}${bar.entry.note ? `: ${bar.entry.note}` : ""}${onEditDefaults ? " (click to view schedule)" : ""}`}
+                    onClick={(e) => { e.stopPropagation(); if (barStaff && onEditDefaults) onEditDefaults(barStaff); }}
                     data-testid={`bar-timeoff-${bar.entry.staffId}-${bar.entry.date}-w${wi}`}
                   >
                     {bar.isStart && (
@@ -2435,7 +2441,7 @@ function MonthGrid({
                         {bar.staffName.split(" ")[0]} · {statusLabel}
                       </span>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -2481,9 +2487,8 @@ function DayDetailDialog({
             {date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
           </DialogTitle>
           <DialogDescription>
-            {canEdit
-              ? "Click a staff row to edit their shift, or the calendar icon to edit their recurring schedule."
-              : "Schedule for this day (view only)."}
+            Click any staff row to view their recurring schedule.
+            {canEdit ? " Use the + icon to edit today's shift override." : ""}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
@@ -2492,37 +2497,13 @@ function DayDetailDialog({
           ) : (
             roster.map((staff) => {
               const cell = computeEffective(date, staff.id, defaults, entries);
-              const statusBlock = (
-                <div className="flex items-center gap-2 shrink-0">
-                  {cell.status === "scheduled" && cell.start && cell.end && (
-                    <span className="text-[11px] text-muted-foreground">
-                      {formatTime(cell.start)} – {formatTime(cell.end)}
-                    </span>
-                  )}
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] font-medium border ${STATUS_BADGE_CLASS[cell.status]}`}
-                  >
-                    {STATUS_LABEL[cell.status]}
-                  </Badge>
-                  {canEdit && onEditDefaults && (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); onEditDefaults(staff); }}
-                      className="ml-0.5 p-0.5 rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      title="Edit recurring schedule"
-                      data-testid={`btn-edit-defaults-${staff.id}`}
-                    >
-                      <CalendarDays className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              );
-              return canEdit ? (
+              // All roles can click the row to open recurring schedule (read-only for non-editors).
+              // Directors additionally get a small pencil button to edit today's shift override.
+              return (
                 <button
                   key={staff.id}
                   type="button"
-                  onClick={() => onEditStaff(staff)}
+                  onClick={() => onEditDefaults ? onEditDefaults(staff) : undefined}
                   className="w-full flex items-center justify-between gap-3 rounded border px-3 py-2 text-left hover-elevate active-elevate-2"
                   data-testid={`row-day-staff-${staff.id}`}
                 >
@@ -2532,22 +2513,31 @@ function DayDetailDialog({
                       {staff.roles.map((r) => r.replace(/_/g, " ")).join(", ")}
                     </div>
                   </div>
-                  {statusBlock}
-                </button>
-              ) : (
-                <div
-                  key={staff.id}
-                  className="w-full flex items-center justify-between gap-3 rounded border px-3 py-2 text-left"
-                  data-testid={`row-day-staff-${staff.id}`}
-                >
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">{staff.name}</div>
-                    <div className="text-[10px] text-muted-foreground truncate">
-                      {staff.roles.map((r) => r.replace(/_/g, " ")).join(", ")}
-                    </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {cell.status === "scheduled" && cell.start && cell.end && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {formatTime(cell.start)} – {formatTime(cell.end)}
+                      </span>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] font-medium border ${STATUS_BADGE_CLASS[cell.status]}`}
+                    >
+                      {STATUS_LABEL[cell.status]}
+                    </Badge>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onEditStaff(staff); }}
+                        className="p-0.5 rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        title="Edit today's shift"
+                        data-testid={`btn-edit-shift-${staff.id}`}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
-                  {statusBlock}
-                </div>
+                </button>
               );
             })
           )}
