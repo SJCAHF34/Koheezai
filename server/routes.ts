@@ -79,6 +79,7 @@ const DEMO_USERS = [
   { email: "brandon.patchett@aidshealth.org", password: "AHF1", name: "Brandon Patchett" },
   // ── RX Pike Street (1417) staff ─────────────────────────────────────────────
   { email: "seth.collins@aidshealth.org",  password: "AHF1", name: "Seth Collins" },
+  { email: "clayton.conley@aidshealth.org", password: "AHF1", name: "Clayton Conley" },
   { email: "claire.wood@aidshealth.org",   password: "AHF1", name: "Claire Wood" },
   { email: "micah.bergaguilar@aidshealth.org", password: "AHF1", name: "Micah Bergaguilar" },
   { email: "pairiss.wilcox@aidshealth.org",password: "AHF1", name: "Pairiss Wilcox" },

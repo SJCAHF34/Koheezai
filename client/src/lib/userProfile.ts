@@ -135,6 +135,14 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     region: "Western Region",
     taskRoles: ["data_entry_tech"],
   },
+  "clayton.conley@aidshealth.org": {
+    name: "Clayton Conley",
+    role: "pharmacist_1",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+    region: "Western Region",
+    taskRoles: ["pharmacist_1"],
+  },
   "debbie.nguyen@aidshealth.org": {
     name: "Debbie Nguyen",
     role: "pharmacist_1",
