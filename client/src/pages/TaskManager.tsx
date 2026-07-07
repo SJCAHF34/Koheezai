@@ -90,6 +90,7 @@ import type { RetentionPatient, RetentionIssueType, RetentionStatus, AttemptLogE
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CreateTaskModal } from "@/components/CreateTaskModal";
 import {
   Check,
@@ -118,6 +119,7 @@ import {
   Save,
   Pencil,
   CalendarDays,
+  ChevronLeft,
   ShieldAlert,
   History,
   Phone,
@@ -4148,6 +4150,8 @@ export default function TaskManager() {
   );
   const [highlightTaskId, setHighlightTaskId] = useState<string | null>(rawHighlightId);
   const [expandedCat, setExpandedCat] = useState<TaskCategory | null>(null);
+  const [browseDate, setBrowseDate] = useState<Date>(() => new Date());
+  const [calPickerOpen, setCalPickerOpen] = useState(false);
   const [viewingRole, setViewingRole] = useState<ViewingRole>(
     isRegionalOrAbove(profile?.role ?? "pharmacist_1") && !!urlSiteId ? "all" : "own"
   );
@@ -4562,12 +4566,21 @@ export default function TaskManager() {
   const totalTasks = filteredVisible.length;
   const doneTasks = filteredVisible.filter((t) => completions.has(t.id)).length;
 
-  const today = new Date().toLocaleDateString("en-US", {
+  const browseDateLabel = browseDate.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
   });
+  const isToday = browseDate.toDateString() === new Date().toDateString();
+
+  function shiftDay(delta: number) {
+    setBrowseDate((prev) => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() + delta);
+      return d;
+    });
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -4647,9 +4660,61 @@ export default function TaskManager() {
                 <ClipboardList className="w-5 h-5 text-purple-600" />
                 <h1 className="text-2xl font-bold text-slate-900">Task Manager</h1>
               </div>
-              <p className="text-sm text-slate-400">
-                {displaySiteName} · {today}
-              </p>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-sm text-slate-400">{displaySiteName}</span>
+                <span className="text-slate-300 mx-1">·</span>
+                <button
+                  type="button"
+                  onClick={() => shiftDay(-1)}
+                  className="p-0.5 rounded text-slate-400 hover:text-slate-700 transition-colors"
+                  aria-label="Previous day"
+                  data-testid="button-prev-day"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <Popover open={calPickerOpen} onOpenChange={setCalPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 hover:text-purple-700 transition-colors"
+                      data-testid="button-pick-date"
+                    >
+                      <CalendarDays className="w-3.5 h-3.5" />
+                      {browseDateLabel}
+                      {isToday && (
+                        <span className="text-[10px] font-semibold px-1 py-px rounded bg-purple-100 text-purple-700">Today</span>
+                      )}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start" data-testid="popover-date-picker">
+                    <Calendar
+                      mode="single"
+                      selected={browseDate}
+                      onSelect={(d) => { if (d) { setBrowseDate(d); setCalPickerOpen(false); } }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <button
+                  type="button"
+                  onClick={() => shiftDay(1)}
+                  className="p-0.5 rounded text-slate-400 hover:text-slate-700 transition-colors"
+                  aria-label="Next day"
+                  data-testid="button-next-day"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                {!isToday && (
+                  <button
+                    type="button"
+                    onClick={() => setBrowseDate(new Date())}
+                    className="text-[11px] text-purple-600 hover:text-purple-800 font-medium transition-colors ml-1"
+                    data-testid="button-jump-today"
+                  >
+                    Today
+                  </button>
+                )}
+              </div>
             </div>
             {/* Overall completion count — Regional/CPO only */}
             {isRegionalOrAbove(profile.role) && (
