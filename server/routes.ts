@@ -1025,9 +1025,21 @@ FORMATTING RULES (strict):
     "koheez_assessments",
   ]);
 
-  app.get("/api/client-store", requireAuth, async (_req, res) => {
+  // Rows are scoped per site: staff can only read/write the saved data for a
+  // site they're authorized on (director = own store, RPD = region, CPO = all;
+  // non-director staff = their own assigned store).
+  app.get("/api/client-store", requireAuth, async (req, res) => {
     try {
-      const stores = await storage.getClientStores();
+      const access = getSiteAccess(req);
+      if (!access.ok) return res.status(access.status).json({ message: access.message });
+      const siteId = String(req.query.siteId ?? "");
+      if (!siteId || siteId === "ALL") {
+        return res.status(400).json({ message: "siteId is required" });
+      }
+      if (!access.canViewSite(siteId)) {
+        return res.status(403).json({ message: "Not authorized for this site" });
+      }
+      const stores = await storage.getClientStores(siteId);
       res.json(stores.filter((s) => CLIENT_STORE_KEYS.has(s.storeKey)));
     } catch (err) {
       console.error("[client-store] read failed:", err);
@@ -1037,11 +1049,20 @@ FORMATTING RULES (strict):
 
   app.put("/api/client-store/:key", requireAuth, async (req, res) => {
     try {
+      const access = getSiteAccess(req);
+      if (!access.ok) return res.status(access.status).json({ message: access.message });
       const key = req.params.key;
       if (!CLIENT_STORE_KEYS.has(key)) {
         return res.status(400).json({ message: "Unknown store key" });
       }
-      await storage.setClientStore(key, req.body?.value ?? null);
+      const siteId = String(req.query.siteId ?? "");
+      if (!siteId || siteId === "ALL") {
+        return res.status(400).json({ message: "siteId is required" });
+      }
+      if (!access.canViewSite(siteId)) {
+        return res.status(403).json({ message: "Not authorized for this site" });
+      }
+      await storage.setClientStore(siteId, key, req.body?.value ?? null);
       res.json({ ok: true });
     } catch (err) {
       console.error("[client-store] write failed:", err);

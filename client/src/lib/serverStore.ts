@@ -4,13 +4,17 @@
 // saved assessments, …) read/write localStorage synchronously through helper
 // modules. Instead of rewriting all of them to be async, this module:
 //
-//  1. Hydrates localStorage from the server (`GET /api/client-store`) right
-//     after login, before any page renders — so every device sees the same
-//     saved data.
+//  1. Hydrates localStorage from the server (`GET /api/client-store?siteId=X`)
+//     right after login, before any page renders — so every device at the
+//     same store sees the same saved data.
 //  2. Intercepts localStorage writes to the known store keys and pushes the
-//     new value to the server (`PUT /api/client-store/:key`), debounced per
-//     key — so every change is saved permanently without touching the
-//     existing synchronous code.
+//     new value to the server (`PUT /api/client-store/:key?siteId=X`),
+//     debounced per key — so every change is saved permanently without
+//     touching the existing synchronous code.
+//
+// Rows are scoped per store (siteId) and the server enforces that users can
+// only read/write sites they're authorized on. Users without a concrete home
+// store (siteId "ALL", i.e. CPO/RPD) skip syncing and keep local-only data.
 //
 // If the server has no data yet (first run after this feature shipped), any
 // existing local values are uploaded once so nothing already saved is lost.
@@ -44,20 +48,26 @@ let interceptorInstalled = false;
 // be echoed back to the server.
 let suppressPush = false;
 let hydrationPromise: Promise<void> | null = null;
+// The store this browser session syncs against (set at hydration time).
+let activeSiteId: string | null = null;
 
 const pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const dirtyKeys = new Set<string>();
 
 function pushKey(key: string, keepalive = false): Promise<void> {
+  if (!activeSiteId) return Promise.resolve();
   dirtyKeys.delete(key);
   const raw = window.localStorage.getItem(key);
-  return fetch(`/api/client-store/${encodeURIComponent(key)}`, {
-    method: "PUT",
-    credentials: "include",
-    keepalive,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ value: raw }),
-  })
+  return fetch(
+    `/api/client-store/${encodeURIComponent(key)}?siteId=${encodeURIComponent(activeSiteId)}`,
+    {
+      method: "PUT",
+      credentials: "include",
+      keepalive,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value: raw }),
+    },
+  )
     .then((res) => {
       if (!res.ok) {
         // Server rejected the write (auth expired, server error) — mark dirty
@@ -104,14 +114,14 @@ function installInterceptor() {
 
   Storage.prototype.setItem = function (key: string, value: string) {
     originalSetItem.call(this, key, value);
-    if (this === window.localStorage && !suppressPush && TRACKED.has(key)) {
+    if (this === window.localStorage && !suppressPush && activeSiteId && TRACKED.has(key)) {
       schedulePush(key);
     }
   };
 
   Storage.prototype.removeItem = function (key: string) {
     originalRemoveItem.call(this, key);
-    if (this === window.localStorage && !suppressPush && TRACKED.has(key)) {
+    if (this === window.localStorage && !suppressPush && activeSiteId && TRACKED.has(key)) {
       schedulePush(key);
     }
   };
@@ -122,10 +132,13 @@ function installInterceptor() {
   });
 }
 
-async function doHydrate(): Promise<void> {
+async function doHydrate(siteId: string): Promise<void> {
+  activeSiteId = siteId;
   installInterceptor();
   try {
-    const res = await fetch("/api/client-store", { credentials: "include" });
+    const res = await fetch(`/api/client-store?siteId=${encodeURIComponent(siteId)}`, {
+      credentials: "include",
+    });
     if (!res.ok) return;
     const rows: Array<{ storeKey: string; value: unknown }> = await res.json();
     const serverKeys = new Set(rows.map((r) => r.storeKey));
@@ -157,13 +170,19 @@ async function doHydrate(): Promise<void> {
   }
 }
 
-/** Hydrate localStorage from the server. Safe to call multiple times. */
-export function hydrateClientStores(): Promise<void> {
-  if (!hydrationPromise) hydrationPromise = doHydrate();
+/**
+ * Hydrate localStorage from the server for the given store. Safe to call
+ * multiple times. Users without a concrete home store (siteId "ALL" or empty)
+ * skip syncing entirely and keep local-only behavior.
+ */
+export function hydrateClientStores(siteId: string | null | undefined): Promise<void> {
+  if (!siteId || siteId === "ALL") return Promise.resolve();
+  if (!hydrationPromise) hydrationPromise = doHydrate(siteId);
   return hydrationPromise;
 }
 
 /** Reset so the next login re-hydrates (used after logout). */
 export function resetClientStoreHydration() {
   hydrationPromise = null;
+  activeSiteId = null;
 }

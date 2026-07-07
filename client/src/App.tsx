@@ -60,18 +60,18 @@ export function useAuth() {
 // After login, pull the shared saved data (tasks, inventory, workbooks, …)
 // from the server into localStorage before rendering any protected page, so
 // every device shows the same data.
-function useClientStoreHydration(enabled: boolean): boolean {
+function useClientStoreHydration(enabled: boolean, siteId: string | null): boolean {
   const [ready, setReady] = useState(false);
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    hydrateClientStores().finally(() => {
+    hydrateClientStores(siteId).finally(() => {
       if (!cancelled) setReady(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, siteId]);
   return !enabled || ready;
 }
 
@@ -371,8 +371,9 @@ function AppNav() {
 
 // ── Protected page wrapper ─────────────────────────────────────────────────
 function Protected({ component: Component }: { component: () => JSX.Element | null }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const storesReady = useClientStoreHydration(isAuthenticated);
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const siteId = user ? getUserProfile(user.email, user.name ?? "").siteId : null;
+  const storesReady = useClientStoreHydration(isAuthenticated, siteId);
   if (isLoading) return <Spinner />;
   if (!isAuthenticated) return <Redirect to="/login" />;
   if (!storesReady) return <Spinner />;
@@ -387,7 +388,8 @@ function Protected({ component: Component }: { component: () => JSX.Element | nu
 // ── RegionalProtected: role-gated wrapper for /app/tasks/regional ──────────
 function RegionalProtected({ component: Component }: { component: () => JSX.Element | null }) {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const storesReady = useClientStoreHydration(isAuthenticated);
+  const siteId = user ? getUserProfile(user.email, user.name ?? "").siteId : null;
+  const storesReady = useClientStoreHydration(isAuthenticated, siteId);
   if (isLoading) return <Spinner />;
   if (!isAuthenticated) return <Redirect to="/login" />;
   if (!storesReady) return <Spinner />;
@@ -406,7 +408,8 @@ function RegionalProtected({ component: Component }: { component: () => JSX.Elem
 // ── DirectorProtected: allows pharmacy_director and above ───────────────────
 function DirectorProtected({ component: Component }: { component: () => JSX.Element | null }) {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const storesReady = useClientStoreHydration(isAuthenticated);
+  const siteId = user ? getUserProfile(user.email, user.name ?? "").siteId : null;
+  const storesReady = useClientStoreHydration(isAuthenticated, siteId);
   if (isLoading) return <Spinner />;
   if (!isAuthenticated) return <Redirect to="/login" />;
   if (!storesReady) return <Spinner />;
@@ -425,7 +428,8 @@ function DirectorProtected({ component: Component }: { component: () => JSX.Elem
 // ── CpoProtected: CPO-only wrapper (e.g. access audit log) ──────────────────
 function CpoProtected({ component: Component }: { component: () => JSX.Element | null }) {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const storesReady = useClientStoreHydration(isAuthenticated);
+  const siteId = user ? getUserProfile(user.email, user.name ?? "").siteId : null;
+  const storesReady = useClientStoreHydration(isAuthenticated, siteId);
   if (isLoading) return <Spinner />;
   if (!isAuthenticated) return <Redirect to="/login" />;
   if (!storesReady) return <Spinner />;

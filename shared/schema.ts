@@ -643,8 +643,15 @@ export const qaTasksTable = pgTable("qa_audit_tasks", {
 // store's full JSON value keyed by its localStorage key name. The client
 // hydrates localStorage from these rows at login and writes back on change,
 // so the data is shared across devices and survives everything.
-export const clientStoreTable = pgTable("client_store", {
-  storeKey: text("store_key").primaryKey(),
-  value: jsonb("value").notNull(),
-  updatedAt: text("updated_at").notNull(),
-});
+export const clientStoreTable = pgTable(
+  "client_store",
+  {
+    siteId: text("site_id").notNull(),
+    storeKey: text("store_key").notNull(),
+    value: jsonb("value").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.siteId, t.storeKey] }),
+  }),
+);

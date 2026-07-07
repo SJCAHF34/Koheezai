@@ -177,8 +177,8 @@ export interface IStorage {
   listAuditLogs(limit?: number): Promise<AuditLogEntry[]>;
 
   // ── Client store (server-side backing for browser localStorage) ────────
-  getClientStores(): Promise<Array<{ storeKey: string; value: unknown; updatedAt: string }>>;
-  setClientStore(storeKey: string, value: unknown): Promise<void>;
+  getClientStores(siteId: string): Promise<Array<{ storeKey: string; value: unknown; updatedAt: string }>>;
+  setClientStore(siteId: string, storeKey: string, value: unknown): Promise<void>;
 }
 
 function entryKey(siteId: string, staffId: string, date: string) {
@@ -852,16 +852,19 @@ export class MemStorage implements IStorage {
 
   // ── Client store ───────────────────────────────────────────────────────
 
-  async getClientStores(): Promise<Array<{ storeKey: string; value: unknown; updatedAt: string }>> {
-    return Array.from(this.clientStores.entries()).map(([storeKey, v]) => ({
-      storeKey,
-      value: v.value,
-      updatedAt: v.updatedAt,
-    }));
+  async getClientStores(siteId: string): Promise<Array<{ storeKey: string; value: unknown; updatedAt: string }>> {
+    const prefix = `${siteId}|`;
+    return Array.from(this.clientStores.entries())
+      .filter(([k]) => k.startsWith(prefix))
+      .map(([k, v]) => ({
+        storeKey: k.slice(prefix.length),
+        value: v.value,
+        updatedAt: v.updatedAt,
+      }));
   }
 
-  async setClientStore(storeKey: string, value: unknown): Promise<void> {
-    this.clientStores.set(storeKey, { value, updatedAt: new Date().toISOString() });
+  async setClientStore(siteId: string, storeKey: string, value: unknown): Promise<void> {
+    this.clientStores.set(`${siteId}|${storeKey}`, { value, updatedAt: new Date().toISOString() });
   }
 }
 
@@ -1586,19 +1589,25 @@ export class DbStorage extends MemStorage {
 
   // ── Client store (DB-backed) ───────────────────────────────────────────
 
-  override async getClientStores(): Promise<
-    Array<{ storeKey: string; value: unknown; updatedAt: string }>
-  > {
-    const rows = await db.select().from(clientStoreTable);
+  override async getClientStores(
+    siteId: string,
+  ): Promise<Array<{ storeKey: string; value: unknown; updatedAt: string }>> {
+    const rows = await db
+      .select()
+      .from(clientStoreTable)
+      .where(eq(clientStoreTable.siteId, siteId));
     return rows.map((r) => ({ storeKey: r.storeKey, value: r.value, updatedAt: r.updatedAt }));
   }
 
-  override async setClientStore(storeKey: string, value: unknown): Promise<void> {
+  override async setClientStore(siteId: string, storeKey: string, value: unknown): Promise<void> {
     const updatedAt = new Date().toISOString();
     await db
       .insert(clientStoreTable)
-      .values({ storeKey, value, updatedAt })
-      .onConflictDoUpdate({ target: clientStoreTable.storeKey, set: { value, updatedAt } });
+      .values({ siteId, storeKey, value, updatedAt })
+      .onConflictDoUpdate({
+        target: [clientStoreTable.siteId, clientStoreTable.storeKey],
+        set: { value, updatedAt },
+      });
   }
 
   // ── One-time boot migration ────────────────────────────────────────────
