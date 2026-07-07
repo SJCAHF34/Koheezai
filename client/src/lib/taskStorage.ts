@@ -1,7 +1,57 @@
-import { taskRoleMatches } from "./taskData";
+import { taskRoleMatches, TASKS } from "./taskData";
 import type { TaskFrequency, TaskRole, TaskCategory } from "./taskData";
 
 const COMPLETIONS_KEY = "koheez_task_completions";
+const TASK_OVERRIDES_KEY = "koheez_task_overrides";
+
+// ── Built-in task overrides ──────────────────────────────────────────────────
+// Directors can edit ANY task, including the built-in (predefined) ones.
+// Edits to built-in tasks are stored here as overrides keyed by task id and
+// applied to the in-memory TASKS array so every consumer sees them.
+
+export interface TaskOverride {
+  title?: string;
+  description?: string;
+  frequency?: TaskFrequency;
+  category?: TaskCategory;
+  taskGroup?: string;
+}
+
+export function loadTaskOverrides(): Record<string, TaskOverride> {
+  try {
+    const raw = localStorage.getItem(TASK_OVERRIDES_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, TaskOverride>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function applyTaskOverridesToMemory(): void {
+  const overrides = loadTaskOverrides();
+  for (const task of TASKS) {
+    const o = overrides[task.id];
+    if (!o) continue;
+    if (o.title !== undefined) task.title = o.title;
+    if (o.description !== undefined) task.description = o.description;
+    if (o.frequency !== undefined) task.frequency = o.frequency;
+    if (o.category !== undefined) task.category = o.category;
+    if (o.taskGroup !== undefined) task.taskGroup = o.taskGroup;
+  }
+}
+
+export function saveTaskOverride(taskId: string, override: TaskOverride): void {
+  const all = loadTaskOverrides();
+  all[taskId] = { ...all[taskId], ...override };
+  try {
+    localStorage.setItem(TASK_OVERRIDES_KEY, JSON.stringify(all));
+  } catch { /* ignore quota errors */ }
+  applyTaskOverridesToMemory();
+}
+
+// Apply persisted overrides as soon as this module loads in the browser.
+if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+  applyTaskOverridesToMemory();
+}
 const ASSIGNMENTS_KEY = "koheez_task_assignments";
 const PRIORITIES_KEY = "koheez_task_priorities";
 

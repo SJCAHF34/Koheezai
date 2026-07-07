@@ -38,6 +38,7 @@ const STORE_KEYS = [
   "koheez_controlled_biannual",
   "koheez_custom_controlled_catalog",
   "koheez_assessments",
+  "koheez_task_overrides",
 ] as const;
 
 const TRACKED = new Set<string>(STORE_KEYS);
@@ -164,6 +165,16 @@ async function doHydrate(siteId: string): Promise<void> {
       if (!serverKeys.has(key) && window.localStorage.getItem(key) !== null) {
         void pushKey(key);
       }
+    }
+
+    // Built-in task edits arrive with hydration; re-apply them to the
+    // in-memory TASKS array so every page sees them without needing to
+    // open the Task Manager first. (Dynamic import avoids a static cycle.)
+    try {
+      const { applyTaskOverridesToMemory } = await import("./taskStorage");
+      applyTaskOverridesToMemory();
+    } catch {
+      // non-fatal
     }
   } catch {
     // Offline / server error: fall back to whatever is already in localStorage.

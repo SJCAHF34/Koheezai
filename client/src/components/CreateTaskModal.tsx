@@ -129,6 +129,7 @@ export function CreateTaskModal({
   hasSiteContext,
   availableRegions,
   taskToEdit,
+  builtinEdit,
 }: {
   open: boolean;
   siteId: string;
@@ -142,9 +143,12 @@ export function CreateTaskModal({
   hasSiteContext: boolean;
   availableRegions: string[];
   taskToEdit?: CustomTask | null;
+  /** True when editing a built-in (predefined) task — edits are saved as
+   *  overrides by the caller instead of as a custom task. */
+  builtinEdit?: boolean;
 }) {
   const isEditing = !!taskToEdit;
-  const showScopeSelector = isCpo;
+  const showScopeSelector = isCpo && !builtinEdit;
   const defaultScope: CustomTaskScope = isCpo ? "national" : "site";
 
   const form = useForm<CreateTaskFormValues>({
@@ -322,6 +326,25 @@ export function CreateTaskModal({
 
 
   function handleSubmit(values: CreateTaskFormValues) {
+    // Built-in task edit: don't create/update a custom task — hand the edited
+    // fields back to the caller, which persists them as a task override.
+    // (Scope/store/assignee are hidden and unchanged in this mode, so skip
+    // their validations entirely.)
+    if (builtinEdit && taskToEdit) {
+      const updated: PharmacyTask = {
+        id: taskToEdit.id,
+        title: values.title,
+        description: values.description || undefined,
+        role: taskToEdit.role,
+        frequency: values.frequency,
+        category: values.category,
+        taskGroup: values.taskGroup || taskToEdit.taskGroup,
+      };
+      onUpdated?.(updated);
+      onClose();
+      return;
+    }
+
     // Require a store when scope is site
     if (values.scope === "site" && !values.selectedStore) {
       form.setError("selectedStore", { message: "Please select a store" });
@@ -457,7 +480,7 @@ export function CreateTaskModal({
           )}
 
           {/* ── Region picker (Regional scope, CPO only) ─────────────── */}
-          {watchScope === "regional" && isCpo && availableRegions.length > 0 && (
+          {!builtinEdit && watchScope === "regional" && isCpo && availableRegions.length > 0 && (
             <div className="space-y-1.5">
               <Label>Region</Label>
               <Select
@@ -481,7 +504,7 @@ export function CreateTaskModal({
           )}
 
           {/* ── RPD: show locked region label ────────────────────────── */}
-          {watchScope === "regional" && !isCpo && userRegion && (
+          {!builtinEdit && watchScope === "regional" && !isCpo && userRegion && (
             <div className="space-y-1.5">
               <Label>Region</Label>
               <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-600">
@@ -491,7 +514,7 @@ export function CreateTaskModal({
           )}
 
           {/* ── Store picker (Store scope) — searchable combobox ────── */}
-          {watchScope === "site" && storesForPicker.length > 0 && (
+          {!builtinEdit && watchScope === "site" && storesForPicker.length > 0 && (
             <div className="space-y-1.5">
               <Label>Store</Label>
               <Popover open={storePickerOpen} onOpenChange={setStorePickerOpen}>
@@ -612,10 +635,12 @@ export function CreateTaskModal({
                   <SelectItem value="biweekly">Biweekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
                   <SelectItem value="quarterly">Quarterly</SelectItem>
+                  {builtinEdit && <SelectItem value="biannual">Bi-Annual</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
 
+            {!builtinEdit && (
             <div className="space-y-1.5">
               <Label>Assigned To</Label>
               {assigneeOptions.length > 0 ? (
@@ -638,9 +663,11 @@ export function CreateTaskModal({
                 </div>
               )}
             </div>
+            )}
           </div>
 
           {/* ── Due Date ─────────────────────────────────────────────── */}
+          {!builtinEdit && (
           <div className="space-y-1.5">
             <Label htmlFor="ct-due">
               Due Date
@@ -656,6 +683,7 @@ export function CreateTaskModal({
               {...form.register("dueDate")}
             />
           </div>
+          )}
 
           {/* ── Category + Task Group ────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">

@@ -83,6 +83,8 @@ import {
   type CustomTask,
   type CustomTaskScope,
   getActiveRoles,
+  saveTaskOverride,
+  applyTaskOverridesToMemory,
 } from "@/lib/taskStorage";
 import type { RetentionPatient, RetentionIssueType, RetentionStatus, AttemptLogEntry } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -415,6 +417,7 @@ function TaskRow({
   onPrioritize,
   onMarkUrgent,
   onDeleteCustom,
+  onEditTask,
 }: {
   task: PharmacyTask;
   completed: boolean;
@@ -435,6 +438,7 @@ function TaskRow({
   onPrioritize: (t: PharmacyTask) => void;
   onMarkUrgent: (t: PharmacyTask) => void;
   onDeleteCustom: (t: PharmacyTask) => void;
+  onEditTask: (t: PharmacyTask) => void;
 }) {
   const cat = CATEGORY_CONFIG[task.category];
   const today = getTodayDateKey();
@@ -735,6 +739,18 @@ function TaskRow({
         </button>
       )}
 
+      {/* Edit task button — directors only, works on any task */}
+      {canAssign && !readOnly && (
+        <button
+          data-testid={`button-edit-task-${task.id}`}
+          onClick={() => onEditTask(task)}
+          title="Edit this task"
+          className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+        >
+          <Pencil className="w-4 h-4" />
+        </button>
+      )}
+
       {/* Delete custom task button — directors only, custom tasks only */}
       {task.isCustom && canDeleteCustom && !readOnly && (
         confirmDelete ? (
@@ -785,6 +801,7 @@ function TaskGroupSection({
   onPrioritize,
   onMarkUrgent,
   onDeleteCustom,
+  onEditTask,
 }: {
   groupName: string;
   tasks: PharmacyTask[];
@@ -806,6 +823,7 @@ function TaskGroupSection({
   onPrioritize: (t: PharmacyTask) => void;
   onMarkUrgent: (t: PharmacyTask) => void;
   onDeleteCustom: (t: PharmacyTask) => void;
+  onEditTask: (t: PharmacyTask) => void;
 }) {
   const [open, setOpen] = useState(true);
   const done = tasks.filter((t) => completions.has(t.id)).length;
@@ -867,6 +885,7 @@ function TaskGroupSection({
               onPrioritize={onPrioritize}
               onMarkUrgent={onMarkUrgent}
               onDeleteCustom={onDeleteCustom}
+              onEditTask={onEditTask}
             />
           ))}
         </div>
@@ -898,6 +917,7 @@ function RoleSection({
   onPrioritize,
   onMarkUrgent,
   onDeleteCustom,
+  onEditTask,
 }: {
   role: TaskRole;
   groups: Array<{ groupName: string; tasks: PharmacyTask[] }>;
@@ -919,6 +939,7 @@ function RoleSection({
   onPrioritize: (t: PharmacyTask) => void;
   onMarkUrgent: (t: PharmacyTask) => void;
   onDeleteCustom: (t: PharmacyTask) => void;
+  onEditTask: (t: PharmacyTask) => void;
 }) {
   const [open, setOpen] = useState(true);
   const style = ROLE_STYLE[role];
@@ -986,6 +1007,7 @@ function RoleSection({
               onPrioritize={onPrioritize}
               onMarkUrgent={onMarkUrgent}
               onDeleteCustom={onDeleteCustom}
+              onEditTask={onEditTask}
             />
           ))}
         </div>
@@ -4118,6 +4140,15 @@ export default function TaskManager() {
   const [todayHandoffs, setTodayHandoffs] = useState<HandoffNote[]>([]);
   const [customTasks, setCustomTasks] = useState<PharmacyTask[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<PharmacyTask | null>(null);
+  const [, setOverrideVersion] = useState(0);
+
+  // Re-apply built-in task edits after the server store hydrates localStorage
+  // (module-load application can run before hydration finishes).
+  useEffect(() => {
+    applyTaskOverridesToMemory();
+    setOverrideVersion((v) => v + 1);
+  }, []);
 
   const siteId = urlSiteId ?? profile?.siteId ?? "1417";
   const isDir = isDirectorRole(profile?.role ?? "pharmacist_1");
@@ -4892,6 +4923,7 @@ export default function TaskManager() {
                       onPrioritize={setPrioritizingTask}
                       onMarkUrgent={handleMarkUrgent}
                       onDeleteCustom={handleDeleteCustom}
+                      onEditTask={setEditingTask}
                     />
                   ))}
                 </section>
@@ -4923,6 +4955,7 @@ export default function TaskManager() {
                 onPrioritize={setPrioritizingTask}
                 onMarkUrgent={handleMarkUrgent}
                 onDeleteCustom={handleDeleteCustom}
+                onEditTask={setEditingTask}
               />
             ))}
           </div>
@@ -4984,6 +5017,57 @@ export default function TaskManager() {
           userRegion={isCPO(profile.role) ? undefined : (profile.region ?? drillStoreRegion?.region)}
           hasSiteContext={isPharmDir || !!urlSiteId}
           availableRegions={STORE_REGIONS.map((r) => r.region)}
+        />
+      )}
+
+      {/* Edit task modal — works for both custom and built-in tasks */}
+      {editingTask && profile && (
+        <CreateTaskModal
+          open={true}
+          siteId={siteId}
+          profile={{ email: profile.email, name: profile.name, role: profile.role }}
+          onClose={() => setEditingTask(null)}
+          onCreated={() => {}}
+          onUpdated={(task) => {
+            if (editingTask.isCustom) {
+              setCustomTasks((prev) => prev.map((t) => (t.id === task.id ? { ...task, isCustom: true } : t)));
+            } else {
+              saveTaskOverride(task.id, {
+                title: task.title,
+                description: task.description,
+                frequency: task.frequency,
+                category: task.category,
+                taskGroup: task.taskGroup,
+              });
+              setOverrideVersion((v) => v + 1);
+            }
+            setEditingTask(null);
+          }}
+          isCpo={isCPO(profile.role)}
+          isRegional={isRegionalDir && !isCPO(profile.role)}
+          userRegion={isCPO(profile.role) ? undefined : (profile.region ?? drillStoreRegion?.region)}
+          hasSiteContext={isPharmDir || !!urlSiteId}
+          availableRegions={STORE_REGIONS.map((r) => r.region)}
+          builtinEdit={!editingTask.isCustom}
+          taskToEdit={
+            editingTask.isCustom
+              ? (editingTask as unknown as CustomTask)
+              : {
+                  id: editingTask.id,
+                  siteId,
+                  scope: "site" as CustomTaskScope,
+                  selectedStore: siteId,
+                  title: editingTask.title,
+                  description: editingTask.description,
+                  role: editingTask.role,
+                  frequency: editingTask.frequency,
+                  category: editingTask.category,
+                  taskGroup: editingTask.taskGroup,
+                  createdBy: "",
+                  createdByRole: "",
+                  createdAt: "",
+                }
+          }
         />
       )}
     </div>

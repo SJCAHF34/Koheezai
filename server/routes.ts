@@ -1024,6 +1024,7 @@ FORMATTING RULES (strict):
     "koheez_controlled_biannual",
     "koheez_custom_controlled_catalog",
     "koheez_assessments",
+    "koheez_task_overrides",
   ]);
 
   // Rows are scoped per site: staff can only read/write the saved data for a
