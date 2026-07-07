@@ -405,6 +405,8 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "operations",
     taskGroup: "Setting Up Driver Delivery",
+    url: "/setting-up-delivery-order.pdf",
+    urlLabel: "Setting up Delivery Order",
   },
   {
     id: "del-d-010",
