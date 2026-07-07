@@ -20,7 +20,10 @@ export interface TaskOverride {
 export function loadTaskOverrides(): Record<string, TaskOverride> {
   try {
     const raw = localStorage.getItem(TASK_OVERRIDES_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, TaskOverride>) : {};
+    const parsed: unknown = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, TaskOverride>)
+      : {};
   } catch {
     return {};
   }
@@ -124,7 +127,7 @@ export function getPeriodKey(frequency: TaskFrequency): string {
 function readCompletions(): TaskCompletion[] {
   try {
     const raw = localStorage.getItem(COMPLETIONS_KEY);
-    return raw ? (JSON.parse(raw) as TaskCompletion[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as TaskCompletion[]) : [];
   } catch {
     return [];
   }
@@ -241,7 +244,7 @@ export function removeCompletion(
 function readAssignments(): TaskAssignment[] {
   try {
     const raw = localStorage.getItem(ASSIGNMENTS_KEY);
-    return raw ? (JSON.parse(raw) as TaskAssignment[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as TaskAssignment[]) : [];
   } catch {
     return [];
   }
@@ -275,7 +278,7 @@ export function removeAssignment(taskId: string, siteId: string): void {
 function readPriorities(): TaskPriority[] {
   try {
     const raw = localStorage.getItem(PRIORITIES_KEY);
-    return raw ? (JSON.parse(raw) as TaskPriority[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as TaskPriority[]) : [];
   } catch {
     return [];
   }
@@ -331,7 +334,7 @@ const URGENT_KEY = "koheez_urgent_tasks";
 function readUrgentTasks(): UrgentTask[] {
   try {
     const raw = localStorage.getItem(URGENT_KEY);
-    return raw ? (JSON.parse(raw) as UrgentTask[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as UrgentTask[]) : [];
   } catch {
     return [];
   }
@@ -398,7 +401,7 @@ export interface HandoffNote {
 function readHandoffNotes(): HandoffNote[] {
   try {
     const raw = localStorage.getItem(HANDOFF_KEY);
-    return raw ? (JSON.parse(raw) as HandoffNote[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as HandoffNote[]) : [];
   } catch {
     return [];
   }
@@ -514,7 +517,7 @@ export function getCurrentQuarter(): string {
 function readWorkbooks(): WorkbookRecord[] {
   try {
     const raw = localStorage.getItem(WORKBOOK_KEY);
-    return raw ? (JSON.parse(raw) as WorkbookRecord[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as WorkbookRecord[]) : [];
   } catch {
     return [];
   }
@@ -573,7 +576,7 @@ export interface RetentionRiskEntry {
 function readRetentionRisk(): RetentionRiskEntry[] {
   try {
     const raw = localStorage.getItem(RETENTION_RISK_KEY);
-    return raw ? (JSON.parse(raw) as RetentionRiskEntry[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as RetentionRiskEntry[]) : [];
   } catch {
     return [];
   }
@@ -634,7 +637,7 @@ export function getActiveRoles(member: StaffMember, todayDate?: string): string[
 function readRosters(): SiteRoster[] {
   try {
     const raw = localStorage.getItem(STAFF_ROSTER_KEY);
-    return raw ? (JSON.parse(raw) as SiteRoster[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as SiteRoster[]) : [];
   } catch {
     return [];
   }
@@ -727,7 +730,7 @@ export interface StoreDocRecord {
 function readFoundationDocs(): FoundationDocRecord[] {
   try {
     const raw = localStorage.getItem(FOUNDATION_DOCS_KEY);
-    return raw ? (JSON.parse(raw) as FoundationDocRecord[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as FoundationDocRecord[]) : [];
   } catch {
     return [];
   }
@@ -775,7 +778,7 @@ export function removeFoundationDocUrl(id: string): void {
 function readStoreDocs(): StoreDocRecord[] {
   try {
     const raw = localStorage.getItem(STORE_DOCS_KEY);
-    return raw ? (JSON.parse(raw) as StoreDocRecord[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as StoreDocRecord[]) : [];
   } catch {
     return [];
   }
@@ -833,7 +836,7 @@ export interface TaskCounterEntry {
 function readCounters(): TaskCounterEntry[] {
   try {
     const raw = localStorage.getItem(COUNTERS_KEY);
-    return raw ? (JSON.parse(raw) as TaskCounterEntry[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as TaskCounterEntry[]) : [];
   } catch {
     return [];
   }
@@ -890,7 +893,7 @@ export interface CustomTask {
 function readCustomTasks(): CustomTask[] {
   try {
     const raw = localStorage.getItem(CUSTOM_TASKS_KEY);
-    return raw ? (JSON.parse(raw) as CustomTask[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as CustomTask[]) : [];
   } catch {
     return [];
   }
@@ -966,7 +969,7 @@ export interface DeletedCustomTask extends CustomTask {
 function readDeletedTasks(): DeletedCustomTask[] {
   try {
     const raw = localStorage.getItem(DELETED_TASKS_KEY);
-    return raw ? (JSON.parse(raw) as DeletedCustomTask[]) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : []; return Array.isArray(parsed) ? (parsed as DeletedCustomTask[]) : [];
   } catch {
     return [];
   }
