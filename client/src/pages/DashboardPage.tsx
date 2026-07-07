@@ -330,9 +330,9 @@ export default function DashboardPage() {
     if (isRegionalOrAbove(profile.role)) {
       return <Redirect to="/app/tasks/regional" />;
     }
-    // Tech roles land on the tech dashboard
+    // Tech roles land directly on the full Task Manager
     if (isTechRole(profile.role)) {
-      return <TechDashboard userEmail={user.email} userName={user.name ?? ""} />;
+      return <Redirect to="/app/tasks" />;
     }
   }
 
