@@ -247,6 +247,34 @@ export const TASKS: PharmacyTask[] = [
     taskGroup: "Adjudication Exception",
     counterType: "start-end",
   },
+  {
+    id: "de-d-008",
+    title: "Supply Logix Cycle Counts",
+    description: "Complete daily cycle counts in Supply Logix — verify on-hand quantities and reconcile any variances.",
+    role: "data_entry_tech",
+    frequency: "daily",
+    category: "operations",
+    taskGroup: "Supply Logix",
+  },
+  {
+    id: "de-d-009",
+    title: "Cabrini P4H Data Entry",
+    description: "Enter Cabrini P4H patient data — verify patient records, input required fields, and confirm submissions are complete.",
+    role: "data_entry_tech",
+    frequency: "daily",
+    category: "operations",
+    taskGroup: "Cabrini P4H",
+  },
+  {
+    id: "de-d-010",
+    title: "PV2",
+    description: "Perform PV2 verification — review orders for accuracy, confirm NDC/quantity/sig, and push through for final dispensing.",
+    role: "data_entry_tech",
+    frequency: "daily",
+    category: "operations",
+    taskGroup: "PV2",
+    counterType: "start-end",
+  },
 
   // ── PV2 TECH · DAILY ────────────────────────────────────────────────────
   {
@@ -576,6 +604,24 @@ export const TASKS: PharmacyTask[] = [
 
   // ── WEEKLY TASKS ────────────────────────────────────────────────────────
   {
+    id: "de-w-001",
+    title: "File Prescriptions",
+    description: "File all hard-copy and printed prescriptions from the week — verify they are organized, dated, and stored per pharmacy filing requirements.",
+    role: "data_entry_tech",
+    frequency: "weekly",
+    category: "operations",
+    taskGroup: "Weekly",
+  },
+  {
+    id: "de-w-002",
+    title: "Send Back Meds to Cardinal",
+    description: "Package and process all medications to be returned to Cardinal Health — confirm item list, attach return authorization, and hand off to courier.",
+    role: "data_entry_tech",
+    frequency: "weekly",
+    category: "operations",
+    taskGroup: "Weekly",
+  },
+  {
     id: "del-w-001",
     title: "Brinks cash deposit",
     description: "Complete Brinks deposit every Monday and on the last business day of the month.",
@@ -672,6 +718,16 @@ export const TASKS: PharmacyTask[] = [
   },
 
   // ── MONTHLY TASKS ───────────────────────────────────────────────────────
+  {
+    id: "de-m-001",
+    title: "Pull Expired Medications",
+    description: "Identify and pull all expired medications from inventory — quarantine, document, and process for proper return or disposal per pharmacy policy.",
+    role: "data_entry_tech",
+    frequency: "monthly",
+    category: "operations",
+    taskGroup: "Monthly",
+  },
+
   // ACHC
   {
     id: "achc-m-001",
