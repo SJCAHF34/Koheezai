@@ -1,3 +1,4 @@
+import { taskRoleMatches } from "./taskData";
 import type { TaskFrequency, TaskRole, TaskCategory } from "./taskData";
 
 const COMPLETIONS_KEY = "koheez_task_completions";
@@ -96,7 +97,7 @@ export function loadCompletions(
     (c) =>
       c.siteId === siteId &&
       c.period === period &&
-      (roleFilter == null || c.taskRole === roleFilter || c.taskRole === "all_staff")
+      (roleFilter == null || taskRoleMatches(c.taskRole, roleFilter))
   );
   return new Set(filtered.map((c) => c.taskId));
 }

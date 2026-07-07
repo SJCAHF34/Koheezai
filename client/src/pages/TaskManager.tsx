@@ -21,6 +21,9 @@ import {
   ROLE_CONFIG,
   ROLE_ORDER,
   ROLE_GROUP_ORDER,
+  taskRoleMatches,
+  taskRoleMatchesAny,
+  rolesForTaskRole,
   type PharmacyTask,
   type TaskRole,
   type TaskFrequency,
@@ -208,11 +211,11 @@ function getVisibleTasks(
   if (isDirectorRole(userRole)) {
     if (viewingRole === "all") return byFreq;
     if (viewingRole === "own")
-      return byFreq.filter((t) => t.role === "director" || t.role === "all_staff");
-    return byFreq.filter((t) => t.role === viewingRole || t.role === "all_staff");
+      return byFreq.filter((t) => taskRoleMatches(t.role, "director"));
+    return byFreq.filter((t) => taskRoleMatches(t.role, viewingRole));
   }
   const allRoles = extraRoles && extraRoles.length > 0 ? extraRoles : [userRole];
-  return byFreq.filter((t) => (allRoles as string[]).includes(t.role) || t.role === "all_staff");
+  return byFreq.filter((t) => taskRoleMatchesAny(t.role, allRoles as string[]));
 }
 
 /** Group tasks into role buckets → task-group buckets, respecting defined orders.
@@ -229,10 +232,12 @@ function buildRoleGroups(
   const displayRoles = ROLE_ORDER as TaskRole[];
 
   for (const task of tasks) {
-    if (task.role === "all_staff") {
+    if (task.role === "all_staff" || task.role === "all_techs" || task.role === "all_pharmacists") {
       if (viewingRole === "all") {
-        // Fold into every role section so staff see it in their own view
-        for (const r of displayRoles) {
+        // Fold into every applicable role section so staff see it in their own view
+        const foldRoles =
+          task.role === "all_staff" ? displayRoles : rolesForTaskRole(task.role);
+        for (const r of foldRoles) {
           if (!roleMap.has(r)) roleMap.set(r, []);
           roleMap.get(r)!.push(task);
         }
@@ -321,6 +326,20 @@ const ROLE_STYLE: Record<
     label: "Site Director",
     labelColor: "text-rose-800",
     badgeColor: "bg-rose-100 text-rose-700",
+  },
+  all_techs: {
+    border: "border-teal-300",
+    bg: "bg-teal-50",
+    label: "All Techs",
+    labelColor: "text-teal-800",
+    badgeColor: "bg-teal-100 text-teal-700",
+  },
+  all_pharmacists: {
+    border: "border-fuchsia-300",
+    bg: "bg-fuchsia-50",
+    label: "All Pharmacists",
+    labelColor: "text-fuchsia-800",
+    badgeColor: "bg-fuchsia-100 text-fuchsia-700",
   },
   all_staff: {
     border: "border-slate-300",
@@ -1001,7 +1020,7 @@ function SiteOverviewPanel({
       {roleCards.map(({ role, label }) => {
         const roleCompletions = loadCompletions(siteId, frequency, role);
         const roleTasks = TASKS.filter(
-          (t) => t.frequency === frequency && (t.role === role || t.role === "all_staff")
+          (t) => t.frequency === frequency && taskRoleMatches(t.role, role)
         );
         const done = roleTasks.filter((t) => roleCompletions.has(t.id)).length;
         const isActive = viewingRole === role;
@@ -2812,6 +2831,8 @@ function TaskHistoryCalendar({ siteId }: { siteId: string }) {
     pharmacist_1: "Pharmacist 1",
     pharmacist_2: "Pharmacist 2",
     director: "Director",
+    all_techs: "All Techs",
+    all_pharmacists: "All Pharmacists",
     all_staff: "All Staff",
   };
 
@@ -4423,14 +4444,15 @@ export default function TaskManager() {
     if (viewingRole === "own") {
       if (isDir) {
         // Directors in "own" view: their director tasks + all_staff
-        return ct.role === "director" || ct.role === "all_staff";
+        return taskRoleMatches(ct.role, "director");
       } else {
-        // Non-directors: primary role + any extra assigned roles + all_staff (never director)
-        return ct.role === profile.role || extraRoleSet.has(ct.role) || ct.role === "all_staff";
+        // Non-directors: primary role + any extra assigned roles + group roles (never director)
+        const myRoles = [profile.role, ...Array.from(extraRoleSet)];
+        return taskRoleMatchesAny(ct.role, myRoles);
       }
     }
     // Specific role view (director drilling into a staff role)
-    return ct.role === (viewingRole as string) || ct.role === "all_staff";
+    return taskRoleMatches(ct.role, viewingRole as string);
   });
   // For non-directors: pull in tasks from OTHER roles that a director has
   // explicitly cross-assigned to this user's role for today.
@@ -4444,7 +4466,7 @@ export default function TaskManager() {
     );
     for (const task of byFreq) {
       // Skip tasks already visible via the user's own roles
-      if (userRoles.has(task.role) || task.role === "all_staff") continue;
+      if (taskRoleMatchesAny(task.role, Array.from(userRoles))) continue;
       const a = assignments.get(task.id);
       if (a && userRoles.has(a.assignedToRole)) {
         crossAssigned.push(task);
@@ -4452,7 +4474,7 @@ export default function TaskManager() {
     }
     // Also include cross-assigned custom tasks
     for (const ct of customTasks) {
-      if (userRoles.has(ct.role) || ct.role === "all_staff") continue;
+      if (taskRoleMatchesAny(ct.role, Array.from(userRoles))) continue;
       const a = assignments.get(ct.id);
       if (a && userRoles.has(a.assignedToRole)) {
         crossAssigned.push(ct);

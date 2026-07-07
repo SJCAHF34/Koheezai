@@ -3,7 +3,7 @@ import { Link, useLocation, Redirect } from "wouter";
 import { Activity, HeartHandshake, Wrench, ArrowRight, Pill, Trash2, Clock, ChevronRight, ClipboardList, Check, BarChart3, Users, LayoutDashboard, MapPin } from "lucide-react";
 import { useAuth } from "@/App";
 import { loadAllAssessments, deleteAssessment, type SavedAssessment } from "@/lib/patientStorage";
-import { TASKS, CATEGORY_CONFIG, type TaskFrequency, type TaskCategory } from "@/lib/taskData";
+import { TASKS, CATEGORY_CONFIG, taskRoleMatches, taskRoleMatchesAny, type TaskFrequency, type TaskCategory } from "@/lib/taskData";
 import { loadCompletions } from "@/lib/taskStorage";
 import { getUserProfile, isDirectorRole, isRegionalOrAbove, isTechRole, isPharmacyDirector, getRoleLabel } from "@/lib/userProfile";
 import { generateSiteTrends } from "@/lib/trendData";
@@ -106,7 +106,7 @@ function TaskSummaryWidget({ userEmail, userName }: { userEmail: string; userNam
   const dailyTasks = TASKS.filter(
     (t) =>
       t.frequency === freq &&
-      (t.role === profile.role || t.role === "all_staff" || isDirectorRole(profile.role))
+      (taskRoleMatches(t.role, profile.role) || isDirectorRole(profile.role))
   );
   const done = dailyTasks.filter((t) => completions.has(t.id)).length;
   const allDone = dailyTasks.length > 0 && done === dailyTasks.length;
@@ -192,7 +192,7 @@ function TechDashboard({ userEmail, userName }: { userEmail: string; userName: s
   const completions = loadCompletions(siteId, freq);
 
   const techTasks = TASKS.filter(
-    (t) => t.frequency === freq && (techRoles.includes(t.role) || t.role === "all_staff")
+    (t) => t.frequency === freq && taskRoleMatchesAny(t.role, techRoles)
   );
 
   const firstName = userName.split(" ")[0] || userEmail.split("@")[0];

@@ -81,8 +81,8 @@ function userRoleToTaskRole(role: UserRole): TaskRole {
 
 // Role mapping for site-scope group options
 const STORE_GROUP_ROLES: Record<string, TaskRole> = {
-  "All Pharmacists": "pharmacist_1",
-  "All Techs":       "data_entry_tech",
+  "All Pharmacists": "all_pharmacists",
+  "All Techs":       "all_techs",
   "All Staff":       "all_staff",
 };
 
@@ -92,7 +92,7 @@ export const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(120, "Max 120 characters"),
   description: z.string().optional(),
   frequency: z.enum(["daily", "weekly", "biweekly", "monthly", "quarterly", "biannual", "one_time"] as const),
-  role: z.enum(["data_entry_tech", "pv2_tech", "delivery_tech", "pharmacist_1", "pharmacist_2", "director", "all_staff"] as const),
+  role: z.enum(["data_entry_tech", "pv2_tech", "delivery_tech", "pharmacist_1", "pharmacist_2", "director", "all_techs", "all_pharmacists", "all_staff"] as const),
   category: z.enum(["operations", "achc", "state_board", "retention"] as const),
   taskGroup: z.string(),
   scope: z.enum(["site", "regional", "national"] as const),
@@ -109,7 +109,7 @@ export type CreateTaskFormValues = z.infer<typeof createTaskSchema>;
 const ASSIGNEE_GROUPS: { value: string; label: string; role: TaskRole }[] = [
   { value: "All Pharmacy Directors", label: "All Pharmacy Directors", role: "director" },
   { value: "All RPDs",               label: "All RPDs",               role: "director" },
-  { value: "All Technicians",        label: "All Technicians",        role: "all_staff" },
+  { value: "All Technicians",        label: "All Technicians",        role: "all_techs" },
   { value: "PDs + RPDs",             label: "PDs + RPDs",             role: "director" },
   { value: "PDs + Technicians",      label: "PDs + Technicians",      role: "all_staff" },
 ];

@@ -5,7 +5,36 @@ export type TaskRole =
   | "pharmacist_1"
   | "pharmacist_2"
   | "director"
+  | "all_techs"
+  | "all_pharmacists"
   | "all_staff";
+
+/** Individual tech roles covered by the `all_techs` pseudo-role. */
+export const TECH_ROLES: TaskRole[] = ["data_entry_tech", "pv2_tech", "delivery_tech"];
+/** Individual pharmacist roles covered by the `all_pharmacists` pseudo-role. */
+export const PHARMACIST_ROLES: TaskRole[] = ["pharmacist_1", "pharmacist_2"];
+
+/** Returns true when a task assigned to `taskRole` should be shown to
+ *  someone acting as (or viewing) the individual role `role`.
+ *  Handles the group pseudo-roles: all_staff, all_techs, all_pharmacists. */
+export function taskRoleMatches(taskRole: TaskRole | string, role: TaskRole | string): boolean {
+  if (taskRole === "all_staff") return true;
+  if (taskRole === "all_techs") return TECH_ROLES.includes(role as TaskRole);
+  if (taskRole === "all_pharmacists") return PHARMACIST_ROLES.includes(role as TaskRole);
+  return taskRole === role;
+}
+
+/** Returns true when a task assigned to `taskRole` matches ANY of the user's roles. */
+export function taskRoleMatchesAny(taskRole: TaskRole | string, roles: string[]): boolean {
+  return roles.some((r) => taskRoleMatches(taskRole, r));
+}
+
+/** The individual display roles a group pseudo-role folds into. */
+export function rolesForTaskRole(taskRole: TaskRole): TaskRole[] {
+  if (taskRole === "all_techs") return TECH_ROLES;
+  if (taskRole === "all_pharmacists") return PHARMACIST_ROLES;
+  return [taskRole];
+}
 
 export type TaskFrequency = "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "biannual" | "one_time";
 
@@ -77,7 +106,7 @@ export const CATEGORY_CONFIG: Record<
 };
 
 export const ROLE_CONFIG: Record<
-  Exclude<TaskRole, "all_staff">,
+  Exclude<TaskRole, "all_staff" | "all_techs" | "all_pharmacists">,
   { label: string; short: string; color: string }
 > = {
   data_entry_tech: { label: "Data Entry Technician", short: "DE Tech", color: "text-violet-700" },
