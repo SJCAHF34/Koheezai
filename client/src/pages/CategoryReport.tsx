@@ -35,12 +35,6 @@ const CAT_TABS: { value: TaskCategory; label: string }[] = [
 ];
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-function completionTextColor(pct: number) {
-  return pct >= 80 ? "text-green-600" : pct >= 65 ? "text-amber-600" : pct >= 50 ? "text-orange-500" : "text-red-500";
-}
-function completionBarColor(pct: number) {
-  return pct >= 80 ? "bg-green-500" : pct >= 65 ? "bg-amber-400" : pct >= 50 ? "bg-orange-400" : "bg-red-400";
-}
 function tierLabel(pct: number) {
   if (pct >= 80) return { label: "Top", bg: "bg-green-50 text-green-700" };
   if (pct >= 65) return { label: "Good", bg: "bg-amber-50 text-amber-700" };
@@ -131,24 +125,9 @@ function RankRow({
         <MiniSparkline data={store.points} color={color} />
       </div>
 
-      {/* Progress bar */}
-      <div className="w-28 shrink-0">
-        <div className="flex items-center gap-1.5 mb-1">
-          <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${completionBarColor(store.avg)}`}
-              style={{ width: `${store.avg}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Pct */}
+      {/* Trend */}
       <div className="flex items-center gap-2 shrink-0">
         <TrendIcon trend={store.trend} />
-        <span className={`text-base font-bold tabular-nums ${completionTextColor(store.avg)}`}>
-          {store.avg}%
-        </span>
       </div>
 
       {/* Tier badge */}
@@ -164,7 +143,6 @@ function RankRow({
 // ── Tier section ─────────────────────────────────────────────────────────────
 interface TierGroup {
   label: string;
-  threshold: string;
   stores: (SiteRanking & { globalRank: number })[];
   headerClass: string;
 }
@@ -214,32 +192,27 @@ export default function CategoryReport() {
   const tiers: TierGroup[] = [
     {
       label: "Top Performers",
-      threshold: "≥ 80%",
       stores: withRanks.filter((s) => s.avg >= 80),
       headerClass: "text-green-700 bg-green-50 border-green-200",
     },
     {
       label: "Good",
-      threshold: "65 – 79%",
       stores: withRanks.filter((s) => s.avg >= 65 && s.avg < 80),
       headerClass: "text-amber-700 bg-amber-50 border-amber-200",
     },
     {
       label: "At Risk",
-      threshold: "50 – 64%",
       stores: withRanks.filter((s) => s.avg >= 50 && s.avg < 65),
       headerClass: "text-orange-700 bg-orange-50 border-orange-200",
     },
     {
       label: "Critical",
-      threshold: "< 50%",
       stores: withRanks.filter((s) => s.avg < 50),
       headerClass: "text-red-700 bg-red-50 border-red-200",
     },
   ];
 
   const totalStores = rankings.length;
-  const avgAll = Math.round(rankings.reduce((s, r) => s + r.avg, 0) / totalStores);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -270,9 +243,9 @@ export default function CategoryReport() {
             {/* Summary stat */}
             <div className="text-right">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">
-                Network avg
+                Locations
               </p>
-              <p className={`text-3xl font-bold ${completionTextColor(avgAll)}`}>{avgAll}%</p>
+              <p className="text-3xl font-bold text-slate-900">{totalStores}</p>
               <p className="text-[10px] text-slate-400">{periodLabel}</p>
             </div>
           </div>
@@ -364,7 +337,7 @@ export default function CategoryReport() {
               >
                 <span className="text-xs font-bold uppercase tracking-wide">{tier.label}</span>
                 <span className="text-xs font-medium opacity-70">
-                  {tier.threshold} · {tier.stores.length} {tier.stores.length === 1 ? "location" : "locations"}
+                  {tier.stores.length} {tier.stores.length === 1 ? "location" : "locations"}
                 </span>
               </div>
 

@@ -50,12 +50,6 @@ const DAILY_TASK_COUNT = DAILY_TASKS.length;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function completionTextColor(pct: number) {
-  return pct >= 80 ? "text-green-600" : pct >= 60 ? "text-amber-600" : "text-red-500";
-}
-function completionBarColor(pct: number) {
-  return pct >= 80 ? "bg-green-500" : pct >= 60 ? "bg-amber-400" : "bg-red-400";
-}
 function shortLabel(label: string) {
   return label.replace(" Compliance", "").replace(" Metrics", "");
 }
@@ -190,52 +184,21 @@ function SiteCard({
         </div>
 
         <div className="text-right shrink-0">
-          <p className={`text-2xl font-bold ${completionTextColor(todayPct)}`}>{todayPct}%</p>
-          <p className="text-[10px] text-slate-400">Today</p>
+          <p className="text-2xl font-bold text-slate-800">{realStats.completedCount}</p>
+          <p className="text-[10px] text-slate-400">Tasks done today</p>
         </div>
       </div>
 
-      {/* Per-category: today (real) + 7d avg (simulated trend) mini-bars */}
-      <div className="px-5 pb-3 grid grid-cols-2 gap-x-5 gap-y-3">
+      {/* Per-category trend indicators */}
+      <div className="px-5 pb-3 grid grid-cols-2 gap-x-5 gap-y-2">
         {orderedCats.map((cat) => {
           const cfg = CATEGORY_CONFIG[cat];
-          const realCatPct = realStats.catPcts[cat];
-          const todayPctCat = realCatPct > 0 ? realCatPct : trend.categories[cat].days[lastDayIdx].pct;
-          const weekAvgCat = trend.categories[cat].avg7d;
           return (
-            <div key={cat}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold text-slate-500">
-                  {shortLabel(cfg.label)}
-                </span>
-                <TrendIcon trend={trend.categories[cat].trend} />
-              </div>
-              {/* Today bar */}
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[9px] text-slate-400 w-7 shrink-0">Today</span>
-                <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${completionBarColor(todayPctCat)}`}
-                    style={{ width: `${todayPctCat}%` }}
-                  />
-                </div>
-                <span className={`text-[9px] font-bold w-6 text-right ${completionTextColor(todayPctCat)}`}>
-                  {todayPctCat}%
-                </span>
-              </div>
-              {/* 7-day avg bar */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] text-slate-400 w-7 shrink-0">7d</span>
-                <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 opacity-50 ${completionBarColor(weekAvgCat)}`}
-                    style={{ width: `${weekAvgCat}%` }}
-                  />
-                </div>
-                <span className="text-[9px] text-slate-400 w-6 text-right font-medium">
-                  {weekAvgCat}%
-                </span>
-              </div>
+            <div key={cat} className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-semibold text-slate-500">
+                {shortLabel(cfg.label)}
+              </span>
+              <TrendIcon trend={trend.categories[cat].trend} />
             </div>
           );
         })}
@@ -243,10 +206,8 @@ function SiteCard({
 
       {/* 7d overview + drill-down hint */}
       <div className="px-5 pb-3.5 flex items-center justify-between">
-        <span className="text-[10px] text-slate-400">
-          7d avg: <span className="font-semibold text-slate-600">{trend.overallAvg}%</span>
-          {" · "}
-          <TrendIcon trend={overallTrend} />
+        <span className="text-[10px] text-slate-400 flex items-center gap-1">
+          7d trend <TrendIcon trend={overallTrend} />
         </span>
         <span className="text-xs font-semibold text-purple-600 flex items-center gap-1 group-hover:gap-1.5 transition-all">
           <Eye className="w-3 h-3" />
@@ -380,9 +341,7 @@ function RegionCard({
           </span>
         </div>
         <div className="text-right shrink-0">
-          <span className={`text-2xl font-bold ${completionTextColor(perf.overallAvg)}`}>
-            {perf.overallAvg}%
-          </span>
+          <TrendIcon trend={perf.trend} />
         </div>
       </div>
 
@@ -392,28 +351,17 @@ function RegionCard({
         {perf.atRiskCount > 0 && (
           <span className="font-semibold text-amber-600">{perf.atRiskCount} at risk</span>
         )}
-        <TrendIcon trend={perf.trend} />
       </div>
 
-      {/* Category mini-bars */}
+      {/* Category labels */}
       <div className="px-4 pb-3 grid grid-cols-2 gap-x-3 gap-y-1.5">
         {orderedCats.map((cat) => {
           const cfg = CATEGORY_CONFIG[cat];
-          const pct = perf.catAvgs[cat];
           return (
-            <div key={cat}>
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[9px] font-semibold text-slate-400">
-                  {shortLabel(cfg.label)}
-                </span>
-                <span className={`text-[9px] font-bold ${completionTextColor(pct)}`}>{pct}%</span>
-              </div>
-              <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${completionBarColor(pct)}`}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
+            <div key={cat} className="flex items-center justify-between gap-2">
+              <span className="text-[9px] font-semibold text-slate-400">
+                {shortLabel(cfg.label)}
+              </span>
             </div>
           );
         })}
@@ -461,55 +409,21 @@ function CarouselStoreCard({
           <p className="text-xs text-slate-400 pl-4">#{store.id}</p>
         </div>
         <div className="text-right shrink-0">
-          <p className={`text-2xl font-bold ${completionTextColor(todayPct)}`}>{todayPct}%</p>
-          <p className="text-[10px] text-slate-400">Today</p>
+          <p className="text-2xl font-bold text-slate-800">{realStats.completedCount}</p>
+          <p className="text-[10px] text-slate-400">Tasks done today</p>
         </div>
       </div>
 
-      {/* Per-category bars */}
-      <div className="px-5 pb-3 grid grid-cols-2 gap-x-5 gap-y-3">
+      {/* Per-category trend indicators */}
+      <div className="px-5 pb-3 grid grid-cols-2 gap-x-5 gap-y-2">
         {orderedCats.map((cat) => {
           const cfg = CATEGORY_CONFIG[cat];
-          const realCatPct = realStats.catPcts[cat];
-          const simCatPct = trend?.categories[cat].days[lastDayIdx].pct ?? 0;
-          const todayCat = realCatPct > 0 ? realCatPct : simCatPct;
-          const weekAvgCat = trend?.categories[cat].avg7d;
           return (
-            <div key={cat}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold text-slate-500">
-                  {shortLabel(cfg.label)}
-                </span>
-                {trend && <TrendIcon trend={trend.categories[cat].trend} />}
-              </div>
-              {/* Today bar */}
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[9px] text-slate-400 w-7 shrink-0">Today</span>
-                <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${completionBarColor(todayCat)}`}
-                    style={{ width: `${todayCat}%` }}
-                  />
-                </div>
-                <span className={`text-[9px] font-bold w-6 text-right ${completionTextColor(todayCat)}`}>
-                  {todayCat}%
-                </span>
-              </div>
-              {/* 7-day avg bar (only when trend data available) */}
-              {weekAvgCat !== undefined && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] text-slate-400 w-7 shrink-0">7d</span>
-                  <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 opacity-50 ${completionBarColor(weekAvgCat)}`}
-                      style={{ width: `${weekAvgCat}%` }}
-                    />
-                  </div>
-                  <span className="text-[9px] text-slate-400 w-6 text-right font-medium">
-                    {weekAvgCat}%
-                  </span>
-                </div>
-              )}
+            <div key={cat} className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-semibold text-slate-500">
+                {shortLabel(cfg.label)}
+              </span>
+              {trend && <TrendIcon trend={trend.categories[cat].trend} />}
             </div>
           );
         })}
@@ -664,13 +578,6 @@ export default function RegionalDashboard() {
   // ── Aggregate stats — all derived from real localStorage data ──────────
   const totalCompletedToday = siteRealStats.reduce((s, ss) => s + ss.completedCount, 0);
   const totalPossibleToday = DAILY_TASK_COUNT * SITES.length;
-  const todayAvgAllSites = Math.round(
-    siteRealStats.reduce((s, ss) => s + ss.todayAvg, 0) / SITES.length
-  );
-  // 7-day compliance uses simulated trend avg (real historical data is not persisted)
-  const avgCompliance = Math.round(
-    allTrends.reduce((s, t) => s + t.overallAvg, 0) / allTrends.length
-  );
 
   // ── Region performance data (CPO only) ──────────────────────────────────
   const regionPerformances = isCpoUser
@@ -847,7 +754,7 @@ export default function RegionalDashboard() {
           </div>
 
           {/* Aggregate stat tiles */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
+          <div className="grid grid-cols-2 gap-4 mt-6">
             <div
               data-testid="stat-tasks-completed"
               className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
@@ -859,28 +766,14 @@ export default function RegionalDashboard() {
               <p className="text-xs text-slate-400 mt-0.5">of {totalPossibleToday} across all sites</p>
             </div>
             <div
-              data-testid="stat-today"
+              data-testid="stat-sites"
               className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
             >
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                Today's Rate
+                Sites Monitored
               </p>
-              <p className={`text-3xl font-bold ${completionTextColor(todayAvgAllSites)}`}>
-                {todayAvgAllSites}%
-              </p>
-              <p className="text-xs text-slate-400 mt-0.5">avg across {SITES.length} sites</p>
-            </div>
-            <div
-              data-testid="stat-compliance"
-              className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
-            >
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                7-Day Compliance
-              </p>
-              <p className={`text-3xl font-bold ${completionTextColor(avgCompliance)}`}>
-                {avgCompliance}%
-              </p>
-              <p className="text-xs text-slate-400 mt-0.5">{SITES.length} sites monitored</p>
+              <p className="text-3xl font-bold text-slate-900">{SITES.length}</p>
+              <p className="text-xs text-slate-400 mt-0.5">reporting daily</p>
             </div>
           </div>
         </div>
@@ -1175,8 +1068,7 @@ export default function RegionalDashboard() {
                     <TrendIcon trend={trend} />
                   </div>
                   <div className="flex items-end gap-1.5 mb-2">
-                    <span className="text-2xl font-bold text-slate-800">{avg}%</span>
-                    <span className="text-xs text-slate-400 mb-0.5">{PERIOD_CONFIG[period].label} avg</span>
+                    <span className="text-xs text-slate-400">{PERIOD_CONFIG[period].label} trend</span>
                   </div>
                   <Sparkline
                     data={days}
@@ -1184,13 +1076,7 @@ export default function RegionalDashboard() {
                     width={128}
                     height={44}
                   />
-                  <div className="flex items-center justify-between mt-1.5">
-                    <p className="text-[10px] text-slate-400">
-                      Latest:{" "}
-                      <span className={`font-semibold ${completionTextColor(latestVal)}`}>
-                        {latestVal}%
-                      </span>
-                    </p>
+                  <div className="flex items-center justify-end mt-1.5">
                     <span className="text-[10px] font-semibold text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity">
                       View all sites →
                     </span>
@@ -1210,13 +1096,13 @@ export default function RegionalDashboard() {
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             Trouble Spots
             <span className="text-xs font-normal text-slate-400 ml-1">
-              — Individual tasks below 50% completion over 7 days (cross-site) — click to view
+              — Tasks frequently missed over the last 7 days (cross-site) — click to view
             </span>
           </h2>
           <div className="bg-white border border-slate-200 rounded-md divide-y divide-slate-100">
             {troubleSpotTasks.length === 0 ? (
               <div className="px-5 py-6 text-center text-sm text-slate-400">
-                No tasks below 50% completion threshold — all tasks performing above benchmark.
+                No frequently missed tasks — all tasks performing above benchmark.
               </div>
             ) : (
               troubleSpotTasks.map((spot) => {
@@ -1244,27 +1130,8 @@ export default function RegionalDashboard() {
                       </div>
                     </div>
 
-                    {/* Per-site breakdown */}
-                    <div className="flex items-center gap-3 shrink-0 flex-wrap">
-                      {spot.siteBreakdown.map((sb) => (
-                        <span key={sb.siteId} className="text-[11px] text-slate-500">
-                          {sb.siteName.replace("Site ", "")}:{" "}
-                          <span className={`font-bold ${completionTextColor(sb.avg7d)}`}>
-                            {sb.avg7d}%
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Avg badge + nav arrow */}
+                    {/* Nav arrow + critical badge */}
                     <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className={`text-sm font-bold ${
-                          isCritical ? "text-red-600" : "text-amber-600"
-                        }`}
-                      >
-                        {spot.avgCompletionPct}% avg
-                      </span>
                       {isCritical && (
                         <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-50 text-red-600 whitespace-nowrap">
                           Critical

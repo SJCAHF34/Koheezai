@@ -907,7 +907,6 @@ function RoleSection({
   const allTasks = groups.flatMap((g) => g.tasks);
   const done = allTasks.filter((t) => completions.has(t.id)).length;
   const total = allTasks.length;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   return (
     <div
@@ -932,23 +931,12 @@ function RoleSection({
 
         {/* Progress */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="hidden sm:flex items-center gap-1.5">
-            <div className="w-20 h-1.5 rounded-full bg-white/60 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  pct === 100 ? "bg-green-500" : "bg-white/80"
-                }`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-          </div>
-          <span className={`text-xs font-bold ${style.labelColor}`}>{done}/{total}</span>
           <span
             className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-              pct === 100 ? "bg-green-100 text-green-700" : style.badgeColor
+              total > 0 && done === total ? "bg-green-100 text-green-700" : style.badgeColor
             }`}
           >
-            {pct}%
+            {done}/{total} done
           </span>
         </div>
       </button>
@@ -1016,7 +1004,6 @@ function SiteOverviewPanel({
           (t) => t.frequency === frequency && (t.role === role || t.role === "all_staff")
         );
         const done = roleTasks.filter((t) => roleCompletions.has(t.id)).length;
-        const pct = roleTasks.length > 0 ? Math.round((done / roleTasks.length) * 100) : 0;
         const isActive = viewingRole === role;
         return (
           <button
@@ -1029,18 +1016,10 @@ function SiteOverviewPanel({
           >
             <p className="text-xs font-semibold text-slate-500 mb-1">{label}</p>
             <div className="flex items-end gap-1.5">
-              <span className="text-xl font-bold text-slate-800">{pct}%</span>
-              <span className="text-xs text-slate-400 mb-0.5">
+              <span className="text-xl font-bold text-slate-800">
                 {done}/{roleTasks.length}
               </span>
-            </div>
-            <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  pct === 100 ? "bg-green-500" : pct >= 60 ? "bg-purple-500" : "bg-amber-400"
-                }`}
-                style={{ width: `${pct}%` }}
-              />
+              <span className="text-xs text-slate-400 mb-0.5">done</span>
             </div>
           </button>
         );
@@ -2391,7 +2370,6 @@ function CategoryOverviewPanel({
           const catTasks = TASKS.filter((t) => t.frequency === frequency && t.category === cat);
           const done = catTasks.filter((t) => allCompletions.has(t.id)).length;
           const total = catTasks.length;
-          const pct = total > 0 ? Math.round((done / total) * 100) : 0;
           const isActive = categoryFilter === cat;
           return (
             <button
@@ -2404,16 +2382,8 @@ function CategoryOverviewPanel({
             >
               <p className="text-xs font-semibold text-slate-500 mb-1 truncate">{cfg.label}</p>
               <div className="flex items-end gap-1.5">
-                <span className="text-xl font-bold text-slate-800">{pct}%</span>
-                <span className="text-xs text-slate-400 mb-0.5">{done}/{total}</span>
-              </div>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    pct === 100 ? "bg-green-500" : colors.progress
-                  }`}
-                  style={{ width: `${pct}%` }}
-                />
+                <span className="text-xl font-bold text-slate-800">{done}/{total}</span>
+                <span className="text-xs text-slate-400 mb-0.5">done</span>
               </div>
               {isActive && (
                 <p className="text-[10px] font-semibold text-slate-400 mt-1">Click to clear filter</p>
@@ -3811,7 +3781,6 @@ function CategoryMiniCard({
   const color = SPARKLINE_COLORS[cat];
   const catTrend = trend7d.categories[cat];
   const sparkData = catTrend.days.map((d) => d.pct);
-  const latestPct = sparkData[sparkData.length - 1] ?? catTrend.avg7d;
   const shortName = cfg.label.replace(" Compliance", "").replace(" Metrics", "").toUpperCase();
   return (
     <div
@@ -3833,14 +3802,10 @@ function CategoryMiniCard({
           )}
         </div>
       </div>
-      <div className="flex items-end gap-2 mb-3">
-        <p className={`text-2xl font-bold ${perfTextColor(catTrend.avg7d)}`}>{catTrend.avg7d}%</p>
-        <p className="text-[11px] text-slate-400 mb-0.5">7d avg</p>
+      <div className="mb-3">
+        <p className="text-[11px] text-slate-400">7-day trend</p>
       </div>
       <ResponsivePerfSparkline data={sparkData} color={color} height={48} />
-      <p className="text-[11px] text-slate-400 mt-2">
-        Latest: <span className={`font-semibold ${perfTextColor(latestPct)}`}>{latestPct}%</span>
-      </p>
     </div>
   );
 }
@@ -3875,9 +3840,6 @@ function CategoryDrillDownPanel({
   const cfg = CATEGORY_CONFIG[cat];
   const color = SPARKLINE_COLORS[cat];
   const sparkData = catTrend.days.map((d) => d.pct);
-  const latestPct = sparkData[sparkData.length - 1] ?? 0;
-  const highPct = Math.max(...sparkData);
-  const lowPct = Math.min(...sparkData);
   const periodLabel = PERIOD_CONFIG[activePeriod].label;
   // x-axis: show first, midpoint, last labels
   const days = catTrend.days;
@@ -3945,21 +3907,6 @@ function CategoryDrillDownPanel({
           >
             {p.label}
           </button>
-        ))}
-      </div>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
-        {[
-          { label: "Period Avg", value: catTrend.avg7d },
-          { label: "Latest",    value: latestPct       },
-          { label: "High",      value: highPct         },
-          { label: "Low",       value: lowPct          },
-        ].map(({ label, value }) => (
-          <div key={label} className="text-center border border-slate-100 rounded-md py-2.5 px-1">
-            <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-1">{label}</p>
-            <p className={`text-lg font-bold ${perfTextColor(value)}`}>{value}%</p>
-          </div>
         ))}
       </div>
 
@@ -4070,9 +4017,6 @@ function StorePerformancePanel({
   const completedCount = TREND_CATEGORIES.reduce((s, cat) => s + (catStats[cat]?.done ?? 0), 0);
   const totalCount = TREND_CATEGORIES.reduce((s, cat) => s + (catStats[cat]?.total ?? 0), 0);
   const hasRealData = TREND_CATEGORIES.some((cat) => (catStats[cat]?.pct ?? 0) > 0);
-  const todayPct = hasRealData
-    ? Math.round(TREND_CATEGORIES.reduce((s, cat) => s + (catStats[cat]?.pct ?? 0), 0) / TREND_CATEGORIES.length)
-    : trend7d.todayAvg;
   const avg7d = trend7d.overallAvg;
   const tier = perfTierLabel(avg7d);
 
@@ -4084,17 +4028,7 @@ function StorePerformancePanel({
       </h2>
 
       {/* KPI tiles */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div data-testid="kpi-today" className="bg-white border border-slate-200 rounded-md px-4 py-3">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Today's Rate</p>
-          <p className={`text-3xl font-bold ${perfTextColor(todayPct)}`}>{todayPct}%</p>
-          <p className="text-xs text-slate-400 mt-0.5">avg across 4 categories</p>
-        </div>
-        <div data-testid="kpi-7d" className="bg-white border border-slate-200 rounded-md px-4 py-3">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">7-Day Average</p>
-          <p className={`text-3xl font-bold ${perfTextColor(avg7d)}`}>{avg7d}%</p>
-          <p className="text-xs text-slate-400 mt-0.5">rolling compliance</p>
-        </div>
+      <div className="grid grid-cols-2 gap-3">
         <div data-testid="kpi-tasks" className="bg-white border border-slate-200 rounded-md px-4 py-3">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Tasks Today</p>
           <p className="text-3xl font-bold text-slate-900">{completedCount}</p>
@@ -4540,7 +4474,6 @@ export default function TaskManager() {
   const roleGroups = buildRoleGroups(filteredVisible, viewingRole, profile.role);
   const totalTasks = filteredVisible.length;
   const doneTasks = filteredVisible.filter((t) => completions.has(t.id)).length;
-  const overallPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -4631,26 +4564,15 @@ export default function TaskManager() {
                 {displaySiteName} · {today}
               </p>
             </div>
-            {/* Overall completion percentage — Regional/CPO only */}
+            {/* Overall completion count — Regional/CPO only */}
             {isRegionalOrAbove(profile.role) && (
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <div className="flex items-center justify-end gap-1.5 mb-1.5">
-                    <span className="text-sm font-bold text-slate-800">{overallPct}%</span>
-                    <span className="text-xs text-slate-400">overall</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-32 h-2 rounded-full bg-slate-100 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ${
-                          overallPct === 100 ? "bg-green-500" : "bg-purple-500"
-                        }`}
-                        style={{ width: `${overallPct}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-slate-400">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span className="text-sm font-bold text-slate-800">
                       {doneTasks}/{totalTasks}
                     </span>
+                    <span className="text-xs text-slate-400">tasks done</span>
                   </div>
                 </div>
               </div>
@@ -4708,17 +4630,6 @@ export default function TaskManager() {
                 </p>
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-bold text-slate-900">{displaySiteName}</p>
-                  {isRegionalOrAbove(profile.role) && (
-                    <span className={`text-sm font-bold ${
-                      perfTrendLive.overallAvg >= 80
-                        ? "text-green-600"
-                        : perfTrendLive.overallAvg >= 65
-                        ? "text-amber-600"
-                        : "text-red-500"
-                    }`}>
-                      {perfTrendLive.overallAvg}% 7d avg
-                    </span>
-                  )}
                 </div>
               </div>
               <span className="text-sm font-semibold text-purple-600 group-hover:text-purple-800 whitespace-nowrap flex items-center gap-1 transition-colors">

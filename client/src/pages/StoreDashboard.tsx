@@ -25,7 +25,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
 } from "recharts";
 import {
@@ -44,26 +43,6 @@ import {
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-function completionTextColor(pct: number) {
-  return pct >= 80
-    ? "text-green-600"
-    : pct >= 65
-    ? "text-amber-600"
-    : pct >= 50
-    ? "text-orange-500"
-    : "text-red-500";
-}
-
-function completionBarColor(pct: number) {
-  return pct >= 80
-    ? "bg-green-500"
-    : pct >= 65
-    ? "bg-amber-400"
-    : pct >= 50
-    ? "bg-orange-400"
-    : "bg-red-400";
-}
 
 function tierLabel(pct: number) {
   if (pct >= 80)
@@ -147,26 +126,6 @@ function TrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
   if (trend === "up") return <TrendingUp className="w-3.5 h-3.5 text-green-500" />;
   if (trend === "down") return <TrendingDown className="w-3.5 h-3.5 text-red-500" />;
   return <Minus className="w-3.5 h-3.5 text-slate-400" />;
-}
-
-function CustomTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-slate-200 rounded-md px-3 py-2 shadow-sm text-xs">
-      <p className="font-semibold text-slate-600 mb-1">{label}</p>
-      <p className={`font-bold text-base ${completionTextColor(payload[0].value)}`}>
-        {payload[0].value}%
-      </p>
-    </div>
-  );
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -270,10 +229,6 @@ export default function StoreDashboard() {
       pct: catTasks.length > 0 ? Math.round((done / catTasks.length) * 100) : 0,
     };
   }
-  const todayPct = Math.round(
-    TREND_CATEGORIES.reduce((s, cat) => s + catStats[cat].pct, 0) / TREND_CATEGORIES.length
-  );
-
   // KPI 7-day average — always from fixed 7d trend
   const avg7d = trend7d.overallAvg;
   const tier = tierLabel(avg7d);
@@ -415,27 +370,7 @@ export default function StoreDashboard() {
           </div>
 
           {/* ── KPI tiles ───────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
-            <div
-              data-testid="kpi-today"
-              className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
-            >
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                Today's Rate
-              </p>
-              <p className={`text-3xl font-bold ${completionTextColor(todayPct)}`}>{todayPct}%</p>
-              <p className="text-xs text-slate-400 mt-0.5">avg across 4 categories</p>
-            </div>
-            <div
-              data-testid="kpi-7d"
-              className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
-            >
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                7-Day Average
-              </p>
-              <p className={`text-3xl font-bold ${completionTextColor(avg7d)}`}>{avg7d}%</p>
-              <p className="text-xs text-slate-400 mt-0.5">rolling compliance</p>
-            </div>
+          <div className="grid grid-cols-2 gap-3 mt-6">
             <div
               data-testid="kpi-tasks"
               className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
@@ -503,23 +438,13 @@ export default function StoreDashboard() {
                     <TrendIcon trend={catTrend7d.trend} />
                   </div>
                   <div className="flex items-end gap-1.5 mb-1">
-                    <p className={`text-2xl font-bold ${completionTextColor(catTrend7d.avg7d)}`}>
-                      {catTrend7d.avg7d}%
+                    <p className="text-2xl font-bold text-slate-800">
+                      {stat.done}/{stat.total}
                     </p>
-                    <p className="text-[10px] text-slate-400 mb-1">7d avg</p>
+                    <p className="text-[10px] text-slate-400 mb-1">tasks done today</p>
                   </div>
-                  <p className="text-[10px] text-slate-400 mb-3">
-                    {stat.done}/{stat.total} tasks done today
-                  </p>
                   <Sparkline data={sparkData} color={color} width={120} height={38} />
-                  <div className="mt-2.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${completionBarColor(stat.pct)}`}
-                      style={{ width: `${stat.pct}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-[10px] text-slate-400">{stat.pct}% today</p>
+                  <div className="flex items-center justify-end mt-1">
                     {isActive && (
                       <p className="text-[10px] font-semibold text-purple-600">Expanded</p>
                     )}
@@ -601,14 +526,7 @@ export default function StoreDashboard() {
                     axisLine={false}
                     interval="preserveStartEnd"
                   />
-                  <YAxis
-                    domain={[0, 100]}
-                    tick={{ fontSize: 10, fill: "#94a3b8" }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) => `${v}%`}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
+                  <YAxis domain={[0, 100]} hide />
                   <Area
                     type="monotone"
                     dataKey="value"
@@ -634,17 +552,11 @@ export default function StoreDashboard() {
               </p>
             </div>
             <div className="text-right">
-              <p className={`text-2xl font-bold ${completionTextColor(todayPct)}`}>
-                {todayPct}%
+              <p className="text-2xl font-bold text-slate-800">
+                {doneTodayCount}/{totalCount}
               </p>
-              <p className="text-[10px] text-slate-400">completion rate</p>
+              <p className="text-[10px] text-slate-400">tasks completed</p>
             </div>
-          </div>
-          <div className="h-3 rounded-full bg-slate-100 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-700 ${completionBarColor(todayPct)}`}
-              style={{ width: `${todayPct}%` }}
-            />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
             {TREND_CATEGORIES.map((cat) => {
@@ -657,12 +569,10 @@ export default function StoreDashboard() {
                   >
                     {cfg.label.replace(" Compliance", "").replace(" Metrics", "")}
                   </p>
-                  <p className={`text-lg font-bold ${completionTextColor(stat.pct)}`}>
-                    {stat.pct}%
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
+                  <p className="text-lg font-bold text-slate-800">
                     {stat.done}/{stat.total}
                   </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">tasks done</p>
                 </div>
               );
             })}

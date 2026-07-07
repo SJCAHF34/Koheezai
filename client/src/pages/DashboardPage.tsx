@@ -109,7 +109,7 @@ function TaskSummaryWidget({ userEmail, userName }: { userEmail: string; userNam
       (t.role === profile.role || t.role === "all_staff" || isDirectorRole(profile.role))
   );
   const done = dailyTasks.filter((t) => completions.has(t.id)).length;
-  const pct = dailyTasks.length > 0 ? Math.round((done / dailyTasks.length) * 100) : 0;
+  const allDone = dailyTasks.length > 0 && done === dailyTasks.length;
 
   return (
     <Link href="/app/tasks">
@@ -126,15 +126,7 @@ function TaskSummaryWidget({ userEmail, userName }: { userEmail: string; userNam
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Today's Tasks</p>
           <div className="flex items-center gap-2 mt-1">
-            <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden max-w-40">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  pct === 100 ? "bg-green-500" : "bg-purple-500"
-                }`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <span className="text-xs font-semibold text-slate-600">
+            <span className={`text-xs font-semibold ${allDone ? "text-green-600" : "text-slate-600"}`}>
               {done}/{dailyTasks.length} complete
             </span>
           </div>
@@ -152,17 +144,6 @@ function TaskSummaryWidget({ userEmail, userName }: { userEmail: string; userNam
 function StoreDashboardWidget({ userEmail, userName }: { userEmail: string; userName: string }) {
   const profile = getUserProfile(userEmail, userName);
   if (!isPharmacyDirector(profile.role)) return null;
-
-  const siteTrend = generateSiteTrends(profile.siteId);
-  const avg7d = siteTrend.overallAvg;
-  const tierColor =
-    avg7d >= 80
-      ? "text-green-600"
-      : avg7d >= 65
-      ? "text-amber-600"
-      : avg7d >= 50
-      ? "text-orange-500"
-      : "text-red-500";
 
   return (
     <Link href={`/app/store/${profile.siteId}`}>
@@ -183,7 +164,6 @@ function StoreDashboardWidget({ userEmail, userName }: { userEmail: string; user
           </p>
           <div className="flex items-center gap-3 mt-1">
             <span className="text-sm font-semibold text-slate-700">{profile.siteName}</span>
-            <span className={`text-xs font-bold ${tierColor}`}>{avg7d}% 7d avg</span>
           </div>
         </div>
         <div className="flex items-center gap-1 text-purple-600 group-hover:gap-2 transition-all text-xs font-semibold shrink-0">
@@ -250,7 +230,7 @@ function TechDashboard({ userEmail, userName }: { userEmail: string; userName: s
               const catTasks = techTasks.filter((t) => t.category === cat);
               const done = catTasks.filter((t) => completions.has(t.id)).length;
               const total = catTasks.length;
-              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+              const complete = total > 0 && done === total;
               return (
                 <Link key={cat} href={`/app/tasks?cat=${cat}`}>
                   <div
@@ -259,16 +239,10 @@ function TechDashboard({ userEmail, userName }: { userEmail: string; userName: s
                   >
                     <p className="text-xs font-semibold text-slate-500 mb-1 truncate">{cfg.label}</p>
                     <div className="flex items-end gap-1.5 mb-2">
-                      <span className="text-2xl font-bold text-slate-800">{pct}%</span>
-                      <span className="text-xs text-slate-400 mb-0.5">{done}/{total}</span>
+                      <span className="text-2xl font-bold text-slate-800">{done}/{total}</span>
+                      <span className="text-xs text-slate-400 mb-0.5">done</span>
                     </div>
-                    <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${pct === 100 ? "bg-green-500" : colors.progress}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    {pct === 100 && (
+                    {complete && (
                       <p className="text-[10px] text-green-600 font-semibold mt-1 flex items-center gap-0.5">
                         <Check className="w-3 h-3" /> Complete
                       </p>
