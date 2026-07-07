@@ -12,3 +12,9 @@ id = "PlMLdDw9xCVRYiM4-cgNL"
 uri = "file://.local/deliverables/koheez-cto-summary.md"
 type = "text"
 title = "Koheez.ai — CTO Summary"
+
+[[outputs]]
+id = "iv7WsMU289OBpW5JSSS0B"
+uri = "file://ADP_API_Access_Request.md"
+type = "text"
+title = "ADP API Access Request — Koheez Scheduling Calendar"
