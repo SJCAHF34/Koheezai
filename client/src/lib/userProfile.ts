@@ -111,6 +111,14 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     region: "Western Region",
     taskRoles: ["data_entry_tech"],
   },
+  "micah.bergaguilar@aidshealth.org": {
+    name: "Micah Bergaguilar",
+    role: "data_entry_tech",
+    siteId: "1417",
+    siteName: "RX Pike Street",
+    region: "Western Region",
+    taskRoles: ["data_entry_tech"],
+  },
   "pairiss.wilcox@aidshealth.org": {
     name: "Pairiss Wilcox",
     role: "data_entry_tech",
