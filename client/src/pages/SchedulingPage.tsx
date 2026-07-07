@@ -2206,6 +2206,17 @@ function BalancesEditor({
 
 const TIME_OFF_STATUSES: ScheduleStatus[] = ["pto", "sick", "floating_holiday"];
 
+/** Compact time for calendar cells: "09:00" → "9a", "17:30" → "5:30p" */
+function formatTimeShort(hhmm: string): string {
+  const [hStr, mStr] = hhmm.split(":");
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr ?? "0", 10);
+  if (Number.isNaN(h)) return hhmm;
+  const period = h >= 12 ? "p" : "a";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return m === 0 ? `${h12}${period}` : `${h12}:${String(m).padStart(2, "0")}${period}`;
+}
+
 // ── Month Event Bar layout helpers ─────────────────────────────────────────
 
 type CalEventBar = {
@@ -2314,6 +2325,8 @@ function MonthGrid({
   const EVENT_H = 20; // px height per event bar row
   const CELL_TOP = 28; // px reserved for date number at top
   const MAX_BAR_ROWS = 4; // max event rows to avoid infinite expansion
+  const STAFF_ROW_H = 16; // px per staff name row in cell
+  const MAX_STAFF_VISIBLE = 4; // max staff rows before "+N more"
 
   return (
     <div className="p-2" data-testid="grid-month">
@@ -2333,7 +2346,8 @@ function MonthGrid({
       {weeks.map((week, wi) => {
         const bars = layoutWeekEvents(week, timeOffEvents);
         const usedRows = bars.length > 0 ? Math.min(Math.max(...bars.map((b) => b.row)) + 1, MAX_BAR_ROWS) : 0;
-        const cellMinH = CELL_TOP + usedRows * EVENT_H + 24; // 24px for scheduled count at bottom
+        // Cell height: header + event bar rows + staff list (fixed allocation)
+        const cellMinH = CELL_TOP + usedRows * EVENT_H + MAX_STAFF_VISIBLE * STAFF_ROW_H + 12;
 
         return (
           <div key={wi} className="relative grid grid-cols-7" style={{ minHeight: cellMinH }}>
@@ -2345,18 +2359,29 @@ function MonthGrid({
               const closed =
                 hours?.weekdays?.[d.getDay()] === null ||
                 (hours?.holidayClosures ?? []).includes(dateKey);
-              // Count scheduled staff for bottom indicator.
-              let scheduled = 0;
-              for (const s of roster) {
-                if (computeEffective(d, s.id, defaults, entries).status === "scheduled") scheduled++;
-              }
+
+              // Build per-staff entries for this day (PTO/sick/FH shown in bars — skip here)
+              const staffRows = roster.map((s) => {
+                const cell = computeEffective(d, s.id, defaults, entries);
+                if (TIME_OFF_STATUSES.includes(cell.status)) return null;
+                return { staff: s, status: cell.status, start: cell.start, end: cell.end };
+              }).filter(Boolean) as { staff: StaffMember; status: ScheduleStatus; start?: string; end?: string }[];
+
+              const visibleStaff = closed ? [] : staffRows.slice(0, MAX_STAFF_VISIBLE);
+              const hiddenCount = closed ? 0 : Math.max(0, staffRows.length - visibleStaff.length);
+              const hasAnyStaff = !closed && staffRows.length > 0;
 
               return (
                 <div
                   key={dateKey}
-                  className={`relative border border-border bg-background flex flex-col ${inMonth ? "" : "opacity-50"}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onPickDay(d)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onPickDay(d); }}
+                  className={`relative border border-border bg-background flex flex-col cursor-pointer hover-elevate ${inMonth ? "" : "opacity-50"}`}
                   style={{ minHeight: cellMinH }}
                   data-testid={`cell-month-day-${dateKey}`}
+                  aria-label={`View ${dateKey} schedule`}
                 >
                   {/* Date header row */}
                   <div className="flex items-center justify-between px-1.5 pt-1 shrink-0" style={{ height: CELL_TOP }}>
@@ -2384,26 +2409,50 @@ function MonthGrid({
                   {/* Spacer for event bar rows */}
                   <div style={{ height: usedRows * EVENT_H }} className="shrink-0" />
 
-                  {/* Bottom: scheduled count + click-to-view */}
-                  <button
-                    type="button"
-                    onClick={() => onPickDay(d)}
-                    className="flex-1 flex items-end px-1.5 pb-1 text-left w-full hover-elevate"
-                    aria-label={`View ${dateKey} schedule`}
-                  >
-                    {scheduled > 0 ? (
-                      <span
-                        className="text-[10px] text-muted-foreground"
-                        title={`${scheduled} staff scheduled`}
-                        data-testid={`text-scheduled-count-${dateKey}`}
+                  {/* Staff entry list */}
+                  <div className={`flex-1 px-1 pb-1 space-y-px overflow-hidden ${closed ? "opacity-40" : ""}`}>
+                    {visibleStaff.map((row) => {
+                      const dotColor = getStaffColor(row.staff.id, defaults, roster);
+                      const isScheduled = row.status === "scheduled";
+                      return (
+                        <div
+                          key={row.staff.id}
+                          className="flex items-center gap-1 leading-none"
+                          style={{ height: STAFF_ROW_H }}
+                          data-testid={`entry-month-${dateKey}-${row.staff.id}`}
+                        >
+                          <span
+                            className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+                            style={{ background: dotColor }}
+                          />
+                          <span className={`text-[9px] truncate font-medium ${isScheduled ? "text-foreground" : "text-muted-foreground/60"}`}>
+                            {row.staff.name.split(" ")[0]}
+                          </span>
+                          {isScheduled && row.start && row.end ? (
+                            <span className="text-[9px] text-muted-foreground shrink-0 ml-auto">
+                              {formatTimeShort(row.start)}–{formatTimeShort(row.end)}
+                            </span>
+                          ) : (
+                            <span className="text-[9px] text-muted-foreground/40 italic shrink-0 ml-auto">Off</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {hiddenCount > 0 && (
+                      <div
+                        className="text-[9px] text-purple-600 font-medium px-0.5 leading-none"
+                        style={{ height: STAFF_ROW_H, display: "flex", alignItems: "center" }}
+                        data-testid={`entry-month-more-${dateKey}`}
                       >
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 align-middle" />
-                        {scheduled} in
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground/50 italic">empty</span>
+                        +{hiddenCount} more
+                      </div>
                     )}
-                  </button>
+                    {!hasAnyStaff && !closed && (
+                      <div className="text-[9px] text-muted-foreground/40 italic px-0.5 leading-none" style={{ height: STAFF_ROW_H, display: "flex", alignItems: "center" }}>
+                        empty
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
