@@ -380,8 +380,8 @@ function TaskCheckbox({
           : animating
           ? "border-green-400 scale-125 bg-green-50"
           : disabled
-          ? "border-slate-200 opacity-50"
-          : "border-slate-300 hover:border-purple-400 hover:scale-110"
+          ? "border-black opacity-50"
+          : "border-black hover:border-purple-400 hover:scale-110"
       }`}
     >
       <div
@@ -548,7 +548,7 @@ function TaskRow({
             className={`text-sm leading-snug transition-all duration-300 ${
               completed
                 ? "line-through text-muted-foreground"
-                : "text-slate-800 font-medium"
+                : "text-black font-medium"
             }`}
           >
             {task.title}
@@ -558,7 +558,7 @@ function TaskRow({
         {task.description && (() => {
           const lines = task.description.split("\n").map((l) => l.trim()).filter(Boolean);
           return lines.length > 1 ? (
-            <ul className={`text-xs mt-1 space-y-0.5 ${completed ? "text-slate-300 line-through" : "text-slate-400"}`}>
+            <ul className={`text-xs mt-1 space-y-0.5 ${completed ? "text-slate-300 line-through" : "text-black"}`}>
               {lines.map((line, i) => (
                 <li key={i} className="flex items-start gap-1 leading-relaxed">
                   <span className="shrink-0 select-none">•</span>
@@ -567,7 +567,7 @@ function TaskRow({
               ))}
             </ul>
           ) : (
-            <p className={`text-xs mt-0.5 leading-relaxed ${completed ? "text-slate-300 line-through" : "text-slate-400"}`}>
+            <p className={`text-xs mt-0.5 leading-relaxed ${completed ? "text-slate-300 line-through" : "text-black"}`}>
               {task.description}
             </p>
           );
@@ -849,12 +849,12 @@ function TaskGroupSection({
         ) : (
           <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
         )}
-        <span className="text-xs font-semibold text-slate-600 flex-1">{groupName}</span>
+        <span className="text-xs font-semibold text-black flex-1">{groupName}</span>
         <span
           className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
             allDone
               ? "bg-green-100 text-green-700"
-              : "bg-slate-100 text-slate-500"
+              : "bg-slate-100 text-black"
           }`}
         >
           {done}/{tasks.length}
