@@ -4421,7 +4421,9 @@ export default function TaskManager() {
   //      - active assignments → included (can ADD new temp roles)
   //      - expired/future assignments → excluded (can REMOVE roles even if in profile)
   //      - profile roles not declared in the roster entry → passed through unchanged
-  //   3. No matching roster entry or no roleAssignments → fall back to profile.taskRoles
+  //   3. Roster member WITHOUT roleAssignments → the plain roster roles list is
+  //      authoritative (fall back to profile.taskRoles only if it's empty)
+  //   4. No matching roster entry → fall back to profile.taskRoles
   const extraRoles = useMemo((): string[] | undefined => {
     const rawRoles = profile.taskRoles as string[] | undefined;
     const rosterForSite = loadRoster(siteId);
@@ -4432,8 +4434,14 @@ export default function TaskManager() {
     );
     if (!rosterMember) return rawRoles;
     if (!rosterMember.roleAssignments || rosterMember.roleAssignments.length === 0) {
-      // Roster entry exists but no date-bounded assignments — not overriding profile
-      return rawRoles;
+      // Roster entry with a plain roles list (no date bounds) — the roster is
+      // authoritative for what this member works on (e.g. a tech moved to delivery).
+      if (rosterMember.roles.length === 0) return rawRoles;
+      const rosterOnly = new Set<string>(rosterMember.roles);
+      if (!isDirectorRole(profile.role as UserRole)) {
+        rosterOnly.delete("director");
+      }
+      return rosterOnly.size > 0 ? Array.from(rosterOnly) : rawRoles;
     }
     // Roles explicitly declared in the roster entry (roster is authoritative for these)
     const rosterDeclaredRoles = new Set(rosterMember.roleAssignments.map((ra) => ra.role));
