@@ -367,6 +367,14 @@ export default function SchedulingPage() {
     enabled: !!siteId,
   });
 
+  // Full-year entries for accurate used-day computation in BalancesEditor.
+  const yearEntriesQuery = useQuery<ScheduleEntry[]>({
+    queryKey: ["/api/scheduling", siteId, "entries", `${currentYear}-01-01`, `${currentYear}-12-31`],
+    queryFn: async () =>
+      apiRequest(`/api/scheduling/${siteId}/entries?from=${currentYear}-01-01&to=${currentYear}-12-31`),
+    enabled: !!siteId,
+  });
+
   const upsertEntryMutation = useMutation({
     mutationFn: (payload: {
       staffId: string;
@@ -496,6 +504,9 @@ export default function SchedulingPage() {
   // ── Settings dialog (defaults + hours) ───────────────────────────────────
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // ── Quick-create (month view cell click) ─────────────────────────────────
+  const [quickCreate, setQuickCreate] = useState<{ date: Date } | null>(null);
+
   const selectedSite = sitesQuery.data?.find((s) => s.id === siteId);
 
   return (
@@ -623,7 +634,7 @@ export default function SchedulingPage() {
             {viewMode === "week"
               ? `Week of ${weekDays[0].toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
               : monthAnchor.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-            {viewMode === "week" && (() => {
+            {viewMode === "week" && (defaultsQuery.data ?? []).some(d => d.schedulePattern && d.schedulePattern !== "standard") && (() => {
               // Use Monday (weekDays[1]) as ISO-week anchor — ISO weeks are Monday-based.
               const isoWk = getISOWeek(weekDays[1] ?? weekDays[0]);
               const label = isoWk % 2 !== 0 ? "Week A" : "Week B";
@@ -700,6 +711,7 @@ export default function SchedulingPage() {
               defaults={defaultsQuery.data ?? []}
               entries={entriesQuery.data ?? []}
               onPickDay={(d) => setDayDetail(d)}
+              onQuickCreate={(d) => setQuickCreate({ date: d })}
               canEdit={canEdit}
             />
           ) : (
@@ -819,6 +831,8 @@ export default function SchedulingPage() {
             return e.staffId === editing.staff.id && e.date <= dk && (e.endDate ?? e.date) >= dk;
           })}
           defaults={defaultsQuery.data ?? []}
+          balances={balancesQuery.data ?? []}
+          yearEntries={yearEntriesQuery.data ?? []}
           isSaving={upsertEntryMutation.isPending}
           isDeleting={deleteEntryMutation.isPending}
           onSave={async (payload) => {
@@ -838,6 +852,25 @@ export default function SchedulingPage() {
             });
             setEditing(null);
             toast({ title: "Override removed", description: "Reverted to default schedule." });
+          }}
+        />
+      )}
+
+      {/* Quick-create time-off from month view */}
+      {quickCreate && siteId && (
+        <QuickCreateDialog
+          open={!!quickCreate}
+          onClose={() => setQuickCreate(null)}
+          date={quickCreate.date}
+          roster={roster}
+          defaults={defaultsQuery.data ?? []}
+          balances={balancesQuery.data ?? []}
+          yearEntries={yearEntriesQuery.data ?? []}
+          isSaving={upsertEntryMutation.isPending}
+          onSave={async (payload) => {
+            await upsertEntryMutation.mutateAsync(payload);
+            setQuickCreate(null);
+            toast({ title: "Time off saved" });
           }}
         />
       )}
@@ -871,7 +904,7 @@ export default function SchedulingPage() {
           balances={balancesQuery.data ?? []}
           currentYear={currentYear}
           onSaveBalance={(payload) => upsertBalanceMutation.mutateAsync(payload)}
-          entries={entriesQuery.data ?? []}
+          entries={yearEntriesQuery.data ?? []}
         />
       )}
 
@@ -907,6 +940,175 @@ export default function SchedulingPage() {
   );
 }
 
+// ── Quick Create Dialog (month view) ────────────────────────────────────────
+
+function QuickCreateDialog({
+  open,
+  onClose,
+  date,
+  roster,
+  defaults,
+  balances,
+  yearEntries,
+  isSaving,
+  onSave,
+}: {
+  open: boolean;
+  onClose: () => void;
+  date: Date;
+  roster: StaffMember[];
+  defaults: StaffScheduleDefault[];
+  balances: StaffTimeOffBalance[];
+  yearEntries: ScheduleEntry[];
+  isSaving: boolean;
+  onSave: (payload: {
+    staffId: string;
+    staffName: string;
+    date: string;
+    endDate?: string;
+    status: ScheduleStatus;
+    note?: string;
+  }) => Promise<void>;
+}) {
+  const dateKey = toDateKey(date);
+  const [staffId, setStaffId] = useState<string>(roster[0]?.id ?? "");
+  const [status, setStatus] = useState<ScheduleStatus>("pto");
+  const [endDateKey, setEndDateKey] = useState<string>(dateKey);
+  const [note, setNote] = useState<string>("");
+
+  const currentYear = date.getFullYear();
+  const selectedStaff = roster.find((s) => s.id === staffId);
+  const balance = balances.find((b) => b.staffId === staffId && b.year === currentYear);
+
+  // Compute used days for the selected staff.
+  const usedDays = useMemo(() => {
+    const used = { pto: 0, sick: 0, fh: 0 };
+    for (const e of yearEntries) {
+      if (e.staffId !== staffId) continue;
+      const days = countEntryDays(e);
+      if (e.status === "pto") used.pto += days;
+      else if (e.status === "sick") used.sick += days;
+      else if (e.status === "floating_holiday") used.fh += days;
+    }
+    return used;
+  }, [yearEntries, staffId]);
+
+  const remaining = {
+    pto: (balance?.ptoDaysAllotted ?? 10) - usedDays.pto,
+    sick: (balance?.sickDaysAllotted ?? 5) - usedDays.sick,
+    fh: (balance?.floatingHolidayDaysAllotted ?? 0) - usedDays.fh,
+  };
+
+  const isMultiDay = endDateKey > dateKey;
+  const dayCount = isMultiDay
+    ? Math.round((new Date(endDateKey + "T00:00:00").getTime() - new Date(dateKey + "T00:00:00").getTime()) / 86400000) + 1
+    : 1;
+
+  if (roster.length === 0) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent data-testid="dialog-quick-create">
+        <DialogHeader>
+          <DialogTitle>Add Time Off</DialogTitle>
+          <DialogDescription>
+            {date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Staff member</Label>
+            <Select value={staffId} onValueChange={setStaffId}>
+              <SelectTrigger className="mt-1" data-testid="select-qc-staff">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {roster.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-xs">Type</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v as ScheduleStatus)}>
+              <SelectTrigger className="mt-1" data-testid="select-qc-status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TIME_OFF_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s} data-testid={`option-qc-status-${s}`}>
+                    {STATUS_LABEL[s]}
+                    {" — "}
+                    {s === "pto" ? `${remaining.pto} days remaining` : s === "sick" ? `${remaining.sick} days remaining` : `${remaining.fh} days remaining`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">From</Label>
+              <Input type="date" value={dateKey} disabled className="mt-1 bg-muted/50" />
+            </div>
+            <div>
+              <Label className="text-xs">Through</Label>
+              <Input
+                type="date"
+                value={endDateKey}
+                min={dateKey}
+                onChange={(e) => setEndDateKey(e.target.value || dateKey)}
+                className="mt-1"
+                data-testid="input-qc-end-date"
+              />
+            </div>
+          </div>
+          {isMultiDay && (
+            <p className="text-[11px] text-muted-foreground">{dayCount} calendar days</p>
+          )}
+
+          <div>
+            <Label className="text-xs">Note (optional)</Label>
+            <Input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="e.g. Approved vacation"
+              data-testid="input-qc-note"
+              className="mt-1"
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2 flex-wrap">
+          <Button variant="outline" onClick={onClose} data-testid="button-qc-cancel">Cancel</Button>
+          <Button
+            onClick={async () => {
+              if (!selectedStaff) return;
+              await onSave({
+                staffId: selectedStaff.id,
+                staffName: selectedStaff.name,
+                date: dateKey,
+                endDate: endDateKey > dateKey ? endDateKey : undefined,
+                status,
+                note: note.trim() || undefined,
+              });
+              onClose();
+            }}
+            disabled={isSaving || !selectedStaff}
+            data-testid="button-qc-save"
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Cell Editor Dialog ─────────────────────────────────────────────────────
 
 function CellEditorDialog({
@@ -916,6 +1118,8 @@ function CellEditorDialog({
   date,
   existing,
   defaults,
+  balances,
+  yearEntries,
   isSaving,
   isDeleting,
   onSave,
@@ -927,6 +1131,8 @@ function CellEditorDialog({
   date: Date;
   existing?: ScheduleEntry;
   defaults: StaffScheduleDefault[];
+  balances: StaffTimeOffBalance[];
+  yearEntries: ScheduleEntry[];
   isSaving: boolean;
   isDeleting: boolean;
   onSave: (payload: {
@@ -959,6 +1165,26 @@ function CellEditorDialog({
   const dayCount = isMultiDay
     ? Math.round((new Date(endDateKey + "T00:00:00").getTime() - new Date(dateKey + "T00:00:00").getTime()) / 86400000) + 1
     : 1;
+
+  // Running balance for this staff.
+  const currentYear = date.getFullYear();
+  const balance = balances.find((b) => b.staffId === staff.id && b.year === currentYear);
+  const usedDays = useMemo(() => {
+    const used = { pto: 0, sick: 0, fh: 0 };
+    for (const e of yearEntries) {
+      if (e.staffId !== staff.id) continue;
+      const days = countEntryDays(e);
+      if (e.status === "pto") used.pto += days;
+      else if (e.status === "sick") used.sick += days;
+      else if (e.status === "floating_holiday") used.fh += days;
+    }
+    return used;
+  }, [yearEntries, staff.id]);
+  const remaining = {
+    pto: (balance?.ptoDaysAllotted ?? 10) - usedDays.pto,
+    sick: (balance?.sickDaysAllotted ?? 5) - usedDays.sick,
+    fh: (balance?.floatingHolidayDaysAllotted ?? 0) - usedDays.fh,
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -1009,6 +1235,32 @@ function CellEditorDialog({
                   className="mt-1"
                 />
               </div>
+            </div>
+          )}
+
+          {isTimeOff && (
+            <div className="rounded-md bg-muted/40 px-3 py-2 text-[11px] space-y-0.5" data-testid="balance-summary">
+              <div className="font-semibold text-foreground mb-1">Balance ({date.getFullYear()})</div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">PTO</span>
+                <span className={remaining.pto < 0 ? "text-destructive font-semibold" : "text-foreground"}>
+                  {usedDays.pto} used / {balance?.ptoDaysAllotted ?? 10} allotted — <strong>{remaining.pto} left</strong>
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Sick</span>
+                <span className={remaining.sick < 0 ? "text-destructive font-semibold" : "text-foreground"}>
+                  {usedDays.sick} used / {balance?.sickDaysAllotted ?? 5} allotted — <strong>{remaining.sick} left</strong>
+                </span>
+              </div>
+              {(balance?.floatingHolidayDaysAllotted ?? 0) > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Float Holiday</span>
+                  <span className={remaining.fh < 0 ? "text-destructive font-semibold" : "text-foreground"}>
+                    {usedDays.fh} used / {balance?.floatingHolidayDaysAllotted} allotted — <strong>{remaining.fh} left</strong>
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -1708,6 +1960,67 @@ function BalancesEditor({
 
 const TIME_OFF_STATUSES: ScheduleStatus[] = ["pto", "sick", "floating_holiday"];
 
+// ── Month Event Bar layout helpers ─────────────────────────────────────────
+
+type CalEventBar = {
+  entry: ScheduleEntry;
+  staffName: string;
+  color: string;
+  startCol: number; // 0–6 within the week
+  endCol: number;   // 0–6 within the week
+  row: number;      // layout row (0-indexed, for vertical stacking)
+  isStart: boolean; // true if the real start is within this week
+  isEnd: boolean;   // true if the real end is within this week
+};
+
+function layoutWeekEvents(
+  week: Date[],
+  events: Array<{ entry: ScheduleEntry; staffName: string; color: string }>,
+): CalEventBar[] {
+  const weekStartKey = toDateKey(week[0]);
+  const weekEndKey = toDateKey(week[6]);
+
+  const bars: Omit<CalEventBar, "row">[] = [];
+  for (const ev of events) {
+    const entryStart = ev.entry.date;
+    const entryEnd = ev.entry.endDate ?? ev.entry.date;
+    if (entryStart > weekEndKey || entryEnd < weekStartKey) continue;
+    const clippedStart = entryStart > weekStartKey ? entryStart : weekStartKey;
+    const clippedEnd = entryEnd < weekEndKey ? entryEnd : weekEndKey;
+    const startCol = week.findIndex((d) => toDateKey(d) === clippedStart);
+    const endCol = week.findIndex((d) => toDateKey(d) === clippedEnd);
+    if (startCol === -1 || endCol === -1) continue;
+    bars.push({
+      entry: ev.entry,
+      staffName: ev.staffName,
+      color: ev.color,
+      startCol,
+      endCol,
+      isStart: entryStart >= weekStartKey,
+      isEnd: entryEnd <= weekEndKey,
+    });
+  }
+
+  // Greedy first-fit layout — assign each bar to the first row with no overlap.
+  const rowOccupancy: Array<Array<{ s: number; e: number }>> = [];
+  const result: CalEventBar[] = [];
+  for (const bar of bars) {
+    let row = 0;
+    while (true) {
+      const occ = rowOccupancy[row] ?? [];
+      const conflict = occ.some((o) => o.s <= bar.endCol && o.e >= bar.startCol);
+      if (!conflict) {
+        if (!rowOccupancy[row]) rowOccupancy[row] = [];
+        rowOccupancy[row].push({ s: bar.startCol, e: bar.endCol });
+        break;
+      }
+      row++;
+    }
+    result.push({ ...bar, row });
+  }
+  return result;
+}
+
 function MonthGrid({
   monthAnchor,
   days,
@@ -1716,6 +2029,7 @@ function MonthGrid({
   defaults,
   entries,
   onPickDay,
+  onQuickCreate,
   canEdit,
 }: {
   monthAnchor: Date;
@@ -1725,106 +2039,167 @@ function MonthGrid({
   defaults: StaffScheduleDefault[];
   entries: ScheduleEntry[];
   onPickDay: (d: Date) => void;
+  onQuickCreate: (d: Date) => void;
   canEdit: boolean;
 }) {
   const currentMonth = monthAnchor.getMonth();
   const todayKey = toDateKey(new Date());
 
+  // Group into weeks (7-day rows).
+  const weeks: Date[][] = [];
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+
+  // Build time-off event descriptors from entries.
+  const timeOffEvents = useMemo(
+    () =>
+      entries
+        .filter((e) => TIME_OFF_STATUSES.includes(e.status))
+        .map((entry) => {
+          const staff = roster.find((s) => s.id === entry.staffId);
+          if (!staff) return null;
+          return { entry, staffName: staff.name, color: getStaffColor(entry.staffId, defaults, roster) };
+        })
+        .filter(Boolean) as Array<{ entry: ScheduleEntry; staffName: string; color: string }>,
+    [entries, roster, defaults],
+  );
+
+  const EVENT_H = 20; // px height per event bar row
+  const CELL_TOP = 28; // px reserved for date number at top
+  const MAX_BAR_ROWS = 4; // max event rows to avoid infinite expansion
+
   return (
-    <div className="p-2">
-      <div className="grid grid-cols-7 gap-px bg-border rounded overflow-hidden border" data-testid="grid-month">
+    <div className="p-2" data-testid="grid-month">
+      {/* Day-of-week header */}
+      <div className="grid grid-cols-7 mb-px">
         {WEEKDAY_LABELS.map((label) => (
           <div
             key={label}
-            className="bg-muted/40 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground text-center py-1.5"
+            className="bg-muted/40 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground text-center py-1.5 border border-border"
           >
             {label}
           </div>
         ))}
-        {days.map((d) => {
-          const dateKey = toDateKey(d);
-          const inMonth = d.getMonth() === currentMonth;
-          const isToday = dateKey === todayKey;
-          const closed =
-            hours?.weekdays?.[d.getDay()] === null ||
-            (hours?.holidayClosures ?? []).includes(dateKey);
-
-          // Per-day staff status counts + colored time-off chips
-          let scheduled = 0;
-          const scheduledNames: string[] = [];
-          const chips: { staffId: string; name: string; status: ScheduleStatus; color: string }[] = [];
-          for (const staff of roster) {
-            const cell = computeEffective(d, staff.id, defaults, entries);
-            if (cell.status === "scheduled") {
-              scheduled++;
-              scheduledNames.push(staff.name);
-            } else if (TIME_OFF_STATUSES.includes(cell.status)) {
-              chips.push({
-                staffId: staff.id,
-                name: staff.name,
-                status: cell.status,
-                color: getStaffColor(staff.id, defaults, roster),
-              });
-            }
-          }
-          const MAX_CHIPS = 3;
-          const visibleChips = chips.slice(0, MAX_CHIPS);
-          const overflow = chips.length - MAX_CHIPS;
-
-          return (
-            <button
-              key={dateKey}
-              type="button"
-              onClick={() => onPickDay(d)}
-              className={`relative bg-background min-h-[96px] p-1.5 text-left hover-elevate active-elevate-2 ${inMonth ? "" : "opacity-50"}`}
-              data-testid={`cell-month-day-${dateKey}`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span
-                  className={`text-xs font-semibold ${isToday ? "inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-600 text-white" : "text-foreground"}`}
-                >
-                  {d.getDate()}
-                </span>
-                {closed && (
-                  <span className="text-[9px] italic text-muted-foreground">Closed</span>
-                )}
-              </div>
-              <div className="space-y-0.5">
-                {scheduled > 0 && (
-                  <div
-                    className="text-[10px] truncate"
-                    title={scheduledNames.join(", ")}
-                    data-testid={`text-scheduled-count-${dateKey}`}
-                  >
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 align-middle" />
-                    {scheduled} in
-                  </div>
-                )}
-                {visibleChips.map((chip) => (
-                  <div
-                    key={chip.staffId}
-                    className="flex items-center gap-1 rounded px-1 py-0.5 text-[10px] text-white font-medium truncate"
-                    style={{ background: chip.color }}
-                    title={`${chip.name} — ${STATUS_LABEL[chip.status]}`}
-                    data-testid={`chip-timeoff-${chip.staffId}-${dateKey}`}
-                  >
-                    <span className="truncate">{chip.name.split(" ")[0]}</span>
-                    <span className="opacity-80 shrink-0">{chip.status === "pto" ? "PTO" : chip.status === "sick" ? "Sick" : "FH"}</span>
-                  </div>
-                ))}
-                {overflow > 0 && (
-                  <div className="text-[9px] text-muted-foreground pl-1">+{overflow} more</div>
-                )}
-                {scheduled === 0 && chips.length === 0 && (
-                  <div className="text-[10px] text-muted-foreground italic">No staff set</div>
-                )}
-              </div>
-            </button>
-          );
-        })}
       </div>
+
+      {/* Week rows */}
+      {weeks.map((week, wi) => {
+        const bars = layoutWeekEvents(week, timeOffEvents);
+        const usedRows = bars.length > 0 ? Math.min(Math.max(...bars.map((b) => b.row)) + 1, MAX_BAR_ROWS) : 0;
+        const cellMinH = CELL_TOP + usedRows * EVENT_H + 24; // 24px for scheduled count at bottom
+
+        return (
+          <div key={wi} className="relative grid grid-cols-7" style={{ minHeight: cellMinH }}>
+            {/* Day cells (background layer) */}
+            {week.map((d, ci) => {
+              const dateKey = toDateKey(d);
+              const inMonth = d.getMonth() === currentMonth;
+              const isToday = dateKey === todayKey;
+              const closed =
+                hours?.weekdays?.[d.getDay()] === null ||
+                (hours?.holidayClosures ?? []).includes(dateKey);
+              // Count scheduled staff for bottom indicator.
+              let scheduled = 0;
+              for (const s of roster) {
+                if (computeEffective(d, s.id, defaults, entries).status === "scheduled") scheduled++;
+              }
+
+              return (
+                <div
+                  key={dateKey}
+                  className={`relative border border-border bg-background flex flex-col ${inMonth ? "" : "opacity-50"}`}
+                  style={{ minHeight: cellMinH }}
+                  data-testid={`cell-month-day-${dateKey}`}
+                >
+                  {/* Date header row */}
+                  <div className="flex items-center justify-between px-1.5 pt-1 shrink-0" style={{ height: CELL_TOP }}>
+                    <span
+                      className={`text-xs font-semibold ${isToday ? "inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-600 text-white" : "text-foreground"}`}
+                    >
+                      {d.getDate()}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {closed && <span className="text-[9px] italic text-muted-foreground">Closed</span>}
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onQuickCreate(d); }}
+                          className="text-muted-foreground hover:text-purple-600 transition-colors p-0.5"
+                          title="Add time-off"
+                          data-testid={`button-quick-create-${dateKey}`}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Spacer for event bar rows */}
+                  <div style={{ height: usedRows * EVENT_H }} className="shrink-0" />
+
+                  {/* Bottom: scheduled count + click-to-view */}
+                  <button
+                    type="button"
+                    onClick={() => onPickDay(d)}
+                    className="flex-1 flex items-end px-1.5 pb-1 text-left w-full hover-elevate"
+                    aria-label={`View ${dateKey} schedule`}
+                  >
+                    {scheduled > 0 ? (
+                      <span
+                        className="text-[10px] text-muted-foreground"
+                        title={`${scheduled} staff scheduled`}
+                        data-testid={`text-scheduled-count-${dateKey}`}
+                      >
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 align-middle" />
+                        {scheduled} in
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground/50 italic">empty</span>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+
+            {/* Event bars overlay (absolutely positioned over the cells) */}
+            <div className="absolute inset-0 pointer-events-none" style={{ top: CELL_TOP }}>
+              {bars.map((bar) => {
+                if (bar.row >= MAX_BAR_ROWS) return null;
+                const leftPct = (bar.startCol / 7) * 100;
+                const widthPct = ((bar.endCol - bar.startCol + 1) / 7) * 100;
+                const topPx = bar.row * EVENT_H + 2;
+                const statusLabel = bar.entry.status === "pto" ? "PTO" : bar.entry.status === "sick" ? "Sick" : "FH";
+                return (
+                  <div
+                    key={`${bar.entry.staffId}-${bar.entry.date}-${wi}`}
+                    className="absolute flex items-center text-white text-[10px] font-medium pointer-events-auto cursor-pointer"
+                    style={{
+                      left: `${leftPct}%`,
+                      width: `calc(${widthPct}% - 2px)`,
+                      top: topPx,
+                      height: EVENT_H - 4,
+                      background: bar.color,
+                      borderRadius: `${bar.isStart ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isStart ? 4 : 0}px`,
+                      paddingLeft: bar.isStart ? 6 : 2,
+                      marginLeft: 1,
+                    }}
+                    title={`${bar.staffName} — ${STATUS_LABEL[bar.entry.status]}${bar.entry.note ? `: ${bar.entry.note}` : ""}`}
+                    data-testid={`bar-timeoff-${bar.entry.staffId}-${bar.entry.date}-w${wi}`}
+                  >
+                    {bar.isStart && (
+                      <span className="truncate select-none">
+                        {bar.staffName.split(" ")[0]} · {statusLabel}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
       <p className="mt-2 text-[11px] text-muted-foreground">
-        Click any day to view or edit each staff member's schedule.
+        Click a day to view all staff • <span className="font-medium">+</span> to add time-off quickly.
       </p>
     </div>
   );

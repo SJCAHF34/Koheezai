@@ -1215,11 +1215,18 @@ export class DbStorage extends MemStorage {
     fromDate: string,
     toDate: string,
   ): Promise<ScheduleEntry[]> {
-    // Look back 90 days before fromDate to catch multi-day entries that started
-    // before the visible range but extend into it (e.g. a PTO block).
+    // Proper overlap query: fetch entries whose start date is on or before toDate
+    // AND whose effective end date (endDate if present, else date) is on or after fromDate.
+    // Since Drizzle/Postgres cannot query inside JSONB fields without a generated column,
+    // we fetch all entries up to toDate and filter in app code for end-date overlap.
+    // We also include entries starting up to 365 days before fromDate to cover very long
+    // multi-day blocks (e.g. extended medical leave).
     const lookback = new Date(fromDate);
-    lookback.setDate(lookback.getDate() - 90);
-    const lookbackKey = lookback.toISOString().slice(0, 10);
+    lookback.setDate(lookback.getDate() - 365);
+    const ly = lookback.getFullYear();
+    const lm = String(lookback.getMonth() + 1).padStart(2, "0");
+    const ld = String(lookback.getDate()).padStart(2, "0");
+    const lookbackKey = `${ly}-${lm}-${ld}`;
     const rows = await db
       .select()
       .from(scheduleEntriesTable)
@@ -1230,7 +1237,7 @@ export class DbStorage extends MemStorage {
           lte(scheduleEntriesTable.date, toDate),
         ),
       );
-    // Filter in application code for true overlap: entry must overlap [fromDate, toDate].
+    // True overlap: entry [date, endDate] ∩ [fromDate, toDate] must be non-empty.
     return rows
       .map((r) => r.record)
       .filter((e) => (e.endDate ?? e.date) >= fromDate);
