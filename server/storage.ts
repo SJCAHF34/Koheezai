@@ -13,6 +13,7 @@ import {
   type CQIAttendee,
   type UpsertCqiMeeting,
   type CqiMeetingSummary,
+  type StaffTimeOffBalance,
 } from "@shared/schema";
 import {
   cqiMeetingsTable,
@@ -20,6 +21,7 @@ import {
   retentionPatientsTable,
   pharmacyHoursTable,
   staffScheduleDefaultsTable,
+  staffTimeOffBalancesTable,
   scheduleEntriesTable,
   scheduleSubmissionsTable,
   notificationsTable,
@@ -109,6 +111,10 @@ export interface IStorage {
     staffId: string,
     date: string,
   ): Promise<void>;
+
+  // ── Time-Off Balances ─────────────────────────────────────────────────
+  getTimeOffBalances(siteId: string, year: number): Promise<StaffTimeOffBalance[]>;
+  upsertTimeOffBalance(b: Omit<StaffTimeOffBalance, "updatedAt">): Promise<StaffTimeOffBalance>;
 
   // ── Schedule Submissions & Notifications ──────────────────────────────
   createScheduleSubmission(
@@ -202,6 +208,7 @@ export class MemStorage implements IStorage {
   private cqiMeetings: Map<string, CQIMeetingRecord>;
   private auditLogs: AuditLogEntry[];
   private clientStores: Map<string, { value: unknown; updatedAt: string }>;
+  private timeOffBalances: Map<string, StaffTimeOffBalance>;
 
   constructor() {
     this.users = new Map();
@@ -210,6 +217,7 @@ export class MemStorage implements IStorage {
     this.scheduleDefaults = new Map();
     this.scheduleEntries = new Map();
     this.submissions = new Map();
+    this.timeOffBalances = new Map();
     this.notifications = new Map();
     this.qaAuditWorkbooks = new Map();
     this.qaAuditEvidence = new Map();
@@ -395,9 +403,12 @@ export class MemStorage implements IStorage {
     fromDate: string,
     toDate: string,
   ): Promise<ScheduleEntry[]> {
+    // Include multi-day entries that START before fromDate but END within or beyond it.
     return Array.from(this.scheduleEntries.values()).filter(
       (e) =>
-        e.siteId === siteId && e.date >= fromDate && e.date <= toDate,
+        e.siteId === siteId &&
+        e.date <= toDate &&
+        (e.endDate ?? e.date) >= fromDate,
     );
   }
 
@@ -420,6 +431,22 @@ export class MemStorage implements IStorage {
     date: string,
   ): Promise<void> {
     this.scheduleEntries.delete(entryKey(siteId, staffId, date));
+  }
+
+  // ── Time-Off Balances ─────────────────────────────────────────────────
+
+  async getTimeOffBalances(siteId: string, year: number): Promise<StaffTimeOffBalance[]> {
+    const yearStr = String(year);
+    return Array.from(this.timeOffBalances.values()).filter(
+      (b) => b.siteId === siteId && b.year === year,
+    );
+  }
+
+  async upsertTimeOffBalance(b: Omit<StaffTimeOffBalance, "updatedAt">): Promise<StaffTimeOffBalance> {
+    const key = `${b.siteId}|${b.staffId}|${b.year}`;
+    const record: StaffTimeOffBalance = { ...b, updatedAt: new Date().toISOString() };
+    this.timeOffBalances.set(key, record);
+    return record;
   }
 
   // ── Schedule Submissions ─────────────────────────────────────────────
@@ -1188,17 +1215,25 @@ export class DbStorage extends MemStorage {
     fromDate: string,
     toDate: string,
   ): Promise<ScheduleEntry[]> {
+    // Look back 90 days before fromDate to catch multi-day entries that started
+    // before the visible range but extend into it (e.g. a PTO block).
+    const lookback = new Date(fromDate);
+    lookback.setDate(lookback.getDate() - 90);
+    const lookbackKey = lookback.toISOString().slice(0, 10);
     const rows = await db
       .select()
       .from(scheduleEntriesTable)
       .where(
         and(
           eq(scheduleEntriesTable.siteId, siteId),
-          gte(scheduleEntriesTable.date, fromDate),
+          gte(scheduleEntriesTable.date, lookbackKey),
           lte(scheduleEntriesTable.date, toDate),
         ),
       );
-    return rows.map((r) => r.record);
+    // Filter in application code for true overlap: entry must overlap [fromDate, toDate].
+    return rows
+      .map((r) => r.record)
+      .filter((e) => (e.endDate ?? e.date) >= fromDate);
   }
 
   override async upsertScheduleEntry(
@@ -1217,6 +1252,39 @@ export class DbStorage extends MemStorage {
     await db
       .delete(scheduleEntriesTable)
       .where(eq(scheduleEntriesTable.id, entryKey(siteId, staffId, date)));
+  }
+
+  // ── Time-Off Balances (DB-backed) ─────────────────────────────────────
+
+  override async getTimeOffBalances(siteId: string, year: number): Promise<StaffTimeOffBalance[]> {
+    const yearStr = String(year);
+    const rows = await db
+      .select()
+      .from(staffTimeOffBalancesTable)
+      .where(
+        and(
+          eq(staffTimeOffBalancesTable.siteId, siteId),
+          eq(staffTimeOffBalancesTable.year, yearStr),
+        ),
+      );
+    return rows.map((r) => r.record);
+  }
+
+  override async upsertTimeOffBalance(b: Omit<StaffTimeOffBalance, "updatedAt">): Promise<StaffTimeOffBalance> {
+    const yearStr = String(b.year);
+    const record: StaffTimeOffBalance = { ...b, updatedAt: new Date().toISOString() };
+    await db
+      .insert(staffTimeOffBalancesTable)
+      .values({ siteId: b.siteId, staffId: b.staffId, year: yearStr, record })
+      .onConflictDoUpdate({
+        target: [
+          staffTimeOffBalancesTable.siteId,
+          staffTimeOffBalancesTable.staffId,
+          staffTimeOffBalancesTable.year,
+        ],
+        set: { record },
+      });
+    return record;
   }
 
   // ── Schedule submissions (DB-backed) ───────────────────────────────────

@@ -39,6 +39,7 @@ import {
   upsertPharmacyHoursSchema,
   upsertStaffScheduleDefaultSchema,
   upsertScheduleEntrySchema,
+  upsertStaffTimeOffBalanceSchema,
   createScheduleSubmissionSchema,
   reviewScheduleSubmissionSchema,
   upsertQaAuditWorkbookSchema,
@@ -1690,6 +1691,38 @@ FORMATTING RULES (strict):
     }
     await storage.deleteScheduleEntry(siteId, staffId, date);
     return res.json({ ok: true });
+  });
+
+  // ── Time-Off Balances ────────────────────────────────────────────────
+
+  app.get("/api/scheduling/:siteId/balances", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    if (!access.canViewSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const year = parseInt(String(req.query.year ?? new Date().getFullYear()), 10);
+    if (isNaN(year) || year < 2020 || year > 2099) {
+      return res.status(400).json({ message: "year query param required (YYYY)" });
+    }
+    const balances = await storage.getTimeOffBalances(siteId, year);
+    return res.json(balances);
+  });
+
+  app.put("/api/scheduling/:siteId/balances", async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const { siteId } = req.params;
+    if (!access.canEditSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized for this site" });
+    }
+    const parsed = upsertStaffTimeOffBalanceSchema.safeParse({ ...req.body, siteId });
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid balance payload", errors: parsed.error.issues });
+    }
+    const balance = await storage.upsertTimeOffBalance(parsed.data);
+    return res.json(balance);
   });
 
   // ── Schedule Submissions (PD → RPD review) ────────────────────────────

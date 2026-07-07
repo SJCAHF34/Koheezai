@@ -50,12 +50,19 @@ export const upsertPharmacyHoursSchema = pharmacyHoursSchema.omit({
 });
 export type UpsertPharmacyHours = z.infer<typeof upsertPharmacyHoursSchema>;
 
+export const SCHEDULE_PATTERNS = ["standard", "alternating_a", "alternating_b"] as const;
+export type SchedulePattern = typeof SCHEDULE_PATTERNS[number];
+
 export const staffScheduleDefaultSchema = z.object({
   siteId: z.string().min(1),
   staffId: z.string().min(1),
   staffName: z.string().min(1),
   // Index 0 = Sunday, 6 = Saturday. null = staff is off that weekday by default.
   weekdays: z.array(shiftSchema.nullable()).length(7),
+  // Hex color for calendar event chips, e.g. "#7c3aed"
+  color: z.string().optional(),
+  // Alternating-week patterns: alternating_a = works odd ISO weeks, alternating_b = works even ISO weeks.
+  schedulePattern: z.enum(SCHEDULE_PATTERNS).optional(),
   updatedAt: z.string(),
 });
 export type StaffScheduleDefault = z.infer<typeof staffScheduleDefaultSchema>;
@@ -73,6 +80,9 @@ const scheduleEntryShape = {
   staffId: z.string().min(1),
   staffName: z.string().min(1),
   date: dateStringSchema,
+  // Optional end date for multi-day blocks (PTO/sick spanning multiple days).
+  // When set, the entry spans date..endDate inclusive. date is the start date.
+  endDate: dateStringSchema.optional(),
   status: z.enum(SCHEDULE_STATUSES),
   start: timeStringSchema.optional(),
   end: timeStringSchema.optional(),
@@ -102,6 +112,7 @@ export const upsertScheduleEntrySchema = z
     staffId: scheduleEntryShape.staffId,
     staffName: scheduleEntryShape.staffName,
     date: scheduleEntryShape.date,
+    endDate: scheduleEntryShape.endDate,
     status: scheduleEntryShape.status,
     start: scheduleEntryShape.start,
     end: scheduleEntryShape.end,
@@ -109,6 +120,23 @@ export const upsertScheduleEntrySchema = z
   })
   .refine(scheduleEntryRefine, scheduleEntryRefineMsg);
 export type UpsertScheduleEntry = z.infer<typeof upsertScheduleEntrySchema>;
+
+// ── Staff Time-Off Balances ───────────────────────────────────────────────
+
+export const staffTimeOffBalanceSchema = z.object({
+  siteId: z.string().min(1),
+  staffId: z.string().min(1),
+  staffName: z.string().min(1),
+  year: z.number().int().min(2020).max(2099),
+  ptoDaysAllotted: z.number().int().min(0).max(365).default(10),
+  sickDaysAllotted: z.number().int().min(0).max(365).default(5),
+  floatingHolidayDaysAllotted: z.number().int().min(0).max(30).default(0),
+  updatedAt: z.string(),
+});
+export type StaffTimeOffBalance = z.infer<typeof staffTimeOffBalanceSchema>;
+
+export const upsertStaffTimeOffBalanceSchema = staffTimeOffBalanceSchema.omit({ updatedAt: true });
+export type UpsertStaffTimeOffBalance = z.infer<typeof upsertStaffTimeOffBalanceSchema>;
 
 // ── Schedule Submissions (PD → RPD review workflow) ───────────────────────
 
@@ -643,6 +671,17 @@ export const qaTasksTable = pgTable("qa_audit_tasks", {
 // store's full JSON value keyed by its localStorage key name. The client
 // hydrates localStorage from these rows at login and writes back on change,
 // so the data is shared across devices and survives everything.
+export const staffTimeOffBalancesTable = pgTable(
+  "staff_time_off_balances",
+  {
+    siteId: text("site_id").notNull(),
+    staffId: text("staff_id").notNull(),
+    year: text("year").notNull(),
+    record: jsonb("record").$type<StaffTimeOffBalance>().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.siteId, t.staffId, t.year] }) }),
+);
+
 export const clientStoreTable = pgTable(
   "client_store",
   {
