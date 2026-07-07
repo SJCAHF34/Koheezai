@@ -1051,11 +1051,13 @@ function SiteOverviewPanel({
   frequency,
   onSelectRole,
   viewingRole,
+  browseDate,
 }: {
   siteId: string;
   frequency: TaskFrequency;
   onSelectRole: (r: ViewingRole) => void;
   viewingRole: ViewingRole;
+  browseDate: Date;
 }) {
   const roleCards: { role: TaskRole; label: string }[] = [
     { role: "data_entry_tech", label: "DE Tech" },
@@ -1068,7 +1070,7 @@ function SiteOverviewPanel({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-2">
       {roleCards.map(({ role, label }) => {
-        const roleCompletions = loadCompletions(siteId, frequency, role);
+        const roleCompletions = loadCompletions(siteId, frequency, role, browseDate);
         const roleTasks = TASKS.filter(
           (t) => t.frequency === frequency && taskRoleMatches(t.role, role)
         );
@@ -2418,13 +2420,15 @@ function CategoryOverviewPanel({
   frequency,
   categoryFilter,
   onFilter,
+  browseDate,
 }: {
   siteId: string;
   frequency: TaskFrequency;
   categoryFilter: TaskCategory | "all";
   onFilter: (c: TaskCategory | "all") => void;
+  browseDate: Date;
 }) {
-  const allCompletions = loadCompletions(siteId, frequency);
+  const allCompletions = loadCompletions(siteId, frequency, undefined, browseDate);
 
   return (
     <div>
@@ -4205,11 +4209,11 @@ export default function TaskManager() {
       // each task's correct done state for its own period.
       const merged = new Set<string>();
       for (const f of FREQ_ORDER) {
-        for (const id of loadCompletions(siteId, f, roleFilter)) merged.add(id);
+        for (const id of loadCompletions(siteId, f, roleFilter, browseDate)) merged.add(id);
       }
       setCompletions(merged);
     } else {
-      setCompletions(loadCompletions(siteId, frequency, roleFilter));
+      setCompletions(loadCompletions(siteId, frequency, roleFilter, browseDate));
     }
     const aList = loadAssignments(siteId);
     setAssignments(new Map(aList.map((a) => [a.taskId, a])));
@@ -4265,7 +4269,7 @@ export default function TaskManager() {
       .catch(() => {
         setCustomTasks(localTasks);
       });
-  }, [frequency, siteId, profile?.email, viewingRole]);
+  }, [frequency, siteId, profile?.email, viewingRole, browseDate]);
 
   // Scroll to and highlight the task coming from a trouble-spot click-through
   useEffect(() => {
@@ -4285,6 +4289,9 @@ export default function TaskManager() {
   const toggleCompletion = useCallback(
     (task: PharmacyTask) => {
       if (!profile || readOnly) return;
+      // Past/future dates are view-only — completions can only be toggled for today
+      const today = new Date();
+      if (browseDate.toDateString() !== today.toDateString()) return;
       const isCompleted = completions.has(task.id);
       if (isCompleted) {
         removeCompletion(task.id, siteId, task.frequency);
@@ -4915,6 +4922,7 @@ export default function TaskManager() {
             frequency={frequency}
             onSelectRole={setViewingRole}
             viewingRole={viewingRole}
+            browseDate={browseDate}
           />
         )}
 
@@ -4925,6 +4933,7 @@ export default function TaskManager() {
             frequency={frequency}
             categoryFilter={categoryFilter}
             onFilter={setCategoryFilter}
+            browseDate={browseDate}
           />
         )}
 

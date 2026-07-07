@@ -89,8 +89,8 @@ export interface TaskPriority {
   dismissed: boolean;
 }
 
-export function getPeriodKey(frequency: TaskFrequency): string {
-  const now = new Date();
+export function getPeriodKey(frequency: TaskFrequency, date?: Date): string {
+  const now = date ?? new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   const y = now.getFullYear();
   const m = now.getMonth() + 1;
@@ -142,9 +142,10 @@ function writeCompletions(completions: TaskCompletion[]): void {
 export function loadCompletions(
   siteId: string,
   frequency: TaskFrequency,
-  roleFilter?: string
+  roleFilter?: string,
+  date?: Date
 ): Set<string> {
-  const period = getPeriodKey(frequency);
+  const period = getPeriodKey(frequency, date);
   const all = readCompletions();
   const filtered = all.filter(
     (c) =>
@@ -157,9 +158,10 @@ export function loadCompletions(
 
 export function loadCompletionsForSite(
   siteId: string,
-  frequency: TaskFrequency
+  frequency: TaskFrequency,
+  date?: Date
 ): TaskCompletion[] {
-  const period = getPeriodKey(frequency);
+  const period = getPeriodKey(frequency, date);
   return readCompletions().filter((c) => c.siteId === siteId && c.period === period);
 }
 
@@ -208,9 +210,10 @@ export function saveCompletion(
   siteId: string,
   userEmail: string,
   userRole: string,
-  frequency: TaskFrequency
+  frequency: TaskFrequency,
+  date?: Date
 ): void {
-  const period = getPeriodKey(frequency);
+  const period = getPeriodKey(frequency, date);
   const all = readCompletions().filter(
     (c) => !(c.taskId === taskId && c.siteId === siteId && c.period === period)
   );
@@ -229,9 +232,10 @@ export function saveCompletion(
 export function removeCompletion(
   taskId: string,
   siteId: string,
-  frequency: TaskFrequency
+  frequency: TaskFrequency,
+  date?: Date
 ): void {
-  const period = getPeriodKey(frequency);
+  const period = getPeriodKey(frequency, date);
   writeCompletions(
     readCompletions().filter(
       (c) => !(c.taskId === taskId && c.siteId === siteId && c.period === period)
