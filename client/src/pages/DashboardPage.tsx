@@ -330,9 +330,17 @@ export default function DashboardPage() {
     if (isRegionalOrAbove(profile.role)) {
       return <Redirect to="/app/tasks/regional" />;
     }
-    // Tech roles land directly on the full Task Manager
-    if (isTechRole(profile.role)) {
+    // Technician roles land directly on the full Task Manager
+    const isTechnicianOnly =
+      profile.role === "data_entry_tech" ||
+      profile.role === "pv2_tech" ||
+      profile.role === "delivery_tech";
+    if (isTechnicianOnly) {
       return <Redirect to="/app/tasks" />;
+    }
+    // Pharmacists keep their existing tech summary landing page
+    if (isTechRole(profile.role)) {
+      return <TechDashboard userEmail={user.email} userName={user.name ?? ""} />;
     }
   }
 
