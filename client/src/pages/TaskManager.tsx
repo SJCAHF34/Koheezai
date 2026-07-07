@@ -4485,8 +4485,8 @@ export default function TaskManager() {
         // Directors in "own" view: their director tasks + all_staff
         return taskRoleMatches(ct.role, "director");
       } else {
-        // Non-directors: primary role + any extra assigned roles + group roles (never director)
-        const myRoles = [profile.role, ...Array.from(extraRoleSet)];
+        // Non-directors: effective roles (roster-driven when present) + group roles (never director)
+        const myRoles = extraRoleSet.size > 0 ? Array.from(extraRoleSet) : [profile.role];
         return taskRoleMatchesAny(ct.role, myRoles);
       }
     }
