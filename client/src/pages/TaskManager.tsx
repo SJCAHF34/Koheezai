@@ -226,7 +226,8 @@ function getVisibleTasks(
 function buildRoleGroups(
   tasks: PharmacyTask[],
   viewingRole: ViewingRole,
-  userRole: UserRole
+  userRole: UserRole,
+  effectiveRoles?: string[]
 ): Array<{ role: TaskRole; groups: Array<{ groupName: string; tasks: PharmacyTask[] }> }> {
   const roleMap = new Map<TaskRole, PharmacyTask[]>();
 
@@ -243,12 +244,37 @@ function buildRoleGroups(
           if (!roleMap.has(r)) roleMap.set(r, []);
           roleMap.get(r)!.push(task);
         }
+      } else if (viewingRole === "own") {
+        if (isDirectorRole(userRole)) {
+          // Directors: fold into director section
+          if (!roleMap.has("director")) roleMap.set("director", []);
+          roleMap.get("director")!.push(task);
+        } else {
+          // Non-directors: fold into the intersection of the user's EFFECTIVE roles
+          // (roster-derived when present) and the task's applicable audience, so:
+          //  • an all_techs task never leaks into a pharmacist section
+          //  • a user with a roster-overridden role (e.g. delivery_tech) sees the
+          //    task under that role's header, not their profile role's header.
+          const candidateRoles: TaskRole[] =
+            effectiveRoles && effectiveRoles.length > 0
+              ? (effectiveRoles as TaskRole[])
+              : [userRole as TaskRole];
+          const allowed =
+            task.role === "all_staff"
+              ? new Set<string>(ROLE_ORDER)
+              : new Set<string>(rolesForTaskRole(task.role));
+          const foldIntoRoles = candidateRoles.filter((r) => allowed.has(r));
+          // Fallback: if none of the effective roles match the audience (rare edge case),
+          // fall back to all matching roles so the task is never silently hidden.
+          const targets = foldIntoRoles.length > 0 ? foldIntoRoles : candidateRoles;
+          for (const r of targets) {
+            if (!roleMap.has(r)) roleMap.set(r, []);
+            roleMap.get(r)!.push(task);
+          }
+        }
       } else {
-        // Single-role view: fold into the target role section
-        const targetRole: TaskRole =
-          viewingRole === "own"
-            ? (isDirectorRole(userRole) ? "director" : (userRole as TaskRole))
-            : (viewingRole as TaskRole);
+        // Specific role drill-down view
+        const targetRole = viewingRole as TaskRole;
         if (!roleMap.has(targetRole)) roleMap.set(targetRole, []);
         roleMap.get(targetRole)!.push(task);
       }
@@ -4532,7 +4558,7 @@ export default function TaskManager() {
   const relevantPriorities = isDir
     ? activePriorities
     : activePriorities.filter((p) => visibleTaskIds.has(p.taskId));
-  const roleGroups = buildRoleGroups(filteredVisible, viewingRole, profile.role);
+  const roleGroups = buildRoleGroups(filteredVisible, viewingRole, profile.role, extraRoles);
   const totalTasks = filteredVisible.length;
   const doneTasks = filteredVisible.filter((t) => completions.has(t.id)).length;
 
@@ -4896,7 +4922,7 @@ export default function TaskManager() {
             {FREQ_ORDER.map((freq) => {
               const tasksForFreq = filteredVisible.filter((t) => t.frequency === freq);
               if (tasksForFreq.length === 0) return null;
-              const groupsForFreq = buildRoleGroups(tasksForFreq, viewingRole, profile.role);
+              const groupsForFreq = buildRoleGroups(tasksForFreq, viewingRole, profile.role, extraRoles);
               const doneForFreq = tasksForFreq.filter((t) => completions.has(t.id)).length;
               return (
                 <section key={freq} data-testid={`cadence-section-${freq}`}>
