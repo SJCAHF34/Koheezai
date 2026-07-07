@@ -2260,13 +2260,26 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
   // ── ADP Workforce Now Integration ─────────────────────────────────────
   // Credentials live exclusively in environment variables on the server.
 
+  // ── ADP access helper — all ADP endpoints require director-level access ──
+  function requireAdpAccess(req: any, res: any): boolean {
+    const profile = getUserProfile(req.user as any);
+    if (!isDirectorRole(profile.role)) {
+      res.status(403).json({ message: "ADP access requires pharmacy director, RPD, or CPO role." });
+      return false;
+    }
+    return true;
+  }
+
   // GET /api/adp/configured — tells the UI if ADP credentials are present.
+  // Director-gated: exposes integration status and which secrets are configured.
   app.get("/api/adp/configured", requireAuth, (req, res) => {
+    if (!requireAdpAccess(req, res)) return;
     res.json({ configured: adpIsConfigured(), secrets: adpGetConfigStatus() });
   });
 
   // GET /api/adp/status?siteId= — last sync result for this site.
   app.get("/api/adp/status", requireAuth, async (req, res) => {
+    if (!requireAdpAccess(req, res)) return;
     const siteId = String(req.query.siteId ?? "");
     if (!siteId) return res.status(400).json({ message: "siteId required" });
     const status = await storage.getAdpSyncStatus(siteId);
@@ -2275,17 +2288,16 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
 
   // GET /api/adp/mappings?siteId= — worker→staff mapping table for this site.
   app.get("/api/adp/mappings", requireAuth, async (req, res) => {
+    if (!requireAdpAccess(req, res)) return;
     const siteId = String(req.query.siteId ?? "");
     if (!siteId) return res.status(400).json({ message: "siteId required" });
     const mappings = await storage.getAdpWorkerMappings(siteId);
     return res.json(mappings);
   });
 
-  // PUT /api/adp/mappings — save one mapping (director or above to correct auto-matches).
+  // PUT /api/adp/mappings — save one mapping (director or above only).
   app.put("/api/adp/mappings", requireAuth, async (req, res) => {
-    const user = req.user as any;
-    const allowed = ["pharmacy_director", "rpd", "cpo", "pharmacist_1", "pharmacist_2"].includes(user?.role ?? "");
-    if (!allowed) return res.status(403).json({ message: "Insufficient permissions" });
+    if (!requireAdpAccess(req, res)) return;
 
     const { siteId, adpWorkerId, adpDisplayName, staffId, staffName, confirm } = req.body as {
       siteId: string; adpWorkerId: string; adpDisplayName: string;
@@ -2302,11 +2314,9 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
     return res.json(saved);
   });
 
-  // DELETE /api/adp/mappings — remove one mapping entry.
+  // DELETE /api/adp/mappings — remove one mapping entry (director or above only).
   app.delete("/api/adp/mappings", requireAuth, async (req, res) => {
-    const user = req.user as any;
-    const allowed = ["pharmacy_director", "rpd", "cpo"].includes(user?.role ?? "");
-    if (!allowed) return res.status(403).json({ message: "Insufficient permissions" });
+    if (!requireAdpAccess(req, res)) return;
 
     const { siteId, adpWorkerId } = req.body as { siteId: string; adpWorkerId: string };
     if (!siteId || !adpWorkerId) return res.status(400).json({ message: "siteId and adpWorkerId required" });
@@ -2315,12 +2325,10 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
     return res.json({ ok: true });
   });
 
-  // POST /api/adp/sync?siteId= — manually trigger a sync for one site.
+  // POST /api/adp/sync?siteId= — manually trigger a sync (director or above only).
   // Body (optional): { roster: [{ staffId, staffName }] }
   app.post("/api/adp/sync", requireAuth, async (req, res) => {
-    const user = req.user as any;
-    const allowed = ["pharmacy_director", "rpd", "cpo", "pharmacist_1", "pharmacist_2"].includes(user?.role ?? "");
-    if (!allowed) return res.status(403).json({ message: "Insufficient permissions" });
+    if (!requireAdpAccess(req, res)) return;
 
     const siteId = String(req.query.siteId ?? "");
     if (!siteId) return res.status(400).json({ message: "siteId required" });
