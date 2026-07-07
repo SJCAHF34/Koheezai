@@ -557,3 +557,94 @@ export const auditLogsTable = pgTable("audit_logs", {
   method: text("method").notNull(),
   path: text("path").notNull(),
 });
+
+// ── Persistent storage tables (Task #87: save everything) ───────────────────
+// These tables use a "natural key columns + jsonb record" pattern: the columns
+// needed for lookups/filters are first-class, and the full typed record is
+// stored in a jsonb column. This keeps the storage layer simple while making
+// every dataset durable across restarts and redeploys.
+
+export const retentionPatientsTable = pgTable("retention_patients", {
+  id: text("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  record: jsonb("record").$type<RetentionPatient>().notNull(),
+});
+
+export const pharmacyHoursTable = pgTable("pharmacy_hours", {
+  siteId: text("site_id").primaryKey(),
+  record: jsonb("record").$type<PharmacyHours>().notNull(),
+});
+
+export const staffScheduleDefaultsTable = pgTable(
+  "staff_schedule_defaults",
+  {
+    siteId: text("site_id").notNull(),
+    staffId: text("staff_id").notNull(),
+    record: jsonb("record").$type<StaffScheduleDefault>().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.siteId, t.staffId] }) }),
+);
+
+export const scheduleEntriesTable = pgTable("schedule_entries", {
+  // Natural key `${siteId}|${staffId}|${date}` (matches MemStorage keying).
+  id: text("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  date: text("date").notNull(),
+  record: jsonb("record").$type<ScheduleEntry>().notNull(),
+});
+
+export const scheduleSubmissionsTable = pgTable("schedule_submissions", {
+  id: text("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  region: text("region").notNull().default(""),
+  weekStart: text("week_start").notNull(),
+  submittedAt: text("submitted_at").notNull(),
+  record: jsonb("record").$type<ScheduleSubmission>().notNull(),
+});
+
+export const notificationsTable = pgTable("notifications", {
+  id: text("id").primaryKey(),
+  toEmail: text("to_email").notNull(),
+  createdAt: text("created_at").notNull(),
+  record: jsonb("record").$type<AppNotification>().notNull(),
+});
+
+export const qaWorkbooksTable = pgTable(
+  "qa_audit_workbooks",
+  {
+    siteId: text("site_id").notNull(),
+    year: text("year").notNull(),
+    record: jsonb("record").$type<QaAuditWorkbook>().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.siteId, t.year] }) }),
+);
+
+export const qaEvidenceTable = pgTable("qa_audit_evidence", {
+  id: text("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  year: text("year").notNull(),
+  fileName: text("file_name").notNull(),
+  fileType: text("file_type").notNull(),
+  uploadedBy: text("uploaded_by").notNull(),
+  uploadedAt: text("uploaded_at").notNull(),
+  // Base64-encoded file contents (uploads are already base64 JSON payloads).
+  dataB64: text("data_b64").notNull(),
+});
+
+export const qaTasksTable = pgTable("qa_audit_tasks", {
+  id: text("id").primaryKey(),
+  assignedToEmail: text("assigned_to_email").notNull(),
+  createdAt: text("created_at").notNull(),
+  record: jsonb("record").$type<QaAuditTask>().notNull(),
+});
+
+// Server-side backing for browser localStorage stores (task completions,
+// assignments, rosters, controlled inventory, etc.). Each row holds one
+// store's full JSON value keyed by its localStorage key name. The client
+// hydrates localStorage from these rows at login and writes back on change,
+// so the data is shared across devices and survives everything.
+export const clientStoreTable = pgTable("client_store", {
+  storeKey: text("store_key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});

@@ -301,6 +301,13 @@ export default function SchedulingPage() {
     enabled: !!siteId && viewMode === "week",
   });
 
+  // Full submission history for the site (all weeks, newest first).
+  const submissionHistoryQuery = useQuery<ScheduleSubmission[]>({
+    queryKey: ["/api/scheduling", siteId, "submissions"],
+    queryFn: async () => apiRequest(`/api/scheduling/${siteId}/submissions`),
+    enabled: !!siteId,
+  });
+
   const submitMutation = useMutation({
     mutationFn: (payload: { weekStart: string; submitterNote?: string }) =>
       apiRequest(`/api/scheduling/${siteId}/submissions`, {
@@ -310,6 +317,7 @@ export default function SchedulingPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions", "week", fromKey] });
+      queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       toast({ title: "Submitted for review", description: "Your Regional Director has been notified." });
       setSubmitOpen(false);
@@ -327,6 +335,7 @@ export default function SchedulingPage() {
       }),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions", "week", fromKey] });
+      queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       toast({
         title: vars.action === "approve" ? "Schedule approved" : "Changes requested",
@@ -462,6 +471,11 @@ export default function SchedulingPage() {
           onRequestChangesClick={() => setReviewOpen("request-changes")}
           isWorking={submitMutation.isPending || reviewMutation.isPending}
         />
+      )}
+
+      {/* Submission history (all weeks) */}
+      {siteId && (
+        <SubmissionHistory submissions={submissionHistoryQuery.data ?? []} />
       )}
 
       {/* Week / Month navigator */}
@@ -1414,6 +1428,85 @@ const SUBMISSION_STATUS_STYLE: Record<
     Icon: AlertCircle,
   },
 };
+
+// ── Submission history ─────────────────────────────────────────────────────
+function SubmissionHistory({ submissions }: { submissions: ScheduleSubmission[] }) {
+  const [open, setOpen] = useState(false);
+  if (submissions.length === 0) return null;
+
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+  return (
+    <Card data-testid="card-submission-history">
+      <CardHeader className="py-3">
+        <button
+          type="button"
+          className="flex items-center justify-between gap-2 w-full text-left"
+          onClick={() => setOpen((o) => !o)}
+          data-testid="button-toggle-submission-history"
+        >
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Submission history ({submissions.length})
+          </CardTitle>
+          <span className="text-xs text-muted-foreground">{open ? "Hide" : "Show"}</span>
+        </button>
+      </CardHeader>
+      {open && (
+        <CardContent className="pt-0 space-y-2">
+          {submissions.map((s) => {
+            const meta = SUBMISSION_STATUS_STYLE[s.status];
+            return (
+              <div
+                key={s.id}
+                className={`rounded-md border px-3 py-2 text-xs ${meta.cls}`}
+                data-testid={`row-submission-${s.id}`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="font-semibold">
+                    Week of{" "}
+                    {new Date(`${s.weekStart}T00:00:00`).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </div>
+                  <div className="inline-flex items-center gap-1 font-medium">
+                    <meta.Icon className="w-3.5 h-3.5" />
+                    {meta.label}
+                  </div>
+                </div>
+                <div className="mt-0.5">
+                  Submitted by {s.submittedByName} · {fmt(s.submittedAt)}
+                  {s.reviewedAt && (
+                    <> · Reviewed by {s.reviewedByName ?? "—"} · {fmt(s.reviewedAt)}</>
+                  )}
+                </div>
+                {s.submitterNote && (
+                  <div className="mt-0.5">
+                    <span className="font-medium">PD note:</span> {s.submitterNote}
+                  </div>
+                )}
+                {s.reviewNote && (
+                  <div className="mt-0.5">
+                    <span className="font-medium">Reviewer note:</span> {s.reviewNote}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
 
 function SubmissionBanner({
   submission,

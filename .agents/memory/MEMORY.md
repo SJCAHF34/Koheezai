@@ -1,2 +1,3 @@
 - [Replit lockfile breaks external Docker builds](replit-lockfile-external-builds.md) — package-lock.json resolves to package-firewall.replit.local which 404s outside Replit; rewrite to registry.npmjs.org before install.
 - [Main-agent git push method](main-agent-git-push.md) — main agent can't commit/force-push, but a plain push to an explicit URL with an inline token credential helper works; commits land via auto-checkpoint.
+- [Drizzle push vs session table](drizzle-push-session-table.md) — never run interactive drizzle-kit push here; it offers to DROP the connect-pg-simple `session` table. Use direct SQL for new DDL.

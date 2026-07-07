@@ -5,6 +5,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startOutreachScheduler } from "./lib/outreachScheduler";
 import { pool } from "./db";
+import { storage, DbStorage } from "./storage";
 
 const app = express();
 
@@ -95,6 +96,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // One-time backfill of legacy file/in-memory data into PostgreSQL, plus
+  // first-boot seeding. Runs before routes serve traffic.
+  await (storage as DbStorage).init?.();
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

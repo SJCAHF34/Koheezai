@@ -1001,6 +1001,54 @@ FORMATTING RULES (strict):
     return res.status(401).json({ message: "Not authenticated" });
   }
 
+  // ── Client store: server-side backing for browser localStorage ─────────────
+  // Only known app store keys are accepted so the table can't be used as an
+  // arbitrary dump. Values are whole-store JSON blobs (last write wins per key).
+  const CLIENT_STORE_KEYS = new Set([
+    "koheez_task_completions",
+    "koheez_task_assignments",
+    "koheez_task_priorities",
+    "koheez_urgent_tasks",
+    "koheez_handoff_notes",
+    "koheez_achc_workbook",
+    "koheez_retention_risk",
+    "koheez_staff_roster",
+    "koheez_achc_foundation_docs",
+    "koheez_achc_store_docs",
+    "koheez_task_counters",
+    "koheez_custom_tasks",
+    "koheez_deleted_custom_tasks",
+    "koheez_controlled_inventory",
+    "koheez_controlled_adjustments",
+    "koheez_controlled_biannual",
+    "koheez_custom_controlled_catalog",
+    "koheez_assessments",
+  ]);
+
+  app.get("/api/client-store", requireAuth, async (_req, res) => {
+    try {
+      const stores = await storage.getClientStores();
+      res.json(stores.filter((s) => CLIENT_STORE_KEYS.has(s.storeKey)));
+    } catch (err) {
+      console.error("[client-store] read failed:", err);
+      res.status(500).json({ message: "Failed to load saved data" });
+    }
+  });
+
+  app.put("/api/client-store/:key", requireAuth, async (req, res) => {
+    try {
+      const key = req.params.key;
+      if (!CLIENT_STORE_KEYS.has(key)) {
+        return res.status(400).json({ message: "Unknown store key" });
+      }
+      await storage.setClientStore(key, req.body?.value ?? null);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[client-store] write failed:", err);
+      res.status(500).json({ message: "Failed to save data" });
+    }
+  });
+
   function fireSalesforce(phone: string, initials: string, event: string, detail: string) {
     if (phone) logRetentionEvent(phone, initials, event, detail).catch(() => {});
   }

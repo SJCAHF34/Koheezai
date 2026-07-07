@@ -32,6 +32,7 @@ import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe
 import type { AppNotification } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { isInTeams, teamsSilentLogin } from "@/lib/teams";
+import { hydrateClientStores, resetClientStoreHydration } from "@/lib/serverStore";
 
 const LOGO_GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444)";
 
@@ -53,6 +54,25 @@ export function useAuth() {
     isLoading,
     isAuthenticated: !!(data?.user),
   };
+}
+
+// ── Saved-data hydration gate ──────────────────────────────────────────────
+// After login, pull the shared saved data (tasks, inventory, workbooks, …)
+// from the server into localStorage before rendering any protected page, so
+// every device shows the same data.
+function useClientStoreHydration(enabled: boolean): boolean {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    hydrateClientStores().finally(() => {
+      if (!cancelled) setReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+  return !enabled || ready;
 }
 
 // ── Spinner ────────────────────────────────────────────────────────────────
@@ -228,6 +248,7 @@ function AppNav() {
     mutationFn: () => apiRequest("/api/auth/logout", { method: "POST" }),
     onSuccess: () => {
       queryClient.clear();
+      resetClientStoreHydration();
       window.location.href = "/";
     },
   });
@@ -351,8 +372,10 @@ function AppNav() {
 // ── Protected page wrapper ─────────────────────────────────────────────────
 function Protected({ component: Component }: { component: () => JSX.Element | null }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const storesReady = useClientStoreHydration(isAuthenticated);
   if (isLoading) return <Spinner />;
   if (!isAuthenticated) return <Redirect to="/login" />;
+  if (!storesReady) return <Spinner />;
   return (
     <>
       <AppNav />
@@ -364,8 +387,10 @@ function Protected({ component: Component }: { component: () => JSX.Element | nu
 // ── RegionalProtected: role-gated wrapper for /app/tasks/regional ──────────
 function RegionalProtected({ component: Component }: { component: () => JSX.Element | null }) {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const storesReady = useClientStoreHydration(isAuthenticated);
   if (isLoading) return <Spinner />;
   if (!isAuthenticated) return <Redirect to="/login" />;
+  if (!storesReady) return <Spinner />;
   if (user) {
     const profile = getUserProfile(user.email, user.name ?? "");
     if (!isRegionalOrAbove(profile.role)) return <Redirect to="/app/tasks" />;
@@ -381,8 +406,10 @@ function RegionalProtected({ component: Component }: { component: () => JSX.Elem
 // ── DirectorProtected: allows pharmacy_director and above ───────────────────
 function DirectorProtected({ component: Component }: { component: () => JSX.Element | null }) {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const storesReady = useClientStoreHydration(isAuthenticated);
   if (isLoading) return <Spinner />;
   if (!isAuthenticated) return <Redirect to="/login" />;
+  if (!storesReady) return <Spinner />;
   if (user) {
     const profile = getUserProfile(user.email, user.name ?? "");
     if (!isDirectorRole(profile.role)) return <Redirect to="/app/tasks" />;
@@ -398,8 +425,10 @@ function DirectorProtected({ component: Component }: { component: () => JSX.Elem
 // ── CpoProtected: CPO-only wrapper (e.g. access audit log) ──────────────────
 function CpoProtected({ component: Component }: { component: () => JSX.Element | null }) {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const storesReady = useClientStoreHydration(isAuthenticated);
   if (isLoading) return <Spinner />;
   if (!isAuthenticated) return <Redirect to="/login" />;
+  if (!storesReady) return <Spinner />;
   if (user) {
     const profile = getUserProfile(user.email, user.name ?? "");
     if (!isCPO(profile.role)) return <Redirect to="/app" />;

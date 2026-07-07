@@ -14,11 +14,24 @@ import {
   type UpsertCqiMeeting,
   type CqiMeetingSummary,
 } from "@shared/schema";
-import { cqiMeetingsTable, auditLogsTable } from "@shared/schema";
+import {
+  cqiMeetingsTable,
+  auditLogsTable,
+  retentionPatientsTable,
+  pharmacyHoursTable,
+  staffScheduleDefaultsTable,
+  scheduleEntriesTable,
+  scheduleSubmissionsTable,
+  notificationsTable,
+  qaWorkbooksTable,
+  qaEvidenceTable,
+  qaTasksTable,
+  clientStoreTable,
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "./db";
 
 // File-backed persistence for QA Audit data so workbooks, evidence and
@@ -162,6 +175,10 @@ export interface IStorage {
   // ── Access audit log (HIPAA) ───────────────────────────────────────────
   addAuditLog(entry: Omit<AuditLogEntry, "id">): Promise<AuditLogEntry>;
   listAuditLogs(limit?: number): Promise<AuditLogEntry[]>;
+
+  // ── Client store (server-side backing for browser localStorage) ────────
+  getClientStores(): Promise<Array<{ storeKey: string; value: unknown; updatedAt: string }>>;
+  setClientStore(storeKey: string, value: unknown): Promise<void>;
 }
 
 function entryKey(siteId: string, staffId: string, date: string) {
@@ -184,6 +201,7 @@ export class MemStorage implements IStorage {
   private qaAuditTasks: Map<string, QaAuditTask>;
   private cqiMeetings: Map<string, CQIMeetingRecord>;
   private auditLogs: AuditLogEntry[];
+  private clientStores: Map<string, { value: unknown; updatedAt: string }>;
 
   constructor() {
     this.users = new Map();
@@ -198,6 +216,7 @@ export class MemStorage implements IStorage {
     this.qaAuditTasks = new Map();
     this.cqiMeetings = new Map();
     this.auditLogs = [];
+    this.clientStores = new Map();
     this.loadQaPersistedState();
     this.loadAuditPersistedState();
     this.loadCqiPersistedState();
@@ -830,6 +849,20 @@ export class MemStorage implements IStorage {
       console.warn("[cqi-meeting] failed to persist state:", err);
     }
   }
+
+  // ── Client store ───────────────────────────────────────────────────────
+
+  async getClientStores(): Promise<Array<{ storeKey: string; value: unknown; updatedAt: string }>> {
+    return Array.from(this.clientStores.entries()).map(([storeKey, v]) => ({
+      storeKey,
+      value: v.value,
+      updatedAt: v.updatedAt,
+    }));
+  }
+
+  async setClientStore(storeKey: string, value: unknown): Promise<void> {
+    this.clientStores.set(storeKey, { value, updatedAt: new Date().toISOString() });
+  }
 }
 
 // ── PostgreSQL-backed storage ──────────────────────────────────────────────
@@ -1038,6 +1071,606 @@ export class DbStorage extends MemStorage {
       method: r.method,
       path: r.path,
     }));
+  }
+
+  // ── Retention patients (DB-backed) ─────────────────────────────────────
+
+  override async getPatients(siteId: string): Promise<RetentionPatient[]> {
+    const rows = await db
+      .select()
+      .from(retentionPatientsTable)
+      .where(eq(retentionPatientsTable.siteId, siteId));
+    return rows.map((r) => r.record);
+  }
+
+  override async getPatient(id: string): Promise<RetentionPatient | undefined> {
+    const rows = await db
+      .select()
+      .from(retentionPatientsTable)
+      .where(eq(retentionPatientsTable.id, id))
+      .limit(1);
+    return rows[0]?.record;
+  }
+
+  override async getAllActivePatients(): Promise<RetentionPatient[]> {
+    const rows = await db.select().from(retentionPatientsTable);
+    return rows
+      .map((r) => r.record)
+      .filter((p) => p.sequenceActive && !p.outreachComplete && p.status === "active");
+  }
+
+  override async addPatient(p: Omit<RetentionPatient, "id">): Promise<RetentionPatient> {
+    const id = `rp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const patient: RetentionPatient = { ...p, id };
+    await db.insert(retentionPatientsTable).values({
+      id,
+      siteId: patient.siteId,
+      record: patient,
+    });
+    return patient;
+  }
+
+  override async updatePatient(p: RetentionPatient): Promise<RetentionPatient> {
+    await db
+      .insert(retentionPatientsTable)
+      .values({ id: p.id, siteId: p.siteId, record: p })
+      .onConflictDoUpdate({
+        target: retentionPatientsTable.id,
+        set: { siteId: p.siteId, record: p },
+      });
+    return p;
+  }
+
+  override async deletePatient(id: string): Promise<void> {
+    await db.delete(retentionPatientsTable).where(eq(retentionPatientsTable.id, id));
+  }
+
+  // ── Scheduling (DB-backed) ─────────────────────────────────────────────
+
+  override async getPharmacyHours(siteId: string): Promise<PharmacyHours | undefined> {
+    const rows = await db
+      .select()
+      .from(pharmacyHoursTable)
+      .where(eq(pharmacyHoursTable.siteId, siteId))
+      .limit(1);
+    return rows[0]?.record;
+  }
+
+  override async upsertPharmacyHours(
+    h: Omit<PharmacyHours, "updatedAt">,
+  ): Promise<PharmacyHours> {
+    const record: PharmacyHours = { ...h, updatedAt: new Date().toISOString() };
+    await db
+      .insert(pharmacyHoursTable)
+      .values({ siteId: h.siteId, record })
+      .onConflictDoUpdate({ target: pharmacyHoursTable.siteId, set: { record } });
+    return record;
+  }
+
+  override async getStaffScheduleDefaults(siteId: string): Promise<StaffScheduleDefault[]> {
+    const rows = await db
+      .select()
+      .from(staffScheduleDefaultsTable)
+      .where(eq(staffScheduleDefaultsTable.siteId, siteId));
+    return rows.map((r) => r.record);
+  }
+
+  override async upsertStaffScheduleDefault(
+    d: Omit<StaffScheduleDefault, "updatedAt">,
+  ): Promise<StaffScheduleDefault> {
+    const record: StaffScheduleDefault = { ...d, updatedAt: new Date().toISOString() };
+    await db
+      .insert(staffScheduleDefaultsTable)
+      .values({ siteId: d.siteId, staffId: d.staffId, record })
+      .onConflictDoUpdate({
+        target: [staffScheduleDefaultsTable.siteId, staffScheduleDefaultsTable.staffId],
+        set: { record },
+      });
+    return record;
+  }
+
+  override async deleteStaffScheduleDefault(siteId: string, staffId: string): Promise<void> {
+    await db
+      .delete(staffScheduleDefaultsTable)
+      .where(
+        and(
+          eq(staffScheduleDefaultsTable.siteId, siteId),
+          eq(staffScheduleDefaultsTable.staffId, staffId),
+        ),
+      );
+  }
+
+  override async getScheduleEntries(
+    siteId: string,
+    fromDate: string,
+    toDate: string,
+  ): Promise<ScheduleEntry[]> {
+    const rows = await db
+      .select()
+      .from(scheduleEntriesTable)
+      .where(
+        and(
+          eq(scheduleEntriesTable.siteId, siteId),
+          gte(scheduleEntriesTable.date, fromDate),
+          lte(scheduleEntriesTable.date, toDate),
+        ),
+      );
+    return rows.map((r) => r.record);
+  }
+
+  override async upsertScheduleEntry(
+    e: Omit<ScheduleEntry, "id" | "updatedAt">,
+  ): Promise<ScheduleEntry> {
+    const id = entryKey(e.siteId, e.staffId, e.date);
+    const record: ScheduleEntry = { ...e, id, updatedAt: new Date().toISOString() };
+    await db
+      .insert(scheduleEntriesTable)
+      .values({ id, siteId: e.siteId, date: e.date, record })
+      .onConflictDoUpdate({ target: scheduleEntriesTable.id, set: { record } });
+    return record;
+  }
+
+  override async deleteScheduleEntry(siteId: string, staffId: string, date: string): Promise<void> {
+    await db
+      .delete(scheduleEntriesTable)
+      .where(eq(scheduleEntriesTable.id, entryKey(siteId, staffId, date)));
+  }
+
+  // ── Schedule submissions (DB-backed) ───────────────────────────────────
+
+  override async createScheduleSubmission(
+    s: Omit<ScheduleSubmission, "id" | "submittedAt" | "status">,
+  ): Promise<ScheduleSubmission> {
+    const id = `sub-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const record: ScheduleSubmission = {
+      ...s,
+      id,
+      status: "pending",
+      submittedAt: new Date().toISOString(),
+    };
+    await db.insert(scheduleSubmissionsTable).values({
+      id,
+      siteId: record.siteId,
+      region: record.region ?? "",
+      weekStart: record.weekStart,
+      submittedAt: record.submittedAt,
+      record,
+    });
+    return record;
+  }
+
+  override async getScheduleSubmission(id: string): Promise<ScheduleSubmission | undefined> {
+    const rows = await db
+      .select()
+      .from(scheduleSubmissionsTable)
+      .where(eq(scheduleSubmissionsTable.id, id))
+      .limit(1);
+    return rows[0]?.record;
+  }
+
+  override async getScheduleSubmissionsForSite(siteId: string): Promise<ScheduleSubmission[]> {
+    const rows = await db
+      .select()
+      .from(scheduleSubmissionsTable)
+      .where(eq(scheduleSubmissionsTable.siteId, siteId))
+      .orderBy(desc(scheduleSubmissionsTable.submittedAt));
+    return rows.map((r) => r.record);
+  }
+
+  override async getScheduleSubmissionsForRegion(region: string): Promise<ScheduleSubmission[]> {
+    const rows = await db
+      .select()
+      .from(scheduleSubmissionsTable)
+      .where(eq(scheduleSubmissionsTable.region, region))
+      .orderBy(desc(scheduleSubmissionsTable.submittedAt));
+    return rows.map((r) => r.record);
+  }
+
+  override async getLatestSubmissionForWeek(
+    siteId: string,
+    weekStart: string,
+  ): Promise<ScheduleSubmission | undefined> {
+    const rows = await db
+      .select()
+      .from(scheduleSubmissionsTable)
+      .where(
+        and(
+          eq(scheduleSubmissionsTable.siteId, siteId),
+          eq(scheduleSubmissionsTable.weekStart, weekStart),
+        ),
+      )
+      .orderBy(desc(scheduleSubmissionsTable.submittedAt))
+      .limit(1);
+    return rows[0]?.record;
+  }
+
+  override async reviewScheduleSubmission(
+    id: string,
+    status: "approved" | "changes_requested",
+    reviewer: { email: string; name: string },
+    note?: string,
+  ): Promise<ScheduleSubmission | undefined> {
+    return db.transaction(async (tx) => {
+      const rows = await tx
+        .select()
+        .from(scheduleSubmissionsTable)
+        .where(eq(scheduleSubmissionsTable.id, id))
+        .for("update")
+        .limit(1);
+      const existing = rows[0]?.record;
+      if (!existing) return undefined;
+      const updated: ScheduleSubmission = {
+        ...existing,
+        status,
+        reviewedByEmail: reviewer.email,
+        reviewedByName: reviewer.name,
+        reviewedAt: new Date().toISOString(),
+        reviewNote: note,
+      };
+      await tx
+        .update(scheduleSubmissionsTable)
+        .set({ record: updated })
+        .where(eq(scheduleSubmissionsTable.id, id));
+      return updated;
+    });
+  }
+
+  // ── Notifications (DB-backed) ──────────────────────────────────────────
+
+  override async addNotification(
+    n: Omit<AppNotification, "id" | "createdAt" | "read">,
+  ): Promise<AppNotification> {
+    const id = `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const record: AppNotification = {
+      ...n,
+      id,
+      createdAt: new Date().toISOString(),
+      read: false,
+    };
+    await db.insert(notificationsTable).values({
+      id,
+      toEmail: record.toEmail.toLowerCase(),
+      createdAt: record.createdAt,
+      record,
+    });
+    return record;
+  }
+
+  override async getNotifications(toEmail: string): Promise<AppNotification[]> {
+    const rows = await db
+      .select()
+      .from(notificationsTable)
+      .where(eq(notificationsTable.toEmail, toEmail.toLowerCase()))
+      .orderBy(desc(notificationsTable.createdAt));
+    return rows.map((r) => r.record);
+  }
+
+  override async markNotificationRead(id: string, toEmail: string): Promise<void> {
+    const rows = await db
+      .select()
+      .from(notificationsTable)
+      .where(eq(notificationsTable.id, id))
+      .limit(1);
+    const n = rows[0]?.record;
+    if (n && n.toEmail.toLowerCase() === toEmail.toLowerCase()) {
+      await db
+        .update(notificationsTable)
+        .set({ record: { ...n, read: true } })
+        .where(eq(notificationsTable.id, id));
+    }
+  }
+
+  override async markAllNotificationsRead(toEmail: string): Promise<void> {
+    const lc = toEmail.toLowerCase();
+    const rows = await db
+      .select()
+      .from(notificationsTable)
+      .where(eq(notificationsTable.toEmail, lc));
+    for (const row of rows) {
+      if (!row.record.read) {
+        await db
+          .update(notificationsTable)
+          .set({ record: { ...row.record, read: true } })
+          .where(eq(notificationsTable.id, row.id));
+      }
+    }
+  }
+
+  // ── QA Audit workbooks / evidence / tasks (DB-backed) ─────────────────
+
+  // Read-modify-write a workbook atomically (same pattern as withLockedCqi):
+  // ensure the row exists, lock it, then mutate and write back serially so
+  // concurrent saves don't overwrite each other.
+  private async withLockedQaWorkbook(
+    siteId: string,
+    year: string,
+    seed: QaAuditWorkbook,
+    mutate: (current: QaAuditWorkbook) => QaAuditWorkbook | undefined,
+  ): Promise<QaAuditWorkbook | undefined> {
+    return db.transaction(async (tx) => {
+      await tx
+        .insert(qaWorkbooksTable)
+        .values({ siteId, year, record: seed })
+        .onConflictDoNothing();
+      const rows = await tx
+        .select()
+        .from(qaWorkbooksTable)
+        .where(and(eq(qaWorkbooksTable.siteId, siteId), eq(qaWorkbooksTable.year, year)))
+        .for("update")
+        .limit(1);
+      const current = rows[0]?.record;
+      if (!current) return undefined;
+      const next = mutate(current);
+      if (!next) return current;
+      await tx
+        .update(qaWorkbooksTable)
+        .set({ record: next })
+        .where(and(eq(qaWorkbooksTable.siteId, siteId), eq(qaWorkbooksTable.year, year)));
+      return next;
+    });
+  }
+
+  override async listQaAuditWorkbooks(year?: string): Promise<QaAuditWorkbook[]> {
+    const rows = year
+      ? await db.select().from(qaWorkbooksTable).where(eq(qaWorkbooksTable.year, year))
+      : await db.select().from(qaWorkbooksTable);
+    return rows.map((r) => r.record);
+  }
+
+  override async getQaAuditWorkbook(
+    siteId: string,
+    year: string,
+  ): Promise<QaAuditWorkbook | undefined> {
+    const rows = await db
+      .select()
+      .from(qaWorkbooksTable)
+      .where(and(eq(qaWorkbooksTable.siteId, siteId), eq(qaWorkbooksTable.year, year)))
+      .limit(1);
+    return rows[0]?.record;
+  }
+
+  override async upsertQaAuditWorkbook(
+    data: UpsertQaAuditWorkbook,
+    user: { email: string; name: string },
+  ): Promise<QaAuditWorkbook> {
+    const now = new Date().toISOString();
+    const reviewed = data.responses.filter((r) => !!r.status).length;
+    const fresh: QaAuditWorkbook = {
+      siteId: data.siteId,
+      siteName: data.siteName,
+      region: data.region ?? "",
+      year: data.year,
+      responses: data.responses,
+      status: reviewed === 0 ? "not_started" : "in_progress",
+      lastUpdatedAt: now,
+      lastUpdatedByEmail: user.email,
+      lastUpdatedByName: user.name,
+    };
+    const result = await this.withLockedQaWorkbook(
+      data.siteId,
+      data.year,
+      fresh,
+      (existing) => {
+        // Submitted workbooks are locked — return undefined to keep them as-is.
+        if (existing.status === "submitted") return undefined;
+        return {
+          ...fresh,
+          submittedByEmail: existing.submittedByEmail,
+          submittedByName: existing.submittedByName,
+          submittedAt: existing.submittedAt,
+        };
+      },
+    );
+    return result ?? fresh;
+  }
+
+  override async submitQaAuditWorkbook(
+    siteId: string,
+    year: string,
+    user: { email: string; name: string },
+  ): Promise<QaAuditWorkbook | undefined> {
+    const existing = await this.getQaAuditWorkbook(siteId, year);
+    if (!existing) return undefined;
+    const now = new Date().toISOString();
+    return this.withLockedQaWorkbook(siteId, year, existing, (current) => ({
+      ...current,
+      status: "submitted",
+      submittedByEmail: user.email,
+      submittedByName: user.name,
+      submittedAt: now,
+      lastUpdatedAt: now,
+      lastUpdatedByEmail: user.email,
+      lastUpdatedByName: user.name,
+    }));
+  }
+
+  override async setQaAuditResponseTaskId(
+    siteId: string,
+    year: string,
+    itemId: string,
+    taskId: string,
+  ): Promise<void> {
+    const existing = await this.getQaAuditWorkbook(siteId, year);
+    if (!existing) return;
+    await this.withLockedQaWorkbook(siteId, year, existing, (current) => ({
+      ...current,
+      responses: current.responses.map((r) =>
+        r.itemId === itemId ? { ...r, taskCreatedId: taskId } : r,
+      ),
+      lastUpdatedAt: new Date().toISOString(),
+    }));
+  }
+
+  override async addQaAuditEvidence(
+    file: Omit<QaAuditEvidenceFile, "id" | "uploadedAt">,
+  ): Promise<QaAuditEvidenceFile> {
+    const id = `qae-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const record: QaAuditEvidenceFile = {
+      ...file,
+      id,
+      uploadedAt: new Date().toISOString(),
+    };
+    await db.insert(qaEvidenceTable).values({
+      id,
+      siteId: record.siteId,
+      year: record.year,
+      fileName: record.fileName,
+      fileType: record.fileType,
+      uploadedBy: record.uploadedBy,
+      uploadedAt: record.uploadedAt,
+      dataB64: record.data.toString("base64"),
+    });
+    return record;
+  }
+
+  override async getQaAuditEvidence(id: string): Promise<QaAuditEvidenceFile | undefined> {
+    const rows = await db
+      .select()
+      .from(qaEvidenceTable)
+      .where(eq(qaEvidenceTable.id, id))
+      .limit(1);
+    const r = rows[0];
+    if (!r) return undefined;
+    return {
+      id: r.id,
+      siteId: r.siteId,
+      year: r.year,
+      fileName: r.fileName,
+      fileType: r.fileType,
+      uploadedBy: r.uploadedBy,
+      uploadedAt: r.uploadedAt,
+      data: Buffer.from(r.dataB64, "base64"),
+    };
+  }
+
+  override async addQaAuditTask(t: Omit<QaAuditTask, "id" | "createdAt">): Promise<QaAuditTask> {
+    const id = `qat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const record: QaAuditTask = { ...t, id, createdAt: new Date().toISOString() };
+    await db.insert(qaTasksTable).values({
+      id,
+      assignedToEmail: record.assignedToEmail.toLowerCase(),
+      createdAt: record.createdAt,
+      record,
+    });
+    return record;
+  }
+
+  override async listQaAuditTasksForUser(email: string): Promise<QaAuditTask[]> {
+    const rows = await db
+      .select()
+      .from(qaTasksTable)
+      .where(eq(qaTasksTable.assignedToEmail, email.toLowerCase()))
+      .orderBy(desc(qaTasksTable.createdAt));
+    return rows.map((r) => r.record);
+  }
+
+  override async getQaAuditTask(id: string): Promise<QaAuditTask | undefined> {
+    const rows = await db.select().from(qaTasksTable).where(eq(qaTasksTable.id, id)).limit(1);
+    return rows[0]?.record;
+  }
+
+  override async completeQaAuditTask(
+    id: string,
+    user: { email: string; name: string },
+  ): Promise<QaAuditTask | undefined> {
+    const existing = await this.getQaAuditTask(id);
+    if (!existing) return undefined;
+    const updated: QaAuditTask = {
+      ...existing,
+      completedAt: new Date().toISOString(),
+      completedByEmail: user.email,
+    };
+    await db.update(qaTasksTable).set({ record: updated }).where(eq(qaTasksTable.id, id));
+    return updated;
+  }
+
+  // ── Client store (DB-backed) ───────────────────────────────────────────
+
+  override async getClientStores(): Promise<
+    Array<{ storeKey: string; value: unknown; updatedAt: string }>
+  > {
+    const rows = await db.select().from(clientStoreTable);
+    return rows.map((r) => ({ storeKey: r.storeKey, value: r.value, updatedAt: r.updatedAt }));
+  }
+
+  override async setClientStore(storeKey: string, value: unknown): Promise<void> {
+    const updatedAt = new Date().toISOString();
+    await db
+      .insert(clientStoreTable)
+      .values({ storeKey, value, updatedAt })
+      .onConflictDoUpdate({ target: clientStoreTable.storeKey, set: { value, updatedAt } });
+  }
+
+  // ── One-time boot migration ────────────────────────────────────────────
+  // Backfills the database from the legacy in-memory/file state the first
+  // time the server boots with these tables empty:
+  //  - QA audit workbooks/evidence/tasks from `.local/qa-audit-state.json`
+  //    (loaded into the inherited MemStorage maps by the constructor).
+  //  - The site 1417 scheduling seed (hours + staff defaults) so the
+  //    scheduling page isn't empty on first visit.
+  async init(): Promise<void> {
+    try {
+      const [wbCount] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(qaWorkbooksTable);
+      if (wbCount.n === 0) {
+        // MemStorage's constructor already loaded `.local/qa-audit-state.json`
+        // into the in-memory maps — copy them into the database.
+        const memWorkbooks = await super.listQaAuditWorkbooks();
+        for (const wb of memWorkbooks) {
+          await db
+            .insert(qaWorkbooksTable)
+            .values({ siteId: wb.siteId, year: wb.year, record: wb })
+            .onConflictDoNothing();
+        }
+        for (const [, ev] of Array.from((this as any).qaAuditEvidence.entries()) as Array<
+          [string, QaAuditEvidenceFile]
+        >) {
+          await db
+            .insert(qaEvidenceTable)
+            .values({
+              id: ev.id,
+              siteId: ev.siteId,
+              year: ev.year,
+              fileName: ev.fileName,
+              fileType: ev.fileType,
+              uploadedBy: ev.uploadedBy,
+              uploadedAt: ev.uploadedAt,
+              dataB64: ev.data.toString("base64"),
+            })
+            .onConflictDoNothing();
+        }
+        for (const [, t] of Array.from((this as any).qaAuditTasks.entries()) as Array<
+          [string, QaAuditTask]
+        >) {
+          await db
+            .insert(qaTasksTable)
+            .values({
+              id: t.id,
+              assignedToEmail: t.assignedToEmail.toLowerCase(),
+              createdAt: t.createdAt,
+              record: t,
+            })
+            .onConflictDoNothing();
+        }
+        if (memWorkbooks.length > 0) {
+          console.log(`[storage] migrated ${memWorkbooks.length} QA workbook(s) to PostgreSQL`);
+        }
+      }
+
+      // Seed 1417 scheduling data (hours + staff defaults) if none exist yet.
+      const [hoursCount] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(pharmacyHoursTable);
+      if (hoursCount.n === 0) {
+        const memHours = await super.getPharmacyHours("1417");
+        if (memHours) await this.upsertPharmacyHours(memHours);
+        const memDefaults = await super.getStaffScheduleDefaults("1417");
+        for (const d of memDefaults) await this.upsertStaffScheduleDefault(d);
+      }
+    } catch (err) {
+      console.error("[storage] init/backfill failed:", err);
+    }
   }
 }
 
