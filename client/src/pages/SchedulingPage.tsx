@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/App";
 import {
@@ -56,6 +56,7 @@ import {
   Plus,
   Trash2,
   RefreshCw,
+  X,
 } from "lucide-react";
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -1357,6 +1358,286 @@ function CellEditorDialog({
   );
 }
 
+// ── ADP Sync Tab ───────────────────────────────────────────────────────────
+
+function AdpSyncTab({
+  siteId,
+  roster,
+  toast,
+}: {
+  siteId: string;
+  roster: StaffMember[];
+  toast: ReturnType<typeof useToast>["toast"];
+}) {
+  const queryClient = useQueryClient();
+
+  const { data: configured } = useQuery<{ configured: boolean; secrets: Record<string, boolean> }>({
+    queryKey: ["/api/adp/configured"],
+  });
+
+  const { data: syncStatus, refetch: refetchStatus } = useQuery<{
+    siteId: string;
+    lastSyncAt?: string;
+    lastSyncResult?: string;
+    lastSyncMessage?: string;
+  } | null>({
+    queryKey: ["/api/adp/status", siteId],
+    queryFn: () => fetch(`/api/adp/status?siteId=${siteId}`).then((r) => r.json()),
+    enabled: !!siteId,
+  });
+
+  const { data: mappings = [], refetch: refetchMappings } = useQuery<Array<{
+    siteId: string;
+    adpWorkerId: string;
+    adpDisplayName: string;
+    staffId: string;
+    staffName: string;
+    confirmedAt?: string;
+  }>>({
+    queryKey: ["/api/adp/mappings", siteId],
+    queryFn: () => fetch(`/api/adp/mappings?siteId=${siteId}`).then((r) => r.json()),
+    enabled: !!siteId && configured?.configured === true,
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: () =>
+      fetch(`/api/adp/sync?siteId=${siteId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roster: roster.map((s) => ({ staffId: s.id, staffName: s.name })) }),
+      }).then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.message ?? "Sync failed");
+        return data as { entriesCreated: number; entriesUpdated: number; newMappings: number; error?: string };
+      }),
+    onSuccess: (result) => {
+      refetchStatus();
+      refetchMappings();
+      queryClient.invalidateQueries({ queryKey: ["/api/schedule/entries"] });
+      if (result.error) {
+        toast({ title: "ADP sync completed with errors", description: result.error, variant: "destructive" });
+      } else {
+        toast({
+          title: "ADP sync complete",
+          description: `${result.entriesCreated} entries created, ${result.entriesUpdated} updated, ${result.newMappings} new worker mappings.`,
+        });
+      }
+    },
+    onError: (err: Error) => {
+      toast({ title: "ADP sync failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const updateMappingMutation = useMutation({
+    mutationFn: (payload: {
+      adpWorkerId: string;
+      adpDisplayName: string;
+      staffId: string;
+      staffName: string;
+      confirm?: boolean;
+    }) =>
+      fetch("/api/adp/mappings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId, ...payload }),
+      }).then((r) => r.json()),
+    onSuccess: () => {
+      refetchMappings();
+      toast({ title: "Mapping saved" });
+    },
+  });
+
+  const deleteMappingMutation = useMutation({
+    mutationFn: (adpWorkerId: string) =>
+      fetch("/api/adp/mappings", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId, adpWorkerId }),
+      }).then((r) => r.json()),
+    onSuccess: () => { refetchMappings(); toast({ title: "Mapping removed" }); },
+  });
+
+  if (!configured) {
+    return <div className="py-6 text-center text-muted-foreground text-sm">Loading ADP configuration…</div>;
+  }
+
+  // ── Not configured — show setup checklist ──
+  if (!configured.configured) {
+    const secrets = configured.secrets ?? {};
+    const required = ["ADP_CLIENT_ID", "ADP_CLIENT_SECRET", "ADP_SSL_CERT", "ADP_SSL_KEY"];
+    return (
+      <div className="space-y-4 py-2">
+        <p className="text-sm text-muted-foreground">
+          ADP Workforce Now credentials must be added as environment secrets on the server before this feature can be used.
+        </p>
+        <div className="rounded-md border p-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Required secrets</p>
+          {required.map((key) => (
+            <div key={key} className="flex items-center gap-2 text-sm">
+              <span className={secrets[key] ? "text-green-600" : "text-destructive"}>{secrets[key] ? "✓" : "✗"}</span>
+              <code className="font-mono">{key}</code>
+              <span className="text-muted-foreground text-xs">{secrets[key] ? "configured" : "missing"}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-2 text-sm mt-1">
+            <span className={secrets["ADP_ORG_OID"] ? "text-green-600" : "text-muted-foreground"}>{secrets["ADP_ORG_OID"] ? "✓" : "○"}</span>
+            <code className="font-mono">ADP_ORG_OID</code>
+            <span className="text-muted-foreground text-xs">optional — org OID for multi-org accounts</span>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Once all required secrets are set and the server is restarted, time-off syncs will appear here and run nightly at 2 AM.
+        </p>
+      </div>
+    );
+  }
+
+  // ── Configured — show sync panel ──
+  return (
+    <div className="space-y-5 py-1">
+      {/* Sync status */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-sm font-medium">ADP Workforce Now</p>
+          {syncStatus?.lastSyncAt ? (
+            <p className="text-xs text-muted-foreground">
+              Last sync: {new Date(syncStatus.lastSyncAt).toLocaleString()} —{" "}
+              <span className={syncStatus.lastSyncResult === "success" ? "text-green-600" : "text-destructive"}>
+                {syncStatus.lastSyncResult}
+              </span>
+              {syncStatus.lastSyncMessage && ` (${syncStatus.lastSyncMessage})`}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">No sync has been run yet for this site.</p>
+          )}
+          <p className="text-xs text-muted-foreground">Nightly automatic sync runs at 2 AM.</p>
+        </div>
+        <Button
+          onClick={() => syncMutation.mutate()}
+          disabled={syncMutation.isPending}
+          data-testid="button-adp-sync"
+        >
+          {syncMutation.isPending ? "Syncing…" : "Sync from ADP"}
+        </Button>
+      </div>
+
+      {/* Worker → staff mapping table */}
+      {mappings.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Worker Mappings</p>
+          <p className="text-xs text-muted-foreground">
+            ADP workers are auto-matched by name. Correct any mismatches and confirm to lock the mapping.
+          </p>
+          <div className="rounded-md border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40">
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">ADP Worker</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Mapped to</th>
+                  <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">Status</th>
+                  <th className="px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {mappings.map((m) => (
+                  <AdpMappingRow
+                    key={m.adpWorkerId}
+                    mapping={m}
+                    roster={roster}
+                    onSave={(staffId, staffName, confirm) =>
+                      updateMappingMutation.mutate({
+                        adpWorkerId: m.adpWorkerId,
+                        adpDisplayName: m.adpDisplayName,
+                        staffId,
+                        staffName,
+                        confirm,
+                      })
+                    }
+                    onDelete={() => deleteMappingMutation.mutate(m.adpWorkerId)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {mappings.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No worker mappings yet. Run a sync to import ADP workers and auto-match them to your roster.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function AdpMappingRow({
+  mapping,
+  roster,
+  onSave,
+  onDelete,
+}: {
+  mapping: { adpWorkerId: string; adpDisplayName: string; staffId: string; staffName: string; confirmedAt?: string };
+  roster: StaffMember[];
+  onSave: (staffId: string, staffName: string, confirm: boolean) => void;
+  onDelete: () => void;
+}) {
+  const [selectedId, setSelectedId] = useState(mapping.staffId);
+
+  const selectedMember = roster.find((s) => s.id === selectedId);
+  const isDirty = selectedId !== mapping.staffId;
+
+  return (
+    <tr className="border-b last:border-0">
+      <td className="px-3 py-2 font-medium">{mapping.adpDisplayName}</td>
+      <td className="px-3 py-2">
+        <select
+          className="bg-transparent border rounded-md px-2 py-1 text-sm"
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+          data-testid={`select-adp-staff-${mapping.adpWorkerId}`}
+        >
+          <option value="">— Unmatched —</option>
+          {roster.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+      </td>
+      <td className="px-3 py-2">
+        {mapping.confirmedAt ? (
+          <Badge variant="secondary" className="text-xs">Confirmed</Badge>
+        ) : mapping.staffId ? (
+          <Badge variant="outline" className="text-xs">Auto-matched</Badge>
+        ) : (
+          <Badge variant="outline" className="text-xs text-muted-foreground">Unmatched</Badge>
+        )}
+      </td>
+      <td className="px-3 py-2">
+        <div className="flex gap-1 justify-end">
+          {(isDirty || !mapping.confirmedAt) && selectedId && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onSave(selectedId, selectedMember?.name ?? "", true)}
+              data-testid={`button-confirm-mapping-${mapping.adpWorkerId}`}
+            >
+              Confirm
+            </Button>
+          )}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onDelete}
+            data-testid={`button-delete-mapping-${mapping.adpWorkerId}`}
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 // ── Settings Dialog (defaults + hours) ─────────────────────────────────────
 
 function SettingsDialog({
@@ -1390,7 +1671,14 @@ function SettingsDialog({
   entries: ScheduleEntry[];
 }) {
   const { toast } = useToast();
-  const [tab, setTab] = useState<"defaults" | "hours" | "balances">("defaults");
+  const [tab, setTab] = useState<"defaults" | "hours" | "balances" | "adp">("defaults");
+
+  const TAB_LABELS: Record<typeof tab, string> = {
+    defaults: "Default Schedule",
+    hours:    "Business Hours",
+    balances: "PTO Balances",
+    adp:      "ADP Sync",
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -1402,8 +1690,8 @@ function SettingsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex gap-1 border-b mb-3">
-          {(["defaults", "hours", "balances"] as const).map((t) => (
+        <div className="flex gap-1 border-b mb-3 flex-wrap">
+          {(["defaults", "hours", "balances", "adp"] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -1411,7 +1699,7 @@ function SettingsDialog({
               className={`px-3 py-1.5 text-sm border-b-2 ${tab === t ? "border-purple-600 text-purple-700" : "border-transparent text-muted-foreground"}`}
               data-testid={`tab-${t}`}
             >
-              {t === "defaults" ? "Default Schedule" : t === "hours" ? "Business Hours" : "PTO Balances"}
+              {TAB_LABELS[t]}
             </button>
           ))}
         </div>
@@ -1420,7 +1708,7 @@ function SettingsDialog({
           <DefaultsEditor siteId={siteId} roster={roster} defaults={defaults} toast={toast} />
         ) : tab === "hours" ? (
           <HoursEditor siteId={siteId} hours={hours} toast={toast} />
-        ) : (
+        ) : tab === "balances" ? (
           <BalancesEditor
             roster={roster}
             balances={balances}
@@ -1429,6 +1717,8 @@ function SettingsDialog({
             toast={toast}
             entries={entries}
           />
+        ) : (
+          <AdpSyncTab siteId={siteId} roster={roster} toast={toast} />
         )}
 
         <DialogFooter>

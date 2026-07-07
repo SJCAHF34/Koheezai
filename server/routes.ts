@@ -12,6 +12,8 @@ import { checkHepaticPregnancyFunction } from "./lib/hepaticPregnancyValidation"
 import { generateClinicalRecommendations } from "./lib/clinicalRecommendations";
 import { openEvidenceClient } from "./lib/openEvidence";
 import { checkLiverpoolInteractions, isConfigured as liverpoolConfigured } from "./lib/liverpoolDDI";
+import { isConfigured as adpIsConfigured, getConfigStatus as adpGetConfigStatus } from "./lib/adpClient";
+import { runAdpSync } from "./lib/adpSync";
 import { hivDrugs } from "../client/src/lib/hivDrugs";
 import {
   getUserProfile,
@@ -2252,6 +2254,91 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
         return res.status(503).json({ message: "The AI service is temporarily busy — please try again in a moment." });
       }
       return res.status(502).json({ message: "AI provider error — please try again shortly." });
+    }
+  });
+
+  // ── ADP Workforce Now Integration ─────────────────────────────────────
+  // Credentials live exclusively in environment variables on the server.
+
+  // GET /api/adp/configured — tells the UI if ADP credentials are present.
+  app.get("/api/adp/configured", requireAuth, (req, res) => {
+    res.json({ configured: adpIsConfigured(), secrets: adpGetConfigStatus() });
+  });
+
+  // GET /api/adp/status?siteId= — last sync result for this site.
+  app.get("/api/adp/status", requireAuth, async (req, res) => {
+    const siteId = String(req.query.siteId ?? "");
+    if (!siteId) return res.status(400).json({ message: "siteId required" });
+    const status = await storage.getAdpSyncStatus(siteId);
+    return res.json(status ?? null);
+  });
+
+  // GET /api/adp/mappings?siteId= — worker→staff mapping table for this site.
+  app.get("/api/adp/mappings", requireAuth, async (req, res) => {
+    const siteId = String(req.query.siteId ?? "");
+    if (!siteId) return res.status(400).json({ message: "siteId required" });
+    const mappings = await storage.getAdpWorkerMappings(siteId);
+    return res.json(mappings);
+  });
+
+  // PUT /api/adp/mappings — save one mapping (director or above to correct auto-matches).
+  app.put("/api/adp/mappings", requireAuth, async (req, res) => {
+    const user = req.user as any;
+    const allowed = ["pharmacy_director", "rpd", "cpo", "pharmacist_1", "pharmacist_2"].includes(user?.role ?? "");
+    if (!allowed) return res.status(403).json({ message: "Insufficient permissions" });
+
+    const { siteId, adpWorkerId, adpDisplayName, staffId, staffName, confirm } = req.body as {
+      siteId: string; adpWorkerId: string; adpDisplayName: string;
+      staffId: string; staffName: string; confirm?: boolean;
+    };
+    if (!siteId || !adpWorkerId) return res.status(400).json({ message: "siteId and adpWorkerId required" });
+
+    const saved = await storage.upsertAdpWorkerMapping({
+      siteId, adpWorkerId, adpDisplayName,
+      staffId:     staffId   ?? "",
+      staffName:   staffName ?? "",
+      confirmedAt: confirm ? new Date().toISOString() : undefined,
+    });
+    return res.json(saved);
+  });
+
+  // DELETE /api/adp/mappings — remove one mapping entry.
+  app.delete("/api/adp/mappings", requireAuth, async (req, res) => {
+    const user = req.user as any;
+    const allowed = ["pharmacy_director", "rpd", "cpo"].includes(user?.role ?? "");
+    if (!allowed) return res.status(403).json({ message: "Insufficient permissions" });
+
+    const { siteId, adpWorkerId } = req.body as { siteId: string; adpWorkerId: string };
+    if (!siteId || !adpWorkerId) return res.status(400).json({ message: "siteId and adpWorkerId required" });
+
+    await storage.deleteAdpWorkerMapping(siteId, adpWorkerId);
+    return res.json({ ok: true });
+  });
+
+  // POST /api/adp/sync?siteId= — manually trigger a sync for one site.
+  // Body (optional): { roster: [{ staffId, staffName }] }
+  app.post("/api/adp/sync", requireAuth, async (req, res) => {
+    const user = req.user as any;
+    const allowed = ["pharmacy_director", "rpd", "cpo", "pharmacist_1", "pharmacist_2"].includes(user?.role ?? "");
+    if (!allowed) return res.status(403).json({ message: "Insufficient permissions" });
+
+    const siteId = String(req.query.siteId ?? "");
+    if (!siteId) return res.status(400).json({ message: "siteId required" });
+
+    if (!adpIsConfigured()) {
+      return res.status(422).json({ message: "ADP credentials are not configured on this server." });
+    }
+
+    const roster = Array.isArray(req.body?.roster)
+      ? (req.body.roster as { staffId: string; staffName: string }[])
+      : undefined;
+
+    try {
+      const result = await runAdpSync(siteId, roster);
+      return res.json(result);
+    } catch (err: any) {
+      console.error("[ADP] Manual sync error:", err);
+      return res.status(502).json({ message: `ADP sync failed: ${err?.message ?? "unknown error"}` });
     }
   });
 

@@ -4,6 +4,7 @@ import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startOutreachScheduler } from "./lib/outreachScheduler";
+import { startAdpScheduler } from "./lib/adpSync";
 import { pool } from "./db";
 import { storage, DbStorage } from "./storage";
 
@@ -120,6 +121,7 @@ app.use((req, res, next) => {
   }
 
   startOutreachScheduler();
+  startAdpScheduler();
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.

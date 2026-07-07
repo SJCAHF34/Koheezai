@@ -694,3 +694,40 @@ export const clientStoreTable = pgTable(
     pk: primaryKey({ columns: [t.siteId, t.storeKey] }),
   }),
 );
+
+// ── ADP Workforce Now integration ─────────────────────────────────────────
+// Stores the mapping between ADP workerIDs and internal staffIds per site.
+// Auto-matched by name similarity on first sync; directors can correct via UI.
+export interface AdpWorkerMapping {
+  siteId: string;
+  adpWorkerId: string;
+  adpDisplayName: string;
+  staffId: string;    // empty string if unmatched
+  staffName: string;  // our internal display name
+  confirmedAt?: string;
+  updatedAt: string;
+}
+
+export const adpWorkerMappingsTable = pgTable(
+  "adp_worker_mappings",
+  {
+    siteId: text("site_id").notNull(),
+    adpWorkerId: text("adp_worker_id").notNull(),
+    record: jsonb("record").$type<AdpWorkerMapping>().notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.siteId, t.adpWorkerId] }) }),
+);
+
+// Per-site sync status (last run timestamp + result).
+export interface AdpSyncStatus {
+  siteId: string;
+  lastSyncAt?: string;
+  lastSyncResult?: "success" | "error";
+  lastSyncMessage?: string;
+  updatedAt: string;
+}
+
+export const adpSyncStatusTable = pgTable("adp_sync_status", {
+  siteId: text("site_id").primaryKey(),
+  record: jsonb("record").$type<AdpSyncStatus>().notNull(),
+});

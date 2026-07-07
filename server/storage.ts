@@ -29,6 +29,10 @@ import {
   qaEvidenceTable,
   qaTasksTable,
   clientStoreTable,
+  adpWorkerMappingsTable,
+  adpSyncStatusTable,
+  type AdpWorkerMapping,
+  type AdpSyncStatus,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -185,6 +189,14 @@ export interface IStorage {
   // ── Client store (server-side backing for browser localStorage) ────────
   getClientStores(siteId: string): Promise<Array<{ storeKey: string; value: unknown; updatedAt: string }>>;
   setClientStore(siteId: string, storeKey: string, value: unknown): Promise<void>;
+
+  // ── ADP Workforce Now integration ─────────────────────────────────────
+  getAdpWorkerMappings(siteId: string): Promise<AdpWorkerMapping[]>;
+  upsertAdpWorkerMapping(m: Omit<AdpWorkerMapping, "updatedAt">): Promise<AdpWorkerMapping>;
+  deleteAdpWorkerMapping(siteId: string, adpWorkerId: string): Promise<void>;
+  getAdpSyncStatus(siteId: string): Promise<AdpSyncStatus | undefined>;
+  setAdpSyncStatus(siteId: string, status: Omit<AdpSyncStatus, "updatedAt">): Promise<AdpSyncStatus>;
+  getAdpMappedSiteIds(): Promise<string[]>;
 }
 
 function entryKey(siteId: string, staffId: string, date: string) {
@@ -892,6 +904,39 @@ export class MemStorage implements IStorage {
 
   async setClientStore(siteId: string, storeKey: string, value: unknown): Promise<void> {
     this.clientStores.set(`${siteId}|${storeKey}`, { value, updatedAt: new Date().toISOString() });
+  }
+
+  // ── ADP Workforce Now (in-memory) ─────────────────────────────────────
+
+  protected adpMappings: Map<string, AdpWorkerMapping> = new Map();
+  protected adpSyncStatuses: Map<string, AdpSyncStatus> = new Map();
+
+  async getAdpWorkerMappings(siteId: string): Promise<AdpWorkerMapping[]> {
+    return Array.from(this.adpMappings.values()).filter((m) => m.siteId === siteId);
+  }
+
+  async upsertAdpWorkerMapping(m: Omit<AdpWorkerMapping, "updatedAt">): Promise<AdpWorkerMapping> {
+    const record: AdpWorkerMapping = { ...m, updatedAt: new Date().toISOString() };
+    this.adpMappings.set(`${m.siteId}|${m.adpWorkerId}`, record);
+    return record;
+  }
+
+  async deleteAdpWorkerMapping(siteId: string, adpWorkerId: string): Promise<void> {
+    this.adpMappings.delete(`${siteId}|${adpWorkerId}`);
+  }
+
+  async getAdpSyncStatus(siteId: string): Promise<AdpSyncStatus | undefined> {
+    return this.adpSyncStatuses.get(siteId);
+  }
+
+  async setAdpSyncStatus(siteId: string, status: Omit<AdpSyncStatus, "updatedAt">): Promise<AdpSyncStatus> {
+    const record: AdpSyncStatus = { ...status, updatedAt: new Date().toISOString() };
+    this.adpSyncStatuses.set(siteId, record);
+    return record;
+  }
+
+  async getAdpMappedSiteIds(): Promise<string[]> {
+    return [...new Set(Array.from(this.adpMappings.values()).map((m) => m.siteId))];
   }
 }
 
@@ -1755,6 +1800,67 @@ export class DbStorage extends MemStorage {
     } catch (err) {
       console.error("[storage] init/backfill failed:", err);
     }
+  }
+
+  // ── ADP Workforce Now (DB-backed) ─────────────────────────────────────
+
+  override async getAdpWorkerMappings(siteId: string): Promise<AdpWorkerMapping[]> {
+    const rows = await db
+      .select()
+      .from(adpWorkerMappingsTable)
+      .where(eq(adpWorkerMappingsTable.siteId, siteId));
+    return rows.map((r) => r.record);
+  }
+
+  override async upsertAdpWorkerMapping(
+    m: Omit<AdpWorkerMapping, "updatedAt">,
+  ): Promise<AdpWorkerMapping> {
+    const record: AdpWorkerMapping = { ...m, updatedAt: new Date().toISOString() };
+    await db
+      .insert(adpWorkerMappingsTable)
+      .values({ siteId: m.siteId, adpWorkerId: m.adpWorkerId, record })
+      .onConflictDoUpdate({
+        target: [adpWorkerMappingsTable.siteId, adpWorkerMappingsTable.adpWorkerId],
+        set: { record },
+      });
+    return record;
+  }
+
+  override async deleteAdpWorkerMapping(siteId: string, adpWorkerId: string): Promise<void> {
+    await db
+      .delete(adpWorkerMappingsTable)
+      .where(
+        and(
+          eq(adpWorkerMappingsTable.siteId, siteId),
+          eq(adpWorkerMappingsTable.adpWorkerId, adpWorkerId),
+        ),
+      );
+  }
+
+  override async getAdpSyncStatus(siteId: string): Promise<AdpSyncStatus | undefined> {
+    const rows = await db
+      .select()
+      .from(adpSyncStatusTable)
+      .where(eq(adpSyncStatusTable.siteId, siteId))
+      .limit(1);
+    return rows[0]?.record;
+  }
+
+  override async setAdpSyncStatus(
+    siteId: string,
+    status: Omit<AdpSyncStatus, "updatedAt">,
+  ): Promise<AdpSyncStatus> {
+    const record: AdpSyncStatus = { ...status, updatedAt: new Date().toISOString() };
+    await db
+      .insert(adpSyncStatusTable)
+      .values({ siteId, record })
+      .onConflictDoUpdate({ target: adpSyncStatusTable.siteId, set: { record } });
+    return record;
+  }
+
+  override async getAdpMappedSiteIds(): Promise<string[]> {
+    const rows = await db.selectDistinct({ siteId: adpWorkerMappingsTable.siteId }).from(adpWorkerMappingsTable);
+    return rows.map((r) => r.siteId);
   }
 }
 
