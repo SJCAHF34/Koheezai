@@ -1012,6 +1012,59 @@ export function purgeDeletedTask(taskId: string): void {
   writeDeletedTasks(readDeletedTasks().filter((t) => t.id !== taskId));
 }
 
+// ── Sub-item completions ─────────────────────────────────────────────────────
+// Tracks per-day completion state for mini checkboxes within a task.
+
+const SUB_ITEMS_KEY = "koheez_task_sub_items";
+
+export interface SubItemCompletion {
+  siteId: string;
+  taskId: string;
+  item: string;
+  date: string; // YYYY-MM-DD
+}
+
+function readSubItems(): SubItemCompletion[] {
+  try {
+    const raw = localStorage.getItem(SUB_ITEMS_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? (parsed as SubItemCompletion[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSubItems(items: SubItemCompletion[]): void {
+  try {
+    localStorage.setItem(SUB_ITEMS_KEY, JSON.stringify(items));
+  } catch {}
+}
+
+/** Returns the set of completed sub-item labels for a task on a given date. */
+export function loadSubItemCompletions(siteId: string, taskId: string, date: string): Set<string> {
+  return new Set(
+    readSubItems()
+      .filter((s) => s.siteId === siteId && s.taskId === taskId && s.date === date)
+      .map((s) => s.item)
+  );
+}
+
+/** Toggle a sub-item on/off for a task on a given date. */
+export function toggleSubItemCompletion(siteId: string, taskId: string, item: string, date: string): boolean {
+  const all = readSubItems();
+  const idx = all.findIndex(
+    (s) => s.siteId === siteId && s.taskId === taskId && s.item === item && s.date === date
+  );
+  if (idx >= 0) {
+    all.splice(idx, 1);
+    writeSubItems(all);
+    return false;
+  }
+  all.push({ siteId, taskId, item, date });
+  writeSubItems(all);
+  return true;
+}
+
 /** Load deleted tasks with the same role-based filtering used for active tasks. */
 export function loadDeletedCustomTasksForRole(
   isCpo: boolean,

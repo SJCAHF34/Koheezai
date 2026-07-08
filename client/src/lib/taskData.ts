@@ -57,6 +57,7 @@ export interface PharmacyTask {
   scope?: "site" | "regional" | "national";
   region?: string;
   dueDate?: string;
+  subItems?: string[];
 }
 
 export interface Site {
@@ -264,16 +265,7 @@ export const TASKS: PharmacyTask[] = [
     frequency: "daily",
     category: "operations",
     taskGroup: "Cabrini P4H",
-  },
-  {
-    id: "de-d-010",
-    title: "PV2",
-    description: "Perform PV2 verification — review orders for accuracy, confirm NDC/quantity/sig, and push through for final dispensing.",
-    role: "data_entry_tech",
-    frequency: "daily",
-    category: "operations",
-    taskGroup: "PV2",
-    counterType: "start-end",
+    subItems: ["DE", "ADJ Exception", "Contact Manager", "PV2"],
   },
 
   // ── PV2 TECH · DAILY ────────────────────────────────────────────────────

@@ -85,6 +85,8 @@ import {
   getActiveRoles,
   saveTaskOverride,
   applyTaskOverridesToMemory,
+  loadSubItemCompletions,
+  toggleSubItemCompletion,
 } from "@/lib/taskStorage";
 import type { RetentionPatient, RetentionIssueType, RetentionStatus, AttemptLogEntry } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -488,6 +490,21 @@ function TaskRow({
   // For custom task deletion: first click shows confirm state
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Sub-item checkbox state (for tasks with subItems like Cabrini P4H)
+  const [subItemsDone, setSubItemsDone] = useState<Set<string>>(() =>
+    task.subItems ? loadSubItemCompletions(resolvedSiteId, task.id, today) : new Set()
+  );
+
+  function handleSubItemToggle(item: string) {
+    const nowDone = toggleSubItemCompletion(resolvedSiteId, task.id, item, today);
+    setSubItemsDone((prev) => {
+      const next = new Set(prev);
+      if (nowDone) next.add(item);
+      else next.delete(item);
+      return next;
+    });
+  }
+
   // True when all required counter fields are filled
   const counterReady = !task.counterType
     || (task.counterType === "end-only" ? counterEnd !== "" : counterStart !== "" && counterEnd !== "");
@@ -600,6 +617,43 @@ function TaskRow({
             </p>
           );
         })()}
+
+        {task.subItems && task.subItems.length > 0 && (
+          <div
+            className="flex flex-wrap gap-x-3 gap-y-1.5 mt-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {task.subItems.map((item) => {
+              const done = subItemsDone.has(item);
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  data-testid={`sub-item-${task.id}-${item.replace(/\s+/g, "-").toLowerCase()}`}
+                  onClick={() => !readOnly && handleSubItemToggle(item)}
+                  className={`inline-flex items-center gap-1.5 text-[11px] font-medium select-none transition-colors ${
+                    readOnly ? "cursor-default" : "cursor-pointer"
+                  } ${done ? "text-green-700" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                  <span
+                    className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-sm border transition-colors shrink-0 ${
+                      done
+                        ? "bg-green-600 border-green-600"
+                        : "border-slate-300 bg-white"
+                    }`}
+                  >
+                    {done && (
+                      <svg viewBox="0 0 10 8" className="w-2 h-2 text-white fill-none stroke-current stroke-2">
+                        <polyline points="1,4 4,7 9,1" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </span>
+                  {item}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {task.category === "achc" && task.frequency === "quarterly" && task.id !== "cqi-q-001" && (
           <Link
