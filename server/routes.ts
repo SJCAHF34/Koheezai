@@ -2348,6 +2348,26 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
     return res.json({ ok: true });
   });
 
+  // GET /api/adp/history?siteId= — last 10 sync runs for a site.
+  app.get("/api/adp/history", requireAuth, async (req, res) => {
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    const siteId = String(req.query.siteId ?? "");
+    if (!siteId) return res.status(400).json({ message: "siteId required" });
+    if (!isDirectorRole(access.profile.role)) {
+      return res.status(403).json({ message: "ADP access requires director-level role." });
+    }
+    if (!access.canViewSite(siteId)) {
+      return res.status(403).json({ message: "Not authorized to view ADP history for this site." });
+    }
+    try {
+      const history = await storage.getAdpSyncHistory(siteId, 10);
+      return res.json(history);
+    } catch (err: any) {
+      return res.status(500).json({ message: `Failed to load sync history: ${err?.message}` });
+    }
+  });
+
   // POST /api/adp/sync?siteId= — manually trigger a sync for one site.
   // Director must have edit access to that siteId.
   // Body (optional): { roster: [{ staffId, staffName }] }

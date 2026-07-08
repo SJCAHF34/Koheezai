@@ -60,6 +60,7 @@ function todayISO(): string {
 export interface AdpSyncResult {
   entriesCreated:  number;
   entriesUpdated:  number;
+  entriesSkipped:  number;
   workersMatched:  number;
   workersSkipped:  number;
   newMappings:     number;
@@ -83,11 +84,11 @@ export async function runAdpSync(
   windowDays = 90,
 ): Promise<AdpSyncResult> {
   if (!isConfigured()) {
-    return { entriesCreated: 0, entriesUpdated: 0, workersMatched: 0, workersSkipped: 0, newMappings: 0, error: "ADP credentials not configured" };
+    return { entriesCreated: 0, entriesUpdated: 0, entriesSkipped: 0, workersMatched: 0, workersSkipped: 0, newMappings: 0, error: "ADP credentials not configured" };
   }
 
   const result: AdpSyncResult = {
-    entriesCreated: 0, entriesUpdated: 0,
+    entriesCreated: 0, entriesUpdated: 0, entriesSkipped: 0,
     workersMatched: 0, workersSkipped: 0,
     newMappings:    0,
   };
@@ -154,13 +155,19 @@ export async function runAdpSync(
         const status = mapAdpTypeToStatus(req.typeCode);
         if (!status) continue; // unknown leave type — skip
 
-        // Multi-day entry: use req.startDate as the DB key.
-        const existingEntries = await storage.getScheduleEntries(siteId, req.startDate, req.startDate);
-        const existing = existingEntries.find(
-          (e) => e.staffId === mapping.staffId && e.date === req.startDate,
-        );
+        // Fetch all entries that cover req.startDate (including multi-day blocks
+        // whose startDate is before req.startDate but endDate is on/after it).
+        const coveringEntries = await storage.getScheduleEntries(siteId, req.startDate, req.startDate);
+        const staffEntries = coveringEntries.filter((e) => e.staffId === mapping.staffId);
 
-        if (existing && existing.note === "Synced from ADP") {
+        // An existing ADP-tagged entry keyed exactly to this startDate.
+        const adpEntry = staffEntries.find(
+          (e) => e.date === req.startDate && e.note === "Synced from ADP",
+        );
+        // Any manually-created entry that covers this date (single-day or multi-day block).
+        const manualEntry = staffEntries.find((e) => e.note !== "Synced from ADP");
+
+        if (adpEntry) {
           // Already synced — update in place (dates/type may have changed).
           await storage.upsertScheduleEntry({
             siteId,
@@ -172,8 +179,11 @@ export async function runAdpSync(
             note:      "Synced from ADP",
           });
           result.entriesUpdated++;
-        } else if (!existing) {
-          // New entry — create it.
+        } else if (manualEntry) {
+          // A manually-created entry covers this date — don't overwrite it.
+          result.entriesSkipped++;
+        } else {
+          // No existing entry — create it.
           await storage.upsertScheduleEntry({
             siteId,
             staffId:   mapping.staffId,
@@ -185,26 +195,29 @@ export async function runAdpSync(
           });
           result.entriesCreated++;
         }
-        // If existing but manually edited (different note), leave it untouched.
       }
     }
 
-    const msg = `${result.entriesCreated} created, ${result.entriesUpdated} updated, ${result.workersMatched} workers synced`;
+    const msg = `${result.entriesCreated} created, ${result.entriesUpdated} updated, ${result.workersMatched} workers synced${result.entriesSkipped ? `, ${result.entriesSkipped} skipped (manual override)` : ""}`;
+    const runAt = new Date().toISOString();
     await storage.setAdpSyncStatus(siteId, {
       siteId,
-      lastSyncAt:      new Date().toISOString(),
+      lastSyncAt:      runAt,
       lastSyncResult:  "success",
       lastSyncMessage: msg,
     });
+    await storage.addAdpSyncHistory({ siteId, runAt, result: "success", message: msg });
     console.log(`[ADP] Sync complete for site ${siteId}: ${msg}`);
   } catch (err) {
     result.error = (err as Error).message;
+    const runAt = new Date().toISOString();
     await storage.setAdpSyncStatus(siteId, {
       siteId,
-      lastSyncAt:      new Date().toISOString(),
+      lastSyncAt:      runAt,
       lastSyncResult:  "error",
       lastSyncMessage: result.error,
     });
+    await storage.addAdpSyncHistory({ siteId, runAt, result: "error", message: result.error ?? "Unknown error" });
     console.error(`[ADP] Sync error for site ${siteId}:`, err);
   }
 

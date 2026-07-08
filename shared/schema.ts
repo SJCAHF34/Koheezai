@@ -731,3 +731,21 @@ export const adpSyncStatusTable = pgTable("adp_sync_status", {
   siteId: text("site_id").primaryKey(),
   record: jsonb("record").$type<AdpSyncStatus>().notNull(),
 });
+
+// Per-site sync history — one row per run, capped at 10 most recent by the
+// application layer. Allows directors to verify nightly cron reliability.
+export interface AdpSyncHistoryEntry {
+  id: string;
+  siteId: string;
+  runAt: string;
+  result: "success" | "error";
+  message: string;
+}
+
+export const adpSyncHistoryTable = pgTable("adp_sync_history", {
+  id: text("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  runAt: text("run_at").notNull(),
+  result: text("result").$type<"success" | "error">().notNull(),
+  message: text("message").notNull().default(""),
+});

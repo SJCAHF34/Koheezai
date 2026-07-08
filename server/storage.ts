@@ -31,8 +31,10 @@ import {
   clientStoreTable,
   adpWorkerMappingsTable,
   adpSyncStatusTable,
+  adpSyncHistoryTable,
   type AdpWorkerMapping,
   type AdpSyncStatus,
+  type AdpSyncHistoryEntry,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -197,6 +199,8 @@ export interface IStorage {
   getAdpSyncStatus(siteId: string): Promise<AdpSyncStatus | undefined>;
   setAdpSyncStatus(siteId: string, status: Omit<AdpSyncStatus, "updatedAt">): Promise<AdpSyncStatus>;
   getAdpMappedSiteIds(): Promise<string[]>;
+  addAdpSyncHistory(entry: Omit<AdpSyncHistoryEntry, "id">): Promise<AdpSyncHistoryEntry>;
+  getAdpSyncHistory(siteId: string, limit?: number): Promise<AdpSyncHistoryEntry[]>;
 }
 
 function entryKey(siteId: string, staffId: string, date: string) {
@@ -910,6 +914,7 @@ export class MemStorage implements IStorage {
 
   protected adpMappings: Map<string, AdpWorkerMapping> = new Map();
   protected adpSyncStatuses: Map<string, AdpSyncStatus> = new Map();
+  protected adpSyncHistory: AdpSyncHistoryEntry[] = [];
 
   async getAdpWorkerMappings(siteId: string): Promise<AdpWorkerMapping[]> {
     return Array.from(this.adpMappings.values()).filter((m) => m.siteId === siteId);
@@ -937,6 +942,23 @@ export class MemStorage implements IStorage {
 
   async getAdpMappedSiteIds(): Promise<string[]> {
     return [...new Set(Array.from(this.adpMappings.values()).map((m) => m.siteId))];
+  }
+
+  async addAdpSyncHistory(entry: Omit<AdpSyncHistoryEntry, "id">): Promise<AdpSyncHistoryEntry> {
+    const record: AdpSyncHistoryEntry = { ...entry, id: randomUUID() };
+    this.adpSyncHistory.push(record);
+    // Keep only the 50 most recent in memory to bound growth.
+    if (this.adpSyncHistory.length > 50) {
+      this.adpSyncHistory = this.adpSyncHistory.slice(-50);
+    }
+    return record;
+  }
+
+  async getAdpSyncHistory(siteId: string, limit = 10): Promise<AdpSyncHistoryEntry[]> {
+    return this.adpSyncHistory
+      .filter((e) => e.siteId === siteId)
+      .slice(-limit)
+      .reverse();
   }
 }
 
@@ -1861,6 +1883,57 @@ export class DbStorage extends MemStorage {
   override async getAdpMappedSiteIds(): Promise<string[]> {
     const rows = await db.selectDistinct({ siteId: adpWorkerMappingsTable.siteId }).from(adpWorkerMappingsTable);
     return rows.map((r) => r.siteId);
+  }
+
+  override async addAdpSyncHistory(entry: Omit<AdpSyncHistoryEntry, "id">): Promise<AdpSyncHistoryEntry> {
+    const id = randomUUID();
+    const record: AdpSyncHistoryEntry = { ...entry, id };
+    await db.insert(adpSyncHistoryTable).values({
+      id,
+      siteId: entry.siteId,
+      runAt: entry.runAt,
+      result: entry.result,
+      message: entry.message,
+    });
+    // Prune old rows — keep only the 10 most recent per site.
+    try {
+      const kept = await db
+        .select({ id: adpSyncHistoryTable.id })
+        .from(adpSyncHistoryTable)
+        .where(eq(adpSyncHistoryTable.siteId, entry.siteId))
+        .orderBy(desc(adpSyncHistoryTable.runAt))
+        .limit(10);
+      const keptIds = kept.map((r) => r.id);
+      if (keptIds.length === 10) {
+        await db
+          .delete(adpSyncHistoryTable)
+          .where(
+            and(
+              eq(adpSyncHistoryTable.siteId, entry.siteId),
+              sql`${adpSyncHistoryTable.id} NOT IN (${sql.join(keptIds.map((k) => sql`${k}`), sql`, `)})`,
+            ),
+          );
+      }
+    } catch {
+      // Pruning is best-effort; don't fail the sync if it errors.
+    }
+    return record;
+  }
+
+  override async getAdpSyncHistory(siteId: string, limit = 10): Promise<AdpSyncHistoryEntry[]> {
+    const rows = await db
+      .select()
+      .from(adpSyncHistoryTable)
+      .where(eq(adpSyncHistoryTable.siteId, siteId))
+      .orderBy(desc(adpSyncHistoryTable.runAt))
+      .limit(limit);
+    return rows.map((r) => ({
+      id: r.id,
+      siteId: r.siteId,
+      runAt: r.runAt,
+      result: r.result,
+      message: r.message,
+    }));
   }
 }
 

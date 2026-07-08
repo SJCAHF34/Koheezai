@@ -157,9 +157,12 @@ export function mapAdpTypeToStatus(typeCode: string): "pto" | "sick" | "floating
 export async function fetchWorkersForSite(storeCode: string): Promise<AdpWorker[]> {
   const token = await getToken();
   const agent = buildAgent();
-  const filter = encodeURIComponent(
-    `workAssignment/homeOrganizationalUnit/nameCode/codeValue eq '${storeCode}'`,
-  );
+  let filterStr = `workAssignment/homeOrganizationalUnit/nameCode/codeValue eq '${storeCode}'`;
+  const orgOid = process.env.ADP_ORG_OID;
+  if (orgOid) {
+    filterStr += ` and organization/associateOID eq '${orgOid}'`;
+  }
+  const filter = encodeURIComponent(filterStr);
   const url = `${ADP_API_BASE}/hr/v2/workers?$filter=${filter}&$select=workers/workerID,workers/person/legalName`;
 
   const result = await httpsRequest(url, "GET", { Authorization: `Bearer ${token}` }, agent);

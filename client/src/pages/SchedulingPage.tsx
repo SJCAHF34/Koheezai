@@ -1399,6 +1399,18 @@ function AdpSyncTab({
     enabled: !!siteId && configured?.configured === true,
   });
 
+  const { data: syncHistory = [], refetch: refetchHistory } = useQuery<Array<{
+    id: string;
+    siteId: string;
+    runAt: string;
+    result: "success" | "error";
+    message: string;
+  }>>({
+    queryKey: ["/api/adp/history", siteId],
+    queryFn: () => fetch(`/api/adp/history?siteId=${siteId}`).then((r) => r.json()),
+    enabled: !!siteId && configured?.configured === true,
+  });
+
   const syncMutation = useMutation({
     mutationFn: () =>
       fetch(`/api/adp/sync?siteId=${siteId}`, {
@@ -1408,19 +1420,23 @@ function AdpSyncTab({
       }).then(async (r) => {
         const data = await r.json();
         if (!r.ok) throw new Error(data.message ?? "Sync failed");
-        return data as { entriesCreated: number; entriesUpdated: number; newMappings: number; error?: string };
+        return data as { entriesCreated: number; entriesUpdated: number; entriesSkipped: number; newMappings: number; error?: string };
       }),
     onSuccess: (result) => {
       refetchStatus();
       refetchMappings();
-      queryClient.invalidateQueries({ queryKey: ["/api/schedule/entries"] });
+      refetchHistory();
+      queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "entries"] });
       if (result.error) {
         toast({ title: "ADP sync completed with errors", description: result.error, variant: "destructive" });
       } else {
-        toast({
-          title: "ADP sync complete",
-          description: `${result.entriesCreated} entries created, ${result.entriesUpdated} updated, ${result.newMappings} new worker mappings.`,
-        });
+        const parts = [
+          `${result.entriesCreated} created`,
+          `${result.entriesUpdated} updated`,
+          ...(result.newMappings ? [`${result.newMappings} new worker mappings`] : []),
+          ...(result.entriesSkipped ? [`${result.entriesSkipped} skipped (manual override)`] : []),
+        ];
+        toast({ title: "ADP sync complete", description: parts.join(", ") + "." });
       }
     },
     onError: (err: Error) => {
@@ -1520,6 +1536,35 @@ function AdpSyncTab({
           {syncMutation.isPending ? "Syncing…" : "Sync from ADP"}
         </Button>
       </div>
+
+      {/* Sync history */}
+      {syncHistory.length > 0 && (
+        <details className="group">
+          <summary className="cursor-pointer select-none text-sm font-medium text-muted-foreground flex items-center gap-1 list-none">
+            <span className="transition-transform group-open:rotate-90 inline-block">&#8250;</span>
+            Sync History ({syncHistory.length} runs)
+          </summary>
+          <div className="mt-2 rounded-md border overflow-hidden">
+            <table className="w-full text-xs">
+              <tbody>
+                {syncHistory.map((run) => (
+                  <tr key={run.id} className="border-b last:border-0">
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                      {new Date(run.runAt).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <span className={run.result === "success" ? "text-green-600" : "text-destructive"}>
+                        {run.result}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{run.message}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
 
       {/* Worker → staff mapping table */}
       {mappings.length > 0 && (
