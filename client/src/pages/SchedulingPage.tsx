@@ -2828,8 +2828,9 @@ function MonthGrid({
                       borderRadius: `${bar.isStart ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isStart ? 4 : 0}px`,
                       paddingLeft: bar.isStart ? 6 : 2,
                       marginLeft: 1,
-                      color: bar.isOff ? "white" : "#000000",
+                      color: "white",
                       fontSize: 12,
+                      fontWeight: 700,
                       whiteSpace: "nowrap",
                     }}
                     title={`${bar.staffName}${bar.isOff ? ` — ${bar.offLabel}` : " (working)"}${onEditDefaults ? " — click to view schedule" : ""}`}
