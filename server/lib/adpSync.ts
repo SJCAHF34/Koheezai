@@ -109,12 +109,14 @@ export async function runAdpSync(
       adpWorkers = await fetchWorkersForSite(siteId);
     } catch (err) {
       result.error = `ADP workers fetch error: ${(err as Error).message}`;
+      const runAt = new Date().toISOString();
       await storage.setAdpSyncStatus(siteId, {
         siteId,
-        lastSyncAt:      new Date().toISOString(),
+        lastSyncAt:      runAt,
         lastSyncResult:  "error",
         lastSyncMessage: result.error,
       });
+      await storage.addAdpSyncHistory({ siteId, runAt, result: "error", message: result.error });
       return result;
     }
 

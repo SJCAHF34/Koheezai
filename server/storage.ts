@@ -955,9 +955,10 @@ export class MemStorage implements IStorage {
   }
 
   async getAdpSyncHistory(siteId: string, limit = 10): Promise<AdpSyncHistoryEntry[]> {
+    const cap = Math.min(limit, 10);
     return this.adpSyncHistory
       .filter((e) => e.siteId === siteId)
-      .slice(-limit)
+      .slice(-cap)
       .reverse();
   }
 }
@@ -1921,12 +1922,13 @@ export class DbStorage extends MemStorage {
   }
 
   override async getAdpSyncHistory(siteId: string, limit = 10): Promise<AdpSyncHistoryEntry[]> {
+    const cap = Math.min(limit, 10);
     const rows = await db
       .select()
       .from(adpSyncHistoryTable)
       .where(eq(adpSyncHistoryTable.siteId, siteId))
       .orderBy(desc(adpSyncHistoryTable.runAt))
-      .limit(limit);
+      .limit(cap);
     return rows.map((r) => ({
       id: r.id,
       siteId: r.siteId,
