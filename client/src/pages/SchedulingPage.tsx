@@ -2554,48 +2554,52 @@ function formatTimeShort(hhmm: string): string {
 
 // ── Month Event Bar layout helpers ─────────────────────────────────────────
 
-type CalEventBar = {
-  entry: ScheduleEntry;
+type MonthCalEvent = {
+  staffId: string;
   staffName: string;
-  color: string;
-  startCol: number; // 0–6 within the week
-  endCol: number;   // 0–6 within the week
-  row: number;      // layout row (0-indexed, for vertical stacking)
-  isStart: boolean; // true if the real start is within this week
-  isEnd: boolean;   // true if the real end is within this week
+  color: string;        // staff's assigned color
+  startDateKey: string; // YYYY-MM-DD
+  endDateKey: string;   // YYYY-MM-DD
+  isOff: boolean;       // true = time-off bar; false = working bar
+  offLabel?: string;    // "PTO" | "Sick" | "FH"
+  // Set by layout:
+  startCol: number;
+  endCol: number;
+  row: number;
+  isStart: boolean;
+  isEnd: boolean;
 };
 
-function layoutWeekEvents(
+function layoutWeekMonthEvents(
   week: Date[],
-  events: Array<{ entry: ScheduleEntry; staffName: string; color: string }>,
-): CalEventBar[] {
+  events: Array<Omit<MonthCalEvent, "startCol" | "endCol" | "row" | "isStart" | "isEnd">>,
+): MonthCalEvent[] {
   const weekStartKey = toDateKey(week[0]);
   const weekEndKey = toDateKey(week[6]);
 
-  const bars: Omit<CalEventBar, "row">[] = [];
+  const bars: Omit<MonthCalEvent, "row">[] = [];
   for (const ev of events) {
-    const entryStart = ev.entry.date;
-    const entryEnd = ev.entry.endDate ?? ev.entry.date;
-    if (entryStart > weekEndKey || entryEnd < weekStartKey) continue;
-    const clippedStart = entryStart > weekStartKey ? entryStart : weekStartKey;
-    const clippedEnd = entryEnd < weekEndKey ? entryEnd : weekEndKey;
+    if (ev.startDateKey > weekEndKey || ev.endDateKey < weekStartKey) continue;
+    const clippedStart = ev.startDateKey > weekStartKey ? ev.startDateKey : weekStartKey;
+    const clippedEnd = ev.endDateKey < weekEndKey ? ev.endDateKey : weekEndKey;
     const startCol = week.findIndex((d) => toDateKey(d) === clippedStart);
     const endCol = week.findIndex((d) => toDateKey(d) === clippedEnd);
     if (startCol === -1 || endCol === -1) continue;
     bars.push({
-      entry: ev.entry,
-      staffName: ev.staffName,
-      color: ev.color,
+      ...ev,
       startCol,
       endCol,
-      isStart: entryStart >= weekStartKey,
-      isEnd: entryEnd <= weekEndKey,
+      isStart: ev.startDateKey >= weekStartKey,
+      isEnd: ev.endDateKey <= weekEndKey,
     });
   }
 
-  // Greedy first-fit layout — assign each bar to the first row with no overlap.
+  // Wider spans get lower row numbers → more visible on screen.
+  bars.sort((a, b) => (b.endCol - b.startCol) - (a.endCol - a.startCol));
+
+  // Greedy first-fit row assignment.
   const rowOccupancy: Array<Array<{ s: number; e: number }>> = [];
-  const result: CalEventBar[] = [];
+  const result: MonthCalEvent[] = [];
   for (const bar of bars) {
     let row = 0;
     while (true) {
@@ -2639,29 +2643,36 @@ function MonthGrid({
   const currentMonth = monthAnchor.getMonth();
   const todayKey = toDateKey(new Date());
 
-  // Group into weeks (7-day rows).
   const weeks: Date[][] = [];
   for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
 
-  // Build time-off event descriptors from entries.
-  const timeOffEvents = useMemo(
+  const OFF_LABEL: Record<string, string> = { pto: "PTO", sick: "Sick", floating_holiday: "FH" };
+
+  // Time-off events (month-level, one entry per ScheduleEntry with a time-off status).
+  const offEvents = useMemo(
     () =>
       entries
         .filter((e) => TIME_OFF_STATUSES.includes(e.status))
         .map((entry) => {
           const staff = roster.find((s) => s.id === entry.staffId);
           if (!staff) return null;
-          return { entry, staffName: staff.name, color: getStaffColor(entry.staffId, defaults, roster) };
+          return {
+            staffId: entry.staffId,
+            staffName: staff.name,
+            color: getStaffColor(entry.staffId, defaults, roster),
+            startDateKey: entry.date,
+            endDateKey: entry.endDate ?? entry.date,
+            isOff: true,
+            offLabel: OFF_LABEL[entry.status] ?? entry.status,
+          } as Omit<MonthCalEvent, "startCol" | "endCol" | "row" | "isStart" | "isEnd">;
         })
-        .filter(Boolean) as Array<{ entry: ScheduleEntry; staffName: string; color: string }>,
+        .filter(Boolean) as Array<Omit<MonthCalEvent, "startCol" | "endCol" | "row" | "isStart" | "isEnd">>,
     [entries, roster, defaults],
   );
 
-  const EVENT_H = 20; // px height per event bar row
-  const CELL_TOP = 28; // px reserved for date number at top
-  const MAX_BAR_ROWS = 4; // max event rows to avoid infinite expansion
-  const STAFF_ROW_H = 16; // px per staff name row in cell
-  const MAX_STAFF_VISIBLE = 4; // max staff rows before "+N more"
+  const EVENT_H = 24;  // px height per bar — bigger for readability
+  const CELL_TOP = 28; // px reserved for the date number row
+  const MAX_BAR_ROWS = 3;
 
   return (
     <div className="p-2" data-testid="grid-month">
@@ -2679,14 +2690,54 @@ function MonthGrid({
 
       {/* Week rows */}
       {weeks.map((week, wi) => {
-        const bars = layoutWeekEvents(week, timeOffEvents);
+        // Compute working-day spans per staff for this week.
+        // Find runs of consecutive scheduled days within the week.
+        const weekWorkingEvents: Array<Omit<MonthCalEvent, "startCol" | "endCol" | "row" | "isStart" | "isEnd">> = [];
+        for (const staff of roster) {
+          let spanStart: string | null = null;
+          let spanEnd: string | null = null;
+          const flush = () => {
+            if (spanStart && spanEnd) {
+              weekWorkingEvents.push({
+                staffId: staff.id,
+                staffName: staff.name,
+                color: getStaffColor(staff.id, defaults, roster),
+                startDateKey: spanStart!,
+                endDateKey: spanEnd!,
+                isOff: false,
+              });
+            }
+            spanStart = null;
+            spanEnd = null;
+          };
+          for (let di = 0; di < 7; di++) {
+            const d = week[di];
+            const dk = toDateKey(d);
+            const closed =
+              hours?.weekdays?.[d.getDay()] === null ||
+              (hours?.holidayClosures ?? []).includes(dk);
+            if (!closed) {
+              const cell = computeEffective(d, staff.id, defaults, entries);
+              if (cell.status === "scheduled") {
+                if (!spanStart) spanStart = dk;
+                spanEnd = dk;
+                if (di === 6) flush();
+                continue;
+              }
+            }
+            flush();
+          }
+        }
+
+        // Off events take priority rows (placed first); working spans fill remaining rows.
+        const allWeekEvents = [...offEvents, ...weekWorkingEvents];
+        const bars = layoutWeekMonthEvents(week, allWeekEvents);
         const usedRows = bars.length > 0 ? Math.min(Math.max(...bars.map((b) => b.row)) + 1, MAX_BAR_ROWS) : 0;
-        // Cell height: header + event bar rows + staff list (fixed allocation)
-        const cellMinH = CELL_TOP + usedRows * EVENT_H + MAX_STAFF_VISIBLE * STAFF_ROW_H + 12;
+        const cellMinH = CELL_TOP + usedRows * EVENT_H + 20;
 
         return (
           <div key={wi} className="relative grid grid-cols-7" style={{ minHeight: cellMinH }}>
-            {/* Day cells (background layer) */}
+            {/* Day cells */}
             {week.map((d, ci) => {
               const dateKey = toDateKey(d);
               const inMonth = d.getMonth() === currentMonth;
@@ -2695,16 +2746,10 @@ function MonthGrid({
                 hours?.weekdays?.[d.getDay()] === null ||
                 (hours?.holidayClosures ?? []).includes(dateKey);
 
-              // Build per-staff entries for this day (PTO/sick/FH shown in bars — skip here)
-              const staffRows = roster.map((s) => {
-                const cell = computeEffective(d, s.id, defaults, entries);
-                if (TIME_OFF_STATUSES.includes(cell.status)) return null;
-                return { staff: s, status: cell.status, start: cell.start, end: cell.end };
-              }).filter(Boolean) as { staff: StaffMember; status: ScheduleStatus; start?: string; end?: string }[];
-
-              const visibleStaff = closed ? [] : staffRows.slice(0, MAX_STAFF_VISIBLE);
-              const hiddenCount = closed ? 0 : Math.max(0, staffRows.length - visibleStaff.length);
-              const hasAnyStaff = !closed && staffRows.length > 0;
+              // Count events that overflow the visible row cap for this specific column.
+              const overflowCount = bars.filter(
+                (b) => b.row >= MAX_BAR_ROWS && b.startCol <= ci && b.endCol >= ci,
+              ).length;
 
               return (
                 <div
@@ -2718,7 +2763,7 @@ function MonthGrid({
                   data-testid={`cell-month-day-${dateKey}`}
                   aria-label={`View ${dateKey} schedule`}
                 >
-                  {/* Date header row */}
+                  {/* Date number + actions */}
                   <div className="flex items-center justify-between px-1.5 pt-1 shrink-0" style={{ height: CELL_TOP }}>
                     <span
                       className={`text-xs font-semibold ${isToday ? "inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-600 text-white" : "text-foreground"}`}
@@ -2741,88 +2786,59 @@ function MonthGrid({
                     </div>
                   </div>
 
-                  {/* Spacer for event bar rows */}
+                  {/* Spacer that matches the bar overlay height */}
                   <div style={{ height: usedRows * EVENT_H }} className="shrink-0" />
 
-                  {/* Staff entry list */}
-                  <div className={`flex-1 px-1 pb-1 space-y-px overflow-hidden ${closed ? "opacity-40" : ""}`}>
-                    {visibleStaff.map((row) => {
-                      const dotColor = getStaffColor(row.staff.id, defaults, roster);
-                      const isScheduled = row.status === "scheduled";
-                      return (
-                        <div
-                          key={row.staff.id}
-                          className="flex items-center gap-1 leading-none"
-                          style={{ height: STAFF_ROW_H }}
-                          data-testid={`entry-month-${dateKey}-${row.staff.id}`}
-                        >
-                          <span
-                            className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
-                            style={{ background: dotColor }}
-                          />
-                          <span className={`text-[9px] truncate font-medium ${isScheduled ? "text-foreground" : "text-muted-foreground/60"}`}>
-                            {row.staff.name.split(" ")[0]}
-                          </span>
-                          {isScheduled && row.start && row.end ? (
-                            <span className="text-[9px] text-muted-foreground shrink-0 ml-auto">
-                              {formatTimeShort(row.start)}–{formatTimeShort(row.end)}
-                            </span>
-                          ) : (
-                            <span className="text-[9px] text-muted-foreground/40 italic shrink-0 ml-auto">Off</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {hiddenCount > 0 && (
-                      <div
-                        className="text-[9px] text-purple-600 font-medium px-0.5 leading-none"
-                        style={{ height: STAFF_ROW_H, display: "flex", alignItems: "center" }}
+                  {/* Overflow indicator */}
+                  {overflowCount > 0 && (
+                    <div className="px-1.5 pt-0.5 pb-1">
+                      <span
+                        className="text-[10px] font-medium text-purple-600"
                         data-testid={`entry-month-more-${dateKey}`}
                       >
-                        +{hiddenCount} more
-                      </div>
-                    )}
-                    {!hasAnyStaff && !closed && (
-                      <div className="text-[9px] text-muted-foreground/40 italic px-0.5 leading-none" style={{ height: STAFF_ROW_H, display: "flex", alignItems: "center" }}>
-                        empty
-                      </div>
-                    )}
-                  </div>
+                        +{overflowCount} more
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
 
-            {/* Event bars overlay (absolutely positioned over the cells) */}
+            {/* Event bars overlay — absolutely positioned over the cells */}
             <div className="absolute inset-0 pointer-events-none" style={{ top: CELL_TOP }}>
               {bars.map((bar) => {
                 if (bar.row >= MAX_BAR_ROWS) return null;
                 const leftPct = (bar.startCol / 7) * 100;
                 const widthPct = ((bar.endCol - bar.startCol + 1) / 7) * 100;
                 const topPx = bar.row * EVENT_H + 2;
-                const statusLabel = bar.entry.status === "pto" ? "PTO" : bar.entry.status === "sick" ? "Sick" : "FH";
-                const barStaff = roster.find((s) => s.id === bar.entry.staffId);
+                const barStaff = roster.find((s) => s.id === bar.staffId);
                 return (
                   <button
-                    key={`${bar.entry.staffId}-${bar.entry.date}-${wi}`}
+                    key={`${bar.staffId}-${bar.startDateKey}-${wi}-${bar.row}`}
                     type="button"
-                    className="absolute flex items-center text-white text-[10px] font-medium pointer-events-auto cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white"
+                    className="absolute flex items-center font-semibold pointer-events-auto cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white overflow-hidden"
                     style={{
                       left: `${leftPct}%`,
                       width: `calc(${widthPct}% - 2px)`,
                       top: topPx,
                       height: EVENT_H - 4,
-                      background: bar.color,
+                      background: bar.isOff ? "#fef2f2" : bar.color,
+                      borderLeft: bar.isOff ? `3px solid ${bar.color}` : "none",
                       borderRadius: `${bar.isStart ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isStart ? 4 : 0}px`,
                       paddingLeft: bar.isStart ? 6 : 2,
                       marginLeft: 1,
+                      color: bar.isOff ? "#9f1239" : "white",
+                      fontSize: 12,
+                      whiteSpace: "nowrap",
                     }}
-                    title={`${bar.staffName} — ${STATUS_LABEL[bar.entry.status]}${bar.entry.note ? `: ${bar.entry.note}` : ""}${onEditDefaults ? " (click to view schedule)" : ""}`}
+                    title={`${bar.staffName}${bar.isOff ? ` — ${bar.offLabel}` : " (working)"}${onEditDefaults ? " — click to view schedule" : ""}`}
                     onClick={(e) => { e.stopPropagation(); if (barStaff && onEditDefaults) onEditDefaults(barStaff); }}
-                    data-testid={`bar-timeoff-${bar.entry.staffId}-${bar.entry.date}-w${wi}`}
+                    data-testid={`bar-month-${bar.staffId}-${bar.startDateKey}-w${wi}`}
                   >
                     {bar.isStart && (
-                      <span className="truncate select-none">
-                        {bar.staffName.split(" ")[0]} · {statusLabel}
+                      <span className="truncate select-none px-0.5">
+                        {bar.staffName.split(" ")[0]}
+                        {bar.isOff ? ` · ${bar.offLabel}` : ""}
                       </span>
                     )}
                   </button>
