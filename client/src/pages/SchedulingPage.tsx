@@ -2672,7 +2672,8 @@ function MonthGrid({
 
   const EVENT_H = 24;  // px height per bar — bigger for readability
   const CELL_TOP = 28; // px reserved for the date number row
-  const MAX_BAR_ROWS = 3;
+  // Show all staff — cap high enough that overflow never hides anyone
+  const MAX_BAR_ROWS = roster.length + 2;
 
   return (
     <div className="p-2" data-testid="grid-month">
