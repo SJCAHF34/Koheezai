@@ -157,16 +157,17 @@ export async function runAdpSync(
         const status = mapAdpTypeToStatus(req.typeCode);
         if (!status) continue; // unknown leave type — skip
 
-        // Fetch all entries that cover req.startDate (including multi-day blocks
-        // whose startDate is before req.startDate but endDate is on/after it).
-        const coveringEntries = await storage.getScheduleEntries(siteId, req.startDate, req.startDate);
+        // Fetch all entries that overlap the full ADP request window [startDate, endDate].
+        // getScheduleEntries returns any entry whose span overlaps [from, to], so this
+        // correctly catches manual entries on any day within a multi-day ADP block.
+        const coveringEntries = await storage.getScheduleEntries(siteId, req.startDate, req.endDate);
         const staffEntries = coveringEntries.filter((e) => e.staffId === mapping.staffId);
 
-        // An existing ADP-tagged entry keyed exactly to this startDate.
+        // An existing ADP-tagged entry keyed exactly to this startDate (update path).
         const adpEntry = staffEntries.find(
           (e) => e.date === req.startDate && e.note === "Synced from ADP",
         );
-        // Any manually-created entry that covers this date (single-day or multi-day block).
+        // Any manually-created entry overlapping the ADP request window.
         const manualEntry = staffEntries.find((e) => e.note !== "Synced from ADP");
 
         if (adpEntry) {
