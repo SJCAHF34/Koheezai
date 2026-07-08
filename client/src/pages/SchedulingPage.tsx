@@ -893,6 +893,7 @@ export default function SchedulingPage() {
           open={!!dayDetail}
           onClose={() => setDayDetail(null)}
           date={dayDetail}
+          siteId={siteId}
           roster={roster}
           defaults={defaultsQuery.data ?? []}
           entries={entriesQuery.data ?? []}
@@ -900,10 +901,6 @@ export default function SchedulingPage() {
           onEditStaff={(staff) => {
             setDayDetail(null);
             setEditing({ staff, date: dayDetail });
-          }}
-          onEditDefaults={(staff) => {
-            setDayDetail(null);
-            setStaffDefaultsTarget(staff);
           }}
           onAddTimeOff={(staff) => {
             setDayDetail(null);
@@ -2868,106 +2865,331 @@ function MonthGrid({
 
 // ── Day Detail Dialog (month view) ─────────────────────────────────────────
 
+function DayDetailSchedulePanel({
+  staff,
+  siteId,
+  defaults,
+  roster,
+  canEdit,
+  onBack,
+  onClose,
+}: {
+  staff: StaffMember;
+  siteId: string;
+  defaults: StaffScheduleDefault[];
+  roster: StaffMember[];
+  canEdit: boolean;
+  onBack: () => void;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  const existing = defaults.find((d) => d.staffId === staff.id);
+  const colorFallback = DEFAULT_STAFF_COLORS[roster.findIndex((s) => s.id === staff.id) % DEFAULT_STAFF_COLORS.length] ?? "#7c3aed";
+
+  const [weekdays, setWeekdays] = useState<Array<{ start: string; end: string } | null>>(
+    () => existing?.weekdays ?? [null, emptyShift(), emptyShift(), emptyShift(), emptyShift(), emptyShift(), null],
+  );
+  const [color, setColor] = useState<string>(existing?.color ?? colorFallback);
+  const [schedulePattern, setSchedulePattern] = useState<SchedulePattern>(existing?.schedulePattern ?? "standard");
+
+  useEffect(() => {
+    const e = defaults.find((d) => d.staffId === staff.id);
+    setWeekdays(e?.weekdays ?? [null, emptyShift(), emptyShift(), emptyShift(), emptyShift(), emptyShift(), null]);
+    const idx = roster.findIndex((s) => s.id === staff.id);
+    setColor(e?.color ?? DEFAULT_STAFF_COLORS[idx % DEFAULT_STAFF_COLORS.length] ?? "#7c3aed");
+    setSchedulePattern(e?.schedulePattern ?? "standard");
+  }, [staff.id, defaults]);
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      apiRequest(`/api/scheduling/${siteId}/defaults/${staff.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId, staffId: staff.id, staffName: staff.name, weekdays, color, schedulePattern }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "defaults"] });
+      toast({ title: "Recurring schedule saved" });
+      onBack();
+    },
+    onError: (err: any) => toast({ title: "Save failed", description: String(err?.message ?? err), variant: "destructive" }),
+  });
+
+  return (
+    <>
+      <DialogHeader>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            disabled={saveMutation.isPending}
+            data-testid="button-schedule-back"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ background: color }} />
+              {staff.name}
+            </DialogTitle>
+            <DialogDescription>
+              {canEdit
+                ? "Set the recurring weekly schedule for this staff member."
+                : "Recurring schedule for this staff member (view only)."}
+            </DialogDescription>
+          </div>
+        </div>
+      </DialogHeader>
+
+      <div className="overflow-y-auto max-h-[55vh]">
+        {!canEdit ? (
+          <div className="space-y-3">
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">Schedule pattern</div>
+              <div className="text-sm">{PATTERN_LABELS[existing?.schedulePattern ?? "standard"]}</div>
+            </div>
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">Default shifts</div>
+              <div className="space-y-1">
+                {WEEKDAY_LABELS.map((label, i) => {
+                  const shift = existing?.weekdays?.[i] ?? null;
+                  return (
+                    <div key={i} className="flex items-center gap-3 text-sm">
+                      <span className="w-10 text-xs text-muted-foreground font-medium">{label}</span>
+                      {shift
+                        ? <span>{formatTime(shift.start)} – {formatTime(shift.end)}</span>
+                        : <span className="text-muted-foreground italic text-xs">Off</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="shrink-0">
+              <Label className="text-xs block mb-1">Calendar color</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="h-9 w-12 rounded border cursor-pointer"
+                  data-testid="input-staff-defaults-color"
+                />
+                <span className="text-xs text-muted-foreground font-mono">{color}</span>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Schedule pattern</Label>
+              <Select value={schedulePattern} onValueChange={(v) => setSchedulePattern(v as SchedulePattern)}>
+                <SelectTrigger className="mt-1" data-testid="select-staff-defaults-pattern">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SCHEDULE_PATTERNS.map((p) => (
+                    <SelectItem key={p} value={p} data-testid={`option-staff-defaults-pattern-${p}`}>
+                      {PATTERN_LABELS[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {schedulePattern !== "standard" && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {schedulePattern === "alternating_a"
+                    ? "Staff works on odd ISO weeks (Week A). Even ISO weeks default to unscheduled."
+                    : "Staff works on even ISO weeks (Week B). Odd ISO weeks default to unscheduled."}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              {weekdays.map((shift, i) => {
+                const enabled = !!shift;
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="w-12 text-xs font-medium text-muted-foreground">{WEEKDAY_LABELS[i]}</div>
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      onChange={(e) =>
+                        setWeekdays((prev) => {
+                          const copy = [...prev];
+                          copy[i] = e.target.checked ? (prev[i] ?? emptyShift()) : null;
+                          return copy;
+                        })
+                      }
+                      data-testid={`checkbox-staff-defaults-day-${i}`}
+                    />
+                    <Input
+                      type="time"
+                      disabled={!enabled}
+                      value={shift?.start ?? ""}
+                      onChange={(e) =>
+                        setWeekdays((prev) => {
+                          const copy = [...prev];
+                          if (copy[i]) copy[i] = { ...copy[i]!, start: e.target.value };
+                          return copy;
+                        })
+                      }
+                      className="w-32"
+                      data-testid={`input-staff-defaults-start-${i}`}
+                    />
+                    <span className="text-muted-foreground text-xs">to</span>
+                    <Input
+                      type="time"
+                      disabled={!enabled}
+                      value={shift?.end ?? ""}
+                      onChange={(e) =>
+                        setWeekdays((prev) => {
+                          const copy = [...prev];
+                          if (copy[i]) copy[i] = { ...copy[i]!, end: e.target.value };
+                          return copy;
+                        })
+                      }
+                      className="w-32"
+                      data-testid={`input-staff-defaults-end-${i}`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={canEdit ? onBack : onClose} disabled={saveMutation.isPending} data-testid="button-close-staff-defaults">
+          {canEdit ? "Cancel" : "Close"}
+        </Button>
+        {canEdit && (
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} data-testid="button-save-staff-defaults">
+            {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+            Save schedule
+          </Button>
+        )}
+      </DialogFooter>
+    </>
+  );
+}
+
 function DayDetailDialog({
   open,
   onClose,
   date,
+  siteId,
   roster,
   defaults,
   entries,
   canEdit,
   onEditStaff,
-  onEditDefaults,
   onAddTimeOff,
 }: {
   open: boolean;
   onClose: () => void;
   date: Date;
+  siteId: string;
   roster: StaffMember[];
   defaults: StaffScheduleDefault[];
   entries: ScheduleEntry[];
   canEdit: boolean;
   onEditStaff: (staff: StaffMember) => void;
-  onEditDefaults?: (staff: StaffMember) => void;
   onAddTimeOff?: (staff: StaffMember) => void;
 }) {
+  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
+
+  // reset drill-in when dialog closes
+  useEffect(() => { if (!open) setSelectedStaff(null); }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg" data-testid="dialog-day-detail">
-        <DialogHeader>
-          <DialogTitle>
-            {date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-          </DialogTitle>
-          <DialogDescription>
-            Click any staff row to view their recurring schedule.
-            {canEdit ? " Use the + icon to edit today's shift override." : ""}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
-          {roster.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No staff to show.</p>
-          ) : (
-            roster.map((staff) => {
-              const cell = computeEffective(date, staff.id, defaults, entries);
-              // All roles can click the row to open recurring schedule (read-only for non-editors).
-              // Directors additionally get a small pencil button to edit today's shift override.
-              return (
-                <button
-                  key={staff.id}
-                  type="button"
-                  onClick={() => onEditDefaults ? onEditDefaults(staff) : undefined}
-                  className="w-full flex items-center justify-between gap-3 rounded border px-3 py-2 text-left hover-elevate active-elevate-2"
-                  data-testid={`row-day-staff-${staff.id}`}
-                >
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">{staff.name}</div>
-                    <div className="text-[10px] text-muted-foreground truncate">
-                      {staff.roles.map((r) => r.replace(/_/g, " ")).join(", ")}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {cell.status === "scheduled" && cell.start && cell.end && (
-                      <span className="text-[11px] text-muted-foreground">
-                        {formatTime(cell.start)} – {formatTime(cell.end)}
-                      </span>
-                    )}
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] font-medium border ${STATUS_BADGE_CLASS[cell.status]}`}
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" data-testid="dialog-day-detail">
+        {selectedStaff ? (
+          <DayDetailSchedulePanel
+            staff={selectedStaff}
+            siteId={siteId}
+            defaults={defaults}
+            roster={roster}
+            canEdit={canEdit}
+            onBack={() => setSelectedStaff(null)}
+            onClose={onClose}
+          />
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>
+                {date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              </DialogTitle>
+              <DialogDescription>
+                Click any staff row to view their recurring schedule.
+                {canEdit ? " Use the + icon to edit today's shift override." : ""}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
+              {roster.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No staff to show.</p>
+              ) : (
+                roster.map((staff) => {
+                  const cell = computeEffective(date, staff.id, defaults, entries);
+                  return (
+                    <button
+                      key={staff.id}
+                      type="button"
+                      onClick={() => setSelectedStaff(staff)}
+                      className="w-full flex items-center justify-between gap-3 rounded border px-3 py-2 text-left hover-elevate active-elevate-2"
+                      data-testid={`row-day-staff-${staff.id}`}
                     >
-                      {STATUS_LABEL[cell.status]}
-                    </Badge>
-                    {canEdit && onAddTimeOff && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); onAddTimeOff(staff); }}
-                        className="p-0.5 rounded text-muted-foreground hover:text-red-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        title="Add time off"
-                        data-testid={`btn-add-timeoff-${staff.id}`}
-                      >
-                        <CalendarOff className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    {canEdit && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); onEditStaff(staff); }}
-                        className="p-0.5 rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        title="Edit today's shift"
-                        data-testid={`btn-edit-shift-${staff.id}`}
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </button>
-              );
-            })
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} data-testid="button-close-day-detail">Close</Button>
-        </DialogFooter>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{staff.name}</div>
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          {staff.roles.map((r) => r.replace(/_/g, " ")).join(", ")}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {cell.status === "scheduled" && cell.start && cell.end && (
+                          <span className="text-[11px] text-muted-foreground">
+                            {formatTime(cell.start)} – {formatTime(cell.end)}
+                          </span>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] font-medium border ${STATUS_BADGE_CLASS[cell.status]}`}
+                        >
+                          {STATUS_LABEL[cell.status]}
+                        </Badge>
+                        {canEdit && onAddTimeOff && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onAddTimeOff(staff); }}
+                            className="p-0.5 rounded text-muted-foreground hover:text-red-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            title="Add time off"
+                            data-testid={`btn-add-timeoff-${staff.id}`}
+                          >
+                            <CalendarOff className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onEditStaff(staff); }}
+                            className="p-0.5 rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            title="Edit today's shift"
+                            data-testid={`btn-edit-shift-${staff.id}`}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose} data-testid="button-close-day-detail">Close</Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
