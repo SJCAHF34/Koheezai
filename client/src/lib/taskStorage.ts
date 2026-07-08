@@ -1015,7 +1015,7 @@ export function purgeDeletedTask(taskId: string): void {
 // ── Task due dates ───────────────────────────────────────────────────────────
 
 /** Task IDs that should display the 22nd of the month as their due date. */
-const TWENTY_SECOND_TASKS = new Set(["del-d-011", "del-d-012"]);
+const TWENTY_SECOND_TASKS = new Set(["del-d-011", "del-d-012", "dir-d-003"]);
 
 /**
  * Returns a formatted due-date string for a task, or null if no due date
