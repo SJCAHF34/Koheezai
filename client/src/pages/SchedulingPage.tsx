@@ -2828,7 +2828,7 @@ function MonthGrid({
                       borderRadius: `${bar.isStart ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isStart ? 4 : 0}px`,
                       paddingLeft: bar.isStart ? 6 : 2,
                       marginLeft: 1,
-                      color: "white",
+                      color: bar.isOff ? "white" : "#000000",
                       fontSize: 12,
                       whiteSpace: "nowrap",
                     }}
