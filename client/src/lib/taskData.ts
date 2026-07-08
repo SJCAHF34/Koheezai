@@ -347,6 +347,17 @@ export const TASKS: PharmacyTask[] = [
     category: "operations",
     taskGroup: "Inventory",
   },
+  {
+    id: "pv2-d-016",
+    title: "Retention Risk Report",
+    description: "Review Retention Risk Report for patients at risk of lapsing",
+    role: "pv2_tech",
+    frequency: "daily",
+    category: "operations",
+    taskGroup: "Retention",
+    url: "http://ahfbi/ReasonNotFill/ReasonNotFill.aspx",
+    urlLabel: "Retention Risk Report",
+  },
 
   // ── DELIVERY TECH · DAILY ───────────────────────────────────────────────
   {
