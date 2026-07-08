@@ -1012,6 +1012,38 @@ export function purgeDeletedTask(taskId: string): void {
   writeDeletedTasks(readDeletedTasks().filter((t) => t.id !== taskId));
 }
 
+// ── Task due dates ───────────────────────────────────────────────────────────
+
+/** Task IDs that should display the 22nd of the month as their due date. */
+const TWENTY_SECOND_TASKS = new Set(["del-d-011", "del-d-012"]);
+
+/**
+ * Returns a formatted due-date string for a task, or null if no due date
+ * should be shown (e.g. plain daily tasks with no special deadline).
+ *
+ * Rules:
+ *  - del-d-011 (AR Report) and del-d-012 (Not Scanned Report) → 22nd of month
+ *  - All other non-daily tasks → last day of the current month
+ *  - All other daily tasks and one_time tasks → null (no badge shown)
+ */
+export function getTaskDueDate(taskId: string, frequency: TaskFrequency, now?: Date): string | null {
+  const today = now ?? new Date();
+  const y = today.getFullYear();
+  const m = today.getMonth(); // 0-indexed
+
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+  if (TWENTY_SECOND_TASKS.has(taskId)) {
+    return fmt(new Date(y, m, 22));
+  }
+
+  if (frequency === "daily" || frequency === "one_time") return null;
+
+  // Last day of current month for all other non-daily frequencies.
+  return fmt(new Date(y, m + 1, 0));
+}
+
 // ── Sub-item completions ─────────────────────────────────────────────────────
 // Tracks per-day completion state for mini checkboxes within a task.
 

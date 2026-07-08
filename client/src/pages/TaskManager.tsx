@@ -87,6 +87,7 @@ import {
   applyTaskOverridesToMemory,
   loadSubItemCompletions,
   toggleSubItemCompletion,
+  getTaskDueDate,
 } from "@/lib/taskStorage";
 import type { RetentionPatient, RetentionIssueType, RetentionStatus, AttemptLogEntry } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -589,6 +590,14 @@ function TaskRow({
               Due {new Date(task.dueDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
           )}
+          {!task.isCustom && (() => {
+            const dueLabel = getTaskDueDate(task.id, task.frequency);
+            return dueLabel ? (
+              <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                Due {dueLabel}
+              </span>
+            ) : null;
+          })()}
           <p
             className={`text-sm leading-snug transition-all duration-300 ${
               completed
