@@ -2823,7 +2823,7 @@ function MonthGrid({
                       width: `calc(${widthPct}% - 2px)`,
                       top: topPx,
                       height: EVENT_H - 4,
-                      background: bar.isOff ? "#ef4444" : bar.color + "99",
+                      background: bar.isOff ? "#ef4444" : bar.color + "55",
                       borderLeft: "none",
                       borderRadius: `${bar.isStart ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isStart ? 4 : 0}px`,
                       paddingLeft: bar.isStart ? 6 : 2,
@@ -2839,7 +2839,7 @@ function MonthGrid({
                   >
                     {bar.isStart && (
                       <span className="truncate select-none px-0.5">
-                        {bar.staffName.split(" ")[0]}
+                        {bar.staffName}
                         {bar.isOff ? ` · ${bar.offLabel}` : ""}
                       </span>
                     )}
