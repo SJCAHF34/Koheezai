@@ -57,6 +57,7 @@ import {
   Trash2,
   RefreshCw,
   X,
+  CalendarOff,
 } from "lucide-react";
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -509,7 +510,7 @@ export default function SchedulingPage() {
   const [staffDefaultsTarget, setStaffDefaultsTarget] = useState<StaffMember | null>(null);
 
   // ── Quick-create (month view cell click) ─────────────────────────────────
-  const [quickCreate, setQuickCreate] = useState<{ date: Date } | null>(null);
+  const [quickCreate, setQuickCreate] = useState<{ date: Date; staffId?: string } | null>(null);
 
   const selectedSite = sitesQuery.data?.find((s) => s.id === siteId);
 
@@ -872,6 +873,7 @@ export default function SchedulingPage() {
           open={!!quickCreate}
           onClose={() => setQuickCreate(null)}
           date={quickCreate.date}
+          defaultStaffId={quickCreate.staffId}
           roster={roster}
           defaults={defaultsQuery.data ?? []}
           balances={balancesQuery.data ?? []}
@@ -902,6 +904,10 @@ export default function SchedulingPage() {
           onEditDefaults={(staff) => {
             setDayDetail(null);
             setStaffDefaultsTarget(staff);
+          }}
+          onAddTimeOff={(staff) => {
+            setDayDetail(null);
+            setQuickCreate({ date: dayDetail, staffId: staff.id });
           }}
         />
       )}
@@ -973,6 +979,7 @@ function QuickCreateDialog({
   open,
   onClose,
   date,
+  defaultStaffId,
   roster,
   defaults,
   balances,
@@ -983,6 +990,7 @@ function QuickCreateDialog({
   open: boolean;
   onClose: () => void;
   date: Date;
+  defaultStaffId?: string;
   roster: StaffMember[];
   defaults: StaffScheduleDefault[];
   balances: StaffTimeOffBalance[];
@@ -998,7 +1006,7 @@ function QuickCreateDialog({
   }) => Promise<void>;
 }) {
   const dateKey = toDateKey(date);
-  const [staffId, setStaffId] = useState<string>(roster[0]?.id ?? "");
+  const [staffId, setStaffId] = useState<string>(defaultStaffId ?? roster[0]?.id ?? "");
   const [status, setStatus] = useState<ScheduleStatus>("pto");
   const [endDateKey, setEndDateKey] = useState<string>(dateKey);
   const [note, setNote] = useState<string>("");
@@ -2870,6 +2878,7 @@ function DayDetailDialog({
   canEdit,
   onEditStaff,
   onEditDefaults,
+  onAddTimeOff,
 }: {
   open: boolean;
   onClose: () => void;
@@ -2880,6 +2889,7 @@ function DayDetailDialog({
   canEdit: boolean;
   onEditStaff: (staff: StaffMember) => void;
   onEditDefaults?: (staff: StaffMember) => void;
+  onAddTimeOff?: (staff: StaffMember) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -2927,6 +2937,17 @@ function DayDetailDialog({
                     >
                       {STATUS_LABEL[cell.status]}
                     </Badge>
+                    {canEdit && onAddTimeOff && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onAddTimeOff(staff); }}
+                        className="p-0.5 rounded text-muted-foreground hover:text-red-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        title="Add time off"
+                        data-testid={`btn-add-timeoff-${staff.id}`}
+                      >
+                        <CalendarOff className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     {canEdit && (
                       <button
                         type="button"
