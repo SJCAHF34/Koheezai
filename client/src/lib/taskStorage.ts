@@ -697,16 +697,6 @@ export function getSiteDirectorName(siteId: string, todayDate?: string): string 
   return director?.name ?? "";
 }
 
-/** Returns the names of roster members whose given role is active on the
- *  given date (defaults to today). Respects date-bounded role assignments —
- *  expired or future assignments are excluded. */
-export function getRoleCoverageNames(siteId: string, role: string, todayDate?: string): string[] {
-  const roster = loadRoster(siteId);
-  return roster.members
-    .filter((m) => getActiveRoles(m, todayDate).includes(role))
-    .map((m) => m.name);
-}
-
 export function saveRoster(roster: SiteRoster): void {
   try {
     const all = readRosters().filter((r) => r.siteId !== roster.siteId);
