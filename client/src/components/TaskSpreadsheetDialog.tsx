@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
-import { FileSpreadsheet, Upload, Download, FileText, Trash2, X, AlertTriangle } from "lucide-react";
+import { FileSpreadsheet, Upload, Download, FileText, Trash2, X, AlertTriangle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -191,6 +191,61 @@ export function TaskSpreadsheetDialog({
     scheduleSave({ ...form, sheets });
   }
 
+  function handleHeaderChange(sheetIdx: number, colIdx: number, value: string) {
+    if (!form) return;
+    const sheets = form.sheets.map((s, si) => {
+      if (si !== sheetIdx) return s;
+      const headers = [...s.headers];
+      headers[colIdx] = value;
+      return { ...s, headers };
+    });
+    scheduleSave({ ...form, sheets });
+  }
+
+  function handleAddColumn(sheetIdx: number) {
+    if (!form) return;
+    const sheets = form.sheets.map((s, si) => {
+      if (si !== sheetIdx) return s;
+      const colNum = s.headers.length + 1;
+      const headers = [...s.headers, `Column ${colNum}`];
+      const columnTypes = [...s.columnTypes, "text" as const];
+      const rows = s.rows.map((r) => [...r, ""]);
+      return { ...s, headers, columnTypes, rows };
+    });
+    scheduleSave({ ...form, sheets });
+  }
+
+  function handleDeleteColumn(sheetIdx: number, colIdx: number) {
+    if (!form) return;
+    const sheets = form.sheets.map((s, si) => {
+      if (si !== sheetIdx) return s;
+      const headers = s.headers.filter((_, i) => i !== colIdx);
+      const columnTypes = s.columnTypes.filter((_, i) => i !== colIdx);
+      const rows = s.rows.map((r) => r.filter((_, i) => i !== colIdx));
+      return { ...s, headers, columnTypes, rows };
+    });
+    scheduleSave({ ...form, sheets });
+  }
+
+  function handleAddRow(sheetIdx: number) {
+    if (!form) return;
+    const sheets = form.sheets.map((s, si) => {
+      if (si !== sheetIdx) return s;
+      const emptyRow = s.headers.map(() => "");
+      return { ...s, rows: [...s.rows, emptyRow] };
+    });
+    scheduleSave({ ...form, sheets });
+  }
+
+  function handleDeleteRow(sheetIdx: number, rowIdx: number) {
+    if (!form) return;
+    const sheets = form.sheets.map((s, si) => {
+      if (si !== sheetIdx) return s;
+      return { ...s, rows: s.rows.filter((_, i) => i !== rowIdx) };
+    });
+    scheduleSave({ ...form, sheets });
+  }
+
   function handleRemove() {
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
@@ -211,7 +266,7 @@ export function TaskSpreadsheetDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-[95vw] xl:max-w-6xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
@@ -302,30 +357,108 @@ export function TaskSpreadsheetDialog({
               </div>
             )}
 
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-              {activeSheet && activeSheet.rows.length === 0 && (
+            <div className="flex-1 overflow-auto pr-1 border border-slate-200 rounded-md">
+              {activeSheet && activeSheet.rows.length === 0 && activeSheet.headers.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-6">This sheet has no data rows.</p>
+              ) : (
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 sticky top-0 z-10">
+                      {activeSheet?.headers.map((header, colIdx) => (
+                        <th
+                          key={colIdx}
+                          className="border-b border-r border-slate-200 last:border-r-0 p-0 text-left align-middle min-w-[140px]"
+                        >
+                          <div className="flex items-center gap-1 px-2 py-1.5">
+                            <Input
+                              value={header}
+                              disabled={!canEdit}
+                              data-testid={`input-header-${activeSheetIdx}-${colIdx}`}
+                              onChange={(e) => handleHeaderChange(activeSheetIdx, colIdx, e.target.value)}
+                              className="h-7 text-[11px] font-semibold uppercase tracking-wide text-slate-500 border-0 bg-transparent px-1 focus-visible:ring-1"
+                            />
+                            {canEdit && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                data-testid={`button-delete-column-${activeSheetIdx}-${colIdx}`}
+                                onClick={() => handleDeleteColumn(activeSheetIdx, colIdx)}
+                                className="h-6 w-6 shrink-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </th>
+                      ))}
+                      {canEdit && (
+                        <th className="border-b border-slate-200 p-1 align-middle w-10">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            data-testid={`button-add-column-${activeSheetIdx}`}
+                            onClick={() => handleAddColumn(activeSheetIdx)}
+                            className="h-7 w-7 text-emerald-600 hover:bg-emerald-50"
+                            title="Add column"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </Button>
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activeSheet?.rows.map((row, rowIdx) => (
+                      <tr key={rowIdx} data-testid={`row-spreadsheet-${activeSheetIdx}-${rowIdx}`} className="hover-elevate">
+                        {activeSheet.headers.map((_, colIdx) => (
+                          <td key={colIdx} className="border-b border-r border-slate-100 last:border-r-0 p-1">
+                            <Input
+                              type={activeSheet.columnTypes[colIdx] === "number" ? "number" : activeSheet.columnTypes[colIdx] === "date" ? "date" : "text"}
+                              value={row[colIdx] ?? ""}
+                              disabled={!canEdit}
+                              data-testid={`input-cell-${activeSheetIdx}-${rowIdx}-${colIdx}`}
+                              onChange={(e) => handleCellChange(activeSheetIdx, rowIdx, colIdx, e.target.value)}
+                              className="h-8 border-0 bg-transparent px-1.5 focus-visible:ring-1"
+                            />
+                          </td>
+                        ))}
+                        {canEdit && (
+                          <td className="border-b border-slate-100 p-1 align-middle text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              data-testid={`button-delete-row-${activeSheetIdx}-${rowIdx}`}
+                              onClick={() => handleDeleteRow(activeSheetIdx, rowIdx)}
+                              className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              title="Delete row"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
-              {activeSheet?.rows.map((row, rowIdx) => (
-                <div
-                  key={rowIdx}
-                  data-testid={`row-spreadsheet-${activeSheetIdx}-${rowIdx}`}
-                  className="rounded-md border border-slate-200 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3"
-                >
-                  {activeSheet.headers.map((header, colIdx) => (
-                    <div key={colIdx} className="space-y-1">
-                      <Label className="text-[10px] uppercase tracking-wide text-slate-400">{header}</Label>
-                      <Input
-                        type={activeSheet.columnTypes[colIdx] === "number" ? "number" : activeSheet.columnTypes[colIdx] === "date" ? "date" : "text"}
-                        value={row[colIdx] ?? ""}
-                        disabled={!canEdit}
-                        data-testid={`input-cell-${activeSheetIdx}-${rowIdx}-${colIdx}`}
-                        onChange={(e) => handleCellChange(activeSheetIdx, rowIdx, colIdx, e.target.value)}
-                      />
-                    </div>
-                  ))}
+              {canEdit && activeSheet && (
+                <div className="p-2 border-t border-slate-100">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    data-testid={`button-add-row-${activeSheetIdx}`}
+                    onClick={() => handleAddRow(activeSheetIdx)}
+                    className="text-emerald-600 hover:bg-emerald-50"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    Add row
+                  </Button>
                 </div>
-              ))}
+              )}
             </div>
 
             <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-100">
