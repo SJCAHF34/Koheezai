@@ -42,9 +42,16 @@ function cellToString(v: unknown): string {
   return String(v);
 }
 
-function parseWorkbook(buf: ArrayBuffer): SpreadsheetSheet[] {
+function parseWorkbook(buf: ArrayBuffer): { sheets: SpreadsheetSheet[]; warnings: string[] } {
   const wb = XLSX.read(buf, { type: "array", cellDates: true });
+  const warnings: string[] = [];
+  const totalSheetCount = wb.SheetNames.length;
   const sheetNames = wb.SheetNames.slice(0, MAX_SHEETS);
+  if (totalSheetCount > MAX_SHEETS) {
+    warnings.push(
+      `This file has ${totalSheetCount} sheets; only the first ${MAX_SHEETS} were imported. The rest were not included.`
+    );
+  }
   const sheets: SpreadsheetSheet[] = [];
   for (const name of sheetNames) {
     const ws = wb.Sheets[name];
@@ -55,9 +62,15 @@ function parseWorkbook(buf: ArrayBuffer): SpreadsheetSheet[] {
       const s = cellToString(h).trim();
       return s || `Column ${i + 1}`;
     });
-    const dataRows = aoa.slice(1, 1 + MAX_ROWS_PER_SHEET).filter((r) =>
+    const allDataRows = aoa.slice(1).filter((r) =>
       Array.isArray(r) && r.some((c) => cellToString(c).trim() !== "")
     );
+    if (allDataRows.length > MAX_ROWS_PER_SHEET) {
+      warnings.push(
+        `Sheet "${name}" has ${allDataRows.length} rows; only the first ${MAX_ROWS_PER_SHEET} were imported. The rest were not included.`
+      );
+    }
+    const dataRows = allDataRows.slice(0, MAX_ROWS_PER_SHEET);
     const rows: string[][] = dataRows.map((r) => {
       const arr = r as unknown[];
       return headers.map((_, i) => cellToString(arr[i]));
@@ -67,7 +80,7 @@ function parseWorkbook(buf: ArrayBuffer): SpreadsheetSheet[] {
     );
     sheets.push({ name, headers, columnTypes, rows });
   }
-  return sheets;
+  return { sheets, warnings };
 }
 
 function sheetToCSV(sheet: SpreadsheetSheet): string {
@@ -190,7 +203,7 @@ export function TaskSpreadsheetDialog({
     }
     try {
       const buf = await file.arrayBuffer();
-      const sheets = parseWorkbook(buf);
+      const { sheets, warnings } = parseWorkbook(buf);
       if (sheets.length === 0) {
         setParseError("This file doesn't contain any readable data.");
         return;
@@ -208,7 +221,15 @@ export function TaskSpreadsheetDialog({
       saveSpreadsheetForm(newForm);
       setForm(newForm);
       setActiveSheetIdx(0);
-      toast({ title: "Spreadsheet imported", description: `${sheets.length} sheet(s) loaded from ${file.name}` });
+      if (warnings.length > 0) {
+        toast({
+          title: "Spreadsheet imported with limits applied",
+          description: warnings.join(" "),
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Spreadsheet imported", description: `${sheets.length} sheet(s) loaded from ${file.name}` });
+      }
     } catch (err) {
       console.error("Excel parse error:", err);
       setParseError("Could not read this file. Make sure it's a valid, unprotected Excel file.");
@@ -246,10 +267,20 @@ export function TaskSpreadsheetDialog({
   }
 
   function handleRemove() {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
     deleteSpreadsheetForm(taskId, siteId);
     setForm(null);
     toast({ title: "Spreadsheet removed" });
   }
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, []);
 
   const activeSheet: SpreadsheetSheet | undefined = form?.sheets[activeSheetIdx];
 
