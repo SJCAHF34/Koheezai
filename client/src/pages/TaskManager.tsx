@@ -89,6 +89,7 @@ import {
   toggleSubItemCompletion,
   getTaskDueDate,
   loadSpreadsheetFormTaskIds,
+  getRoleCoverageNames,
 } from "@/lib/taskStorage";
 import type { RetentionPatient, RetentionIssueType, RetentionStatus, AttemptLogEntry } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -115,6 +116,7 @@ import {
   Plus,
   ClipboardCheck,
   ArrowUpRight,
+  User,
   Users,
   BarChart3,
   Filter,
@@ -445,6 +447,7 @@ function TaskRow({
   canDeleteCustom,
   readOnly,
   siteId,
+  sectionRole,
   highlighted,
   hasSpreadsheet,
   onToggle,
@@ -468,6 +471,7 @@ function TaskRow({
   canDeleteCustom: boolean;
   readOnly?: boolean;
   siteId?: string;
+  sectionRole?: TaskRole;
   highlighted?: boolean;
   hasSpreadsheet?: boolean;
   onToggle: (t: PharmacyTask) => void;
@@ -481,6 +485,19 @@ function TaskRow({
   const cat = CATEGORY_CONFIG[task.category];
   const today = getTodayDateKey();
   const resolvedSiteId = siteId ?? "unknown";
+
+  // Roster members currently covering this task's role today. For group
+  // pseudo-roles (all_staff/all_techs/all_pharmacists), use the role section
+  // this card is displayed under. Read fresh each render so roster edits in
+  // the Configure Team panel are reflected immediately.
+  const coverageRole: TaskRole | null =
+    task.role in ROLE_CONFIG
+      ? task.role
+      : sectionRole && sectionRole in ROLE_CONFIG
+      ? sectionRole
+      : null;
+  const coverageNames =
+    siteId && coverageRole ? getRoleCoverageNames(siteId, coverageRole, today) : [];
 
   // Counter state for tasks that track start/end of day counts
   const [counterStart, setCounterStart] = useState<string>(() => {
@@ -605,6 +622,16 @@ function TaskRow({
               </span>
             ) : null;
           })()}
+          {coverageNames.length > 0 && (
+            <span
+              data-testid={`text-covered-by-${task.id}`}
+              title={`Covered today by ${coverageNames.join(", ")}`}
+              className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200"
+            >
+              <User className="w-2.5 h-2.5" />
+              {coverageNames.join(", ")}
+            </span>
+          )}
           <p
             className={`text-sm leading-snug transition-all duration-300 ${
               completed
@@ -909,6 +936,7 @@ function TaskGroupSection({
   canDeleteCustom,
   readOnly,
   siteId,
+  sectionRole,
   highlightTaskId,
   onToggle,
   onAssign,
@@ -933,6 +961,7 @@ function TaskGroupSection({
   canDeleteCustom: boolean;
   readOnly?: boolean;
   siteId?: string;
+  sectionRole?: TaskRole;
   highlightTaskId?: string | null;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
@@ -997,6 +1026,7 @@ function TaskGroupSection({
               canDeleteCustom={canDeleteCustom}
               readOnly={readOnly}
               siteId={siteId}
+              sectionRole={sectionRole}
               highlighted={task.id === highlightTaskId}
               hasSpreadsheet={spreadsheetTaskIds?.has(task.id)}
               onToggle={onToggle}
@@ -1111,6 +1141,7 @@ function RoleSection({
           {groups.map(({ groupName, tasks }) => (
             <TaskGroupSection
               siteId={siteId}
+              sectionRole={role}
               key={groupName}
               groupName={groupName}
               tasks={tasks}
