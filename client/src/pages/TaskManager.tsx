@@ -5320,7 +5320,7 @@ export default function TaskManager() {
           taskId={spreadsheetTask.id}
           siteId={siteId}
           taskTitle={spreadsheetTask.title}
-          canEdit={isDir}
+          canEdit={!readOnly}
           userName={profile.name}
         />
       )}
