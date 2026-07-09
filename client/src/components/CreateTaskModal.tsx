@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Upload, FileSpreadsheet, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -37,9 +38,14 @@ import {
 import { cn } from "@/lib/utils";
 import {
   saveCustomTask,
+  loadSpreadsheetForm,
+  saveSpreadsheetForm,
+  deleteSpreadsheetForm,
   type CustomTask,
   type CustomTaskScope,
+  type TaskSpreadsheetForm,
 } from "@/lib/taskStorage";
+import { parseSpreadsheetFile } from "@/lib/spreadsheetImport";
 import type { PharmacyTask, TaskFrequency, TaskRole, TaskCategory } from "@/lib/taskData";
 import { STORE_REGIONS } from "@/lib/storeDirectory";
 import { getRPDsByRegion, getStoreStaff } from "@/lib/userProfile";
@@ -172,6 +178,73 @@ export function CreateTaskModal({
   const watchRegion = form.watch("selectedRegion");
   const watchStore = form.watch("selectedStore");
   const watchFrequency = form.watch("frequency");
+
+  // ── Excel attachment (parsed but not yet necessarily persisted) ──────────
+  const { toast } = useToast();
+  const [spreadsheetForm, setSpreadsheetForm] = useState<TaskSpreadsheetForm | null>(null);
+  const [spreadsheetRemoved, setSpreadsheetRemoved] = useState(false);
+  const [spreadsheetError, setSpreadsheetError] = useState<string | null>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // When editing a task with an existing attached spreadsheet, preload it so
+  // the modal shows its current state (filename, sheet/row counts).
+  useEffect(() => {
+    if (!open) return;
+    setSpreadsheetError(null);
+    setSpreadsheetRemoved(false);
+    if (taskToEdit) {
+      setSpreadsheetForm(loadSpreadsheetForm(taskToEdit.id, siteId));
+    } else {
+      setSpreadsheetForm(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, taskToEdit, siteId]);
+
+  async function handleSpreadsheetFile(file: File) {
+    setSpreadsheetError(null);
+    try {
+      const { fileName, sheets, warnings } = await parseSpreadsheetFile(file);
+      const now = new Date().toISOString();
+      const pending: TaskSpreadsheetForm = {
+        taskId: taskToEdit?.id ?? "",
+        siteId,
+        fileName,
+        sheets,
+        uploadedAt: now,
+        updatedAt: now,
+        uploadedBy: profile.name,
+      };
+      setSpreadsheetForm(pending);
+      setSpreadsheetRemoved(false);
+      if (warnings.length > 0) {
+        toast({
+          title: "Spreadsheet imported with limits applied",
+          description: warnings.join(" "),
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Spreadsheet imported", description: `${sheets.length} sheet(s) loaded from ${fileName}` });
+      }
+    } catch (err) {
+      setSpreadsheetError(err instanceof Error ? err.message : "Could not read this file.");
+    }
+  }
+
+  function handleSpreadsheetDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDraggingFile(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) void handleSpreadsheetFile(file);
+  }
+
+  function handleRemoveSpreadsheet() {
+    setSpreadsheetForm(null);
+    setSpreadsheetRemoved(true);
+    setSpreadsheetError(null);
+  }
+
+  const totalSpreadsheetRows = spreadsheetForm?.sheets.reduce((sum, s) => sum + s.rows.length, 0) ?? 0;
 
   // Assignee — tracks the selected assignee label (group name for national, person name for others)
   const [assigneeValue, setAssigneeValue] = useState<string>(() => {
@@ -325,6 +398,16 @@ export function CreateTaskModal({
   })();
 
 
+  // Persists (or removes) the attached spreadsheet for the given task id,
+  // scoped to the same `siteId` used by the task-row spreadsheet dialog.
+  function persistSpreadsheet(taskId: string) {
+    if (spreadsheetForm) {
+      saveSpreadsheetForm({ ...spreadsheetForm, taskId, siteId });
+    } else if (spreadsheetRemoved) {
+      deleteSpreadsheetForm(taskId, siteId);
+    }
+  }
+
   function handleSubmit(values: CreateTaskFormValues) {
     // Built-in task edit: don't create/update a custom task — hand the edited
     // fields back to the caller, which persists them as a task override.
@@ -340,6 +423,7 @@ export function CreateTaskModal({
         category: values.category,
         taskGroup: values.taskGroup || taskToEdit.taskGroup,
       };
+      persistSpreadsheet(taskToEdit.id);
       onUpdated?.(updated);
       onClose();
       return;
@@ -412,12 +496,15 @@ export function CreateTaskModal({
       dueDate: values.dueDate || undefined,
     };
     saveCustomTask(customTask);
+    persistSpreadsheet(id);
     const asPharmacyTask: PharmacyTask = { ...customTask, isCustom: true };
     if (isEditing) {
       onUpdated?.(asPharmacyTask);
     } else {
       onCreated(asPharmacyTask);
     }
+    setSpreadsheetForm(null);
+    setSpreadsheetRemoved(false);
     form.reset({ ...form.formState.defaultValues, scope: defaultScope, selectedRegion: userRegion ?? "" });
     // Reset assignee to sensible default for this user's default scope
     if (defaultScope === "national") {
@@ -444,7 +531,7 @@ export function CreateTaskModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="w-4 h-4 text-purple-600" />
@@ -713,6 +800,71 @@ export function CreateTaskModal({
                 {...form.register("taskGroup")}
               />
             </div>
+          </div>
+
+          {/* ── Attach Excel file ────────────────────────────────────── */}
+          <div className="space-y-1.5">
+            <Label>Attach Excel file <span className="text-slate-400 font-normal text-xs">(optional)</span></Label>
+            {!spreadsheetForm ? (
+              <div
+                data-testid="dropzone-create-task-spreadsheet"
+                onDragOver={(e) => { e.preventDefault(); setIsDraggingFile(true); }}
+                onDragLeave={() => setIsDraggingFile(false)}
+                onDrop={handleSpreadsheetDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`cursor-pointer rounded-md border-2 border-dashed p-4 text-center transition-colors ${
+                  isDraggingFile ? "border-emerald-400 bg-emerald-50" : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <Upload className="w-5 h-5 mx-auto text-slate-400 mb-1.5" />
+                <p className="text-xs font-medium text-slate-700">Drop an Excel file here, or click to browse</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">.xlsx or .xls, up to 5MB</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  data-testid="input-create-task-spreadsheet-file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void handleSpreadsheetFile(file);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+            ) : (
+              <div
+                data-testid="summary-create-task-spreadsheet"
+                className="flex items-center justify-between gap-2 rounded-md border border-slate-200 p-3"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-700 truncate">{spreadsheetForm.fileName}</p>
+                    <p className="text-[10px] text-slate-400">
+                      {spreadsheetForm.sheets.length} sheet{spreadsheetForm.sheets.length === 1 ? "" : "s"} · {totalSpreadsheetRows} row{totalSpreadsheetRows === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  data-testid="button-remove-create-task-spreadsheet"
+                  onClick={handleRemoveSpreadsheet}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1" />
+                  Remove
+                </Button>
+              </div>
+            )}
+            {spreadsheetError && (
+              <p className="text-xs text-red-600 flex items-center gap-1.5" data-testid="text-create-task-spreadsheet-error">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                {spreadsheetError}
+              </p>
+            )}
           </div>
 
           <DialogFooter className="pt-2">

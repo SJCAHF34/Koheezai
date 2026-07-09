@@ -4331,6 +4331,7 @@ export default function TaskManager() {
   const [editingTask, setEditingTask] = useState<PharmacyTask | null>(null);
   const [spreadsheetTask, setSpreadsheetTask] = useState<PharmacyTask | null>(null);
   const [spreadsheetTaskIds, setSpreadsheetTaskIds] = useState<Set<string>>(new Set());
+  const [spreadsheetRefreshTick, setSpreadsheetRefreshTick] = useState(0);
   const [, setOverrideVersion] = useState(0);
 
   // Re-apply built-in task edits after the server store hydrates localStorage
@@ -4352,7 +4353,7 @@ export default function TaskManager() {
 
   useEffect(() => {
     setSpreadsheetTaskIds(loadSpreadsheetFormTaskIds(siteId));
-  }, [siteId, spreadsheetTask]);
+  }, [siteId, spreadsheetTask, spreadsheetRefreshTick]);
 
   useEffect(() => {
     if (!profile) return;
@@ -5283,7 +5284,10 @@ export default function TaskManager() {
           siteId={siteId}
           profile={{ email: profile.email, name: profile.name, role: profile.role }}
           onClose={() => setShowCreateModal(false)}
-          onCreated={(task) => setCustomTasks((prev) => [...prev, task])}
+          onCreated={(task) => {
+            setCustomTasks((prev) => [...prev, task]);
+            setSpreadsheetRefreshTick((v) => v + 1);
+          }}
           isCpo={isCPO(profile.role)}
           isRegional={isRegionalDir && !isCPO(profile.role)}
           userRegion={isCPO(profile.role) ? undefined : (profile.region ?? drillStoreRegion?.region)}
@@ -5313,6 +5317,7 @@ export default function TaskManager() {
               });
               setOverrideVersion((v) => v + 1);
             }
+            setSpreadsheetRefreshTick((v) => v + 1);
             setEditingTask(null);
           }}
           isCpo={isCPO(profile.role)}
