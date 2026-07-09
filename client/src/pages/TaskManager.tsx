@@ -3507,6 +3507,31 @@ function HandoffPanel({
   const [saved, setSaved] = useState(!!existing);
   const [error, setError] = useState("");
 
+  // If this panel stays mounted across midnight (a 24/7 pharmacy can easily
+  // leave the page open overnight), the "tomorrow" it was initialized with
+  // silently becomes "today". Detect that drift and snap back to a real
+  // tomorrow so the panel can never be used to edit today's live note.
+  useEffect(() => {
+    const recheck = () => {
+      const freshTomorrow = getTomorrowDateKey();
+      if (targetDate < freshTomorrow) {
+        setTargetDate(freshTomorrow);
+        const note = loadNote(freshTomorrow, forRole);
+        setRawText(note?.rawText ?? "");
+        setItems(note?.items ?? []);
+        setSaved(!!note);
+      }
+    };
+    recheck();
+    document.addEventListener("visibilitychange", recheck);
+    const interval = setInterval(recheck, 60_000);
+    return () => {
+      document.removeEventListener("visibilitychange", recheck);
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetDate, forRole]);
+
   // When the user picks a different date, load whatever was saved for that date+role
   const handleDateChange = (newDate: string) => {
     setTargetDate(newDate);

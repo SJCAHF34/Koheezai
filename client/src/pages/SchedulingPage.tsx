@@ -909,17 +909,23 @@ export default function SchedulingPage() {
         />
       )}
 
-      {/* Staff defaults dialog (click staff name in week/month view) */}
+      {/* Staff schedule dialog (click staff bar/name in week/month view) — shares
+          the exact same panel component used for the day-detail drill-down so
+          there is only ever one dialog implementation, never two. */}
       {staffDefaultsTarget && siteId && (
-        <StaffDefaultsDialog
-          open={!!staffDefaultsTarget}
-          onClose={() => setStaffDefaultsTarget(null)}
-          siteId={siteId}
-          staff={staffDefaultsTarget}
-          defaults={defaultsQuery.data ?? []}
-          roster={roster}
-          canEdit={canEdit}
-        />
+        <Dialog open={!!staffDefaultsTarget} onOpenChange={(o) => { if (!o) setStaffDefaultsTarget(null); }}>
+          <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto" data-testid="dialog-staff-defaults">
+            <DayDetailSchedulePanel
+              staff={staffDefaultsTarget}
+              siteId={siteId}
+              defaults={defaultsQuery.data ?? []}
+              roster={roster}
+              canEdit={canEdit}
+              onBack={() => setStaffDefaultsTarget(null)}
+              onClose={() => setStaffDefaultsTarget(null)}
+            />
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Settings dialog */}
@@ -1966,225 +1972,13 @@ function DefaultsEditor({
   );
 }
 
-// ── Staff Defaults Dialog (click-to-edit from calendar) ────────────────────
-// A standalone dialog wrapping the per-staff recurring schedule editor.
-// Directors see a full editable form; non-editors see a read-only summary.
-
-function StaffDefaultsDialog({
-  open,
-  onClose,
-  siteId,
-  staff,
-  defaults,
-  roster,
-  canEdit,
-}: {
-  open: boolean;
-  onClose: () => void;
-  siteId: string;
-  staff: StaffMember;
-  defaults: StaffScheduleDefault[];
-  roster: StaffMember[];
-  canEdit: boolean;
-}) {
-  const { toast } = useToast();
-  const existing = defaults.find((d) => d.staffId === staff.id);
-  const colorFallback = DEFAULT_STAFF_COLORS[roster.findIndex(s => s.id === staff.id) % DEFAULT_STAFF_COLORS.length] ?? "#7c3aed";
-
-  const [weekdays, setWeekdays] = useState<Array<{ start: string; end: string } | null>>(
-    () => existing?.weekdays ?? [null, emptyShift(), emptyShift(), emptyShift(), emptyShift(), emptyShift(), null],
-  );
-  const [color, setColor] = useState<string>(existing?.color ?? colorFallback);
-  const [schedulePattern, setSchedulePattern] = useState<SchedulePattern>(existing?.schedulePattern ?? "standard");
-
-  // Sync when defaults load or staff changes
-  useEffect(() => {
-    const e = defaults.find((d) => d.staffId === staff.id);
-    setWeekdays(e?.weekdays ?? [null, emptyShift(), emptyShift(), emptyShift(), emptyShift(), emptyShift(), null]);
-    const idx = roster.findIndex(s => s.id === staff.id);
-    setColor(e?.color ?? DEFAULT_STAFF_COLORS[idx % DEFAULT_STAFF_COLORS.length] ?? "#7c3aed");
-    setSchedulePattern(e?.schedulePattern ?? "standard");
-  }, [staff.id, defaults]);
-
-  const saveMutation = useMutation({
-    mutationFn: () =>
-      apiRequest(`/api/scheduling/${siteId}/defaults/${staff.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          siteId,
-          staffId: staff.id,
-          staffName: staff.name,
-          weekdays,
-          color,
-          schedulePattern,
-        }),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "defaults"] });
-      toast({ title: "Recurring schedule saved" });
-      onClose();
-    },
-    onError: (err: any) => toast({ title: "Save failed", description: String(err?.message ?? err), variant: "destructive" }),
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o && !saveMutation.isPending) onClose(); }}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto" data-testid="dialog-staff-defaults">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <span
-              className="inline-block w-3 h-3 rounded-full shrink-0"
-              style={{ background: color }}
-            />
-            {staff.name}
-          </DialogTitle>
-          <DialogDescription>
-            {canEdit
-              ? "Set the recurring weekly schedule for this staff member."
-              : "Recurring schedule for this staff member (view only)."}
-          </DialogDescription>
-        </DialogHeader>
-
-        {!canEdit ? (
-          // Read-only summary
-          <div className="space-y-3">
-            <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">Schedule pattern</div>
-              <div className="text-sm">
-                {PATTERN_LABELS[existing?.schedulePattern ?? "standard"]}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">Default shifts</div>
-              <div className="space-y-1">
-                {WEEKDAY_LABELS.map((label, i) => {
-                  const shift = existing?.weekdays?.[i] ?? null;
-                  return (
-                    <div key={i} className="flex items-center gap-3 text-sm">
-                      <span className="w-10 text-xs text-muted-foreground font-medium">{label}</span>
-                      {shift
-                        ? <span>{formatTime(shift.start)} – {formatTime(shift.end)}</span>
-                        : <span className="text-muted-foreground italic text-xs">Off</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        ) : (
-          // Editable form
-          <div className="space-y-4">
-            <div className="shrink-0">
-              <Label className="text-xs block mb-1">Calendar color</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  className="h-9 w-12 rounded border cursor-pointer"
-                  data-testid="input-staff-defaults-color"
-                />
-                <span className="text-xs text-muted-foreground font-mono">{color}</span>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-xs">Schedule pattern</Label>
-              <Select value={schedulePattern} onValueChange={(v) => setSchedulePattern(v as SchedulePattern)}>
-                <SelectTrigger className="mt-1" data-testid="select-staff-defaults-pattern">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SCHEDULE_PATTERNS.map((p) => (
-                    <SelectItem key={p} value={p} data-testid={`option-staff-defaults-pattern-${p}`}>
-                      {PATTERN_LABELS[p]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {schedulePattern !== "standard" && (
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  {schedulePattern === "alternating_a"
-                    ? "Staff works on odd ISO weeks (Week A). Even ISO weeks default to unscheduled."
-                    : "Staff works on even ISO weeks (Week B). Odd ISO weeks default to unscheduled."}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              {weekdays.map((shift, i) => {
-                const enabled = !!shift;
-                return (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className="w-12 text-xs font-medium text-muted-foreground">{WEEKDAY_LABELS[i]}</div>
-                    <input
-                      type="checkbox"
-                      checked={enabled}
-                      onChange={(e) =>
-                        setWeekdays((prev) => {
-                          const copy = [...prev];
-                          copy[i] = e.target.checked ? (prev[i] ?? emptyShift()) : null;
-                          return copy;
-                        })
-                      }
-                      data-testid={`checkbox-staff-defaults-day-${i}`}
-                    />
-                    <Input
-                      type="time"
-                      disabled={!enabled}
-                      value={shift?.start ?? ""}
-                      onChange={(e) =>
-                        setWeekdays((prev) => {
-                          const copy = [...prev];
-                          if (copy[i]) copy[i] = { ...copy[i]!, start: e.target.value };
-                          return copy;
-                        })
-                      }
-                      className="w-32"
-                      data-testid={`input-staff-defaults-start-${i}`}
-                    />
-                    <span className="text-muted-foreground text-xs">to</span>
-                    <Input
-                      type="time"
-                      disabled={!enabled}
-                      value={shift?.end ?? ""}
-                      onChange={(e) =>
-                        setWeekdays((prev) => {
-                          const copy = [...prev];
-                          if (copy[i]) copy[i] = { ...copy[i]!, end: e.target.value };
-                          return copy;
-                        })
-                      }
-                      className="w-32"
-                      data-testid={`input-staff-defaults-end-${i}`}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saveMutation.isPending} data-testid="button-close-staff-defaults">
-            {canEdit ? "Cancel" : "Close"}
-          </Button>
-          {canEdit && (
-            <Button
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
-              data-testid="button-save-staff-defaults"
-            >
-              {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
-              Save schedule
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
+// Note: the per-staff recurring schedule editor used to have its own
+// standalone dialog component here (StaffDefaultsDialog), duplicating the
+// DayDetailSchedulePanel used for the day-detail drill-down. That duplication
+// was the root cause of staff-bar clicks appearing to open more than one
+// dialog experience. It has been removed — both flows now render the same
+// DayDetailSchedulePanel inside a single Dialog (see staffDefaultsTarget
+// usage above), so there is exactly one implementation and one pop-up.
 
 function HoursEditor({
   siteId,

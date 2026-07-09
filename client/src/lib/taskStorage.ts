@@ -455,10 +455,21 @@ export function loadHandoffNotesForRole(siteId: string, date: string, userRole: 
 
 export function saveHandoffNote(note: HandoffNote): void {
   const forRole = note.forRole || "all";
+  // Handoff notes are only ever meant to schedule tasks for a future date —
+  // the panel that creates them defaults its target date to "tomorrow" once,
+  // at mount. If that panel stays open across a midnight rollover (common in
+  // a 24/7 pharmacy), its stale "tomorrow" string can silently become
+  // *today's* date. Saving at that point would blindly overwrite today's
+  // already-in-progress handoff note — including any checkboxes staff have
+  // already completed — with whatever was typed for "tomorrow". Guard
+  // against that here, in the one place notes are persisted, so no caller
+  // can ever clobber the live note for today (or the past).
+  const today = getTodayDateKey();
+  const safeForDate = note.forDate <= today ? getTomorrowDateKey() : note.forDate;
   const all = readHandoffNotes().filter(
-    (n) => !(n.siteId === note.siteId && n.forDate === note.forDate && (n.forRole || "all") === forRole)
+    (n) => !(n.siteId === note.siteId && n.forDate === safeForDate && (n.forRole || "all") === forRole)
   );
-  all.push({ ...note, forRole });
+  all.push({ ...note, forDate: safeForDate, forRole });
   writeHandoffNotes(all);
 }
 
