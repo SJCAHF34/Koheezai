@@ -35,6 +35,30 @@ The backend is an Express.js (Node.js, TypeScript) RESTful API. The primary `/ap
 ### Data Storage
 Storage is split: the shared server-side records that must survive restarts and redeploys — the CQI-QRE quarterly meetings (including attendee signatures) and the HIPAA access audit log — are persisted in PostgreSQL via Drizzle ORM (tables defined in `shared/schema.ts`, connection in `server/db.ts`, applied with `npm run db:push`). `DbStorage` in `server/storage.ts` extends `MemStorage` and overrides those records plus scheduling (hours, defaults, entries, submissions), notifications, retention patients, QA audit workbooks/tasks/evidence, and a `client_store` table that backs browser localStorage app data (task manager, controlled inventory, ACHC docs, saved assessments — 18 allowlisted `koheez_*` keys via `GET/PUT /api/client-store?siteId=`, synced by `client/src/lib/serverStore.ts` which hydrates localStorage after login and debounce-pushes writes). `DbStorage.init()` backfills legacy QA data from `.local/qa-audit-state.json` and seeds site 1417 hours on first boot. Client-store rows are scoped per site (composite key `site_id` + `store_key`); routes enforce site access via `getSiteAccess` (director = own store, RPD = region, CPO = all, other staff = own store). Users with siteId "ALL" (CPO/RPD without a home store) skip syncing and stay local-only. Sessions are persisted in PostgreSQL via `connect-pg-simple` (auto-created `session` table), so logins survive redeploys.
 
+## JotForm → sFax Auto-Fax to McKesson ICQ (Task #38)
+
+### Flow
+When a patient submits the Patient Service Agreement on JotForm, a webhook fires to Koheez, which fetches the submission PDF from JotForm and faxes it to the McKesson ICQ queue via sFax — no manual steps.
+
+- **`POST /api/webhooks/jotform`** — public (no auth). Parses multipart/urlencoded/json payloads for `formID` + `submissionID`. If `JOTFORM_FORM_ID` is set, only matching forms are processed (others ignored). Patient name is extracted from the `rawRequest`/`pretty` fields. Responds 200 quickly and processes fax fire-and-forget to avoid JotForm retries.
+- **`server/lib/faxService.ts`** — downloads the PDF (`GET https://api.jotform.com/submission/{id}/pdf?apiKey=…`), sends it to sFax (`POST https://api.sfax.com/api/fax/send`, multipart file + `ToFaxNumber`), and records the result. Maintains an in-memory `FaxLogEntry[]` (max 500, FIFO).
+- **`GET /api/fax-log`** and **`POST /api/fax-retry/:submissionID`** — both behind `requireAuth`. Retry re-fetches the PDF and re-sends.
+- **Fax Log UI** at `/app/fax-log` — gated to `isDirectorRole()` (pharmacy director and above). Shows newest-first table with patient name, time, status badge (Sent/Failed), and a Retry button for failed rows. A config-warning banner appears when secrets are missing. Added to the nav dropdown for directors and above.
+
+### Env Vars for Task #38 (stored as secrets)
+| Variable | Purpose |
+|---|---|
+| `JOTFORM_API_KEY` | JotForm API key (download submission PDF) |
+| `JOTFORM_FORM_ID` | Patient Service Agreement form ID (filters webhook) |
+| `SFAX_USERNAME` | sFax account username |
+| `SFAX_API_KEY` | sFax API key |
+| `ICQ_FAX_NUMBER` | McKesson ICQ destination fax number |
+
+Until the secrets are filled in, webhook attempts are logged as Failed with a clear error and the Fax Log UI shows a config-warning banner.
+
+### Store Performance Dashboard access
+The Store Performance Dashboard (`/app/store/:siteId`) stats are restricted to **regional pharmacy directors and CPO only** — pharmacy directors no longer have access (route uses `RegionalProtected`; in-page check redirects pharmacy directors; the dashboard widget and the TaskManager store banner are hidden for them).
+
 ## External Dependencies
 
 -   **OpenAI API**: For AI-powered clinical summaries and consultation questions.

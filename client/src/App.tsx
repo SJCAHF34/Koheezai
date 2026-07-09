@@ -25,10 +25,11 @@ import AuditLog from "@/pages/AuditLog";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
 import TeamsConfig from "@/pages/TeamsConfig";
+import FaxLog from "@/pages/FaxLog";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2 } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2, Send } from "lucide-react";
 import type { AppNotification } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { isInTeams, teamsSilentLogin } from "@/lib/teams";
@@ -243,6 +244,7 @@ function AppNav() {
   // able to reach the page to sign the attendance record. Editing the rest of the
   // form stays director-only (enforced inside the CQIMeeting page).
   const showCQI = !!profile;
+  const showFaxLog = profile ? isDirectorRole(profile.role) : false;
 
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("/api/auth/logout", { method: "POST" }),
@@ -335,6 +337,10 @@ function AppNav() {
             <NavMenuItem href="/app/scheduling" icon={CalendarDays} label="Team Scheduling" testId="nav-scheduling" onClick={close} />
 
             <NavMenuItem href="/app/controlled-inventory" icon={ShieldCheck} label="Controlled Inv Mgmt" testId="nav-controlled-inventory" onClick={close} />
+
+            {showFaxLog && (
+              <NavMenuItem href="/app/fax-log" icon={Send} label="Fax Log" testId="nav-fax-log" onClick={close} />
+            )}
 
             <NavMenuItem href="/app/patient-assistance" icon={HeartHandshake} label="Patient Assistance" testId="nav-assistance" onClick={close} />
 
@@ -495,9 +501,13 @@ function Router() {
       <Route path="/app/cqi-meeting">
         <Protected component={CQIMeeting} />
       </Route>
-      {/* Store Performance Dashboard — director and above only */}
+      {/* Store Performance Dashboard — regional director and CPO only */}
       <Route path="/app/store/:siteId">
-        <DirectorProtected component={StoreDashboard} />
+        <RegionalProtected component={StoreDashboard} />
+      </Route>
+      {/* Fax Log — director and above only */}
+      <Route path="/app/fax-log">
+        <DirectorProtected component={FaxLog} />
       </Route>
       {/* Team Scheduling — directors edit, all authenticated staff view (own site) */}
       <Route path="/app/scheduling">

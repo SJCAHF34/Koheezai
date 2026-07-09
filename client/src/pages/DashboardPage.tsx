@@ -5,7 +5,7 @@ import { useAuth } from "@/App";
 import { loadAllAssessments, deleteAssessment, type SavedAssessment } from "@/lib/patientStorage";
 import { TASKS, CATEGORY_CONFIG, taskRoleMatches, taskRoleMatchesAny, type TaskFrequency, type TaskCategory } from "@/lib/taskData";
 import { loadCompletions } from "@/lib/taskStorage";
-import { getUserProfile, isDirectorRole, isRegionalOrAbove, isTechRole, isPharmacyDirector, getRoleLabel } from "@/lib/userProfile";
+import { getUserProfile, isDirectorRole, isRegionalOrAbove, isTechRole, getRoleLabel } from "@/lib/userProfile";
 import { generateSiteTrends } from "@/lib/trendData";
 
 const GRADIENT = "linear-gradient(90deg, #3b82f6, #9333ea, #ef4444, #facc15)";
@@ -139,11 +139,12 @@ function TaskSummaryWidget({ userEmail, userName }: { userEmail: string; userNam
   );
 }
 
-// ── Store Dashboard Widget (Pharmacy Director only) ─────────────────────────
+// ── Store Dashboard Widget (Regional Director / CPO only) ───────────────────
 
 function StoreDashboardWidget({ userEmail, userName }: { userEmail: string; userName: string }) {
   const profile = getUserProfile(userEmail, userName);
-  if (!isPharmacyDirector(profile.role)) return null;
+  // Store stats are restricted to regional directors and CPO only
+  if (!isRegionalOrAbove(profile.role)) return null;
 
   return (
     <Link href={`/app/store/${profile.siteId}`}>

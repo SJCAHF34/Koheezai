@@ -194,9 +194,8 @@ export default function StoreDashboard() {
       redirectTo = `/app/tasks?siteId=${siteId}`;
     }
   } else if (isPharmacyDirector(profile.role)) {
-    if (profile.siteId !== siteId) {
-      redirectTo = "/app";
-    }
+    // Pharmacy directors no longer have access to store stats
+    redirectTo = "/app";
   } else {
     // Tech / pharmacist roles have no access
     redirectTo = "/app/tasks";

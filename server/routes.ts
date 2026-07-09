@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import fs from "fs";
@@ -56,6 +56,12 @@ import { storage } from "./storage";
 import { runOutreachNow } from "./lib/outreachScheduler";
 import { logRetentionEvent } from "./lib/salesforceClient";
 import { getViteInstance } from "./vite";
+import {
+  processSubmission as processFaxSubmission,
+  retrySubmission as retryFaxSubmission,
+  getFaxLog,
+  getFaxConfigStatus,
+} from "./lib/faxService";
 
 declare module "express-session" {
   interface SessionData {
@@ -537,6 +543,99 @@ ${audienceHtml}
     return res.json(entries);
   });
 
+  // ── JotForm webhook → sFax auto-fax (public, no auth) ─────────────────────
+  // Parse a raw multipart/urlencoded/json body into a flat field map.
+  async function parseWebhookFields(req: any): Promise<Record<string, string>> {
+    const ct: string = req.headers["content-type"] ?? "";
+    const out: Record<string, string> = {};
+
+    // If an upstream body parser already produced an object (e.g. JSON), use it.
+    if (req.body && !Buffer.isBuffer(req.body) && typeof req.body === "object") {
+      for (const [k, v] of Object.entries(req.body)) {
+        out[k] = typeof v === "string" ? v : JSON.stringify(v);
+      }
+      return out;
+    }
+
+    const buf: Buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from([]);
+
+    if (ct.includes("multipart/form-data")) {
+      const fd = await new Response(buf, { headers: { "content-type": ct } }).formData();
+      fd.forEach((v, k) => {
+        if (typeof v === "string") out[k] = v;
+      });
+    } else if (ct.includes("application/x-www-form-urlencoded")) {
+      const params = new URLSearchParams(buf.toString("utf8"));
+      params.forEach((v, k) => {
+        out[k] = v;
+      });
+    } else if (ct.includes("application/json")) {
+      try {
+        Object.assign(out, JSON.parse(buf.toString("utf8")));
+      } catch {
+        /* ignore */
+      }
+    }
+    return out;
+  }
+
+  function extractPatientName(fields: Record<string, string>): string {
+    if (fields.patientName) return fields.patientName;
+
+    const raw = fields.rawRequest;
+    if (raw) {
+      try {
+        const data = JSON.parse(raw) as Record<string, any>;
+        for (const [k, v] of Object.entries(data)) {
+          if (!/name/i.test(k)) continue;
+          if (typeof v === "string" && v.trim()) return v.trim();
+          if (v && typeof v === "object") {
+            const parts = [v.first, v.last].filter(Boolean);
+            if (parts.length) return parts.join(" ");
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (fields.pretty) {
+      const m = fields.pretty.match(/name[^:]*:\s*([^,]+)/i);
+      if (m) return m[1].trim();
+    }
+    return "Unknown";
+  }
+
+  app.post(
+    "/api/webhooks/jotform",
+    express.raw({ type: () => true, limit: "25mb" }),
+    async (req, res) => {
+      try {
+        const fields = await parseWebhookFields(req);
+        const formID = fields.formID ?? fields.formId ?? "";
+        const submissionID = fields.submissionID ?? fields.submissionId ?? "";
+
+        if (!submissionID) {
+          return res.status(400).json({ message: "Missing submissionID in payload" });
+        }
+
+        const expectedFormId = process.env.JOTFORM_FORM_ID;
+        if (expectedFormId && formID && formID !== expectedFormId) {
+          return res.status(200).json({ ignored: true, reason: "formID mismatch" });
+        }
+
+        const patientName = extractPatientName(fields);
+        // Fire-and-forget so JotForm gets a fast 200 (avoids webhook retries)
+        processFaxSubmission(submissionID, patientName).catch(() => {});
+        return res.status(200).json({ received: true, submissionID });
+      } catch (err) {
+        console.error("[Fax] Webhook error:", err);
+        // Respond 200 to avoid JotForm retry storms; error is logged
+        return res.status(200).json({ received: false });
+      }
+    },
+  );
+
   // ── Assessment route ──────────────────────────────────────────────────────
   // Requires auth: this endpoint processes patient clinical inputs (PHI), so a
   // real authenticated actor must be attributable in the access audit log.
@@ -996,6 +1095,23 @@ FORMATTING RULES (strict):
     }
     return next();
   }
+
+  // ── Fax Log API (auth required) ────────────────────────────────────────────
+  app.get("/api/fax-log", requireAuth, (_req, res) => {
+    return res.json({ entries: getFaxLog(), config: getFaxConfigStatus() });
+  });
+
+  app.post("/api/fax-retry/:submissionID", requireAuth, async (req, res) => {
+    try {
+      const entry = await retryFaxSubmission(req.params.submissionID);
+      if (!entry) {
+        return res.status(404).json({ message: "Fax log entry not found" });
+      }
+      return res.json({ entry });
+    } catch (err) {
+      return res.status(500).json({ message: "Retry failed" });
+    }
+  });
 
   function requireApiKeyOrAuth(req: any, res: any, next: any) {
     const authHeader: string = req.headers["authorization"] ?? "";

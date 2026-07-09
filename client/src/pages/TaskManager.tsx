@@ -4853,11 +4853,11 @@ export default function TaskManager() {
             </>
           )}
 
-          {/* ── My Store Dashboard banner — Director/Regional/CPO only ── */}
+          {/* ── My Store Dashboard banner — Regional/CPO only ── */}
           {/* CPO/RPD: only show when NOT already in drill-in mode (avoids circular link) */}
-          {isDirectorRole(profile.role) &&
+          {isRegionalOrAbove(profile.role) &&
             siteId !== "ALL" &&
-            (!isRegionalOrAbove(profile.role) || !urlSiteId) && (
+            !urlSiteId && (
             <Link
               href={
                 isRegionalOrAbove(profile.role)
