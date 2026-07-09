@@ -1124,3 +1124,77 @@ export function loadDeletedCustomTasksForRole(
     return !!regionStoreIds && regionStoreIds.has(id);
   });
 }
+
+// ── Task Spreadsheet Forms (Excel import → editable form) ───────────────────
+// A directors-uploaded .xlsx file attached to a task is parsed client-side
+// into plain sheets/headers/rows and stored here so it can be reopened,
+// edited inline, and re-exported as PDF/CSV/Excel later.
+
+export type SpreadsheetCellType = "text" | "number" | "date";
+
+export interface SpreadsheetSheet {
+  name: string;
+  headers: string[];
+  /** Best-guess type per column, used only to format inputs — values are
+   *  always stored as strings so editing never loses precision/formatting. */
+  columnTypes: SpreadsheetCellType[];
+  /** rows[i][j] corresponds to headers[j] */
+  rows: string[][];
+}
+
+export interface TaskSpreadsheetForm {
+  taskId: string;
+  siteId: string;
+  fileName: string;
+  sheets: SpreadsheetSheet[];
+  uploadedAt: string;
+  updatedAt: string;
+  uploadedBy: string;
+}
+
+const SPREADSHEET_FORMS_KEY = "koheez_task_spreadsheets";
+
+function readSpreadsheetForms(): TaskSpreadsheetForm[] {
+  try {
+    const raw = localStorage.getItem(SPREADSHEET_FORMS_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? (parsed as TaskSpreadsheetForm[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSpreadsheetForms(forms: TaskSpreadsheetForm[]): void {
+  try {
+    localStorage.setItem(SPREADSHEET_FORMS_KEY, JSON.stringify(forms));
+  } catch { /* ignore quota errors */ }
+}
+
+export function loadSpreadsheetForm(taskId: string, siteId: string): TaskSpreadsheetForm | null {
+  return readSpreadsheetForms().find((f) => f.taskId === taskId && f.siteId === siteId) ?? null;
+}
+
+export function saveSpreadsheetForm(form: TaskSpreadsheetForm): void {
+  const all = readSpreadsheetForms().filter(
+    (f) => !(f.taskId === form.taskId && f.siteId === form.siteId)
+  );
+  all.push({ ...form, updatedAt: new Date().toISOString() });
+  writeSpreadsheetForms(all);
+}
+
+export function deleteSpreadsheetForm(taskId: string, siteId: string): void {
+  writeSpreadsheetForms(
+    readSpreadsheetForms().filter((f) => !(f.taskId === taskId && f.siteId === siteId))
+  );
+}
+
+export function hasSpreadsheetForm(taskId: string, siteId: string): boolean {
+  return readSpreadsheetForms().some((f) => f.taskId === taskId && f.siteId === siteId);
+}
+
+/** Returns the set of task ids (for a given site) that have an attached spreadsheet form. */
+export function loadSpreadsheetFormTaskIds(siteId: string): Set<string> {
+  return new Set(
+    readSpreadsheetForms().filter((f) => f.siteId === siteId).map((f) => f.taskId)
+  );
+}

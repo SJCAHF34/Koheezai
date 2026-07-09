@@ -39,6 +39,7 @@ const STORE_KEYS = [
   "koheez_custom_controlled_catalog",
   "koheez_assessments",
   "koheez_task_overrides",
+  "koheez_task_spreadsheets",
 ] as const;
 
 const TRACKED = new Set<string>(STORE_KEYS);

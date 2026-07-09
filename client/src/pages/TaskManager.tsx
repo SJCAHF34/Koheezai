@@ -88,6 +88,7 @@ import {
   loadSubItemCompletions,
   toggleSubItemCompletion,
   getTaskDueDate,
+  loadSpreadsheetFormTaskIds,
 } from "@/lib/taskStorage";
 import type { RetentionPatient, RetentionIssueType, RetentionStatus, AttemptLogEntry } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -95,6 +96,7 @@ import { toast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CreateTaskModal } from "@/components/CreateTaskModal";
+import { TaskSpreadsheetDialog } from "@/components/TaskSpreadsheetDialog";
 import {
   Check,
   UserPlus,
@@ -145,6 +147,7 @@ import {
   Tag,
   ExternalLink,
   LayoutGrid,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -443,12 +446,14 @@ function TaskRow({
   readOnly,
   siteId,
   highlighted,
+  hasSpreadsheet,
   onToggle,
   onAssign,
   onPrioritize,
   onMarkUrgent,
   onDeleteCustom,
   onEditTask,
+  onOpenSpreadsheet,
 }: {
   task: PharmacyTask;
   completed: boolean;
@@ -464,12 +469,14 @@ function TaskRow({
   readOnly?: boolean;
   siteId?: string;
   highlighted?: boolean;
+  hasSpreadsheet?: boolean;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
   onMarkUrgent: (t: PharmacyTask) => void;
   onDeleteCustom: (t: PharmacyTask) => void;
   onEditTask: (t: PharmacyTask) => void;
+  onOpenSpreadsheet?: (t: PharmacyTask) => void;
 }) {
   const cat = CATEGORY_CONFIG[task.category];
   const today = getTodayDateKey();
@@ -842,6 +849,22 @@ function TaskRow({
         </button>
       )}
 
+      {/* Spreadsheet form button — visible to anyone once a file is attached; directors can also attach one */}
+      {onOpenSpreadsheet && (hasSpreadsheet || canAssign) && (
+        <button
+          data-testid={`button-spreadsheet-${task.id}`}
+          onClick={() => onOpenSpreadsheet(task)}
+          title={hasSpreadsheet ? "Open attached spreadsheet form" : "Attach an Excel file to this task"}
+          className={`shrink-0 p-1.5 rounded-md transition-colors ${
+            hasSpreadsheet
+              ? "text-emerald-600 bg-emerald-50 visible"
+              : "invisible group-hover:visible text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+          }`}
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+        </button>
+      )}
+
       {/* Delete custom task button — directors only, custom tasks only */}
       {task.isCustom && canDeleteCustom && !readOnly && (
         confirmDelete ? (
@@ -893,6 +916,8 @@ function TaskGroupSection({
   onMarkUrgent,
   onDeleteCustom,
   onEditTask,
+  spreadsheetTaskIds,
+  onOpenSpreadsheet,
 }: {
   groupName: string;
   tasks: PharmacyTask[];
@@ -915,6 +940,8 @@ function TaskGroupSection({
   onMarkUrgent: (t: PharmacyTask) => void;
   onDeleteCustom: (t: PharmacyTask) => void;
   onEditTask: (t: PharmacyTask) => void;
+  spreadsheetTaskIds?: Set<string>;
+  onOpenSpreadsheet?: (t: PharmacyTask) => void;
 }) {
   const [open, setOpen] = useState(true);
   const done = tasks.filter((t) => completions.has(t.id)).length;
@@ -971,12 +998,14 @@ function TaskGroupSection({
               readOnly={readOnly}
               siteId={siteId}
               highlighted={task.id === highlightTaskId}
+              hasSpreadsheet={spreadsheetTaskIds?.has(task.id)}
               onToggle={onToggle}
               onAssign={onAssign}
               onPrioritize={onPrioritize}
               onMarkUrgent={onMarkUrgent}
               onDeleteCustom={onDeleteCustom}
               onEditTask={onEditTask}
+              onOpenSpreadsheet={onOpenSpreadsheet}
             />
           ))}
         </div>
@@ -1009,6 +1038,8 @@ function RoleSection({
   onMarkUrgent,
   onDeleteCustom,
   onEditTask,
+  spreadsheetTaskIds,
+  onOpenSpreadsheet,
 }: {
   role: TaskRole;
   groups: Array<{ groupName: string; tasks: PharmacyTask[] }>;
@@ -1031,6 +1062,8 @@ function RoleSection({
   onMarkUrgent: (t: PharmacyTask) => void;
   onDeleteCustom: (t: PharmacyTask) => void;
   onEditTask: (t: PharmacyTask) => void;
+  spreadsheetTaskIds?: Set<string>;
+  onOpenSpreadsheet?: (t: PharmacyTask) => void;
 }) {
   const [open, setOpen] = useState(true);
   const style = ROLE_STYLE[role];
@@ -1093,12 +1126,14 @@ function RoleSection({
               canDeleteCustom={canDeleteCustom}
               readOnly={readOnly}
               highlightTaskId={highlightTaskId}
+              spreadsheetTaskIds={spreadsheetTaskIds}
               onToggle={onToggle}
               onAssign={onAssign}
               onPrioritize={onPrioritize}
               onMarkUrgent={onMarkUrgent}
               onDeleteCustom={onDeleteCustom}
               onEditTask={onEditTask}
+              onOpenSpreadsheet={onOpenSpreadsheet}
             />
           ))}
         </div>
@@ -4263,6 +4298,8 @@ export default function TaskManager() {
   const [customTasks, setCustomTasks] = useState<PharmacyTask[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState<PharmacyTask | null>(null);
+  const [spreadsheetTask, setSpreadsheetTask] = useState<PharmacyTask | null>(null);
+  const [spreadsheetTaskIds, setSpreadsheetTaskIds] = useState<Set<string>>(new Set());
   const [, setOverrideVersion] = useState(0);
 
   // Re-apply built-in task edits after the server store hydrates localStorage
@@ -4281,6 +4318,10 @@ export default function TaskManager() {
   // site-specific tasks require a store context (urlSiteId for regional/CPO, always for PD).
   const canCreateTask = isDir;
   const canDeleteCustom = isPharmDir || (isRegionalDir && !!urlSiteId);
+
+  useEffect(() => {
+    setSpreadsheetTaskIds(loadSpreadsheetFormTaskIds(siteId));
+  }, [siteId, spreadsheetTask]);
 
   useEffect(() => {
     if (!profile) return;
@@ -5114,12 +5155,14 @@ export default function TaskManager() {
                       readOnly={readOnly}
                       siteId={siteId}
                       highlightTaskId={highlightTaskId}
+                      spreadsheetTaskIds={spreadsheetTaskIds}
                       onToggle={toggleCompletion}
                       onAssign={setAssigningTask}
                       onPrioritize={setPrioritizingTask}
                       onMarkUrgent={handleMarkUrgent}
                       onDeleteCustom={handleDeleteCustom}
                       onEditTask={setEditingTask}
+                      onOpenSpreadsheet={setSpreadsheetTask}
                     />
                   ))}
                 </section>
@@ -5146,12 +5189,14 @@ export default function TaskManager() {
                 readOnly={readOnly}
                 siteId={siteId}
                 highlightTaskId={highlightTaskId}
+                spreadsheetTaskIds={spreadsheetTaskIds}
                 onToggle={toggleCompletion}
                 onAssign={setAssigningTask}
                 onPrioritize={setPrioritizingTask}
                 onMarkUrgent={handleMarkUrgent}
                 onDeleteCustom={handleDeleteCustom}
                 onEditTask={setEditingTask}
+                onOpenSpreadsheet={setSpreadsheetTask}
               />
             ))}
           </div>
@@ -5264,6 +5309,19 @@ export default function TaskManager() {
                   createdAt: "",
                 }
           }
+        />
+      )}
+
+      {/* Excel import / editable form */}
+      {spreadsheetTask && profile && (
+        <TaskSpreadsheetDialog
+          open={true}
+          onClose={() => setSpreadsheetTask(null)}
+          taskId={spreadsheetTask.id}
+          siteId={siteId}
+          taskTitle={spreadsheetTask.title}
+          canEdit={isDir}
+          userName={profile.name}
         />
       )}
     </div>
