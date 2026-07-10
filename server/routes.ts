@@ -2371,6 +2371,101 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
     }
   });
 
+  app.post("/api/ai/schedule-chat", requireAuth, async (req, res) => {
+    if (!process.env.OPENAI_API_KEY1 && !process.env.OPENAI_API_KEY) {
+      return res.status(503).json({ message: "AI not configured — OPENAI_API_KEY is missing." });
+    }
+
+    const messageSchema = z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string().min(1).max(4000),
+    });
+
+    const taskSchema = z.object({
+      id: z.string(),
+      title: z.string(),
+      description: z.string().optional(),
+      category: z.string(),
+      frequency: z.string(),
+      taskGroup: z.string(),
+      dueDate: z.string(),
+      isUrgent: z.boolean().optional(),
+      isOverdue: z.boolean(),
+    });
+
+    const schema = z.object({
+      messages: z.array(messageSchema).min(1).max(40),
+      context: z.object({
+        date: z.string(),
+        role: z.string(),
+        workStart: z.string().optional(),
+        workEnd: z.string().optional(),
+        tasks: z.array(taskSchema).max(200),
+      }),
+    });
+
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid request", errors: parsed.error.issues });
+    }
+
+    const { messages, context } = parsed.data;
+
+    const taskLines = context.tasks.length > 0
+      ? context.tasks.map((t) => {
+          const flags = [
+            t.isUrgent ? "URGENT" : null,
+            t.isOverdue ? "OVERDUE" : null,
+            t.frequency !== "daily" ? `${t.frequency}, due ${t.dueDate}` : "daily",
+          ].filter(Boolean).join(", ");
+          return `  • [${t.category}] ${t.title} (${flags})${t.description ? ` — ${t.description}` : ""}`;
+        }).join("\n")
+      : "  (No tasks are due today.)";
+
+    const systemPrompt = `You are the Koheez.ai Schedule Assistant, helping HIV specialty pharmacy staff plan their workday. You build practical, realistic time-blocked schedules that fit today's due tasks (daily tasks plus any weekly/monthly/quarterly/etc. tasks that have come due) around normal pharmacy workflow.
+
+Guidelines:
+- Build a clear time-blocked schedule using specific time ranges (e.g. "9:00–9:30 AM — ...").
+- Prioritize URGENT and OVERDUE tasks earliest in the day.
+- Group similar/related tasks together when it makes sense (e.g. same task group or category) to reduce context switching.
+- Leave room for interruptions common in a retail pharmacy (patient calls, walk-ins) — don't pack the day back-to-back.
+- If the staff member's working hours are provided, keep the schedule within them; otherwise assume a typical 9:00 AM–5:00 PM shift.
+- Keep responses concise and scannable — use a short list/table format, not long paragraphs.
+- This is a multi-turn conversation — remember earlier answers and adjust the schedule when asked (e.g. "push my lunch to 1pm", "I only have 4 hours today").
+- Only use the tasks provided below; never invent tasks that aren't listed.
+
+Staff role: ${context.role}
+Date: ${context.date}
+${context.workStart && context.workEnd ? `Working hours: ${context.workStart}–${context.workEnd}` : "Working hours: not specified (assume 9:00 AM–5:00 PM)"}
+
+Tasks due today:
+${taskLines}`;
+
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages.map((m) => ({ role: m.role, content: m.content })),
+        ],
+        temperature: 0.5,
+        max_tokens: 900,
+      });
+
+      const answer = completion.choices[0].message.content ?? "No response generated.";
+      return res.json({ answer });
+    } catch (err: any) {
+      console.error("[Schedule Assistant] OpenAI error:", err);
+      if (err?.code === "insufficient_quota" || err?.error?.code === "insufficient_quota") {
+        return res.status(402).json({ message: "The AI quota has been exceeded. Please add credits to the OpenAI account to re-enable the Schedule Assistant." });
+      }
+      if (err?.status === 429 || err?.status === 503) {
+        return res.status(503).json({ message: "The AI service is temporarily busy — please try again in a moment." });
+      }
+      return res.status(502).json({ message: "AI provider error — please try again shortly." });
+    }
+  });
+
   // ── ADP Workforce Now Integration ─────────────────────────────────────
   // All ADP endpoints require director-level role AND correct site access,
   // derived from the server session (via getSiteAccess) — not req.user.

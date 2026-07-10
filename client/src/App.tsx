@@ -26,10 +26,11 @@ import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
 import TeamsConfig from "@/pages/TeamsConfig";
 import FaxLog from "@/pages/FaxLog";
+import ScheduleAssistant from "@/pages/ScheduleAssistant";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2, Send } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2, Send, Sparkles } from "lucide-react";
 import type { AppNotification } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { isInTeams, teamsSilentLogin } from "@/lib/teams";
@@ -318,6 +319,7 @@ function AppNav() {
 
             <NavMenuItem href="/app/assessment" icon={Activity} label="HIV/PrEP Assessor" testId="nav-assessment" onClick={close} />
             <NavMenuItem href="/app/tasks" icon={ClipboardList} label="Tasks" testId="nav-tasks" onClick={close} />
+            <NavMenuItem href="/app/schedule-assistant" icon={Sparkles} label="Schedule Assistant" testId="nav-schedule-assistant" onClick={close} />
 
             {isRegional && (
               <NavMenuItem href="/app/task-tracker" icon={ListChecks} label="Task Tracker" testId="nav-task-tracker" onClick={close} />
@@ -488,6 +490,9 @@ function Router() {
       </Route>
       <Route path="/app/tasks">
         <Protected component={TaskManager} />
+      </Route>
+      <Route path="/app/schedule-assistant">
+        <Protected component={ScheduleAssistant} />
       </Route>
       <Route path="/app/clinical-tools">
         <Protected component={ClinicalTools} />

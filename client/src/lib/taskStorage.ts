@@ -1,5 +1,5 @@
 import { taskRoleMatches, TASKS } from "./taskData";
-import type { TaskFrequency, TaskRole, TaskCategory } from "./taskData";
+import type { TaskFrequency, TaskRole, TaskCategory, PharmacyTask } from "./taskData";
 
 const COMPLETIONS_KEY = "koheez_task_completions";
 const TASK_OVERRIDES_KEY = "koheez_task_overrides";
@@ -1389,4 +1389,58 @@ export function loadSpreadsheetFormTaskIds(siteId: string): Set<string> {
   return new Set(
     readSpreadsheetForms().filter((f) => f.siteId === siteId).map((f) => f.taskId)
   );
+}
+
+// ── Due-today summaries (used by the Schedule Assistant chat) ──────────────
+
+export interface DueTaskSummary {
+  id: string;
+  title: string;
+  description?: string;
+  category: TaskCategory;
+  frequency: TaskFrequency;
+  taskGroup: string;
+  dueDate: string;
+  isUrgent?: boolean;
+  isOverdue: boolean;
+}
+
+/**
+ * Returns every task (built-in + custom) assigned to `role` that is due on
+ * `date` — i.e. daily tasks, plus any non-daily task whose recurrence has
+ * reached its current period (or is overdue and still incomplete), mirroring
+ * the Daily queue merge logic used in TaskManager.
+ */
+export function getDueTasksForToday(
+  role: TaskRole | string,
+  siteId: string,
+  region: string | undefined,
+  date: Date = new Date()
+): DueTaskSummary[] {
+  const builtIn = TASKS.filter((t) => !t.hidden && taskRoleMatches(t.role, role as string));
+  const custom = loadCustomTasks(siteId, region).filter((t) => taskRoleMatches(t.role, role as string));
+  const all: PharmacyTask[] = [...builtIn, ...custom];
+  const completionsByFreq = new Map<TaskFrequency, Set<string>>();
+  const ref = toDateOnly(date);
+  const result: DueTaskSummary[] = [];
+  for (const t of all) {
+    if (!completionsByFreq.has(t.frequency)) {
+      completionsByFreq.set(t.frequency, loadCompletions(siteId, t.frequency, undefined, date));
+    }
+    const completed = completionsByFreq.get(t.frequency)!.has(t.id);
+    if (!isTaskDueOn(t, date, completed)) continue;
+    const effectiveDue = getEffectiveDueDate(t, date);
+    result.push({
+      id: t.id,
+      title: t.title,
+      description: t.description,
+      category: t.category,
+      frequency: t.frequency,
+      taskGroup: t.taskGroup,
+      dueDate: effectiveDue,
+      isUrgent: t.isUrgent,
+      isOverdue: t.frequency !== "daily" && parseDateOnly(effectiveDue).getTime() < ref.getTime(),
+    });
+  }
+  return result;
 }
