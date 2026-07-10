@@ -819,12 +819,27 @@ function TaskRow({
         )}
 
         {assignment && (
-          <p className="text-[10px] text-purple-600 font-medium mt-1">
-            Assigned to{" "}
-            {assignment.assignedToName
-              ? assignment.assignedToName
-              : (ROLE_CONFIG[assignment.assignedToRole as keyof typeof ROLE_CONFIG]?.short ??
-                  assignment.assignedToRole)}
+          <p className="text-[10px] text-purple-600 font-medium mt-1 flex items-center gap-1 flex-wrap">
+            {assignment.assignedToName ? (
+              <User className="w-2.5 h-2.5 shrink-0" />
+            ) : (
+              <Users className="w-2.5 h-2.5 shrink-0" />
+            )}
+            {assignment.assignedToName ? (
+              <span>
+                Assigned to {assignment.assignedToName}{" "}
+                <span className="text-purple-400">
+                  ({ROLE_CONFIG[assignment.assignedToRole as keyof typeof ROLE_CONFIG]?.short ??
+                    assignment.assignedToRole})
+                </span>
+              </span>
+            ) : (
+              <span>
+                Assigned to whole role:{" "}
+                {ROLE_CONFIG[assignment.assignedToRole as keyof typeof ROLE_CONFIG]?.label ??
+                  assignment.assignedToRole}
+              </span>
+            )}
             {assignment.note ? ` · ${assignment.note}` : ""}
           </p>
         )}
@@ -3181,12 +3196,14 @@ function AssignDialog({
   task,
   siteId,
   directorName,
+  existingAssignment,
   onSave,
   onClose,
 }: {
   task: PharmacyTask;
   siteId: string;
   directorName: string;
+  existingAssignment?: TaskAssignment;
   onSave: (a: TaskAssignment) => void;
   onClose: () => void;
 }) {
@@ -3206,14 +3223,31 @@ function AssignDialog({
     return map;
   }, [roster, today]);
 
-  const [selectedRole, setSelectedRole] = useState<string>("pharmacist_1");
-  const [specificPerson, setSpecificPerson] = useState("");
-  const [note, setNote] = useState("");
+  // Two explicit assignment modes:
+  //  • "role"   — assign to whoever is covering a role, with no named person.
+  //  • "person" — assign to one specific named staff member (still tagged
+  //               with their role so cross-role surfacing/filtering works).
+  const [assignMode, setAssignMode] = useState<"role" | "person">(
+    existingAssignment?.assignedToName ? "person" : "role"
+  );
+  const [selectedRole, setSelectedRole] = useState<string>(
+    existingAssignment?.assignedToRole ?? "pharmacist_1"
+  );
+  const [specificPerson, setSpecificPerson] = useState(existingAssignment?.assignedToName ?? "");
+  const [note, setNote] = useState(existingAssignment?.note ?? "");
 
   const roleOptions = Object.entries(ROLE_CONFIG).filter(([k]) => k !== "director");
 
   function handleRoleSelect(roleKey: string) {
     setSelectedRole(roleKey);
+    // Switching roles while in person mode almost always means the
+    // previously typed name no longer applies to the new role.
+    if (assignMode === "person") setSpecificPerson("");
+  }
+
+  function handleModeSelect(mode: "role" | "person") {
+    setAssignMode(mode);
+    if (mode === "role") setSpecificPerson("");
   }
 
   return (
@@ -3241,7 +3275,45 @@ function AssignDialog({
           </div>
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Assign to Role
+              Assign To
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleModeSelect("role")}
+                data-testid="assign-mode-role"
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm border transition-all ${
+                  assignMode === "role"
+                    ? "border-purple-500 bg-purple-50 text-purple-800 font-semibold"
+                    : "border-slate-200 text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                Whole Role
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeSelect("person")}
+                data-testid="assign-mode-person"
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm border transition-all ${
+                  assignMode === "person"
+                    ? "border-purple-500 bg-purple-50 text-purple-800 font-semibold"
+                    : "border-slate-200 text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                Specific Person
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1.5">
+              {assignMode === "role"
+                ? "Shows up for whoever is covering this role that day — no name required."
+                : "Shows up for the named person only. Their role is still recorded so it can appear in the right lists."}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+              Role
             </p>
             <div className="grid grid-cols-2 gap-2">
               {roleOptions.map(([roleKey, cfg]) => {
@@ -3275,38 +3347,39 @@ function AssignDialog({
               })}
             </div>
           </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-              Specific Staff Member{" "}
-              <span className="normal-case font-normal text-slate-400">(optional — overrides role)</span>
-            </p>
-            {activeByRole.get(selectedRole) && (activeByRole.get(selectedRole)?.length ?? 0) > 0 && (
-              <div className="flex flex-wrap gap-1 mb-2">
-                {(activeByRole.get(selectedRole) ?? []).map((name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => setSpecificPerson(name)}
-                    className={`text-xs px-2 py-0.5 rounded border transition-all ${
-                      specificPerson === name
-                        ? "border-purple-400 bg-purple-50 text-purple-700 font-semibold"
-                        : "border-slate-200 text-slate-500 hover:border-slate-300"
-                    }`}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-            )}
-            <input
-              type="text"
-              value={specificPerson}
-              onChange={(e) => setSpecificPerson(e.target.value)}
-              data-testid="input-assign-person"
-              placeholder="e.g., Sarah M. or sarah@example.com"
-              className="w-full text-sm rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700 placeholder:text-slate-400"
-            />
-          </div>
+          {assignMode === "person" && (
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                Specific Staff Member
+              </p>
+              {activeByRole.get(selectedRole) && (activeByRole.get(selectedRole)?.length ?? 0) > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {(activeByRole.get(selectedRole) ?? []).map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => setSpecificPerson(name)}
+                      className={`text-xs px-2 py-0.5 rounded border transition-all ${
+                        specificPerson === name
+                          ? "border-purple-400 bg-purple-50 text-purple-700 font-semibold"
+                          : "border-slate-200 text-slate-500 hover:border-slate-300"
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <input
+                type="text"
+                value={specificPerson}
+                onChange={(e) => setSpecificPerson(e.target.value)}
+                data-testid="input-assign-person"
+                placeholder="e.g., Sarah M. or sarah@example.com"
+                className="w-full text-sm rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700 placeholder:text-slate-400"
+              />
+            </div>
+          )}
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
               Note{" "}
@@ -3334,7 +3407,7 @@ function AssignDialog({
               onSave({
                 taskId: task.id,
                 assignedToRole: selectedRole,
-                assignedToName: specificPerson.trim() || undefined,
+                assignedToName: assignMode === "person" ? specificPerson.trim() || undefined : undefined,
                 note: note.trim(),
                 assignedBy: directorName,
                 assignedAt: new Date().toISOString(),
@@ -3342,8 +3415,9 @@ function AssignDialog({
               });
               onClose();
             }}
+            disabled={assignMode === "person" && specificPerson.trim() === ""}
             data-testid="button-confirm-assign"
-            className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+            className="px-4 py-2 rounded-md text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Assign Task
           </button>
@@ -5341,6 +5415,7 @@ export default function TaskManager() {
           task={assigningTask}
           siteId={siteId}
           directorName={profile.name}
+          existingAssignment={assignments.get(assigningTask.id)}
           onSave={handleAssignSave}
           onClose={() => setAssigningTask(null)}
         />
