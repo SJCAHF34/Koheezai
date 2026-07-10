@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
-import { FileSpreadsheet, Upload, Download, FileText, Trash2, X, AlertTriangle, Plus } from "lucide-react";
+import { FileSpreadsheet, Upload, Download, FileText, AlertTriangle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +15,6 @@ import { useToast } from "@/hooks/use-toast";
 import {
   loadSpreadsheetForm,
   saveSpreadsheetForm,
-  deleteSpreadsheetForm,
   type TaskSpreadsheetForm,
   type SpreadsheetSheet,
 } from "@/lib/taskStorage";
@@ -215,18 +213,6 @@ export function TaskSpreadsheetDialog({
     scheduleSave({ ...form, sheets });
   }
 
-  function handleDeleteColumn(sheetIdx: number, colIdx: number) {
-    if (!form) return;
-    const sheets = form.sheets.map((s, si) => {
-      if (si !== sheetIdx) return s;
-      const headers = s.headers.filter((_, i) => i !== colIdx);
-      const columnTypes = s.columnTypes.filter((_, i) => i !== colIdx);
-      const rows = s.rows.map((r) => r.filter((_, i) => i !== colIdx));
-      return { ...s, headers, columnTypes, rows };
-    });
-    scheduleSave({ ...form, sheets });
-  }
-
   function handleAddRow(sheetIdx: number) {
     if (!form) return;
     const sheets = form.sheets.map((s, si) => {
@@ -235,25 +221,6 @@ export function TaskSpreadsheetDialog({
       return { ...s, rows: [...s.rows, emptyRow] };
     });
     scheduleSave({ ...form, sheets });
-  }
-
-  function handleDeleteRow(sheetIdx: number, rowIdx: number) {
-    if (!form) return;
-    const sheets = form.sheets.map((s, si) => {
-      if (si !== sheetIdx) return s;
-      return { ...s, rows: s.rows.filter((_, i) => i !== rowIdx) };
-    });
-    scheduleSave({ ...form, sheets });
-  }
-
-  function handleRemove() {
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current);
-      saveTimer.current = null;
-    }
-    deleteSpreadsheetForm(taskId, siteId);
-    setForm(null);
-    toast({ title: "Spreadsheet removed" });
   }
 
   useEffect(() => {
@@ -322,19 +289,6 @@ export function TaskSpreadsheetDialog({
               <p className="text-xs text-slate-500 truncate">
                 {form.fileName} · updated {new Date(form.updatedAt).toLocaleString()}
               </p>
-              {canEdit && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  data-testid="button-remove-spreadsheet"
-                  onClick={handleRemove}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <Trash2 className="w-3.5 h-3.5 mr-1" />
-                  Remove file
-                </Button>
-              )}
             </div>
 
             {form.sheets.length > 1 && (
@@ -377,18 +331,6 @@ export function TaskSpreadsheetDialog({
                               onChange={(e) => handleHeaderChange(activeSheetIdx, colIdx, e.target.value)}
                               className="h-7 text-[11px] font-semibold uppercase tracking-wide text-slate-500 border-0 bg-transparent px-1 focus-visible:ring-1"
                             />
-                            {canEdit && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                data-testid={`button-delete-column-${activeSheetIdx}-${colIdx}`}
-                                onClick={() => handleDeleteColumn(activeSheetIdx, colIdx)}
-                                className="h-6 w-6 shrink-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                              >
-                                <X className="w-3 h-3" />
-                              </Button>
-                            )}
                           </div>
                         </th>
                       ))}
@@ -424,21 +366,6 @@ export function TaskSpreadsheetDialog({
                             />
                           </td>
                         ))}
-                        {canEdit && (
-                          <td className="border-b border-slate-100 p-1 align-middle text-center">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              data-testid={`button-delete-row-${activeSheetIdx}-${rowIdx}`}
-                              onClick={() => handleDeleteRow(activeSheetIdx, rowIdx)}
-                              className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                              title="Delete row"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </td>
-                        )}
                       </tr>
                     ))}
                   </tbody>
