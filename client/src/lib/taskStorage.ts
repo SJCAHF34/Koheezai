@@ -1065,6 +1065,150 @@ export function getTaskDueDate(taskId: string, frequency: TaskFrequency, now?: D
   return fmt(new Date(y, m + 1, 0));
 }
 
+// ── Due-date-driven recurrence engine ──────────────────────────────────────
+// Every non-daily task carries a concrete due date (YYYY-MM-DD). Recurring
+// tasks (weekly/biweekly/monthly/quarterly/biannual) use that due date as an
+// *anchor* — the weekday (weekly/biweekly) or day-of-month (monthly and
+// longer) it repeats on — while completions continue to be tracked per
+// period (via getPeriodKey) so a task automatically becomes "due again" once
+// its next period starts, without ever needing to rewrite storage.
+
+function toDateOnly(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function parseDateOnly(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
+
+function formatDateOnly(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Biweekly anchor Monday used elsewhere by getPeriodKey. */
+const BIWEEKLY_ANCHOR = new Date(2026, 3, 13); // 2026-04-13 (Monday)
+
+function getRecurrencePeriodStart(frequency: TaskFrequency, date: Date): Date {
+  const d = toDateOnly(date);
+  switch (frequency) {
+    case "weekly": {
+      const sunday = new Date(d);
+      sunday.setDate(d.getDate() - d.getDay());
+      return sunday;
+    }
+    case "biweekly": {
+      const diffDays = Math.floor((d.getTime() - BIWEEKLY_ANCHOR.getTime()) / 86400000);
+      const periods = Math.floor(diffDays / 14);
+      const start = new Date(BIWEEKLY_ANCHOR);
+      start.setDate(BIWEEKLY_ANCHOR.getDate() + periods * 14);
+      return start;
+    }
+    case "monthly":
+      return new Date(d.getFullYear(), d.getMonth(), 1);
+    case "quarterly": {
+      const qStartMonth = Math.floor(d.getMonth() / 3) * 3;
+      return new Date(d.getFullYear(), qStartMonth, 1);
+    }
+    case "biannual": {
+      const hStartMonth = d.getMonth() < 6 ? 0 : 6;
+      return new Date(d.getFullYear(), hStartMonth, 1);
+    }
+    default:
+      return d;
+  }
+}
+
+/**
+ * Returns a sensible default due date (YYYY-MM-DD) for a task of the given
+ * frequency, used to prefill the create-task form. Recurring cadences
+ * default to the end of the current period; daily/one-time default to today.
+ */
+export function computeDefaultDueDate(frequency: TaskFrequency, from?: Date): string {
+  const today = toDateOnly(from ?? new Date());
+  switch (frequency) {
+    case "daily":
+    case "one_time":
+      return formatDateOnly(today);
+    case "weekly": {
+      const start = getRecurrencePeriodStart("weekly", today);
+      return formatDateOnly(new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6));
+    }
+    case "biweekly": {
+      const start = getRecurrencePeriodStart("biweekly", today);
+      return formatDateOnly(new Date(start.getFullYear(), start.getMonth(), start.getDate() + 13));
+    }
+    case "monthly":
+      return formatDateOnly(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+    case "quarterly": {
+      const start = getRecurrencePeriodStart("quarterly", today);
+      return formatDateOnly(new Date(start.getFullYear(), start.getMonth() + 3, 0));
+    }
+    case "biannual": {
+      const start = getRecurrencePeriodStart("biannual", today);
+      return formatDateOnly(new Date(start.getFullYear(), start.getMonth() + 6, 0));
+    }
+    default:
+      return formatDateOnly(today);
+  }
+}
+
+/**
+ * Effective due date for a task (YYYY-MM-DD): the task's own due date if
+ * set, otherwise a computed default. This lets legacy/built-in tasks that
+ * predate this feature behave sensibly without hand-editing every record.
+ */
+export function getEffectiveDueDate(
+  task: { dueDate?: string; frequency: TaskFrequency },
+  now?: Date
+): string {
+  return task.dueDate || computeDefaultDueDate(task.frequency, now);
+}
+
+/**
+ * Computes the date (within the period containing `referenceDate`) that a
+ * recurring task's due-date anchor falls on. E.g. a weekly task anchored to
+ * "due on Wednesday" resolves to this week's Wednesday.
+ */
+function occurrenceDateForPeriod(
+  frequency: TaskFrequency,
+  anchorDueDate: string,
+  referenceDate: Date
+): Date {
+  const anchor = parseDateOnly(anchorDueDate);
+  const anchorPeriodStart = getRecurrencePeriodStart(frequency, anchor);
+  const offsetMs = toDateOnly(anchor).getTime() - anchorPeriodStart.getTime();
+  const refPeriodStart = getRecurrencePeriodStart(frequency, referenceDate);
+  return new Date(refPeriodStart.getTime() + offsetMs);
+}
+
+/**
+ * True when a task should be considered "due" as of `referenceDate` — either
+ * its anchor day has arrived for the current period, or it's overdue and
+ * still incomplete. `isCompletedForCurrentPeriod` should reflect whether the
+ * task has already been completed for whatever period `referenceDate` falls
+ * in (daily tasks are always due; one-time tasks never recur).
+ */
+export function isTaskDueOn(
+  task: { dueDate?: string; frequency: TaskFrequency },
+  referenceDate: Date,
+  isCompletedForCurrentPeriod: boolean
+): boolean {
+  const ref = toDateOnly(referenceDate);
+  if (task.frequency === "daily") return true;
+  const effectiveDue = getEffectiveDueDate(task, ref);
+  if (task.frequency === "one_time") {
+    if (isCompletedForCurrentPeriod) return false;
+    return parseDateOnly(effectiveDue).getTime() <= ref.getTime();
+  }
+  if (isCompletedForCurrentPeriod) return false;
+  const occurrence = occurrenceDateForPeriod(task.frequency, effectiveDue, ref);
+  return occurrence.getTime() <= ref.getTime();
+}
+
 // ── Sub-item completions ─────────────────────────────────────────────────────
 // Tracks per-day completion state for mini checkboxes within a task.
 

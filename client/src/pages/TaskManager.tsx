@@ -88,6 +88,8 @@ import {
   loadSubItemCompletions,
   toggleSubItemCompletion,
   getTaskDueDate,
+  getEffectiveDueDate,
+  isTaskDueOn,
   loadSpreadsheetFormTaskIds,
   getRoleCoverageNames,
 } from "@/lib/taskStorage";
@@ -615,18 +617,22 @@ function TaskRow({
               Regional
             </span>
           )}
-          {task.isCustom && task.dueDate && (
-            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
-              Due {new Date(task.dueDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-            </span>
-          )}
-          {!task.isCustom && (() => {
-            const dueLabel = getTaskDueDate(task.id, task.frequency);
-            return dueLabel ? (
+          {task.frequency !== "daily" && (() => {
+            const effectiveDue = getEffectiveDueDate(task);
+            const dueTodayNow = isTaskDueOn(task, new Date(), completed);
+            const dueLabel = new Date(effectiveDue + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            if (dueTodayNow) {
+              return (
+                <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 border border-orange-200">
+                  Due Today · {dueLabel}
+                </span>
+              );
+            }
+            return (
               <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
                 Due {dueLabel}
               </span>
-            ) : null;
+            );
           })()}
           {coverageNames.length > 0 && (
             <span
@@ -4371,9 +4377,10 @@ export default function TaskManager() {
     } else {
       roleFilter = profile.role;
     }
-    if (frequency === "all") {
-      // Merge completions across every cadence so the "All tasks" view shows
-      // each task's correct done state for its own period.
+    if (frequency === "all" || frequency === "daily") {
+      // Merge completions across every cadence so the "All tasks" view (and
+      // the Daily queue, which also surfaces due-today non-daily tasks)
+      // shows each task's correct done state for its own period.
       const merged = new Set<string>();
       for (const f of FREQ_ORDER) {
         for (const id of loadCompletions(siteId, f, roleFilter, browseDate)) merged.add(id);
@@ -4725,7 +4732,36 @@ export default function TaskManager() {
     }
   }
 
-  const visible = [...baseVisible, ...relevantCustom, ...crossAssigned];
+  // Daily queue also surfaces non-daily tasks (built-in and custom) that are
+  // due today per their due-date anchor, or overdue and still incomplete.
+  let dueTodayExtra: PharmacyTask[] = [];
+  if (frequency === "daily") {
+    const nonDailyBuiltIn = TASKS.filter((t) => t.frequency !== "daily" && !t.hidden);
+    const roleFilteredBuiltIn = isDir
+      ? viewingRole === "all"
+        ? nonDailyBuiltIn
+        : viewingRole === "own"
+          ? nonDailyBuiltIn.filter((t) => taskRoleMatches(t.role, "director"))
+          : nonDailyBuiltIn.filter((t) => taskRoleMatches(t.role, viewingRole as string))
+      : nonDailyBuiltIn.filter((t) =>
+          taskRoleMatchesAny(t.role, extraRoles && extraRoles.length > 0 ? extraRoles : [profile.role])
+        );
+    const nonDailyCustom = customTasks.filter((ct) => {
+      if (ct.frequency === "daily") return false;
+      if (viewingRole === "all") return true;
+      if (viewingRole === "own") {
+        if (isDir) return taskRoleMatches(ct.role, "director");
+        const myRoles = extraRoleSet.size > 0 ? Array.from(extraRoleSet) : [profile.role];
+        return taskRoleMatchesAny(ct.role, myRoles);
+      }
+      return taskRoleMatches(ct.role, viewingRole as string);
+    });
+    dueTodayExtra = [...roleFilteredBuiltIn, ...nonDailyCustom].filter((t) =>
+      isTaskDueOn(t, browseDate, completions.has(t.id))
+    );
+  }
+
+  const visible = [...baseVisible, ...relevantCustom, ...crossAssigned, ...dueTodayExtra];
   const filteredVisible = categoryFilter === "all"
     ? visible
     : visible.filter((t) => t.category === categoryFilter);

@@ -41,6 +41,7 @@ import {
   loadSpreadsheetForm,
   saveSpreadsheetForm,
   deleteSpreadsheetForm,
+  computeDefaultDueDate,
   type CustomTask,
   type CustomTaskScope,
   type TaskSpreadsheetForm,
@@ -105,7 +106,7 @@ export const createTaskSchema = z.object({
   selectedRegion: z.string().optional(),
   selectedStore: z.string().optional(),
   assignedToLabel: z.string().optional(),
-  dueDate: z.string().optional(),
+  dueDate: z.string().min(1, "Due date is required"),
 });
 
 export type CreateTaskFormValues = z.infer<typeof createTaskSchema>;
@@ -170,7 +171,7 @@ export function CreateTaskModal({
       selectedRegion: userRegion ?? "",
       selectedStore: "",
       assignedToLabel: "",
-      dueDate: "",
+      dueDate: computeDefaultDueDate("daily"),
     },
   });
 
@@ -178,6 +179,15 @@ export function CreateTaskModal({
   const watchRegion = form.watch("selectedRegion");
   const watchStore = form.watch("selectedStore");
   const watchFrequency = form.watch("frequency");
+
+  // Keep the due-date default in sync with the selected frequency, unless
+  // the user has already picked a custom due date for this session.
+  const dueDateTouched = useRef(false);
+  useEffect(() => {
+    if (dueDateTouched.current) return;
+    form.setValue("dueDate", computeDefaultDueDate(watchFrequency));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchFrequency]);
 
   // ── Excel attachment (parsed but not yet necessarily persisted) ──────────
   const { toast } = useToast();
@@ -191,6 +201,7 @@ export function CreateTaskModal({
   // the modal shows its current state (filename, sheet/row counts).
   useEffect(() => {
     if (!open) return;
+    dueDateTouched.current = false;
     setSpreadsheetError(null);
     setSpreadsheetRemoved(false);
     if (taskToEdit) {
@@ -267,7 +278,7 @@ export function CreateTaskModal({
         selectedRegion: taskToEdit.region ?? userRegion ?? "",
         selectedStore: taskToEdit.selectedStore ?? "",
         assignedToLabel: taskToEdit.assignedToLabel ?? "",
-        dueDate: taskToEdit.dueDate ?? "",
+        dueDate: taskToEdit.dueDate || computeDefaultDueDate(taskToEdit.frequency),
       });
       setAssigneeValue(taskToEdit.assignedToLabel ?? "");
     } else {
@@ -285,7 +296,7 @@ export function CreateTaskModal({
         selectedRegion: userRegion ?? "",
         selectedStore: pdDefaultStore,
         assignedToLabel: "",
-        dueDate: "",
+        dueDate: computeDefaultDueDate("daily"),
       });
       if (defaultScope === "national") {
         setAssigneeValue(ASSIGNEE_GROUPS[0].value);
@@ -493,7 +504,7 @@ export function CreateTaskModal({
       createdBy: `${profile.name} ${roleAbbr}`,
       createdByRole: profile.role,
       createdAt: new Date().toISOString(),
-      dueDate: values.dueDate || undefined,
+      dueDate: values.dueDate,
     };
     saveCustomTask(customTask);
     persistSpreadsheet(id);
@@ -505,7 +516,7 @@ export function CreateTaskModal({
     }
     setSpreadsheetForm(null);
     setSpreadsheetRemoved(false);
-    form.reset({ ...form.formState.defaultValues, scope: defaultScope, selectedRegion: userRegion ?? "" });
+    form.reset({ ...form.formState.defaultValues, scope: defaultScope, selectedRegion: userRegion ?? "", dueDate: computeDefaultDueDate("daily") });
     // Reset assignee to sensible default for this user's default scope
     if (defaultScope === "national") {
       setAssigneeValue(ASSIGNEE_GROUPS[0].value);
@@ -757,9 +768,11 @@ export function CreateTaskModal({
           {!builtinEdit && (
           <div className="space-y-1.5">
             <Label htmlFor="ct-due">
-              Due Date
-              {watchFrequency !== "one_time" && (
-                <span className="text-slate-400 font-normal text-xs ml-1">(optional)</span>
+              Due Date <span className="text-red-500">*</span>
+              {watchFrequency !== "one_time" && watchFrequency !== "daily" && (
+                <span className="text-slate-400 font-normal text-xs ml-1">
+                  (repeats {watchFrequency})
+                </span>
               )}
             </Label>
             <Input
@@ -767,8 +780,13 @@ export function CreateTaskModal({
               type="date"
               data-testid="input-create-task-due-date"
               className="text-sm"
-              {...form.register("dueDate")}
+              {...form.register("dueDate", {
+                onChange: () => { dueDateTouched.current = true; },
+              })}
             />
+            {form.formState.errors.dueDate && (
+              <p className="text-xs text-red-600">{form.formState.errors.dueDate.message}</p>
+            )}
           </div>
           )}
 
