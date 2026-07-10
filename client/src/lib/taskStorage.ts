@@ -1082,7 +1082,7 @@ function parseDateOnly(dateStr: string): Date {
   return new Date(y, (m ?? 1) - 1, d ?? 1);
 }
 
-function formatDateOnly(d: Date): string {
+export function formatDateOnly(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -1177,7 +1177,7 @@ function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
-function occurrenceDateForPeriod(
+export function occurrenceDateForPeriod(
   frequency: TaskFrequency,
   anchorDueDate: string,
   referenceDate: Date
@@ -1234,10 +1234,14 @@ export function isTaskDueOn(
   const ref = toDateOnly(referenceDate);
   if (task.frequency === "daily") return true;
   const effectiveDue = getEffectiveDueDate(task, ref);
+  const firstDue = parseDateOnly(effectiveDue);
   if (task.frequency === "one_time") {
     if (isCompletedForCurrentPeriod) return false;
-    return parseDateOnly(effectiveDue).getTime() <= ref.getTime();
+    return firstDue.getTime() <= ref.getTime();
   }
+  // Recurring tasks never surface before their first configured due date —
+  // the anchor only starts repeating once its initial occurrence has passed.
+  if (ref.getTime() < firstDue.getTime()) return false;
   if (isCompletedForCurrentPeriod) return false;
   const occurrence = occurrenceDateForPeriod(task.frequency, effectiveDue, ref);
   return occurrence.getTime() <= ref.getTime();

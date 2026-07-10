@@ -90,6 +90,8 @@ import {
   getTaskDueDate,
   getEffectiveDueDate,
   isTaskDueOn,
+  occurrenceDateForPeriod,
+  formatDateOnly,
   loadSpreadsheetFormTaskIds,
   getRoleCoverageNames,
 } from "@/lib/taskStorage";
@@ -620,9 +622,14 @@ function TaskRow({
             </span>
           )}
           {task.frequency !== "daily" && (() => {
-            const effectiveDue = getEffectiveDueDate(task, browseDate ?? new Date());
-            const dueTodayNow = isTaskDueOn(task, browseDate ?? new Date(), completed);
-            const dueLabel = new Date(effectiveDue + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            const ref = browseDate ?? new Date();
+            const effectiveDue = getEffectiveDueDate(task, ref);
+            const dueTodayNow = isTaskDueOn(task, ref, completed);
+            const displayDate =
+              task.frequency === "one_time"
+                ? effectiveDue
+                : formatDateOnly(occurrenceDateForPeriod(task.frequency, effectiveDue, ref));
+            const dueLabel = new Date(displayDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
             if (dueTodayNow) {
               return (
                 <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 border border-orange-200">
