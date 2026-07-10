@@ -452,6 +452,7 @@ function TaskRow({
   sectionRole,
   highlighted,
   hasSpreadsheet,
+  browseDate,
   onToggle,
   onAssign,
   onPrioritize,
@@ -476,6 +477,7 @@ function TaskRow({
   sectionRole?: TaskRole;
   highlighted?: boolean;
   hasSpreadsheet?: boolean;
+  browseDate?: Date;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
@@ -619,7 +621,7 @@ function TaskRow({
           )}
           {task.frequency !== "daily" && (() => {
             const effectiveDue = getEffectiveDueDate(task);
-            const dueTodayNow = isTaskDueOn(task, new Date(), completed);
+            const dueTodayNow = isTaskDueOn(task, browseDate ?? new Date(), completed);
             const dueLabel = new Date(effectiveDue + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
             if (dueTodayNow) {
               return (
@@ -950,6 +952,7 @@ function TaskGroupSection({
   siteId,
   sectionRole,
   highlightTaskId,
+  browseDate,
   onToggle,
   onAssign,
   onPrioritize,
@@ -975,6 +978,7 @@ function TaskGroupSection({
   siteId?: string;
   sectionRole?: TaskRole;
   highlightTaskId?: string | null;
+  browseDate?: Date;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
@@ -1041,6 +1045,7 @@ function TaskGroupSection({
               sectionRole={sectionRole}
               highlighted={task.id === highlightTaskId}
               hasSpreadsheet={spreadsheetTaskIds?.has(task.id)}
+              browseDate={browseDate}
               onToggle={onToggle}
               onAssign={onAssign}
               onPrioritize={onPrioritize}
@@ -1074,6 +1079,7 @@ function RoleSection({
   readOnly,
   siteId,
   highlightTaskId,
+  browseDate,
   onToggle,
   onAssign,
   onPrioritize,
@@ -1098,6 +1104,7 @@ function RoleSection({
   readOnly?: boolean;
   siteId?: string;
   highlightTaskId?: string | null;
+  browseDate?: Date;
   onToggle: (t: PharmacyTask) => void;
   onAssign: (t: PharmacyTask) => void;
   onPrioritize: (t: PharmacyTask) => void;
@@ -1170,6 +1177,7 @@ function RoleSection({
               readOnly={readOnly}
               highlightTaskId={highlightTaskId}
               spreadsheetTaskIds={spreadsheetTaskIds}
+              browseDate={browseDate}
               onToggle={onToggle}
               onAssign={onAssign}
               onPrioritize={onPrioritize}
@@ -5230,6 +5238,7 @@ export default function TaskManager() {
                       siteId={siteId}
                       highlightTaskId={highlightTaskId}
                       spreadsheetTaskIds={spreadsheetTaskIds}
+                      browseDate={browseDate}
                       onToggle={toggleCompletion}
                       onAssign={setAssigningTask}
                       onPrioritize={setPrioritizingTask}
@@ -5264,6 +5273,7 @@ export default function TaskManager() {
                 siteId={siteId}
                 highlightTaskId={highlightTaskId}
                 spreadsheetTaskIds={spreadsheetTaskIds}
+                browseDate={browseDate}
                 onToggle={toggleCompletion}
                 onAssign={setAssigningTask}
                 onPrioritize={setPrioritizingTask}

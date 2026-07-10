@@ -1187,12 +1187,13 @@ function occurrenceDateForPeriod(
   switch (frequency) {
     case "weekly":
     case "biweekly": {
-      // Weekday-based anchor: shift by whole weeks (or fortnights) from the
-      // anchor date to land in the same week (or fortnight) as `ref`.
-      const stepDays = frequency === "weekly" ? 7 : 14;
-      const diffDays = Math.round((ref.getTime() - anchor.getTime()) / 86400000);
-      const periods = Math.floor(diffDays / stepDays);
-      return new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + periods * stepDays);
+      // Weekday-based anchor: fixed-length periods (7 or 14 days), so the
+      // anchor's offset-within-period (in days) is stable across periods —
+      // apply it to the current reference period's start.
+      const anchorPeriodStart = getRecurrencePeriodStart(frequency, anchor);
+      const offsetDays = Math.round((anchor.getTime() - anchorPeriodStart.getTime()) / 86400000);
+      const refPeriodStart = getRecurrencePeriodStart(frequency, ref);
+      return new Date(refPeriodStart.getFullYear(), refPeriodStart.getMonth(), refPeriodStart.getDate() + offsetDays);
     }
     case "monthly": {
       const monthsDiff = (ref.getFullYear() - anchor.getFullYear()) * 12 + (ref.getMonth() - anchor.getMonth());
