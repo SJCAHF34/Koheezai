@@ -303,7 +303,7 @@ export default function SchedulingPage() {
     }
   }, [sitesQuery.data, siteId, profile?.siteId]);
 
-  const [viewMode, setViewMode] = useState<"week" | "month">("week");
+  const [viewMode, setViewMode] = useState<"week" | "month">("month");
   const [weekAnchor, setWeekAnchor] = useState<Date>(startOfWeek(new Date()));
   const [monthAnchor, setMonthAnchor] = useState<Date>(startOfMonth(new Date()));
 
@@ -320,8 +320,8 @@ export default function SchedulingPage() {
     }
     if (qWeek && /^\d{4}-\d{2}-\d{2}$/.test(qWeek)) {
       const [y, m, d] = qWeek.split("-").map((n) => parseInt(n, 10));
-      setWeekAnchor(startOfWeek(new Date(y, m - 1, d)));
-      setViewMode("week");
+      setMonthAnchor(startOfMonth(new Date(y, m - 1, d)));
+      setViewMode("month");
     }
     if (sitesQuery.data) setUrlApplied(true);
   }, [sitesQuery.data, urlApplied]);
@@ -439,16 +439,21 @@ export default function SchedulingPage() {
         getAssignedRegion(profile) === currentSiteRegion)
     : false;
 
+  // Submissions are always keyed by month start (1st of the month), not by
+  // week — weekly submission was dropped in favor of a single monthly
+  // submission per site.
+  const monthKey = toDateKey(monthAnchor);
+
   const submissionQuery = useQuery<ScheduleSubmission | null>({
-    queryKey: ["/api/scheduling", siteId, "submissions", "week", fromKey],
+    queryKey: ["/api/scheduling", siteId, "submissions", "month", monthKey],
     queryFn: async () =>
       apiRequest(
-        `/api/scheduling/${siteId}/submissions?weekStart=${fromKey}`,
+        `/api/scheduling/${siteId}/submissions?weekStart=${monthKey}`,
       ),
-    enabled: !!siteId && viewMode === "week",
+    enabled: !!siteId && viewMode === "month",
   });
 
-  // Full submission history for the site (all weeks, newest first).
+  // Full submission history for the site (all months, newest first).
   const submissionHistoryQuery = useQuery<ScheduleSubmission[]>({
     queryKey: ["/api/scheduling", siteId, "submissions"],
     queryFn: async () => apiRequest(`/api/scheduling/${siteId}/submissions`),
@@ -463,7 +468,7 @@ export default function SchedulingPage() {
         body: JSON.stringify(payload),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions", "week", fromKey] });
+      queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions", "month", monthKey] });
       queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       toast({ title: "Submitted for review", description: "Your Regional Director has been notified." });
@@ -481,7 +486,7 @@ export default function SchedulingPage() {
         body: JSON.stringify({ reviewNote: payload.reviewNote }),
       }),
     onSuccess: (_data, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions", "week", fromKey] });
+      queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions", "month", monthKey] });
       queryClient.invalidateQueries({ queryKey: ["/api/scheduling", siteId, "submissions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       toast({
@@ -612,13 +617,13 @@ export default function SchedulingPage() {
         </Card>
       )}
 
-      {/* Submission status banner (week view only) */}
-      {siteId && viewMode === "week" && (
+      {/* Submission status banner (month view only) */}
+      {siteId && viewMode === "month" && (
         <SubmissionBanner
           submission={submissionQuery.data ?? null}
           isPD={isPD && profile?.siteId === siteId}
           isReviewer={isReviewer}
-          weekLabel={weekDays[0].toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+          periodLabel={monthAnchor.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
           onSubmitClick={() => setSubmitOpen(true)}
           onApproveClick={() => setReviewOpen("approve")}
           onRequestChangesClick={() => setReviewOpen("request-changes")}
@@ -626,7 +631,7 @@ export default function SchedulingPage() {
         />
       )}
 
-      {/* Submission history (all weeks) */}
+      {/* Submission history (all months) */}
       {siteId && (
         <SubmissionHistory submissions={submissionHistoryQuery.data ?? []} />
       )}
@@ -949,9 +954,9 @@ export default function SchedulingPage() {
         <SubmitForReviewDialog
           open={submitOpen}
           onClose={() => setSubmitOpen(false)}
-          weekLabel={weekDays[0].toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+          periodLabel={monthAnchor.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
           isSubmitting={submitMutation.isPending}
-          onSubmit={(note) => submitMutation.mutate({ weekStart: fromKey, submitterNote: note || undefined })}
+          onSubmit={(note) => submitMutation.mutate({ weekStart: monthKey, submitterNote: note || undefined })}
         />
       )}
 
@@ -3055,10 +3060,8 @@ function SubmissionHistory({ submissions }: { submissions: ScheduleSubmission[] 
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="font-semibold">
-                    Week of{" "}
                     {new Date(`${s.weekStart}T00:00:00`).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
+                      month: "long",
                       year: "numeric",
                     })}
                   </div>
@@ -3096,7 +3099,7 @@ function SubmissionBanner({
   submission,
   isPD,
   isReviewer,
-  weekLabel,
+  periodLabel,
   onSubmitClick,
   onApproveClick,
   onRequestChangesClick,
@@ -3105,7 +3108,7 @@ function SubmissionBanner({
   submission: ScheduleSubmission | null;
   isPD: boolean;
   isReviewer: boolean;
-  weekLabel: string;
+  periodLabel: string;
   onSubmitClick: () => void;
   onApproveClick: () => void;
   onRequestChangesClick: () => void;
@@ -3117,7 +3120,7 @@ function SubmissionBanner({
       <Card data-testid="card-submission-banner">
         <CardContent className="py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-muted-foreground">
-            This week's schedule has not been submitted to your Regional Director yet.
+            This month's schedule has not been submitted to your Regional Director yet.
           </div>
           <Button
             size="sm"
@@ -3126,7 +3129,7 @@ function SubmissionBanner({
             data-testid="button-submit-schedule"
           >
             <Send className="w-4 h-4 mr-1.5" />
-            Submit week to RPD
+            Submit month to RPD
           </Button>
         </CardContent>
       </Card>
@@ -3152,7 +3155,7 @@ function SubmissionBanner({
             <Icon className="w-4 h-4 mt-0.5 shrink-0" />
             <div className="min-w-0">
               <div className="text-sm font-semibold" data-testid="text-submission-status">
-                {meta.label} — week of {weekLabel}
+                {meta.label} — {periodLabel}
               </div>
               <div className="text-xs opacity-80">
                 Submitted by {submission.submittedByName} · {submittedAt}
@@ -3221,13 +3224,13 @@ function SubmissionBanner({
 function SubmitForReviewDialog({
   open,
   onClose,
-  weekLabel,
+  periodLabel,
   isSubmitting,
   onSubmit,
 }: {
   open: boolean;
   onClose: () => void;
-  weekLabel: string;
+  periodLabel: string;
   isSubmitting: boolean;
   onSubmit: (note: string) => void;
 }) {
@@ -3236,9 +3239,9 @@ function SubmitForReviewDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o && !isSubmitting) onClose(); }}>
       <DialogContent data-testid="dialog-submit-review">
         <DialogHeader>
-          <DialogTitle>Submit week to Regional Director</DialogTitle>
+          <DialogTitle>Submit month to Regional Director</DialogTitle>
           <DialogDescription>
-            Send the schedule for the week of {weekLabel} to your RPD for review.
+            Send the schedule for {periodLabel} to your RPD for review.
           </DialogDescription>
         </DialogHeader>
         <div>

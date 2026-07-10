@@ -1846,14 +1846,11 @@ FORMATTING RULES (strict):
 
   // ── Schedule Submissions (PD → RPD review) ────────────────────────────
 
-  function formatWeekRange(weekStart: string): string {
-    // weekStart is YYYY-MM-DD (Sunday). Build a friendly "MMM D – MMM D, YYYY".
-    const [y, m, d] = weekStart.split("-").map((n) => parseInt(n, 10));
+  function formatMonthRange(monthStart: string): string {
+    // monthStart is YYYY-MM-DD (1st of the month). Build a friendly "Month YYYY".
+    const [y, m, d] = monthStart.split("-").map((n) => parseInt(n, 10));
     const start = new Date(y, m - 1, d);
-    const end = new Date(y, m - 1, d + 6);
-    const fmt = (dt: Date) =>
-      dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    return `${fmt(start)} – ${fmt(end)}, ${end.getFullYear()}`;
+    return start.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   }
 
   // PD submits the displayed week to their RPD(s) for review.
@@ -1887,7 +1884,7 @@ FORMATTING RULES (strict):
     // Notify all RPDs of this region (and CPOs).
     const recipients = [...getRPDsByRegion(region), ...getCPOs()];
     const seen = new Set<string>();
-    const friendlyWeek = formatWeekRange(parsed.data.weekStart);
+    const friendlyMonth = formatMonthRange(parsed.data.weekStart);
     for (const r of recipients) {
       const key = r.email.toLowerCase();
       if (seen.has(key)) continue;
@@ -1896,7 +1893,7 @@ FORMATTING RULES (strict):
         toEmail: r.email,
         type: "schedule_submitted",
         title: `Schedule submitted: ${siteName}`,
-        body: `${submission.submittedByName} submitted the schedule for the week of ${friendlyWeek} for review.${parsed.data.submitterNote ? ` Note: ${parsed.data.submitterNote}` : ""}`,
+        body: `${submission.submittedByName} submitted the schedule for ${friendlyMonth} for review.${parsed.data.submitterNote ? ` Note: ${parsed.data.submitterNote}` : ""}`,
         link: `/app/scheduling?site=${siteId}&week=${parsed.data.weekStart}`,
         submissionId: submission.id,
         siteId,
@@ -1966,7 +1963,7 @@ FORMATTING RULES (strict):
     if (!updated) return res.status(404).json({ message: "Submission not found" });
 
     // Notify the original submitter.
-    const friendlyWeek = formatWeekRange(submission.weekStart);
+    const friendlyMonth = formatMonthRange(submission.weekStart);
     await storage.addNotification({
       toEmail: submission.submittedByEmail,
       type: nextStatus === "approved" ? "schedule_approved" : "schedule_changes_requested",
@@ -1976,8 +1973,8 @@ FORMATTING RULES (strict):
           : `Changes requested: ${submission.siteName}`,
       body:
         nextStatus === "approved"
-          ? `${reviewerName} approved the schedule for the week of ${friendlyWeek}.${parsed.data.reviewNote ? ` Note: ${parsed.data.reviewNote}` : ""}`
-          : `${reviewerName} requested changes to the schedule for the week of ${friendlyWeek}. Note: ${parsed.data.reviewNote}`,
+          ? `${reviewerName} approved the schedule for ${friendlyMonth}.${parsed.data.reviewNote ? ` Note: ${parsed.data.reviewNote}` : ""}`
+          : `${reviewerName} requested changes to the schedule for ${friendlyMonth}. Note: ${parsed.data.reviewNote}`,
       link: `/app/scheduling?site=${submission.siteId}&week=${submission.weekStart}`,
       submissionId: submission.id,
       siteId: submission.siteId,
