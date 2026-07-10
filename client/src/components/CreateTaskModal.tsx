@@ -88,6 +88,11 @@ function userRoleToTaskRole(role: UserRole): TaskRole {
 
 // Role mapping for site-scope group options
 const STORE_GROUP_ROLES: Record<string, TaskRole> = {
+  "DE Tech":         "data_entry_tech",
+  "PV2 Tech":        "pv2_tech",
+  "Delivery Tech":   "delivery_tech",
+  "Pharmacist 1":    "pharmacist_1",
+  "Pharmacist 2":    "pharmacist_2",
   "All Pharmacists": "all_pharmacists",
   "All Techs":       "all_techs",
   "All Staff":       "all_staff",
@@ -364,6 +369,11 @@ export function CreateTaskModal({
     }
     if (watchScope === "site" && effectiveStore) {
       const groupOptions = [
+        { label: "DE Tech",         value: "DE Tech" },
+        { label: "PV2 Tech",        value: "PV2 Tech" },
+        { label: "Delivery Tech",   value: "Delivery Tech" },
+        { label: "Pharmacist 1",    value: "Pharmacist 1" },
+        { label: "Pharmacist 2",    value: "Pharmacist 2" },
         { label: "All Pharmacists", value: "All Pharmacists" },
         { label: "All Techs",       value: "All Techs" },
         { label: "All Staff",       value: "All Staff" },
