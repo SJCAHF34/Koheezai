@@ -62,10 +62,13 @@ const PUSH_DEBOUNCE_MS = 800;
 const FAST_PUSH_DEBOUNCE_MS = 150;
 
 // Marker recording which tracked keys have a write that hasn't been
-// confirmed saved to the server yet. Written with the *original*
-// localStorage methods (not the intercepted ones) so recording it doesn't
-// itself get scheduled for a push, and so it survives a page reload —
-// letting hydration on the next load know it must not clobber that key.
+// confirmed saved to the server yet, keyed by siteId so a pending entry from
+// one store can never suppress hydration or be re-pushed into a different
+// store (e.g. a shared workstation where different staff log into different
+// sites). Written with the *original* localStorage methods (not the
+// intercepted ones) so recording it doesn't itself get scheduled for a push,
+// and so it survives a page reload — letting hydration on the next load know
+// it must not clobber that key for that specific site.
 const PENDING_MARKER_KEY = "koheez_sync_pending_keys";
 
 let interceptorInstalled = false;
@@ -83,50 +86,65 @@ let rawGetItem: (key: string) => string | null;
 let rawSetItem: (key: string, value: string) => void;
 let rawRemoveItem: (key: string) => void;
 
-function readPendingMarker(): Set<string> {
+function readPendingMarkerAll(): Record<string, string[]> {
   try {
     const raw = rawGetItem.call(window.localStorage, PENDING_MARKER_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(parsed) ? (parsed as string[]) : []);
+    const parsed: unknown = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, string[]>)
+      : {};
   } catch {
-    return new Set();
+    return {};
   }
 }
 
-function writePendingMarker(keys: Set<string>) {
+function writePendingMarkerAll(bySite: Record<string, string[]>) {
   try {
-    if (keys.size === 0) {
+    const hasAny = Object.values(bySite).some((keys) => keys.length > 0);
+    if (!hasAny) {
       rawRemoveItem.call(window.localStorage, PENDING_MARKER_KEY);
     } else {
-      rawSetItem.call(window.localStorage, PENDING_MARKER_KEY, JSON.stringify(Array.from(keys)));
+      rawSetItem.call(window.localStorage, PENDING_MARKER_KEY, JSON.stringify(bySite));
     }
   } catch {
     // Storage full/unavailable — nothing more we can do here.
   }
 }
 
-function markPending(key: string) {
-  const pending = readPendingMarker();
-  if (!pending.has(key)) {
-    pending.add(key);
-    writePendingMarker(pending);
+// Pending keys for the given site only — never a different site's entries.
+function readPendingMarker(siteId: string): Set<string> {
+  const bySite = readPendingMarkerAll();
+  const keys = bySite[siteId];
+  return new Set(Array.isArray(keys) ? keys : []);
+}
+
+function markPending(siteId: string, key: string) {
+  const bySite = readPendingMarkerAll();
+  const keys = new Set(bySite[siteId] ?? []);
+  if (!keys.has(key)) {
+    keys.add(key);
+    bySite[siteId] = Array.from(keys);
+    writePendingMarkerAll(bySite);
   }
 }
 
-function clearPending(key: string) {
-  const pending = readPendingMarker();
-  if (pending.has(key)) {
-    pending.delete(key);
-    writePendingMarker(pending);
+function clearPending(siteId: string, key: string) {
+  const bySite = readPendingMarkerAll();
+  const keys = new Set(bySite[siteId] ?? []);
+  if (keys.has(key)) {
+    keys.delete(key);
+    bySite[siteId] = Array.from(keys);
+    writePendingMarkerAll(bySite);
   }
 }
 
 function pushKey(key: string, keepalive = false): Promise<void> {
   if (!activeSiteId) return Promise.resolve();
+  const siteId = activeSiteId;
   dirtyKeys.delete(key);
   const raw = window.localStorage.getItem(key);
   return fetch(
-    `/api/client-store/${encodeURIComponent(key)}?siteId=${encodeURIComponent(activeSiteId)}`,
+    `/api/client-store/${encodeURIComponent(key)}?siteId=${encodeURIComponent(siteId)}`,
     {
       method: "PUT",
       credentials: "include",
@@ -142,7 +160,7 @@ function pushKey(key: string, keepalive = false): Promise<void> {
         dirtyKeys.add(key);
         return;
       }
-      clearPending(key);
+      clearPending(siteId, key);
     })
     .catch(() => {
       // Network hiccup — mark dirty so a later write (or unload flush) retries.
@@ -151,8 +169,9 @@ function pushKey(key: string, keepalive = false): Promise<void> {
 }
 
 function schedulePush(key: string) {
+  if (!activeSiteId) return;
   dirtyKeys.add(key);
-  markPending(key);
+  markPending(activeSiteId, key);
   const existing = pendingTimers.get(key);
   if (existing) clearTimeout(existing);
   pendingTimers.set(
@@ -214,7 +233,7 @@ async function doHydrate(siteId: string): Promise<void> {
     // confirmed saved — keep the local value and re-push it once hydration
     // finishes, instead of letting the (stale) server response below
     // overwrite it.
-    const pending = readPendingMarker();
+    const pending = readPendingMarker(siteId);
 
     const res = await fetch(`/api/client-store?siteId=${encodeURIComponent(siteId)}`, {
       credentials: "include",
