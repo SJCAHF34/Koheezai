@@ -18,6 +18,16 @@
 //
 // If the server has no data yet (first run after this feature shipped), any
 // existing local values are uploaded once so nothing already saved is lost.
+//
+// Race guard: a write is debounced before it reaches the server, so a quick
+// refresh/close can happen before the push lands. If a fresh page load then
+// hydrates from the server, it would otherwise overwrite the just-made local
+// change with the stale server value — silently reverting things like a task
+// checkbox. To prevent that, every key with an un-confirmed push is recorded
+// in a small "pending" marker written straight to localStorage (bypassing the
+// debounce), which survives a reload. Hydration checks that marker first: any
+// key still marked pending keeps its local value (never overwritten by the
+// server response) and is immediately re-pushed instead.
 
 const STORE_KEYS = [
   "koheez_task_completions",
@@ -43,7 +53,20 @@ const STORE_KEYS = [
 ] as const;
 
 const TRACKED = new Set<string>(STORE_KEYS);
+// Small, frequent interactions (task completions) get a much shorter debounce
+// so the loss window on a quick refresh/close is tiny. Larger, chunkier
+// blobs (inventory, ACHC docs, rosters, …) keep the original debounce so we
+// don't hammer the server on every keystroke.
+const FAST_SYNC_KEYS = new Set<string>(["koheez_task_completions"]);
 const PUSH_DEBOUNCE_MS = 800;
+const FAST_PUSH_DEBOUNCE_MS = 150;
+
+// Marker recording which tracked keys have a write that hasn't been
+// confirmed saved to the server yet. Written with the *original*
+// localStorage methods (not the intercepted ones) so recording it doesn't
+// itself get scheduled for a push, and so it survives a page reload —
+// letting hydration on the next load know it must not clobber that key.
+const PENDING_MARKER_KEY = "koheez_sync_pending_keys";
 
 let interceptorInstalled = false;
 // While hydrating we write into localStorage ourselves — those writes must not
@@ -55,6 +78,48 @@ let activeSiteId: string | null = null;
 
 const pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const dirtyKeys = new Set<string>();
+
+let rawGetItem: (key: string) => string | null;
+let rawSetItem: (key: string, value: string) => void;
+let rawRemoveItem: (key: string) => void;
+
+function readPendingMarker(): Set<string> {
+  try {
+    const raw = rawGetItem.call(window.localStorage, PENDING_MARKER_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(parsed) ? (parsed as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writePendingMarker(keys: Set<string>) {
+  try {
+    if (keys.size === 0) {
+      rawRemoveItem.call(window.localStorage, PENDING_MARKER_KEY);
+    } else {
+      rawSetItem.call(window.localStorage, PENDING_MARKER_KEY, JSON.stringify(Array.from(keys)));
+    }
+  } catch {
+    // Storage full/unavailable — nothing more we can do here.
+  }
+}
+
+function markPending(key: string) {
+  const pending = readPendingMarker();
+  if (!pending.has(key)) {
+    pending.add(key);
+    writePendingMarker(pending);
+  }
+}
+
+function clearPending(key: string) {
+  const pending = readPendingMarker();
+  if (pending.has(key)) {
+    pending.delete(key);
+    writePendingMarker(pending);
+  }
+}
 
 function pushKey(key: string, keepalive = false): Promise<void> {
   if (!activeSiteId) return Promise.resolve();
@@ -75,7 +140,9 @@ function pushKey(key: string, keepalive = false): Promise<void> {
         // Server rejected the write (auth expired, server error) — mark dirty
         // so a later write or the unload flush retries it.
         dirtyKeys.add(key);
+        return;
       }
+      clearPending(key);
     })
     .catch(() => {
       // Network hiccup — mark dirty so a later write (or unload flush) retries.
@@ -85,6 +152,7 @@ function pushKey(key: string, keepalive = false): Promise<void> {
 
 function schedulePush(key: string) {
   dirtyKeys.add(key);
+  markPending(key);
   const existing = pendingTimers.get(key);
   if (existing) clearTimeout(existing);
   pendingTimers.set(
@@ -92,7 +160,7 @@ function schedulePush(key: string) {
     setTimeout(() => {
       pendingTimers.delete(key);
       void pushKey(key);
-    }, PUSH_DEBOUNCE_MS),
+    }, FAST_SYNC_KEYS.has(key) ? FAST_PUSH_DEBOUNCE_MS : PUSH_DEBOUNCE_MS),
   );
 }
 
@@ -113,6 +181,10 @@ function installInterceptor() {
 
   const originalSetItem = Storage.prototype.setItem;
   const originalRemoveItem = Storage.prototype.removeItem;
+  const originalGetItem = Storage.prototype.getItem;
+  rawGetItem = originalGetItem;
+  rawSetItem = originalSetItem;
+  rawRemoveItem = originalRemoveItem;
 
   Storage.prototype.setItem = function (key: string, value: string) {
     originalSetItem.call(this, key, value);
@@ -138,6 +210,12 @@ async function doHydrate(siteId: string): Promise<void> {
   activeSiteId = siteId;
   installInterceptor();
   try {
+    // Anything still marked pending from a previous page load never got
+    // confirmed saved — keep the local value and re-push it once hydration
+    // finishes, instead of letting the (stale) server response below
+    // overwrite it.
+    const pending = readPendingMarker();
+
     const res = await fetch(`/api/client-store?siteId=${encodeURIComponent(siteId)}`, {
       credentials: "include",
     });
@@ -149,6 +227,7 @@ async function doHydrate(siteId: string): Promise<void> {
     try {
       for (const row of rows) {
         if (!TRACKED.has(row.storeKey)) continue;
+        if (pending.has(row.storeKey)) continue;
         if (row.value === null || row.value === undefined) {
           window.localStorage.removeItem(row.storeKey);
         } else if (typeof row.value === "string") {
@@ -161,9 +240,16 @@ async function doHydrate(siteId: string): Promise<void> {
       suppressPush = false;
     }
 
+    // Re-push anything that was pending before we hydrated, now that we
+    // know the server is reachable — this is the retry for a write that
+    // didn't get confirmed before an earlier reload/close.
+    for (const key of Array.from(pending)) {
+      if (TRACKED.has(key)) void pushKey(key, false);
+    }
+
     // One-time migration: upload local values the server doesn't have yet.
     for (const key of STORE_KEYS) {
-      if (!serverKeys.has(key) && window.localStorage.getItem(key) !== null) {
+      if (!serverKeys.has(key) && !pending.has(key) && window.localStorage.getItem(key) !== null) {
         void pushKey(key);
       }
     }
