@@ -1173,16 +1173,49 @@ export function getEffectiveDueDate(
  * recurring task's due-date anchor falls on. E.g. a weekly task anchored to
  * "due on Wednesday" resolves to this week's Wednesday.
  */
+function daysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
 function occurrenceDateForPeriod(
   frequency: TaskFrequency,
   anchorDueDate: string,
   referenceDate: Date
 ): Date {
-  const anchor = parseDateOnly(anchorDueDate);
-  const anchorPeriodStart = getRecurrencePeriodStart(frequency, anchor);
-  const offsetMs = toDateOnly(anchor).getTime() - anchorPeriodStart.getTime();
-  const refPeriodStart = getRecurrencePeriodStart(frequency, referenceDate);
-  return new Date(refPeriodStart.getTime() + offsetMs);
+  const anchor = toDateOnly(parseDateOnly(anchorDueDate));
+  const ref = toDateOnly(referenceDate);
+  switch (frequency) {
+    case "weekly":
+    case "biweekly": {
+      // Weekday-based anchor: shift by whole weeks (or fortnights) from the
+      // anchor date to land in the same week (or fortnight) as `ref`.
+      const stepDays = frequency === "weekly" ? 7 : 14;
+      const diffDays = Math.round((ref.getTime() - anchor.getTime()) / 86400000);
+      const periods = Math.floor(diffDays / stepDays);
+      return new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() + periods * stepDays);
+    }
+    case "monthly": {
+      const monthsDiff = (ref.getFullYear() - anchor.getFullYear()) * 12 + (ref.getMonth() - anchor.getMonth());
+      const targetMonthIndex = anchor.getMonth() + monthsDiff;
+      const targetYear = anchor.getFullYear() + Math.floor(targetMonthIndex / 12);
+      const targetMonth = ((targetMonthIndex % 12) + 12) % 12;
+      const day = Math.min(anchor.getDate(), daysInMonth(targetYear, targetMonth));
+      return new Date(targetYear, targetMonth, day);
+    }
+    case "quarterly":
+    case "biannual": {
+      const stepMonths = frequency === "quarterly" ? 3 : 6;
+      const monthsDiff = (ref.getFullYear() - anchor.getFullYear()) * 12 + (ref.getMonth() - anchor.getMonth());
+      const periods = Math.floor(monthsDiff / stepMonths);
+      const targetMonthIndex = anchor.getMonth() + periods * stepMonths;
+      const targetYear = anchor.getFullYear() + Math.floor(targetMonthIndex / 12);
+      const targetMonth = ((targetMonthIndex % 12) + 12) % 12;
+      const day = Math.min(anchor.getDate(), daysInMonth(targetYear, targetMonth));
+      return new Date(targetYear, targetMonth, day);
+    }
+    default:
+      return anchor;
+  }
 }
 
 /**
