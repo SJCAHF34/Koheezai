@@ -620,7 +620,7 @@ function TaskRow({
             </span>
           )}
           {task.frequency !== "daily" && (() => {
-            const effectiveDue = getEffectiveDueDate(task);
+            const effectiveDue = getEffectiveDueDate(task, browseDate ?? new Date());
             const dueTodayNow = isTaskDueOn(task, browseDate ?? new Date(), completed);
             const dueLabel = new Date(effectiveDue + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
             if (dueTodayNow) {
@@ -4764,12 +4764,36 @@ export default function TaskManager() {
       }
       return taskRoleMatches(ct.role, viewingRole as string);
     });
-    dueTodayExtra = [...roleFilteredBuiltIn, ...nonDailyCustom].filter((t) =>
+    // Mirror crossAssigned semantics: pull in non-daily tasks from other
+    // roles that have been explicitly assigned to this user's role for
+    // today, so due-today assignments are never missed.
+    const nonDailyCrossAssigned: PharmacyTask[] = [];
+    if (!isDir && viewingRole === "own") {
+      const userRoles = new Set<string>(extraRoles && extraRoles.length > 0 ? extraRoles : [profile.role]);
+      for (const t of nonDailyBuiltIn) {
+        if (taskRoleMatchesAny(t.role, Array.from(userRoles))) continue;
+        const a = assignments.get(t.id);
+        if (a && userRoles.has(a.assignedToRole)) nonDailyCrossAssigned.push(t);
+      }
+      for (const ct of customTasks) {
+        if (ct.frequency === "daily") continue;
+        if (taskRoleMatchesAny(ct.role, Array.from(userRoles))) continue;
+        const a = assignments.get(ct.id);
+        if (a && userRoles.has(a.assignedToRole)) nonDailyCrossAssigned.push(ct);
+      }
+    }
+    dueTodayExtra = [...roleFilteredBuiltIn, ...nonDailyCustom, ...nonDailyCrossAssigned].filter((t) =>
       isTaskDueOn(t, browseDate, completions.has(t.id))
     );
   }
 
-  const visible = [...baseVisible, ...relevantCustom, ...crossAssigned, ...dueTodayExtra];
+  const mergedVisible = [...baseVisible, ...relevantCustom, ...crossAssigned, ...dueTodayExtra];
+  const seenVisibleIds = new Set<string>();
+  const visible = mergedVisible.filter((t) => {
+    if (seenVisibleIds.has(t.id)) return false;
+    seenVisibleIds.add(t.id);
+    return true;
+  });
   const filteredVisible = categoryFilter === "all"
     ? visible
     : visible.filter((t) => t.category === categoryFilter);
