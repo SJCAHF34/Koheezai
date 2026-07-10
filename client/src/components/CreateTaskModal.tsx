@@ -280,6 +280,10 @@ export function CreateTaskModal({
         assignedToLabel: taskToEdit.assignedToLabel ?? "",
         dueDate: taskToEdit.dueDate || computeDefaultDueDate(taskToEdit.frequency),
       });
+      // The loaded due date (existing or computed once, for legacy tasks) is
+      // authoritative for this edit session — mark it "touched" so the
+      // frequency-change effect below never silently overwrites it.
+      dueDateTouched.current = true;
       setAssigneeValue(taskToEdit.assignedToLabel ?? "");
     } else {
       // For PDs (not CPO, not RPD), pre-select their own store.
