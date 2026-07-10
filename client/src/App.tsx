@@ -26,11 +26,12 @@ import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
 import TeamsConfig from "@/pages/TeamsConfig";
 import FaxLog from "@/pages/FaxLog";
+import PharmacyDirectory from "@/pages/PharmacyDirectory";
 import ScheduleAssistant from "@/pages/ScheduleAssistant";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2, Send, Sparkles } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2, Send, Sparkles, BookMarked } from "lucide-react";
 import type { AppNotification } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { isInTeams, teamsSilentLogin } from "@/lib/teams";
@@ -344,6 +345,8 @@ function AppNav() {
               <NavMenuItem href="/app/fax-log" icon={Send} label="Fax Log" testId="nav-fax-log" onClick={close} />
             )}
 
+            <NavMenuItem href="/app/pharmacy-directory" icon={BookMarked} label="Pharmacy Directory" testId="nav-pharmacy-directory" onClick={close} />
+
             <NavMenuItem href="/app/patient-assistance" icon={HeartHandshake} label="Patient Assistance" testId="nav-assistance" onClick={close} />
 
             {isCpoUser && (
@@ -513,6 +516,10 @@ function Router() {
       {/* Fax Log — director and above only */}
       <Route path="/app/fax-log">
         <DirectorProtected component={FaxLog} />
+      </Route>
+      {/* Pharmacy Directory — all authenticated staff */}
+      <Route path="/app/pharmacy-directory">
+        <Protected component={PharmacyDirectory} />
       </Route>
       {/* Team Scheduling — directors edit, all authenticated staff view (own site) */}
       <Route path="/app/scheduling">
