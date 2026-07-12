@@ -31,7 +31,7 @@ import ScheduleAssistant from "@/pages/ScheduleAssistant";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2, Send, Sparkles, BookMarked } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2, Send, Sparkles, BookMarked, Sun, Moon } from "lucide-react";
 import type { AppNotification } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { isInTeams, teamsSilentLogin } from "@/lib/teams";
@@ -232,11 +232,28 @@ function NavMenuItem({
   );
 }
 
+// ── Theme toggle ───────────────────────────────────────────────────────────
+function useTheme() {
+  const [dark, setDark] = useState(() => {
+    const stored = localStorage.getItem("koheez-theme");
+    if (stored) return stored === "dark";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+    localStorage.setItem("koheez-theme", dark ? "dark" : "light");
+  }, [dark]);
+
+  return { dark, toggle: () => setDark((d) => !d) };
+}
+
 function AppNav() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [clinicalOpen, setClinicalOpen] = useState(false);
+  const { dark, toggle: toggleTheme } = useTheme();
 
   const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
   const isRegional = profile ? isRegionalOrAbove(profile.role) : false;
@@ -276,9 +293,18 @@ function AppNav() {
               </span>
             </Link>
 
-            {/* Right side: notifications + hamburger + logout */}
+            {/* Right side: notifications + theme toggle + hamburger + logout */}
             <div className="flex items-center gap-1">
               <NotificationsBell />
+              <button
+                data-testid="btn-theme-toggle"
+                onClick={toggleTheme}
+                title={dark ? "Switch to light mode" : "Switch to dark mode"}
+                className="inline-flex items-center justify-center w-9 h-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
               <button
                 data-testid="btn-logout"
                 onClick={() => logoutMutation.mutate()}
