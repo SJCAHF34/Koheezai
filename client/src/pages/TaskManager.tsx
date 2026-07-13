@@ -5478,6 +5478,11 @@ export default function TaskManager() {
               });
               setOverrideVersion((v) => v + 1);
             }
+            // Switch the active frequency tab to match the task's (possibly new)
+            // frequency so the task remains visible immediately after saving.
+            if (task.frequency) {
+              setFrequency(task.frequency as TaskFrequency);
+            }
             setSpreadsheetRefreshTick((v) => v + 1);
             setEditingTask(null);
           }}
