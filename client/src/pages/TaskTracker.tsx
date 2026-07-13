@@ -116,7 +116,7 @@ function getStatus(task: CustomTask, completions: TaskCompletion[]): TaskStatus 
 function ScopeBadge({ scope }: { scope: CustomTask["scope"] }) {
   if (scope === "national") {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
         <Globe className="w-2.5 h-2.5" />
         Nationwide
       </span>
@@ -124,14 +124,14 @@ function ScopeBadge({ scope }: { scope: CustomTask["scope"] }) {
   }
   if (scope === "regional") {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
         <MapPin className="w-2.5 h-2.5" />
         Regional
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
       <Store className="w-2.5 h-2.5" />
       Store
     </span>
@@ -141,7 +141,7 @@ function ScopeBadge({ scope }: { scope: CustomTask["scope"] }) {
 function StatusPill({ status, scope }: { status: TaskStatus; scope: CustomTask["scope"] }) {
   if (status.isDone) {
     return (
-      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
         <CheckCircle2 className="w-3 h-3" />
         Completed
         {scope !== "site" && (
@@ -154,8 +154,8 @@ function StatusPill({ status, scope }: { status: TaskStatus; scope: CustomTask["
   const pct = status.totalCount > 0 ? Math.round((status.completedCount / status.totalCount) * 100) : 0;
   const color =
     pct > 0
-      ? "bg-amber-50 text-amber-700 border-amber-200"
-      : "bg-red-50 text-red-700 border-red-200";
+      ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+      : "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800";
 
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${color}`}>
@@ -321,7 +321,7 @@ function TaskRow({
                     data-testid={`tracker-store-${task.id}-${s.id}`}
                     className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-xs ${
                       s.done
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
                         : "bg-background border-border text-muted-foreground"
                     }`}
                   >

@@ -180,9 +180,9 @@ function StoreDashboardWidget({ userEmail, userName }: { userEmail: string; user
 const CATEGORY_ORDER: TaskCategory[] = ["operations", "achc", "state_board", "retention"];
 const CATEGORY_COLORS: Record<TaskCategory, { border: string; icon: string; progress: string; bg: string }> = {
   operations: { border: "border-border", icon: "text-muted-foreground", progress: "bg-slate-400", bg: "bg-muted/40" },
-  achc: { border: "border-blue-200", icon: "text-blue-500", progress: "bg-blue-500", bg: "bg-blue-50" },
-  state_board: { border: "border-emerald-200", icon: "text-emerald-500", progress: "bg-emerald-500", bg: "bg-emerald-50" },
-  retention: { border: "border-amber-200", icon: "text-amber-500", progress: "bg-amber-500", bg: "bg-amber-50" },
+  achc: { border: "border-blue-200", icon: "text-blue-500", progress: "bg-blue-500", bg: "bg-blue-50 dark:bg-blue-950/40" },
+  state_board: { border: "border-emerald-200", icon: "text-emerald-500", progress: "bg-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
+  retention: { border: "border-amber-200", icon: "text-amber-500", progress: "bg-amber-500", bg: "bg-amber-50 dark:bg-amber-950/40" },
 };
 
 function TechDashboard({ userEmail, userName }: { userEmail: string; userName: string }) {
@@ -507,7 +507,7 @@ export default function DashboardPage() {
                       <button
                         onClick={() => handleDelete(a.patientId)}
                         data-testid={`button-delete-${a.patientId}`}
-                        className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
                         title="Delete patient"
                       >
                         <Trash2 className="w-4 h-4" />

@@ -573,13 +573,13 @@ function TaskRow({
       data-testid={`task-row-${task.id}`}
       className={`flex items-start gap-3 px-4 py-3 group transition-all duration-300 ${
         highlighted
-          ? "bg-amber-50 ring-2 ring-inset ring-amber-400"
+          ? "bg-amber-50 dark:bg-amber-950/40 ring-2 ring-inset ring-amber-400"
           : animating
-          ? "bg-green-50"
+          ? "bg-green-50 dark:bg-green-950/40"
           : completed
-          ? "bg-green-50"
+          ? "bg-green-50 dark:bg-green-950/40"
           : isUrgentFromRegional
-          ? "bg-red-50"
+          ? "bg-red-50 dark:bg-red-950/40"
           : "hover:bg-muted/40/70"
       }`}
     >
@@ -600,24 +600,24 @@ function TaskRow({
             </span>
           )}
           {isPrioritized && !completed && (
-            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300">
               <Flag className="w-2.5 h-2.5" />
               Priority Alert
             </span>
           )}
           {task.isCustom && (
-            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 border border-purple-200">
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
               <Tag className="w-2.5 h-2.5" />
               Custom
             </span>
           )}
           {task.isCustom && task.scope === "national" && (
-            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
               National
             </span>
           )}
           {task.isCustom && task.scope === "regional" && (
-            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200">
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
               Regional
             </span>
           )}
@@ -632,7 +632,7 @@ function TaskRow({
             const dueLabel = new Date(displayDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
             if (dueTodayNow) {
               return (
-                <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 border border-orange-200">
+                <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800">
                   Due Today · {dueLabel}
                 </span>
               );
@@ -647,7 +647,7 @@ function TaskRow({
             <span
               data-testid={`text-covered-by-${task.id}`}
               title={`Covered today by ${coverageNames.join(", ")}`}
-              className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200"
+              className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800"
             >
               <User className="w-2.5 h-2.5" />
               {coverageNames.join(", ")}
@@ -657,7 +657,7 @@ function TaskRow({
             className={`text-sm leading-snug transition-all duration-300 ${
               completed
                 ? "line-through text-muted-foreground"
-                : "text-black font-medium"
+                : "text-foreground font-medium"
             }`}
           >
             {task.title}
@@ -667,7 +667,7 @@ function TaskRow({
         {task.description && (() => {
           const lines = task.description.split("\n").map((l) => l.trim()).filter(Boolean);
           return lines.length > 1 ? (
-            <ul className={`text-xs mt-1 space-y-0.5 ${completed ? "text-muted-foreground line-through" : "text-black"}`}>
+            <ul className={`text-xs mt-1 space-y-0.5 ${completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
               {lines.map((line, i) => (
                 <li key={i} className="flex items-start gap-1 leading-relaxed">
                   <span className="shrink-0 select-none">•</span>
@@ -676,7 +676,7 @@ function TaskRow({
               ))}
             </ul>
           ) : (
-            <p className={`text-xs mt-0.5 leading-relaxed ${completed ? "text-muted-foreground line-through" : "text-black"}`}>
+            <p className={`text-xs mt-0.5 leading-relaxed ${completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
               {task.description}
             </p>
           );
@@ -864,8 +864,8 @@ function TaskRow({
           title={isUrgentFromRegional ? "Remove urgent flag" : "Mark as urgent for this store"}
           className={`shrink-0 p-1.5 rounded-md transition-colors ${
             isUrgentFromRegional
-              ? "text-red-600 bg-red-50 visible"
-              : "invisible group-hover:visible text-muted-foreground hover:text-red-600 hover:bg-red-50"
+              ? "text-red-600 bg-red-50 dark:bg-red-950/50 visible"
+              : "invisible group-hover:visible text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
           }`}
         >
           <AlertTriangle className="w-4 h-4" />
@@ -880,8 +880,8 @@ function TaskRow({
           title={isPrioritized ? "Remove priority alert" : "Send priority alert to Pharmacy Director"}
           className={`shrink-0 p-1.5 rounded-md transition-colors ${
             isPrioritized
-              ? "text-amber-600 bg-amber-50 visible"
-              : "invisible group-hover:visible text-muted-foreground hover:text-amber-600 hover:bg-amber-50"
+              ? "text-amber-600 bg-amber-50 dark:bg-amber-950/50 visible"
+              : "invisible group-hover:visible text-muted-foreground hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50"
           }`}
         >
           <Flag className="w-4 h-4" />
@@ -894,7 +894,7 @@ function TaskRow({
           data-testid={`button-assign-${task.id}`}
           onClick={() => onAssign(task)}
           title="Assign task"
-          className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-muted-foreground hover:text-purple-600 hover:bg-purple-50 transition-colors"
+          className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-muted-foreground hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition-colors"
         >
           <UserPlus className="w-4 h-4" />
         </button>
@@ -906,7 +906,7 @@ function TaskRow({
           data-testid={`button-edit-task-${task.id}`}
           onClick={() => onEditTask(task)}
           title="Edit this task"
-          className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
+          className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-muted-foreground hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors"
         >
           <Pencil className="w-4 h-4" />
         </button>
@@ -920,8 +920,8 @@ function TaskRow({
           title={hasSpreadsheet ? "Open attached spreadsheet form" : "Attach an Excel file to this task"}
           className={`shrink-0 p-1.5 rounded-md transition-colors ${
             hasSpreadsheet
-              ? "text-emerald-600 bg-emerald-50 visible"
-              : "invisible group-hover:visible text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50"
+              ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 visible"
+              : "invisible group-hover:visible text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
           }`}
         >
           <FileSpreadsheet className="w-4 h-4" />
@@ -945,7 +945,7 @@ function TaskRow({
             data-testid={`button-delete-custom-${task.id}`}
             onClick={() => setConfirmDelete(true)}
             title="Delete this custom task"
-            className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+            className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -1034,12 +1034,12 @@ function TaskGroupSection({
         ) : (
           <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         )}
-        <span className="text-xs font-semibold text-black flex-1">{groupName}</span>
+        <span className="text-xs font-semibold text-foreground flex-1">{groupName}</span>
         <span
           className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
             allDone
-              ? "bg-green-100 text-green-700"
-              : "bg-muted text-black"
+              ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
+              : "bg-muted text-foreground"
           }`}
         >
           {done}/{tasks.length}
@@ -1168,7 +1168,7 @@ function RoleSection({
         <div className="flex items-center gap-2 shrink-0">
           <span
             className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-              total > 0 && done === total ? "bg-green-100 text-green-700" : style.badgeColor
+              total > 0 && done === total ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300" : style.badgeColor
             }`}
           >
             {done}/{total} done
@@ -1275,8 +1275,8 @@ function SiteOverviewPanel({
 type RetentionGroup = "controllable" | "partially_controllable" | "non_controllable";
 
 const GROUP_CONFIG: Record<RetentionGroup, { label: string; badgeBg: string; badgeText: string }> = {
-  controllable: { label: "Controllable", badgeBg: "bg-green-100", badgeText: "text-green-800" },
-  partially_controllable: { label: "Partially Controllable", badgeBg: "bg-yellow-100", badgeText: "text-yellow-800" },
+  controllable: { label: "Controllable", badgeBg: "bg-green-100 dark:bg-green-950/50", badgeText: "text-green-800 dark:text-green-300" },
+  partially_controllable: { label: "Partially Controllable", badgeBg: "bg-yellow-100 dark:bg-yellow-950/50", badgeText: "text-yellow-800 dark:text-yellow-300" },
   non_controllable: { label: "Non-Controllable", badgeBg: "bg-muted", badgeText: "text-muted-foreground" },
 };
 
@@ -1296,89 +1296,89 @@ const ISSUE_CONFIG: Record<
   appointment_lab: {
     label: "Appointment or Lab Issues",
     color: "orange",
-    headerBg: "bg-orange-50 border-orange-200",
-    borderColor: "border-orange-200",
-    badgeBg: "bg-orange-100",
-    badgeText: "text-orange-800",
+    headerBg: "bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800",
+    borderColor: "border-orange-200 dark:border-orange-800",
+    badgeBg: "bg-orange-100 dark:bg-orange-950/50",
+    badgeText: "text-orange-800 dark:text-orange-300",
     group: "controllable",
     reasons: ["Needs Appt", "MD Refusal", "PrEP Labs"],
   },
   communication_barriers: {
     label: "Communication Barriers",
     color: "red",
-    headerBg: "bg-red-50 border-red-200",
-    borderColor: "border-red-200",
-    badgeBg: "bg-red-100",
-    badgeText: "text-red-800",
+    headerBg: "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800",
+    borderColor: "border-red-200 dark:border-red-800",
+    badgeBg: "bg-red-100 dark:bg-red-950/50",
+    badgeText: "text-red-800 dark:text-red-300",
     group: "controllable",
     reasons: ["Unable to Reach", "Can't Locate", "Left Message"],
   },
   transfer_out: {
     label: "Transfer out",
     color: "blue",
-    headerBg: "bg-blue-50 border-blue-200",
-    borderColor: "border-blue-200",
-    badgeBg: "bg-blue-100",
-    badgeText: "text-blue-800",
+    headerBg: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800",
+    borderColor: "border-blue-200 dark:border-blue-800",
+    badgeBg: "bg-blue-100 dark:bg-blue-950/50",
+    badgeText: "text-blue-800 dark:text-blue-300",
     group: "controllable",
     reasons: ["Left AHF", "Transferred Out to Competitor"],
   },
   insurance_coverage: {
     label: "Insurance or Coverage Issues",
     color: "yellow",
-    headerBg: "bg-yellow-50 border-yellow-200",
-    borderColor: "border-yellow-200",
-    badgeBg: "bg-yellow-100",
-    badgeText: "text-yellow-800",
+    headerBg: "bg-yellow-50 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800",
+    borderColor: "border-yellow-200 dark:border-yellow-800",
+    badgeBg: "bg-yellow-100 dark:bg-yellow-950/50",
+    badgeText: "text-yellow-800 dark:text-yellow-300",
     group: "partially_controllable",
     reasons: ["Insurance Expired", "ADAP Expired/Issue", "RW Expired"],
   },
   one_time_limited: {
     label: "One-Time or Limited Treatment Use",
     color: "purple",
-    headerBg: "bg-purple-50 border-purple-200",
-    borderColor: "border-purple-200",
-    badgeBg: "bg-purple-100",
-    badgeText: "text-purple-800",
+    headerBg: "bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800",
+    borderColor: "border-purple-200 dark:border-purple-800",
+    badgeBg: "bg-purple-100 dark:bg-purple-950/50",
+    badgeText: "text-purple-800 dark:text-purple-300",
     group: "non_controllable",
     reasons: ["PEP/PAP", "Off-Label PrEP (On Demand, Lifestyle Change)"],
   },
   insurance_restrictions: {
     label: "Insurance Restrictions",
     color: "amber",
-    headerBg: "bg-amber-50 border-amber-200",
-    borderColor: "border-amber-200",
-    badgeBg: "bg-amber-100",
-    badgeText: "text-amber-800",
+    headerBg: "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800",
+    borderColor: "border-amber-200 dark:border-amber-800",
+    badgeBg: "bg-amber-100 dark:bg-amber-950/50",
+    badgeText: "text-amber-800 dark:text-amber-300",
     group: "non_controllable",
     reasons: ["ADAP (cannot participate)", "Mail Order", "Out of Network"],
   },
   patient_status_change: {
     label: "Patient Status Change",
     color: "teal",
-    headerBg: "bg-teal-50 border-teal-200",
-    borderColor: "border-teal-200",
-    badgeBg: "bg-teal-100",
-    badgeText: "text-teal-800",
+    headerBg: "bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800",
+    borderColor: "border-teal-200 dark:border-teal-800",
+    badgeBg: "bg-teal-100 dark:bg-teal-950/50",
+    badgeText: "text-teal-800 dark:text-teal-300",
     group: "non_controllable",
     reasons: ["Deceased", "Incarcerated", "Moved (no local AHF)"],
   },
   clinical_medication: {
     label: "Clinical or Medication-Specific Exceptions",
     color: "green",
-    headerBg: "bg-green-50 border-green-200",
-    borderColor: "border-green-200",
-    badgeBg: "bg-green-100",
-    badgeText: "text-green-800",
+    headerBg: "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800",
+    borderColor: "border-green-200 dark:border-green-800",
+    badgeBg: "bg-green-100 dark:bg-green-950/50",
+    badgeText: "text-green-800 dark:text-green-300",
     group: "non_controllable",
     reasons: ["Med Surplus", "Injectables 6+ months (e.g., Sunlenca, Yetzugo)", "Clinical Trial"],
   },
 };
 
 const STATUS_CONFIG: Record<RetentionStatus, { label: string; bg: string; text: string }> = {
-  active: { label: "Active", bg: "bg-green-100", text: "text-green-800" },
+  active: { label: "Active", bg: "bg-green-100 dark:bg-green-950/50", text: "text-green-800 dark:text-green-300" },
   resolved: { label: "Resolved", bg: "bg-muted", text: "text-muted-foreground" },
-  referred_out: { label: "Referred Out", bg: "bg-purple-100", text: "text-purple-800" },
+  referred_out: { label: "Referred Out", bg: "bg-purple-100 dark:bg-purple-950/50", text: "text-purple-800 dark:text-purple-300" },
 };
 
 function daysSince(dateStr: string): number {
@@ -2895,7 +2895,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
                 <div className="flex items-center gap-1 invisible group-hover:visible">
                   <button
                     onClick={() => openEdit(member)}
-                    className="p-1.5 rounded text-muted-foreground hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                    className="p-1.5 rounded text-muted-foreground hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition-colors"
                     title="Edit member"
                   >
                     <Pencil className="w-3.5 h-3.5" />

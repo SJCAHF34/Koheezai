@@ -3003,17 +3003,17 @@ const SUBMISSION_STATUS_STYLE: Record<
 > = {
   pending: {
     label: "Pending RPD review",
-    cls: "bg-amber-50 border-amber-200 text-amber-900",
+    cls: "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-300",
     Icon: AlertCircle,
   },
   approved: {
     label: "Approved",
-    cls: "bg-emerald-50 border-emerald-200 text-emerald-900",
+    cls: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300",
     Icon: CheckCircle2,
   },
   changes_requested: {
     label: "Changes requested",
-    cls: "bg-rose-50 border-rose-200 text-rose-900",
+    cls: "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-300",
     Icon: AlertCircle,
   },
 };

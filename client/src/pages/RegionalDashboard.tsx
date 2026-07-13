@@ -328,7 +328,7 @@ function RegionCard({
       onClick={onClick}
       className={`w-full text-left rounded-md border transition-all ${
         isSelected
-          ? "border-purple-400 bg-purple-50 shadow-sm"
+          ? "border-purple-400 bg-purple-50 dark:bg-purple-950/40 shadow-sm"
           : "bg-card border-border hover:shadow-md hover:border-purple-200"
       }`}
     >
@@ -873,7 +873,7 @@ export default function RegionalDashboard() {
                     <div
                       className={`rounded-md px-3 py-2.5 max-w-[90%] text-sm leading-relaxed ${
                         msg.role === "user"
-                          ? "bg-purple-50 border border-purple-100 text-foreground"
+                          ? "bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900 text-foreground"
                           : "bg-muted/40 border border-border text-foreground prose prose-sm prose-slate max-w-none w-full"
                       }`}
                     >
@@ -913,7 +913,7 @@ export default function RegionalDashboard() {
             {aiError && (
               <div
                 data-testid="ai-error-message"
-                className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-3"
+                className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3"
               >
                 <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                 <p className="text-xs text-amber-800">{aiError}</p>
@@ -970,7 +970,7 @@ export default function RegionalDashboard() {
                 <button
                   data-testid="region-filter-clear"
                   onClick={() => setCpoFilterRegion(null)}
-                  className="flex items-center gap-1 text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-300 px-2.5 py-1 rounded-md hover-elevate"
+                  className="flex items-center gap-1 text-xs font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-700 px-2.5 py-1 rounded-md hover-elevate"
                 >
                   <X className="w-3 h-3" />
                   Clear: {cpoFilterRegion.replace(" Region", "").replace(" – ", " — ")}
@@ -1029,7 +1029,7 @@ export default function RegionalDashboard() {
                     onClick={() => setPeriod(p)}
                     className={`px-2.5 py-1 rounded-md text-xs font-bold border transition-all ${
                       period === p
-                        ? "border-purple-400 bg-purple-50 text-purple-700"
+                        ? "border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300"
                         : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"
                     }`}
                   >
@@ -1113,7 +1113,7 @@ export default function RegionalDashboard() {
                     key={spot.task.id}
                     data-testid={`trouble-spot-task-${spot.task.id}`}
                     onClick={() => navigate(`/app/tasks?highlight=${spot.task.id}`)}
-                    className="w-full flex items-start gap-4 px-5 py-3.5 flex-wrap text-left hover:bg-amber-50 transition-colors group cursor-pointer"
+                    className="w-full flex items-start gap-4 px-5 py-3.5 flex-wrap text-left hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors group cursor-pointer"
                   >
                     {/* Task + category */}
                     <div className="flex-1 min-w-0">
@@ -1133,7 +1133,7 @@ export default function RegionalDashboard() {
                     {/* Nav arrow + critical badge */}
                     <div className="flex items-center gap-2 shrink-0">
                       {isCritical && (
-                        <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-50 text-red-600 whitespace-nowrap">
+                        <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 whitespace-nowrap">
                           Critical
                         </span>
                       )}

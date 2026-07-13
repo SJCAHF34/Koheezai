@@ -46,12 +46,12 @@ import {
 
 function tierLabel(pct: number) {
   if (pct >= 80)
-    return { label: "Top", bg: "bg-green-50 text-green-700 border-green-200" };
+    return { label: "Top", bg: "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800" };
   if (pct >= 65)
-    return { label: "Good", bg: "bg-amber-50 text-amber-700 border-amber-200" };
+    return { label: "Good", bg: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800" };
   if (pct >= 50)
-    return { label: "At Risk", bg: "bg-orange-50 text-orange-700 border-orange-200" };
-  return { label: "Critical", bg: "bg-red-50 text-red-600 border-red-200" };
+    return { label: "At Risk", bg: "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800" };
+  return { label: "Critical", bg: "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800" };
 }
 
 function frequencyLabel(freq: string) {
@@ -479,7 +479,7 @@ export default function StoreDashboard() {
                       }}
                       className={`px-2.5 py-1 rounded-md text-xs font-bold border transition-all ${
                         chartPeriod === p
-                          ? "border-purple-400 bg-purple-50 text-purple-700"
+                          ? "border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300"
                           : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"
                       }`}
                     >
@@ -639,12 +639,12 @@ export default function StoreDashboard() {
                         {roleDone}/{rows.length} done
                       </span>
                       {roleTotal > 0 ? (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 px-2 py-0.5 rounded-full">
                           <TrendingDown className="w-3 h-3" />
                           {roleTotal} cleared
                         </span>
                       ) : roleTotal < 0 ? (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 px-2 py-0.5 rounded-full">
                           <TrendingUp className="w-3 h-3" />
                           {Math.abs(roleTotal)} added
                         </span>
@@ -720,7 +720,7 @@ export default function StoreDashboard() {
                           {/* Status */}
                           <div className="flex justify-end">
                             {row.isComplete ? (
-                              <span className="flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200 whitespace-nowrap">
+                              <span className="flex items-center gap-1 text-[10px] font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded-full border border-green-200 dark:border-green-800 whitespace-nowrap">
                                 <Check className="w-3 h-3" />
                                 Done
                               </span>
@@ -777,7 +777,7 @@ export default function StoreDashboard() {
                     onClick={() => setRawFilter(f)}
                     className={`px-2.5 py-1 rounded-md text-xs font-bold border transition-all ${
                       rawFilter === f
-                        ? "border-purple-400 bg-purple-50 text-purple-700"
+                        ? "border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300"
                         : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"
                     }`}
                   >
@@ -851,7 +851,7 @@ export default function StoreDashboard() {
                         {isDone ? (
                           <span
                             data-testid={`status-done-${task.id}`}
-                            className="flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200 whitespace-nowrap"
+                            className="flex items-center gap-1 text-[10px] font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded-full border border-green-200 dark:border-green-800 whitespace-nowrap"
                           >
                             <Check className="w-3 h-3" />
                             Done

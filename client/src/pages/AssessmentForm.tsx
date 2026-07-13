@@ -77,7 +77,7 @@ function StepsSidebar({ activeStep }: { activeStep: number }) {
                   <TooltipTrigger asChild>
                     <div
                       className={`flex items-start gap-2.5 px-3 py-2.5 rounded-md cursor-default select-none transition-colors ${
-                        status === "current" ? "bg-purple-50" : "hover:bg-muted/40"
+                        status === "current" ? "bg-purple-50 dark:bg-purple-950/40" : "hover:bg-muted/40"
                       }`}
                     >
                       {/* Number bubble */}

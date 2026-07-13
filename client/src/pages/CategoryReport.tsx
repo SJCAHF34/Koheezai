@@ -36,10 +36,10 @@ const CAT_TABS: { value: TaskCategory; label: string }[] = [
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function tierLabel(pct: number) {
-  if (pct >= 80) return { label: "Top", bg: "bg-green-50 text-green-700" };
-  if (pct >= 65) return { label: "Good", bg: "bg-amber-50 text-amber-700" };
-  if (pct >= 50) return { label: "At Risk", bg: "bg-orange-50 text-orange-700" };
-  return { label: "Critical", bg: "bg-red-50 text-red-600" };
+  if (pct >= 80) return { label: "Top", bg: "bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300" };
+  if (pct >= 65) return { label: "Good", bg: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300" };
+  if (pct >= 50) return { label: "At Risk", bg: "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300" };
+  return { label: "Critical", bg: "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400" };
 }
 
 function TrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
@@ -193,22 +193,22 @@ export default function CategoryReport() {
     {
       label: "Top Performers",
       stores: withRanks.filter((s) => s.avg >= 80),
-      headerClass: "text-green-700 bg-green-50 border-green-200",
+      headerClass: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800",
     },
     {
       label: "Good",
       stores: withRanks.filter((s) => s.avg >= 65 && s.avg < 80),
-      headerClass: "text-amber-700 bg-amber-50 border-amber-200",
+      headerClass: "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800",
     },
     {
       label: "At Risk",
       stores: withRanks.filter((s) => s.avg >= 50 && s.avg < 65),
-      headerClass: "text-orange-700 bg-orange-50 border-orange-200",
+      headerClass: "text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800",
     },
     {
       label: "Critical",
       stores: withRanks.filter((s) => s.avg < 50),
-      headerClass: "text-red-700 bg-red-50 border-red-200",
+      headerClass: "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800",
     },
   ];
 
@@ -280,7 +280,7 @@ export default function CategoryReport() {
                     onClick={() => setFilterRegion(r)}
                     className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition-all ${
                       filterRegion === r
-                        ? "border-blue-400 bg-blue-50 text-blue-700"
+                        ? "border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
                         : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"
                     }`}
                   >
@@ -298,7 +298,7 @@ export default function CategoryReport() {
           {assignedRegion && !isCpoUser && (
             <div className="mt-3 flex items-center gap-1.5">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Region:</span>
-              <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+              <span className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
                 {assignedRegion}
               </span>
               <span className="text-[10px] text-muted-foreground">· {baseStores.length} locations</span>
@@ -314,7 +314,7 @@ export default function CategoryReport() {
                 onClick={() => setPeriod(p)}
                 className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${
                   period === p
-                    ? "border-purple-400 bg-purple-50 text-purple-700"
+                    ? "border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300"
                     : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"
                 }`}
               >
