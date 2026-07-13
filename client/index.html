@@ -26,6 +26,14 @@
       // shell is hidden synchronously for real users and never flashes on
       // screen. Crawlers and no-JS visitors still see the shell.
       document.documentElement.classList.add("js-enabled");
+      // Apply saved theme synchronously before first paint to avoid flash.
+      (function() {
+        var stored = localStorage.getItem("koheez-theme");
+        var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        if (stored === "dark" || (!stored && prefersDark)) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
     </script>
     <style>
       /* The SEO shell is visible by default so no-JS visitors and crawlers

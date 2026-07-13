@@ -108,9 +108,9 @@ export default function NoteConsentModal({
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white rounded-md shadow-xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+      <div className="bg-card rounded-md shadow-xl w-full max-w-2xl max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
+        <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <div
@@ -120,10 +120,10 @@ export default function NoteConsentModal({
                 <ShieldAlert className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   Patient {patientId}
                 </p>
-                <h2 className="text-lg font-bold text-slate-900">
+                <h2 className="text-lg font-bold text-foreground">
                   Consent to Generate Comprehensive Note
                 </h2>
               </div>
@@ -132,44 +132,44 @@ export default function NoteConsentModal({
               type="button"
               onClick={onCancel}
               data-testid="button-consent-close"
-              className="text-slate-400 hover:text-slate-700 p-1 rounded-md"
+              className="text-muted-foreground hover:text-foreground p-1 rounded-md"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-xs text-slate-500 leading-relaxed mt-2.5">
+          <p className="text-xs text-muted-foreground leading-relaxed mt-2.5">
             Before generating the consultation note for this patient, please acknowledge the clinical responsibility agreement and sign below.
           </p>
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5 text-sm text-slate-700 leading-relaxed">
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5 text-sm text-foreground leading-relaxed">
           <div className="space-y-4">
             {WAIVER_SECTIONS.map((s) => (
               <section key={s.title}>
-                <h3 className="font-bold text-slate-900 mb-1 text-[13px]">{s.title}</h3>
+                <h3 className="font-bold text-foreground mb-1 text-[13px]">{s.title}</h3>
                 <p className="text-[13px]">{s.body}</p>
               </section>
             ))}
           </div>
 
-          <div className="border-t border-slate-100 pt-4 space-y-4">
+          <div className="border-t border-border pt-4 space-y-4">
             <label className="flex items-start gap-3 cursor-pointer" data-testid="consent-checkbox-label">
               <input
                 type="checkbox"
                 checked={checked}
                 onChange={(e) => setChecked(e.target.checked)}
                 data-testid="consent-checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-purple-600 cursor-pointer shrink-0"
+                className="mt-0.5 h-4 w-4 rounded border-border accent-purple-600 cursor-pointer shrink-0"
               />
-              <span className="text-[13px] text-slate-700 leading-relaxed">
+              <span className="text-[13px] text-foreground leading-relaxed">
                 I have read and understood this agreement and accept full professional responsibility for the clinical decisions I make using the note generated for patient {patientId}.
               </span>
             </label>
 
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+              <label className="text-xs font-semibold text-foreground block mb-1.5">
                 Typed full name <span className="text-red-500">*</span>
               </label>
               <input
@@ -179,13 +179,13 @@ export default function NoteConsentModal({
                 placeholder={signerName || "Type your full legal name"}
                 data-testid="input-consent-typed-name"
                 disabled={readOnlyPrior}
-                className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 rounded-md border border-border text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 disabled:bg-muted/40 disabled:text-muted-foreground disabled:cursor-not-allowed"
               />
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-700">
+                <label className="text-xs font-semibold text-foreground">
                   Digital signature <span className="text-red-500">*</span>
                 </label>
                 {readOnlyPrior && (
@@ -206,7 +206,7 @@ export default function NoteConsentModal({
                 data-testid="consent-signature-pad"
               />
               {readOnlyPrior && (
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[11px] text-muted-foreground mt-1">
                   Showing the signature you previously provided for this patient. Click <strong>Re-sign</strong> to capture a new one.
                 </p>
               )}
@@ -215,12 +215,12 @@ export default function NoteConsentModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-md shrink-0 flex items-center justify-end gap-2 flex-wrap">
+        <div className="px-6 py-4 border-t border-border bg-muted/40 rounded-b-md shrink-0 flex items-center justify-end gap-2 flex-wrap">
           <button
             type="button"
             onClick={onCancel}
             data-testid="button-consent-cancel"
-            className="px-4 py-2 rounded-md border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover-elevate"
+            className="px-4 py-2 rounded-md border border-border bg-card text-sm font-semibold text-foreground hover-elevate"
           >
             Cancel
           </button>

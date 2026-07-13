@@ -100,7 +100,7 @@ export default function ScheduleAssistant() {
   if (!profile) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/40">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
@@ -151,7 +151,7 @@ export default function ScheduleAssistant() {
                         ? "text-red-700 border-red-200 bg-red-50"
                         : t.isUrgent
                           ? "text-orange-700 border-orange-200 bg-orange-50"
-                          : "text-slate-600 border-slate-200 bg-slate-50"
+                          : "text-muted-foreground border-border bg-muted/40"
                     }
                     data-testid={`badge-due-task-${t.id}`}
                   >
@@ -196,7 +196,7 @@ export default function ScheduleAssistant() {
                     className={`max-w-[85%] rounded-md px-3 py-2 text-sm whitespace-pre-wrap ${
                       m.role === "user"
                         ? "bg-primary text-primary-foreground"
-                        : "bg-slate-100 text-foreground border border-slate-200"
+                        : "bg-muted text-foreground border border-border"
                     }`}
                     data-testid={`text-chat-message-${i}`}
                   >
@@ -206,7 +206,7 @@ export default function ScheduleAssistant() {
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="max-w-[85%] rounded-md px-3 py-2 text-sm bg-slate-100 text-muted-foreground border border-slate-200 flex items-center gap-2">
+                  <div className="max-w-[85%] rounded-md px-3 py-2 text-sm bg-muted text-muted-foreground border border-border flex items-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     Thinking...
                   </div>

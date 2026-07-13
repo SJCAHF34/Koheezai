@@ -57,9 +57,9 @@ const STEPS = [
 // ── Steps Sidebar ─────────────────────────────────────────────────────────
 function StepsSidebar({ activeStep }: { activeStep: number }) {
   return (
-    <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-slate-200 bg-white">
+    <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-border bg-card">
       <div className="sticky top-14 pt-6 pb-6 px-3">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 px-3 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-3 mb-3">
           Workflow Steps
         </p>
         <div className="flex flex-col">
@@ -77,13 +77,13 @@ function StepsSidebar({ activeStep }: { activeStep: number }) {
                   <TooltipTrigger asChild>
                     <div
                       className={`flex items-start gap-2.5 px-3 py-2.5 rounded-md cursor-default select-none transition-colors ${
-                        status === "current" ? "bg-purple-50" : "hover:bg-slate-50"
+                        status === "current" ? "bg-purple-50" : "hover:bg-muted/40"
                       }`}
                     >
                       {/* Number bubble */}
                       <div
                         className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 transition-colors ${
-                          status === "pending" ? "bg-slate-200 text-slate-400" : "text-white"
+                          status === "pending" ? "bg-muted text-muted-foreground" : "text-white"
                         }`}
                         style={status !== "pending" ? { backgroundImage: GRADIENT } : {}}
                       >
@@ -95,8 +95,8 @@ function StepsSidebar({ activeStep }: { activeStep: number }) {
                           status === "current"
                             ? "text-purple-700"
                             : status === "completed"
-                            ? "text-slate-600"
-                            : "text-slate-400"
+                            ? "text-muted-foreground"
+                            : "text-muted-foreground"
                         }`}
                       >
                         {step.title}
@@ -110,7 +110,7 @@ function StepsSidebar({ activeStep }: { activeStep: number }) {
                 </Tooltip>
                 {/* Connector line */}
                 {!isLast && (
-                  <div className="ml-[22px] w-px h-3 bg-slate-200" />
+                  <div className="ml-[22px] w-px h-3 bg-muted" />
                 )}
               </div>
             );
@@ -650,9 +650,9 @@ export default function AssessmentForm() {
     : buildOePrompt({ age, pregnancy, treatmentStatus, cd4Count, viralLoad, egfr, hepaticFunction, selectedDrugs, concomitantMeds, additionalNotes, medicationAllergies });
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/40">
       {/* ── Page header ── */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-card border-b border-border">
         <div className="container max-w-7xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-start gap-4">
@@ -665,7 +665,7 @@ export default function AssessmentForm() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900">Treatment Assessor</h1>
+                <h1 className="text-xl font-bold text-foreground">Treatment Assessor</h1>
                 <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
                   <span
                     className="text-xs font-bold px-2 py-0.5 rounded-full text-white tracking-wide"
@@ -675,7 +675,7 @@ export default function AssessmentForm() {
                     {patientId}
                   </span>
                   {lastSaved && (
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-muted-foreground">
                       Auto-saved {lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   )}
@@ -802,7 +802,7 @@ export default function AssessmentForm() {
                   <CardContent className="space-y-5">
                     {/* Medication allergies */}
                     <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                      <label className="text-xs font-semibold text-foreground block mb-1.5">
                         Medication Allergies <span className="text-red-500">*</span>
                       </label>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -812,13 +812,13 @@ export default function AssessmentForm() {
                           value={medicationAllergies}
                           onChange={(e) => setMedicationAllergies(e.target.value)}
                           placeholder="e.g. Sulfa, Penicillin — or NKDA"
-                          className="flex-1 min-w-[200px] px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
+                          className="flex-1 min-w-[200px] px-3 py-2 rounded-md border border-border text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
                         />
                         <button
                           type="button"
                           data-testid="button-allergies-nkda"
                           onClick={() => setMedicationAllergies("NKDA")}
-                          className="text-xs px-3 py-2 rounded-md border border-slate-300 hover-elevate"
+                          className="text-xs px-3 py-2 rounded-md border border-border hover-elevate"
                         >
                           NKDA
                         </button>
@@ -876,7 +876,7 @@ export default function AssessmentForm() {
                         </p>
                       </div>
                       <label
-                        className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer shrink-0"
+                        className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer shrink-0"
                         data-testid="label-pap-not-applicable"
                       >
                         <Checkbox
@@ -900,7 +900,7 @@ export default function AssessmentForm() {
                           value={papNotApplicableReason}
                           onChange={(e) => setPapNotApplicableReason(e.target.value)}
                           placeholder="Optional: reason (e.g. patient has full coverage, ADAP-enrolled, etc.)"
-                          className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
+                          className="w-full px-3 py-2 rounded-md border border-border text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
                         />
                       </div>
                     ) : papContext.entries.length === 0 ? (
@@ -910,25 +910,25 @@ export default function AssessmentForm() {
                     ) : (
                       <>
                         {/* Programs found */}
-                        <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-2">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                        <div className="rounded-md border border-border bg-muted/40 p-3 space-y-2">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                             Available programs
                           </p>
                           <div className="space-y-1.5">
                             {papContext.entries.map((e) => (
                               <div key={e.brandName} className="text-xs">
-                                <div className="font-medium text-slate-800">
-                                  {e.brandName} <span className="text-slate-500">— {e.manufacturer}</span>
+                                <div className="font-medium text-foreground">
+                                  {e.brandName} <span className="text-muted-foreground">— {e.manufacturer}</span>
                                 </div>
-                                <ul className="ml-3 mt-0.5 space-y-0.5 text-slate-600">
+                                <ul className="ml-3 mt-0.5 space-y-0.5 text-muted-foreground">
                                   {e.programs.map((p) => (
                                     <li key={p.name} className="flex items-start gap-1.5">
-                                      <span className="uppercase font-mono text-[10px] px-1.5 py-0.5 rounded bg-white border border-slate-200 mt-0.5 shrink-0">
+                                      <span className="uppercase font-mono text-[10px] px-1.5 py-0.5 rounded bg-card border border-border mt-0.5 shrink-0">
                                         {p.type}
                                       </span>
                                       <span>
                                         <span className="font-medium">{p.name}</span>
-                                        {p.savings ? <span className="text-slate-500"> — {p.savings}</span> : null}
+                                        {p.savings ? <span className="text-muted-foreground"> — {p.savings}</span> : null}
                                       </span>
                                     </li>
                                   ))}
@@ -948,12 +948,12 @@ export default function AssessmentForm() {
                                 className="space-y-1.5"
                                 data-testid={`pap-question-${q.key}`}
                               >
-                                <label className="text-xs font-semibold text-slate-700 block">{q.question}</label>
+                                <label className="text-xs font-semibold text-foreground block">{q.question}</label>
                                 {q.hint && (
                                   <p className="text-[11px] text-muted-foreground">{q.hint}</p>
                                 )}
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <div className="flex rounded-md border border-slate-300 overflow-hidden shrink-0">
+                                  <div className="flex rounded-md border border-border overflow-hidden shrink-0">
                                     <button
                                       type="button"
                                       data-testid={`button-pap-${q.key}-yes`}
@@ -961,7 +961,7 @@ export default function AssessmentForm() {
                                         setPapAnswers((prev) => ({ ...prev, [q.key]: prev[q.key] === "yes" ? "" : "yes" }))
                                       }
                                       className={`px-4 py-2 text-xs font-semibold transition-colors ${
-                                        ans === "yes" ? "bg-purple-600 text-white" : "bg-white text-slate-700 hover-elevate"
+                                        ans === "yes" ? "bg-purple-600 text-white" : "bg-card text-foreground hover-elevate"
                                       }`}
                                     >
                                       Yes
@@ -972,8 +972,8 @@ export default function AssessmentForm() {
                                       onClick={() =>
                                         setPapAnswers((prev) => ({ ...prev, [q.key]: prev[q.key] === "no" ? "" : "no" }))
                                       }
-                                      className={`px-4 py-2 text-xs font-semibold border-l border-slate-300 transition-colors ${
-                                        ans === "no" ? "bg-purple-600 text-white" : "bg-white text-slate-700 hover-elevate"
+                                      className={`px-4 py-2 text-xs font-semibold border-l border-border transition-colors ${
+                                        ans === "no" ? "bg-purple-600 text-white" : "bg-card text-foreground hover-elevate"
                                       }`}
                                     >
                                       No
@@ -988,7 +988,7 @@ export default function AssessmentForm() {
                                         setPapDetails((prev) => ({ ...prev, [q.key]: e.target.value }))
                                       }
                                       placeholder={q.detailLabel ?? "Details"}
-                                      className="flex-1 min-w-[200px] px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
+                                      className="flex-1 min-w-[200px] px-3 py-2 rounded-md border border-border text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
                                     />
                                   )}
                                 </div>
@@ -1017,10 +1017,10 @@ export default function AssessmentForm() {
                           return (
                             <div
                               data-testid="gauge-pap-probability"
-                              className="rounded-md border border-slate-200 bg-white p-3 space-y-2"
+                              className="rounded-md border border-border bg-card p-3 space-y-2"
                             >
                               <div className="flex items-center justify-between gap-2 flex-wrap">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                   Probability of PAP Enrollment Success
                                 </p>
                                 <span
@@ -1030,7 +1030,7 @@ export default function AssessmentForm() {
                                   {label} · {score}%
                                 </span>
                               </div>
-                              <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                              <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
                                 <div
                                   className={`h-full ${barColor} transition-all`}
                                   style={{ width: `${score}%` }}
@@ -1177,7 +1177,7 @@ export default function AssessmentForm() {
                           : "Complete Step 2 first, then paste the OpenEvidence response here..."
                       }
                       rows={10}
-                      className="w-full px-3.5 py-2.5 rounded-md border border-slate-300 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 transition-colors resize-y bg-white leading-relaxed"
+                      className="w-full px-3.5 py-2.5 rounded-md border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 transition-colors resize-y bg-card leading-relaxed"
                     />
                   </CardContent>
                 </Card>
@@ -1240,7 +1240,7 @@ export default function AssessmentForm() {
                     <CardContent>
                       <pre
                         data-testid="comprehensive-note-text"
-                        className="text-sm whitespace-pre-wrap leading-relaxed font-sans text-slate-800 bg-slate-50 rounded-md p-4 border border-slate-200"
+                        className="text-sm whitespace-pre-wrap leading-relaxed font-sans text-foreground bg-muted/40 rounded-md p-4 border border-border"
                       >
                         {comprehensiveNote}
                       </pre>
@@ -1287,17 +1287,17 @@ function YesNoWithDetail({
 }) {
   return (
     <div>
-      <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+      <label className="text-xs font-semibold text-foreground block mb-1.5">
         {label} <span className="text-red-500">*</span>
       </label>
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex rounded-md border border-slate-300 overflow-hidden shrink-0">
+        <div className="flex rounded-md border border-border overflow-hidden shrink-0">
           <button
             type="button"
             data-testid={`button-${testIdPrefix}-yes`}
             onClick={() => onStatusChange("yes")}
             className={`px-4 py-2 text-xs font-semibold transition-colors ${
-              status === "yes" ? "bg-purple-600 text-white" : "bg-white text-slate-700 hover-elevate"
+              status === "yes" ? "bg-purple-600 text-white" : "bg-card text-foreground hover-elevate"
             }`}
           >
             Yes
@@ -1306,8 +1306,8 @@ function YesNoWithDetail({
             type="button"
             data-testid={`button-${testIdPrefix}-no`}
             onClick={() => onStatusChange("no")}
-            className={`px-4 py-2 text-xs font-semibold border-l border-slate-300 transition-colors ${
-              status === "no" ? "bg-purple-600 text-white" : "bg-white text-slate-700 hover-elevate"
+            className={`px-4 py-2 text-xs font-semibold border-l border-border transition-colors ${
+              status === "no" ? "bg-purple-600 text-white" : "bg-card text-foreground hover-elevate"
             }`}
           >
             No
@@ -1320,7 +1320,7 @@ function YesNoWithDetail({
             value={detail}
             onChange={(e) => onDetailChange(e.target.value)}
             placeholder={detailPlaceholder}
-            className="flex-1 min-w-[200px] px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
+            className="flex-1 min-w-[200px] px-3 py-2 rounded-md border border-border text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
           />
         )}
       </div>
@@ -1338,10 +1338,10 @@ function SectionLabel({ num, label, active }: { num: number; label: string; acti
       >
         {num}
       </div>
-      <h2 className={`text-sm font-bold uppercase tracking-wider ${active ? "text-slate-900" : "text-slate-400"}`}>
+      <h2 className={`text-sm font-bold uppercase tracking-wider ${active ? "text-foreground" : "text-muted-foreground"}`}>
         {label}
       </h2>
-      <div className="flex-1 h-px bg-slate-200" />
+      <div className="flex-1 h-px bg-muted" />
     </div>
   );
 }

@@ -147,7 +147,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(function 
     <div className="space-y-2">
       <div
         ref={wrapRef}
-        className={`relative w-full rounded-md border border-slate-300 overflow-hidden bg-white ${
+        className={`relative w-full rounded-md border border-border overflow-hidden bg-card ${
           disabled ? "opacity-80" : ""
         }`}
       >
@@ -161,7 +161,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(function 
           onPointerCancel={onPointerUp}
           style={{ touchAction: "none", display: "block", cursor: disabled ? "default" : "crosshair" }}
         />
-        <span className="absolute bottom-1.5 left-2 text-[10px] uppercase tracking-wide text-slate-400 select-none pointer-events-none">
+        <span className="absolute bottom-1.5 left-2 text-[10px] uppercase tracking-wide text-muted-foreground select-none pointer-events-none">
           Sign above
         </span>
       </div>
@@ -171,7 +171,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(function 
           onClick={clear}
           disabled={disabled}
           data-testid={`${testId}-clear`}
-          className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
         >
           <Eraser className="w-3.5 h-3.5" />
           Clear

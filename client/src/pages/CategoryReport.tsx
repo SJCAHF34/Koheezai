@@ -45,7 +45,7 @@ function tierLabel(pct: number) {
 function TrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
   if (trend === "up") return <TrendingUp className="w-3.5 h-3.5 text-green-500" />;
   if (trend === "down") return <TrendingDown className="w-3.5 h-3.5 text-red-500" />;
-  return <Minus className="w-3.5 h-3.5 text-slate-400" />;
+  return <Minus className="w-3.5 h-3.5 text-muted-foreground" />;
 }
 
 // ── Mini sparkline ───────────────────────────────────────────────────────────
@@ -110,12 +110,12 @@ function RankRow({
       className="flex items-center gap-4 px-5 py-3 hover-elevate border-b border-slate-50 last:border-0"
     >
       {/* Rank */}
-      <span className="text-sm font-bold text-slate-400 w-6 shrink-0 text-right">{rank}</span>
+      <span className="text-sm font-bold text-muted-foreground w-6 shrink-0 text-right">{rank}</span>
 
       {/* Store info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-800 truncate">{store.siteName}</p>
-        <p className="text-[10px] text-slate-400">
+        <p className="text-sm font-semibold text-foreground truncate">{store.siteName}</p>
+        <p className="text-[10px] text-muted-foreground">
           #{store.siteId} · {store.region}
         </p>
       </div>
@@ -215,15 +215,15 @@ export default function CategoryReport() {
   const totalStores = rankings.length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/40">
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-4xl mx-auto px-6 py-6">
           {/* Back link */}
           <button
             data-testid="btn-back-regional"
             onClick={() => navigate("/app/tasks/regional")}
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-purple-600 mb-4 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-purple-600 mb-4 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Regional Dashboard
@@ -233,25 +233,25 @@ export default function CategoryReport() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <BarChart3 className="w-5 h-5 text-purple-600" />
-                <h1 className="text-2xl font-bold text-slate-900">Category Report</h1>
+                <h1 className="text-2xl font-bold text-foreground">Category Report</h1>
               </div>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted-foreground">
                 All {totalStores} locations ranked by {cfg.label} completion · {periodLabel}
               </p>
             </div>
 
             {/* Summary stat */}
             <div className="text-right">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-0.5">
                 Locations
               </p>
-              <p className="text-3xl font-bold text-slate-900">{totalStores}</p>
-              <p className="text-[10px] text-slate-400">{periodLabel}</p>
+              <p className="text-3xl font-bold text-foreground">{totalStores}</p>
+              <p className="text-[10px] text-muted-foreground">{periodLabel}</p>
             </div>
           </div>
 
           {/* Category selector */}
-          <div className="mt-5 flex gap-1 bg-slate-50 border border-slate-100 rounded-md p-1">
+          <div className="mt-5 flex gap-1 bg-muted/40 border border-border rounded-md p-1">
             {CAT_TABS.map((tab) => (
               <button
                 key={tab.value}
@@ -259,8 +259,8 @@ export default function CategoryReport() {
                 onClick={() => setCat(tab.value)}
                 className={`flex-1 px-2 py-2 rounded text-xs font-bold transition-all ${
                   cat === tab.value
-                    ? "bg-white shadow-sm text-slate-800"
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-card shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-muted-foreground"
                 }`}
               >
                 {tab.label}
@@ -271,7 +271,7 @@ export default function CategoryReport() {
           {/* CPO region filter */}
           {isCpoUser && (
             <div className="mt-3 flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Region:</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Region:</span>
               <div className="flex gap-1 flex-wrap">
                 {[null, ...STORE_REGIONS.map((r) => r.region)].map((r) => (
                   <button
@@ -281,7 +281,7 @@ export default function CategoryReport() {
                     className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition-all ${
                       filterRegion === r
                         ? "border-blue-400 bg-blue-50 text-blue-700"
-                        : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                        : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"
                     }`}
                   >
                     {r ? r.replace(" Region", "") : "All Regions"}
@@ -289,7 +289,7 @@ export default function CategoryReport() {
                 ))}
               </div>
               {effectiveRegion && (
-                <span className="text-[10px] text-slate-400">
+                <span className="text-[10px] text-muted-foreground">
                   · Showing {baseStores.length} locations
                 </span>
               )}
@@ -297,11 +297,11 @@ export default function CategoryReport() {
           )}
           {assignedRegion && !isCpoUser && (
             <div className="mt-3 flex items-center gap-1.5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Region:</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Region:</span>
               <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
                 {assignedRegion}
               </span>
-              <span className="text-[10px] text-slate-400">· {baseStores.length} locations</span>
+              <span className="text-[10px] text-muted-foreground">· {baseStores.length} locations</span>
             </div>
           )}
 
@@ -315,7 +315,7 @@ export default function CategoryReport() {
                 className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${
                   period === p
                     ? "border-purple-400 bg-purple-50 text-purple-700"
-                    : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                    : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"
                 }`}
               >
                 {PERIOD_CONFIG[p].label}
@@ -342,7 +342,7 @@ export default function CategoryReport() {
               </div>
 
               {/* Store rows */}
-              <div className="bg-white border border-t-0 border-slate-200 rounded-b-md divide-y divide-slate-50">
+              <div className="bg-card border border-t-0 border-border rounded-b-md divide-y divide-slate-50">
                 {tier.stores.map((store) => (
                   <RankRow key={store.siteId} rank={store.globalRank} store={store} cat={cat} />
                 ))}

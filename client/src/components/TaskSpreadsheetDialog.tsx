@@ -254,12 +254,12 @@ export function TaskSpreadsheetDialog({
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={`cursor-pointer rounded-md border-2 border-dashed p-8 text-center transition-colors ${
-                  isDragging ? "border-emerald-400 bg-emerald-50" : "border-slate-200 hover:border-slate-300"
+                  isDragging ? "border-emerald-400 bg-emerald-50" : "border-border hover:border-border"
                 }`}
               >
-                <Upload className="w-6 h-6 mx-auto text-slate-400 mb-2" />
-                <p className="text-sm font-medium text-slate-700">Drop an Excel file here, or click to browse</p>
-                <p className="text-xs text-slate-400 mt-1">.xlsx or .xls, up to 5MB</p>
+                <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm font-medium text-foreground">Drop an Excel file here, or click to browse</p>
+                <p className="text-xs text-muted-foreground mt-1">.xlsx or .xls, up to 5MB</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -274,7 +274,7 @@ export function TaskSpreadsheetDialog({
                 />
               </div>
             ) : (
-              <p className="text-sm text-slate-500 py-8 text-center">No spreadsheet has been attached to this task yet.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">No spreadsheet has been attached to this task yet.</p>
             )}
             {parseError && (
               <p className="text-xs text-red-600 flex items-center gap-1.5" data-testid="text-spreadsheet-error">
@@ -286,7 +286,7 @@ export function TaskSpreadsheetDialog({
         ) : (
           <div className="flex-1 overflow-hidden flex flex-col gap-3 min-h-0">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <p className="text-xs text-slate-500 truncate">
+              <p className="text-xs text-muted-foreground truncate">
                 {form.fileName} · updated {new Date(form.updatedAt).toLocaleString()}
               </p>
             </div>
@@ -302,7 +302,7 @@ export function TaskSpreadsheetDialog({
                     className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${
                       i === activeSheetIdx
                         ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-                        : "border-slate-200 text-slate-500 hover:border-slate-300"
+                        : "border-border text-muted-foreground hover:border-border"
                     }`}
                   >
                     {s.name}
@@ -311,17 +311,17 @@ export function TaskSpreadsheetDialog({
               </div>
             )}
 
-            <div className="flex-1 overflow-auto pr-1 border border-slate-200 rounded-md">
+            <div className="flex-1 overflow-auto pr-1 border border-border rounded-md">
               {activeSheet && activeSheet.rows.length === 0 && activeSheet.headers.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">This sheet has no data rows.</p>
+                <p className="text-sm text-muted-foreground text-center py-6">This sheet has no data rows.</p>
               ) : (
                 <table className="w-full border-collapse text-sm">
                   <thead>
-                    <tr className="bg-slate-50 sticky top-0 z-10">
+                    <tr className="bg-muted/40 sticky top-0 z-10">
                       {activeSheet?.headers.map((header, colIdx) => (
                         <th
                           key={colIdx}
-                          className="border-b border-r border-slate-200 last:border-r-0 p-0 text-left align-middle min-w-[140px]"
+                          className="border-b border-r border-border last:border-r-0 p-0 text-left align-middle min-w-[140px]"
                         >
                           <div className="flex items-center gap-1 px-2 py-1.5">
                             <Input
@@ -329,13 +329,13 @@ export function TaskSpreadsheetDialog({
                               disabled={!canEdit}
                               data-testid={`input-header-${activeSheetIdx}-${colIdx}`}
                               onChange={(e) => handleHeaderChange(activeSheetIdx, colIdx, e.target.value)}
-                              className="h-7 text-[11px] font-semibold uppercase tracking-wide text-slate-500 border-0 bg-transparent px-1 focus-visible:ring-1"
+                              className="h-7 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground border-0 bg-transparent px-1 focus-visible:ring-1"
                             />
                           </div>
                         </th>
                       ))}
                       {canEdit && (
-                        <th className="border-b border-slate-200 p-1 align-middle w-10">
+                        <th className="border-b border-border p-1 align-middle w-10">
                           <Button
                             type="button"
                             variant="ghost"
@@ -355,7 +355,7 @@ export function TaskSpreadsheetDialog({
                     {activeSheet?.rows.map((row, rowIdx) => (
                       <tr key={rowIdx} data-testid={`row-spreadsheet-${activeSheetIdx}-${rowIdx}`} className="hover-elevate">
                         {activeSheet.headers.map((_, colIdx) => (
-                          <td key={colIdx} className="border-b border-r border-slate-100 last:border-r-0 p-1">
+                          <td key={colIdx} className="border-b border-r border-border last:border-r-0 p-1">
                             <Input
                               type={activeSheet.columnTypes[colIdx] === "number" ? "number" : activeSheet.columnTypes[colIdx] === "date" ? "date" : "text"}
                               value={row[colIdx] ?? ""}
@@ -372,7 +372,7 @@ export function TaskSpreadsheetDialog({
                 </table>
               )}
               {canEdit && activeSheet && (
-                <div className="p-2 border-t border-slate-100">
+                <div className="p-2 border-t border-border">
                   <Button
                     type="button"
                     variant="ghost"
@@ -388,8 +388,8 @@ export function TaskSpreadsheetDialog({
               )}
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-100">
-              <span className="text-xs font-semibold text-slate-400 mr-1">Export:</span>
+            <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border">
+              <span className="text-xs font-semibold text-muted-foreground mr-1">Export:</span>
               <Button
                 type="button"
                 variant="outline"

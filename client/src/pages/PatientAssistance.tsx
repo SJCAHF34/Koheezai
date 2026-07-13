@@ -48,7 +48,7 @@ const programTypeConfig: Record<ProgramType, { label: string; color: string; ico
   },
   manufacturer: {
     label: "Manufacturer",
-    color: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200",
+    color: "bg-muted text-foreground dark:bg-slate-800 dark:text-slate-200",
     icon: <Pill className="w-3 h-3" />,
   },
 };
@@ -314,7 +314,7 @@ export default function PatientAssistance() {
                       resource.category === "adap" ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200" :
                       resource.category === "foundation" ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" :
                       resource.category === "federal" ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" :
-                      "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
+                      "bg-muted text-foreground dark:bg-slate-800 dark:text-slate-200"
                     }`}>
                       {resource.category === "adap" ? "ADAP" :
                        resource.category === "foundation" ? "Foundation" :

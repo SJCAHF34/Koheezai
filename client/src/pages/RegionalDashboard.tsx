@@ -118,7 +118,7 @@ function Sparkline({
 function TrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
   if (trend === "up") return <TrendingUp className="w-3.5 h-3.5 text-green-500" />;
   if (trend === "down") return <TrendingDown className="w-3.5 h-3.5 text-red-500" />;
-  return <Minus className="w-3.5 h-3.5 text-slate-400" />;
+  return <Minus className="w-3.5 h-3.5 text-muted-foreground" />;
 }
 
 // ── Per-site real stats from localStorage ──────────────────────────────────
@@ -170,22 +170,22 @@ function SiteCard({
   return (
     <button
       data-testid={`site-card-${trend.siteId}`}
-      className="w-full text-left bg-white border border-slate-200 rounded-md overflow-hidden hover:shadow-md transition-shadow group"
+      className="w-full text-left bg-card border border-border rounded-md overflow-hidden hover:shadow-md transition-shadow group"
       onClick={() => onDrillDown(trend.siteId)}
     >
       {/* Card header */}
       <div className="px-5 pt-4 pb-3 flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-            <p className="text-sm font-bold text-slate-800 truncate">{trend.siteName}</p>
+            <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
+            <p className="text-sm font-bold text-foreground truncate">{trend.siteName}</p>
           </div>
-          <p className="text-xs text-slate-400 pl-4">{site?.region}</p>
+          <p className="text-xs text-muted-foreground pl-4">{site?.region}</p>
         </div>
 
         <div className="text-right shrink-0">
-          <p className="text-2xl font-bold text-slate-800">{realStats.completedCount}</p>
-          <p className="text-[10px] text-slate-400">Tasks done today</p>
+          <p className="text-2xl font-bold text-foreground">{realStats.completedCount}</p>
+          <p className="text-[10px] text-muted-foreground">Tasks done today</p>
         </div>
       </div>
 
@@ -195,7 +195,7 @@ function SiteCard({
           const cfg = CATEGORY_CONFIG[cat];
           return (
             <div key={cat} className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-semibold text-slate-500">
+              <span className="text-[10px] font-semibold text-muted-foreground">
                 {shortLabel(cfg.label)}
               </span>
               <TrendIcon trend={trend.categories[cat].trend} />
@@ -206,7 +206,7 @@ function SiteCard({
 
       {/* 7d overview + drill-down hint */}
       <div className="px-5 pb-3.5 flex items-center justify-between">
-        <span className="text-[10px] text-slate-400 flex items-center gap-1">
+        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
           7d trend <TrendIcon trend={overallTrend} />
         </span>
         <span className="text-xs font-semibold text-purple-600 flex items-center gap-1 group-hover:gap-1.5 transition-all">
@@ -246,10 +246,10 @@ function StoreDirectorySection({
 
   return (
     <section>
-      <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <h2 className="text-base font-bold text-foreground mb-3 flex items-center gap-2">
         <Store className="w-4 h-4 text-purple-600" />
         Store Directory
-        <span className="text-xs font-normal text-slate-400 ml-1">
+        <span className="text-xs font-normal text-muted-foreground ml-1">
           — All locations organized by region
         </span>
       </h2>
@@ -259,7 +259,7 @@ function StoreDirectorySection({
           return (
             <div
               key={reg.region}
-              className="bg-white border border-slate-200 rounded-md overflow-hidden"
+              className="bg-card border border-border rounded-md overflow-hidden"
             >
               {/* Region header */}
               <button
@@ -270,12 +270,12 @@ function StoreDirectorySection({
                 <div className="flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${reg.dotColor} shrink-0`} />
                   <span className={`text-sm font-bold ${reg.color}`}>{reg.region}</span>
-                  <span className="text-xs text-slate-400 font-medium">
+                  <span className="text-xs text-muted-foreground font-medium">
                     {reg.stores.length} {reg.stores.length === 1 ? "location" : "locations"}
                   </span>
                 </div>
                 <ChevronDown
-                  className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                  className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
                     isOpen ? "rotate-180" : ""
                   }`}
                 />
@@ -290,12 +290,12 @@ function StoreDirectorySection({
                         key={store.id}
                         data-testid={`store-card-${store.id}`}
                         onClick={() => onDrillDown(store.id)}
-                        className="text-left px-3 py-2.5 border border-slate-100 rounded-md hover-elevate group"
+                        className="text-left px-3 py-2.5 border border-border rounded-md hover-elevate group"
                       >
-                        <p className="text-xs font-semibold text-slate-700 leading-snug group-hover:text-purple-700 transition-colors">
+                        <p className="text-xs font-semibold text-foreground leading-snug group-hover:text-purple-700 transition-colors">
                           {store.name}
                         </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">#{store.id}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">#{store.id}</p>
                       </button>
                     ))}
                   </div>
@@ -329,14 +329,14 @@ function RegionCard({
       className={`w-full text-left rounded-md border transition-all ${
         isSelected
           ? "border-purple-400 bg-purple-50 shadow-sm"
-          : "bg-white border-slate-200 hover:shadow-md hover:border-purple-200"
+          : "bg-card border-border hover:shadow-md hover:border-purple-200"
       }`}
     >
       {/* Header */}
       <div className="px-4 pt-4 pb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${reg.dotColor}`} />
-          <span className={`text-sm font-bold truncate ${isSelected ? "text-purple-800" : "text-slate-800"}`}>
+          <span className={`text-sm font-bold truncate ${isSelected ? "text-purple-800" : "text-foreground"}`}>
             {reg.region.replace(" Region", "").replace(" – ", " — ")}
           </span>
         </div>
@@ -346,7 +346,7 @@ function RegionCard({
       </div>
 
       {/* Sub-stats */}
-      <div className="px-4 pb-2 flex items-center gap-3 text-[10px] text-slate-500">
+      <div className="px-4 pb-2 flex items-center gap-3 text-[10px] text-muted-foreground">
         <span>{reg.stores.length} stores</span>
         {perf.atRiskCount > 0 && (
           <span className="font-semibold text-amber-600">{perf.atRiskCount} at risk</span>
@@ -359,7 +359,7 @@ function RegionCard({
           const cfg = CATEGORY_CONFIG[cat];
           return (
             <div key={cat} className="flex items-center justify-between gap-2">
-              <span className="text-[9px] font-semibold text-slate-400">
+              <span className="text-[9px] font-semibold text-muted-foreground">
                 {shortLabel(cfg.label)}
               </span>
             </div>
@@ -397,20 +397,20 @@ function CarouselStoreCard({
     <button
       data-testid={`site-carousel-${store.id}`}
       onClick={() => onDrillDown(store.id)}
-      className="w-full text-left bg-white border border-slate-200 rounded-md overflow-hidden hover:shadow-md transition-shadow group"
+      className="w-full text-left bg-card border border-border rounded-md overflow-hidden hover:shadow-md transition-shadow group"
     >
       {/* Header */}
       <div className="px-5 pt-4 pb-3 flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-            <p className="text-sm font-bold text-slate-800 truncate">{store.name}</p>
+            <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
+            <p className="text-sm font-bold text-foreground truncate">{store.name}</p>
           </div>
-          <p className="text-xs text-slate-400 pl-4">#{store.id}</p>
+          <p className="text-xs text-muted-foreground pl-4">#{store.id}</p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-2xl font-bold text-slate-800">{realStats.completedCount}</p>
-          <p className="text-[10px] text-slate-400">Tasks done today</p>
+          <p className="text-2xl font-bold text-foreground">{realStats.completedCount}</p>
+          <p className="text-[10px] text-muted-foreground">Tasks done today</p>
         </div>
       </div>
 
@@ -420,7 +420,7 @@ function CarouselStoreCard({
           const cfg = CATEGORY_CONFIG[cat];
           return (
             <div key={cat} className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-semibold text-slate-500">
+              <span className="text-[10px] font-semibold text-muted-foreground">
                 {shortLabel(cfg.label)}
               </span>
               {trend && <TrendIcon trend={trend.categories[cat].trend} />}
@@ -474,10 +474,10 @@ function SiteBreakdownCarousel({
   return (
     <section>
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+        <h2 className="text-base font-bold text-foreground flex items-center gap-2">
           <MapPin className="w-4 h-4 text-purple-600" />
           Site Breakdown
-          <span className="text-xs font-normal text-slate-400 ml-1">
+          <span className="text-xs font-normal text-muted-foreground ml-1">
             — {region.stores.length} location{region.stores.length !== 1 ? "s" : ""} in {region.region.replace(" Region", "").replace(" – ", " — ")}
           </span>
         </h2>
@@ -489,8 +489,8 @@ function SiteBreakdownCarousel({
               disabled={!canScrollLeft}
               className={`w-8 h-8 flex items-center justify-center rounded-md border transition-all ${
                 canScrollLeft
-                  ? "border-slate-200 text-slate-700 hover-elevate"
-                  : "border-slate-100 text-slate-300 cursor-default"
+                  ? "border-border text-foreground hover-elevate"
+                  : "border-border text-muted-foreground cursor-default"
               }`}
             >
               <ChevronLeft className="w-4 h-4" />
@@ -501,8 +501,8 @@ function SiteBreakdownCarousel({
               disabled={!canScrollRight}
               className={`w-8 h-8 flex items-center justify-center rounded-md border transition-all ${
                 canScrollRight
-                  ? "border-slate-200 text-slate-700 hover-elevate"
-                  : "border-slate-100 text-slate-300 cursor-default"
+                  ? "border-border text-foreground hover-elevate"
+                  : "border-border text-muted-foreground cursor-default"
               }`}
             >
               <ChevronRight className="w-4 h-4" />
@@ -712,7 +712,7 @@ export default function RegionalDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/40">
 
       {/* Create Task Modal */}
       <CreateTaskModal
@@ -728,20 +728,20 @@ export default function RegionalDashboard() {
         availableRegions={availableRegions}
       />
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-5xl mx-auto px-6 py-8">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Globe className="w-5 h-5 text-purple-600" />
-                <h1 className="text-2xl font-bold text-slate-900">
+                <h1 className="text-2xl font-bold text-foreground">
                   {isCpoUser ? "National Dashboard" : "Regional Dashboard"}
                 </h1>
               </div>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted-foreground">
                 {filterRegion ?? (isCpoUser ? "All Regions · National" : "All Regions")} · {today}
               </p>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Welcome <span className="font-semibold bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg,#3b82f6,#9333ea)" }}>{profile.name.split(" ")[0]}</span>!
               </p>
             </div>
@@ -757,23 +757,23 @@ export default function RegionalDashboard() {
           <div className="grid grid-cols-2 gap-4 mt-6">
             <div
               data-testid="stat-tasks-completed"
-              className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
+              className="bg-muted/40 border border-border rounded-md px-4 py-3"
             >
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide mb-1">
                 Tasks Completed Today
               </p>
-              <p className="text-3xl font-bold text-slate-900">{totalCompletedToday}</p>
-              <p className="text-xs text-slate-400 mt-0.5">of {totalPossibleToday} across all sites</p>
+              <p className="text-3xl font-bold text-foreground">{totalCompletedToday}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">of {totalPossibleToday} across all sites</p>
             </div>
             <div
               data-testid="stat-sites"
-              className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
+              className="bg-muted/40 border border-border rounded-md px-4 py-3"
             >
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide mb-1">
                 Sites Monitored
               </p>
-              <p className="text-3xl font-bold text-slate-900">{SITES.length}</p>
-              <p className="text-xs text-slate-400 mt-0.5">reporting daily</p>
+              <p className="text-3xl font-bold text-foreground">{SITES.length}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">reporting daily</p>
             </div>
           </div>
         </div>
@@ -783,13 +783,13 @@ export default function RegionalDashboard() {
 
         {/* ── Create Task ────────────────────────────────────────────────── */}
         {isRegionalDir && (
-          <section className="bg-white border border-slate-200 rounded-md px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+          <section className="bg-card border border-border rounded-md px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <ClipboardList className="w-4 h-4 text-purple-600" />
                 {isCpoUser ? "Push a Task Nationally or Regionally" : "Push a Task to Your Region"}
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {isCpoUser
                   ? "Create tasks that automatically appear at all sites nationwide or in a specific region."
                   : "Create tasks that automatically appear at all sites in your region."}
@@ -808,15 +808,15 @@ export default function RegionalDashboard() {
 
         {/* ── AI Performance Evaluator ─────────────────────────────────── */}
         {isRegionalDir && (
-          <section className="bg-white border border-slate-200 rounded-md px-5 py-5 space-y-4">
+          <section className="bg-card border border-border rounded-md px-5 py-5 space-y-4">
             {/* Header row */}
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div>
-                <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-purple-600" />
                   AI Performance Evaluator
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Ask questions about {isCpoUser ? "national or regional" : "your region's"} pharmacy performance. Answers are grounded in today's data snapshot.
                 </p>
               </div>
@@ -824,7 +824,7 @@ export default function RegionalDashboard() {
                 <button
                   data-testid="ai-clear-thread"
                   onClick={() => { setAiMessages([]); setAiError(null); setAiQuery(""); }}
-                  className="text-xs text-slate-400 hover:text-slate-600 transition-colors shrink-0 mt-0.5"
+                  className="text-xs text-muted-foreground hover:text-muted-foreground transition-colors shrink-0 mt-0.5"
                 >
                   Clear conversation
                 </button>
@@ -845,7 +845,7 @@ export default function RegionalDashboard() {
                     data-testid={`ai-prompt-chip-${prompt.slice(0, 20).replace(/\s+/g, "-").toLowerCase()}`}
                     disabled={aiLoading}
                     onClick={() => handleAIQuery(prompt)}
-                    className="text-xs px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 bg-slate-50 hover-elevate transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground bg-muted/40 hover-elevate transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {prompt}
                   </button>
@@ -867,14 +867,14 @@ export default function RegionalDashboard() {
                     data-testid={msg.role === "assistant" ? "ai-response-panel" : `ai-user-message-${idx}`}
                     className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end" : "items-start"}`}
                   >
-                    <span className="text-[10px] font-semibold text-slate-400 px-1">
+                    <span className="text-[10px] font-semibold text-muted-foreground px-1">
                       {msg.role === "user" ? "You" : "Koheez AI"}
                     </span>
                     <div
                       className={`rounded-md px-3 py-2.5 max-w-[90%] text-sm leading-relaxed ${
                         msg.role === "user"
-                          ? "bg-purple-50 border border-purple-100 text-slate-700"
-                          : "bg-slate-50 border border-slate-200 text-slate-700 prose prose-sm prose-slate max-w-none w-full"
+                          ? "bg-purple-50 border border-purple-100 text-foreground"
+                          : "bg-muted/40 border border-border text-foreground prose prose-sm prose-slate max-w-none w-full"
                       }`}
                     >
                       {msg.role === "assistant" ? (
@@ -889,11 +889,11 @@ export default function RegionalDashboard() {
                 {/* Loading indicator at end of thread */}
                 {aiLoading && (
                   <div data-testid="ai-loading-indicator" className="flex flex-col gap-1 items-start">
-                    <span className="text-[10px] font-semibold text-slate-400 px-1">Koheez AI</span>
-                    <div className="bg-slate-50 border border-slate-200 rounded-md px-4 py-3 space-y-1.5 w-64">
-                      <div className="h-2.5 w-5/6 rounded bg-slate-200 animate-pulse" />
-                      <div className="h-2.5 w-full rounded bg-slate-200 animate-pulse" />
-                      <div className="h-2.5 w-4/6 rounded bg-slate-200 animate-pulse" />
+                    <span className="text-[10px] font-semibold text-muted-foreground px-1">Koheez AI</span>
+                    <div className="bg-muted/40 border border-border rounded-md px-4 py-3 space-y-1.5 w-64">
+                      <div className="h-2.5 w-5/6 rounded bg-muted animate-pulse" />
+                      <div className="h-2.5 w-full rounded bg-muted animate-pulse" />
+                      <div className="h-2.5 w-4/6 rounded bg-muted animate-pulse" />
                     </div>
                   </div>
                 )}
@@ -903,9 +903,9 @@ export default function RegionalDashboard() {
             {/* Loading indicator when thread is empty (first message) */}
             {aiLoading && aiMessages.length === 0 && (
               <div data-testid="ai-loading-indicator" className="space-y-2 pt-1">
-                <div className="h-3 w-2/3 rounded bg-slate-100 animate-pulse" />
-                <div className="h-3 w-full rounded bg-slate-100 animate-pulse" />
-                <div className="h-3 w-4/5 rounded bg-slate-100 animate-pulse" />
+                <div className="h-3 w-2/3 rounded bg-muted animate-pulse" />
+                <div className="h-3 w-full rounded bg-muted animate-pulse" />
+                <div className="h-3 w-4/5 rounded bg-muted animate-pulse" />
               </div>
             )}
 
@@ -940,7 +940,7 @@ export default function RegionalDashboard() {
                 }}
                 placeholder={aiMessages.length > 0 ? "Ask a follow-up question…" : "Ask a performance question…"}
                 rows={2}
-                className="flex-1 resize-none rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                className="flex-1 resize-none rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-300"
               />
               <Button
                 type="submit"
@@ -959,10 +959,10 @@ export default function RegionalDashboard() {
         {isCpoUser && (
           <section>
             <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
-              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                 <Layers className="w-4 h-4 text-purple-600" />
                 Region Performance
-                <span className="text-xs font-normal text-slate-400 ml-1">
+                <span className="text-xs font-normal text-muted-foreground ml-1">
                   — Click a region to filter the dashboard
                 </span>
               </h2>
@@ -1012,10 +1012,10 @@ export default function RegionalDashboard() {
         {/* ── Regional trend sparklines ────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
-            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-purple-600" />
               Category Trends
-              <span className="text-xs font-normal text-slate-400 ml-1">
+              <span className="text-xs font-normal text-muted-foreground ml-1">
                 — Click any category to see all-site rankings
               </span>
             </h2>
@@ -1030,7 +1030,7 @@ export default function RegionalDashboard() {
                     className={`px-2.5 py-1 rounded-md text-xs font-bold border transition-all ${
                       period === p
                         ? "border-purple-400 bg-purple-50 text-purple-700"
-                        : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                        : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"
                     }`}
                   >
                     {PERIOD_CONFIG[p].label}
@@ -1059,7 +1059,7 @@ export default function RegionalDashboard() {
                   key={cat}
                   data-testid={`trend-card-${cat}`}
                   onClick={() => navigate(`/app/category-report?cat=${cat}&period=${period}${filterRegion ? `&region=${encodeURIComponent(filterRegion)}` : ""}`)}
-                  className="bg-white border border-slate-200 rounded-md px-4 py-4 text-left hover:shadow-md hover:border-purple-200 transition-all group"
+                  className="bg-card border border-border rounded-md px-4 py-4 text-left hover:shadow-md hover:border-purple-200 transition-all group"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className={`text-[10px] font-bold uppercase tracking-wide ${cfg.color}`}>
@@ -1068,7 +1068,7 @@ export default function RegionalDashboard() {
                     <TrendIcon trend={trend} />
                   </div>
                   <div className="flex items-end gap-1.5 mb-2">
-                    <span className="text-xs text-slate-400">{PERIOD_CONFIG[period].label} trend</span>
+                    <span className="text-xs text-muted-foreground">{PERIOD_CONFIG[period].label} trend</span>
                   </div>
                   <Sparkline
                     data={days}
@@ -1092,16 +1092,16 @@ export default function RegionalDashboard() {
 
         {/* ── Task-level Trouble Spots ─────────────────────────────────── */}
         <section>
-          <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
+          <h2 className="text-base font-bold text-foreground mb-3 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             Trouble Spots
-            <span className="text-xs font-normal text-slate-400 ml-1">
+            <span className="text-xs font-normal text-muted-foreground ml-1">
               — Tasks frequently missed over the last 7 days (cross-site) — click to view
             </span>
           </h2>
-          <div className="bg-white border border-slate-200 rounded-md divide-y divide-slate-100">
+          <div className="bg-card border border-border rounded-md divide-y divide-border">
             {troubleSpotTasks.length === 0 ? (
-              <div className="px-5 py-6 text-center text-sm text-slate-400">
+              <div className="px-5 py-6 text-center text-sm text-muted-foreground">
                 No frequently missed tasks — all tasks performing above benchmark.
               </div>
             ) : (
@@ -1117,14 +1117,14 @@ export default function RegionalDashboard() {
                   >
                     {/* Task + category */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 leading-snug truncate">
+                      <p className="text-sm font-semibold text-foreground leading-snug truncate">
                         {spot.task.title}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${cfg.badge}`}>
                           {cfg.label}
                         </span>
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-muted-foreground">
                           Worst: {spot.worstSiteName}
                         </span>
                       </div>
@@ -1137,7 +1137,7 @@ export default function RegionalDashboard() {
                           Critical
                         </span>
                       )}
-                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors shrink-0" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-muted-foreground transition-colors shrink-0" />
                     </div>
                   </button>
                 );

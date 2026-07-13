@@ -79,16 +79,16 @@ const steps = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-card text-foreground">
       {/* ── Top Nav ── */}
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
           <KoheezLogo className="text-xl" />
           <nav className="flex items-center gap-3">
             <Link href="/login">
               <button
                 data-testid="nav-sign-in"
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors rounded-md"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md"
               >
                 Sign in
               </button>
@@ -107,7 +107,7 @@ export default function LandingPage() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden pt-16 sm:pt-24 pb-20 sm:pb-28 px-4 sm:px-6 bg-white">
+      <section className="relative overflow-hidden pt-16 sm:pt-24 pb-20 sm:pb-28 px-4 sm:px-6 bg-card">
         <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
           style={{ backgroundImage: CTA_GRADIENT }}
@@ -117,7 +117,7 @@ export default function LandingPage() {
             <Activity className="w-3 h-3 text-purple-500 shrink-0" />
             <span className="truncate">Tasks · Compliance · Patients — One Platform</span>
           </div>
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] sm:leading-[1.08] mb-6 text-slate-900 break-words">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] sm:leading-[1.08] mb-6 text-foreground break-words">
             Your tasks, your team,{" "}
             <span className="sm:whitespace-nowrap">
               <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #3b82f6, #9333ea)" }}>your patients,</span>
@@ -125,7 +125,7 @@ export default function LandingPage() {
               <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #9333ea, #ef4444)" }}>one platform.</span>
             </span>
           </h1>
-          <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
             Koheez.ai brings daily task management, ACHC compliance tracking, patient
             assistance programs, and AI clinical tools into a single workflow — so
             pharmacy directors spend less time juggling systems and more time leading their team.
@@ -144,14 +144,14 @@ export default function LandingPage() {
             <Link href="/login">
               <button
                 data-testid="hero-sign-in"
-                className="inline-flex items-center gap-2 px-7 py-3.5 text-base font-semibold border border-slate-300 text-slate-700 rounded-md hover:border-slate-400 hover:bg-slate-50 transition-colors"
+                className="inline-flex items-center gap-2 px-7 py-3.5 text-base font-semibold border border-border text-foreground rounded-md hover:border-slate-400 hover:bg-muted/40 transition-colors"
               >
                 Sign in
               </button>
             </Link>
           </div>
 
-          <div className="mt-14 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-slate-400">
+          <div className="mt-14 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
             {["Daily task accountability", "ACHC-ready workbook", "32+ PAP programs", "AI-powered clinical tools"].map((t) => (
               <span key={t} className="flex items-center gap-1.5">
                 <CheckCircle className="w-3.5 h-3.5 text-purple-500" />
@@ -163,13 +163,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ── */}
-      <section className="py-24 px-6 border-t border-slate-100 bg-slate-50">
+      <section className="py-24 px-6 border-t border-border bg-muted/40">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-slate-900">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-foreground">
               Everything a pharmacy director needs
             </h2>
-            <p className="text-slate-500 text-lg max-w-xl mx-auto">
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
               Purpose-built for AHF pharmacy directors managing HIV care operations, compliance, and clinical quality.
             </p>
           </div>
@@ -177,7 +177,7 @@ export default function LandingPage() {
             {features.map((f) => (
               <div
                 key={f.title}
-                className="p-6 rounded-md border border-slate-200 bg-white hover:shadow-sm transition-shadow"
+                className="p-6 rounded-md border border-border bg-card hover:shadow-sm transition-shadow"
               >
                 <div
                   className="w-10 h-10 rounded-md flex items-center justify-center mb-4"
@@ -185,8 +185,8 @@ export default function LandingPage() {
                 >
                   <f.icon className="w-5 h-5 text-purple-600" />
                 </div>
-                <h3 className="font-semibold text-base mb-2 text-slate-900">{f.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{f.description}</p>
+                <h3 className="font-semibold text-base mb-2 text-foreground">{f.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
               </div>
             ))}
           </div>
@@ -194,13 +194,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── How it works ── */}
-      <section className="py-24 px-6 bg-white border-t border-slate-100">
+      <section className="py-24 px-6 bg-card border-t border-border">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
               A workflow built for your day
             </h2>
-            <p className="text-slate-500 text-lg max-w-xl mx-auto">
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
               From morning check-in to audit prep — Koheez.ai fits how pharmacy directors actually work.
             </p>
           </div>
@@ -213,8 +213,8 @@ export default function LandingPage() {
                 >
                   {s.number}
                 </span>
-                <h3 className="text-slate-900 font-semibold text-lg mb-2">{s.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{s.description}</p>
+                <h3 className="text-foreground font-semibold text-lg mb-2">{s.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{s.description}</p>
               </div>
             ))}
           </div>
@@ -222,7 +222,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA Banner ── */}
-      <section className="py-20 px-6 border-t border-slate-100">
+      <section className="py-20 px-6 border-t border-border">
         <div
           className="max-w-4xl mx-auto rounded-md px-8 py-14 text-center text-white"
           style={{ backgroundImage: CTA_GRADIENT }}
@@ -237,7 +237,7 @@ export default function LandingPage() {
           <Link href="/login?tab=signup">
             <button
               data-testid="cta-get-started"
-              className="inline-flex items-center gap-2 px-8 py-4 text-base font-semibold bg-white text-slate-900 rounded-md hover:bg-white/90 transition-colors"
+              className="inline-flex items-center gap-2 px-8 py-4 text-base font-semibold bg-card text-foreground rounded-md hover:bg-card/90 transition-colors"
             >
               Get started free
               <ArrowRight className="w-4 h-4" />
@@ -247,10 +247,10 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="py-10 px-6 border-t border-slate-100 bg-white">
+      <footer className="py-10 px-6 border-t border-border bg-card">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <KoheezLogo className="text-base" />
-          <p className="text-slate-400 text-xs">
+          <p className="text-muted-foreground text-xs">
             For pharmacy director and clinical staff use. Not a substitute for professional clinical judgment.
           </p>
         </div>

@@ -196,7 +196,7 @@ const STATUS_LABEL: Record<ScheduleStatus, string> = {
 
 const STATUS_BADGE_CLASS: Record<ScheduleStatus, string> = {
   scheduled: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  unscheduled: "bg-slate-100 text-slate-600 border-slate-200",
+  unscheduled: "bg-muted text-muted-foreground border-border",
   sick: "bg-amber-100 text-amber-800 border-amber-200",
   pto: "bg-blue-100 text-blue-800 border-blue-200",
   floating_holiday: "bg-purple-100 text-purple-800 border-purple-200",
@@ -771,7 +771,7 @@ export default function SchedulingPage() {
                             const isoWk = getISOWeek(weekDays[1] ?? weekDays[0]);
                             const isActiveWeek = (pat === "alternating_a" && isoWk % 2 !== 0) || (pat === "alternating_b" && isoWk % 2 === 0);
                             return (
-                              <span className={`ml-1 px-1 rounded text-[9px] font-semibold ${isActiveWeek ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                              <span className={`ml-1 px-1 rounded text-[9px] font-semibold ${isActiveWeek ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
                                 {pat === "alternating_a" ? "A" : "B"}
                               </span>
                             );

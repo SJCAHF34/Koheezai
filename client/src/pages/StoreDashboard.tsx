@@ -125,7 +125,7 @@ function Sparkline({
 function TrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
   if (trend === "up") return <TrendingUp className="w-3.5 h-3.5 text-green-500" />;
   if (trend === "down") return <TrendingDown className="w-3.5 h-3.5 text-red-500" />;
-  return <Minus className="w-3.5 h-3.5 text-slate-400" />;
+  return <Minus className="w-3.5 h-3.5 text-muted-foreground" />;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -322,15 +322,15 @@ export default function StoreDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/40">
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-5xl mx-auto px-6 py-6">
           {/* Back */}
           <button
             data-testid="btn-back-store"
             onClick={() => navigate(backHref)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-purple-600 mb-4 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-purple-600 mb-4 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             {isCPO(safeProfile.role)
@@ -344,20 +344,20 @@ export default function StoreDashboard() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <MapPin className="w-5 h-5 text-purple-600" />
-                <h1 className="text-2xl font-bold text-slate-900">{safeStore.name}</h1>
+                <h1 className="text-2xl font-bold text-foreground">{safeStore.name}</h1>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-slate-50 text-slate-500 border-slate-200">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-muted/40 text-muted-foreground border-border">
                   #{siteId}
                 </span>
                 {storeRegion && (
                   <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 ${storeRegion.color}`}
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full border border-border bg-muted/40 ${storeRegion.color}`}
                   >
                     {storeRegion.region}
                   </span>
                 )}
-                <span className="text-xs text-slate-400">{today}</span>
+                <span className="text-xs text-muted-foreground">{today}</span>
               </div>
             </div>
             <span
@@ -372,19 +372,19 @@ export default function StoreDashboard() {
           <div className="grid grid-cols-2 gap-3 mt-6">
             <div
               data-testid="kpi-tasks"
-              className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
+              className="bg-muted/40 border border-border rounded-md px-4 py-3"
             >
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1">
                 Tasks Today
               </p>
-              <p className="text-3xl font-bold text-slate-900">{completedCount}</p>
-              <p className="text-xs text-slate-400 mt-0.5">of {totalCount} tasks done</p>
+              <p className="text-3xl font-bold text-foreground">{completedCount}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">of {totalCount} tasks done</p>
             </div>
             <div
               data-testid="kpi-tier"
-              className="bg-slate-50 border border-slate-100 rounded-md px-4 py-3"
+              className="bg-muted/40 border border-border rounded-md px-4 py-3"
             >
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1">
                 Compliance Tier
               </p>
               <span
@@ -392,7 +392,7 @@ export default function StoreDashboard() {
               >
                 {tier.label}
               </span>
-              <p className="text-xs text-slate-400 mt-1.5">based on 7d avg</p>
+              <p className="text-xs text-muted-foreground mt-1.5">based on 7d avg</p>
             </div>
           </div>
         </div>
@@ -401,10 +401,10 @@ export default function StoreDashboard() {
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {/* ── Category performance ─────────────────────────────────────── */}
         <section>
-          <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
+          <h2 className="text-base font-bold text-foreground mb-3 flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-purple-600" />
             Category Performance
-            <span className="text-xs font-normal text-slate-400 ml-1">
+            <span className="text-xs font-normal text-muted-foreground ml-1">
               — Click any card to see the trend chart
             </span>
           </h2>
@@ -424,23 +424,23 @@ export default function StoreDashboard() {
                   key={cat}
                   data-testid={`cat-card-${cat}`}
                   onClick={() => setActiveCat(isActive ? null : cat)}
-                  className={`text-left bg-white border rounded-md p-4 transition-all ${
+                  className={`text-left bg-card border rounded-md p-4 transition-all ${
                     isActive
                       ? "border-purple-400 ring-1 ring-purple-100 shadow-sm"
-                      : "border-slate-200 hover:shadow-sm"
+                      : "border-border hover:shadow-sm"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold text-slate-500 truncate pr-2">
+                    <p className="text-xs font-semibold text-muted-foreground truncate pr-2">
                       {cfg.label}
                     </p>
                     <TrendIcon trend={catTrend7d.trend} />
                   </div>
                   <div className="flex items-end gap-1.5 mb-1">
-                    <p className="text-2xl font-bold text-slate-800">
+                    <p className="text-2xl font-bold text-foreground">
                       {stat.done}/{stat.total}
                     </p>
-                    <p className="text-[10px] text-slate-400 mb-1">tasks done today</p>
+                    <p className="text-[10px] text-muted-foreground mb-1">tasks done today</p>
                   </div>
                   <Sparkline data={sparkData} color={color} width={120} height={38} />
                   <div className="flex items-center justify-end mt-1">
@@ -457,14 +457,14 @@ export default function StoreDashboard() {
           {activeCat && (
             <div
               data-testid="expanded-trend-chart"
-              className="mt-3 bg-white border border-purple-200 rounded-md p-5"
+              className="mt-3 bg-card border border-purple-200 rounded-md p-5"
             >
               <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
                 <div>
-                  <p className="text-sm font-bold text-slate-800">
+                  <p className="text-sm font-bold text-foreground">
                     {CATEGORY_CONFIG[activeCat].label} — Performance Trend
                   </p>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {safeStore.name} · {PERIOD_CONFIG[chartPeriod].label}
                   </p>
                 </div>
@@ -480,7 +480,7 @@ export default function StoreDashboard() {
                       className={`px-2.5 py-1 rounded-md text-xs font-bold border transition-all ${
                         chartPeriod === p
                           ? "border-purple-400 bg-purple-50 text-purple-700"
-                          : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                          : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"
                       }`}
                     >
                       {PERIOD_CONFIG[p].label}
@@ -542,19 +542,19 @@ export default function StoreDashboard() {
         </section>
 
         {/* ── Overall progress bar ─────────────────────────────────────── */}
-        <section className="bg-white border border-slate-200 rounded-md p-5">
+        <section className="bg-card border border-border rounded-md p-5">
           <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
             <div>
-              <p className="text-sm font-bold text-slate-800">Overall Daily Progress</p>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-sm font-bold text-foreground">Overall Daily Progress</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {doneTodayCount} of {totalCount} tasks completed today
               </p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-slate-800">
+              <p className="text-2xl font-bold text-foreground">
                 {doneTodayCount}/{totalCount}
               </p>
-              <p className="text-[10px] text-slate-400">tasks completed</p>
+              <p className="text-[10px] text-muted-foreground">tasks completed</p>
             </div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
@@ -568,10 +568,10 @@ export default function StoreDashboard() {
                   >
                     {cfg.label.replace(" Compliance", "").replace(" Metrics", "")}
                   </p>
-                  <p className="text-lg font-bold text-slate-800">
+                  <p className="text-lg font-bold text-foreground">
                     {stat.done}/{stat.total}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">tasks done</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">tasks done</p>
                 </div>
               );
             })}
@@ -580,42 +580,42 @@ export default function StoreDashboard() {
 
         {/* ── Operations Productivity ──────────────────────────────────── */}
         <section>
-          <h2 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-slate-500" />
+          <h2 className="text-base font-bold text-foreground mb-3 flex items-center gap-2">
+            <Activity className="w-4 h-4 text-muted-foreground" />
             Operations Productivity
-            <span className="text-xs font-normal text-slate-400 ml-1">
+            <span className="text-xs font-normal text-muted-foreground ml-1">
               — Start · End · Delta by task
             </span>
           </h2>
 
           {/* Summary KPI strip */}
           <div className="grid grid-cols-3 gap-3 mb-3">
-            <div className="bg-white border border-slate-200 rounded-md px-4 py-3" data-testid="ops-prod-total">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+            <div className="bg-card border border-border rounded-md px-4 py-3" data-testid="ops-prod-total">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1">
                 Total Items Processed
               </p>
-              <p className="text-2xl font-bold text-slate-900">{totalItemsProcessed}</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">sum of all deltas today</p>
+              <p className="text-2xl font-bold text-foreground">{totalItemsProcessed}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">sum of all deltas today</p>
             </div>
-            <div className="bg-white border border-slate-200 rounded-md px-4 py-3" data-testid="ops-prod-entered">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+            <div className="bg-card border border-border rounded-md px-4 py-3" data-testid="ops-prod-entered">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1">
                 Tasks with Data
               </p>
-              <p className="text-2xl font-bold text-slate-900">
+              <p className="text-2xl font-bold text-foreground">
                 {tasksEnteredCount}
-                <span className="text-base font-normal text-slate-400">/{prodRows.length}</span>
+                <span className="text-base font-normal text-muted-foreground">/{prodRows.length}</span>
               </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">counts entered</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">counts entered</p>
             </div>
-            <div className="bg-white border border-slate-200 rounded-md px-4 py-3" data-testid="ops-prod-complete">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+            <div className="bg-card border border-border rounded-md px-4 py-3" data-testid="ops-prod-complete">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1">
                 Counter Tasks Done
               </p>
-              <p className="text-2xl font-bold text-slate-900">
+              <p className="text-2xl font-bold text-foreground">
                 {prodRows.filter((r) => r.isComplete).length}
-                <span className="text-base font-normal text-slate-400">/{prodRows.length}</span>
+                <span className="text-base font-normal text-muted-foreground">/{prodRows.length}</span>
               </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">marked complete</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">marked complete</p>
             </div>
           </div>
 
@@ -628,14 +628,14 @@ export default function StoreDashboard() {
               return (
                 <div
                   key={roleKey}
-                  className="bg-white border border-slate-200 rounded-md overflow-hidden"
+                  className="bg-card border border-border rounded-md overflow-hidden"
                   data-testid={`ops-role-group-${roleKey}`}
                 >
                   {/* Role header */}
-                  <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 border-b border-slate-100">
-                    <p className="text-xs font-bold text-slate-700">{ROLE_LABELS[roleKey]}</p>
+                  <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-muted/40 border-b border-border">
+                    <p className="text-xs font-bold text-foreground">{ROLE_LABELS[roleKey]}</p>
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-semibold text-slate-500">
+                      <span className="text-[10px] font-semibold text-muted-foreground">
                         {roleDone}/{rows.length} done
                       </span>
                       {roleTotal > 0 ? (
@@ -656,11 +656,11 @@ export default function StoreDashboard() {
                   <div>
                     {/* Column headers */}
                     <div className="grid grid-cols-[1fr_64px_64px_64px_80px] gap-2 px-4 py-1.5 border-b border-slate-50">
-                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide">Task</span>
-                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide text-center">Start</span>
-                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide text-center">End</span>
-                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide text-center">Delta</span>
-                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide text-right">Status</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Task</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide text-center">Start</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide text-center">End</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide text-center">Delta</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide text-right">Status</span>
                     </div>
                     {rows.map((row) => {
                       const hasStart = row.start !== undefined;
@@ -671,8 +671,8 @@ export default function StoreDashboard() {
                           : row.delta < 0
                           ? "text-red-500 font-bold"
                           : hasEnd
-                          ? "text-slate-400"
-                          : "text-slate-300";
+                          ? "text-muted-foreground"
+                          : "text-muted-foreground";
                       return (
                         <div
                           key={row.taskId}
@@ -680,29 +680,29 @@ export default function StoreDashboard() {
                           className="grid grid-cols-[1fr_64px_64px_64px_80px] gap-2 px-4 py-2.5 border-b border-slate-50 last:border-0 items-center"
                         >
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-slate-800 truncate">{row.title}</p>
+                            <p className="text-sm font-medium text-foreground truncate">{row.title}</p>
                             {row.counterType === "end-only" && (
-                              <p className="text-[10px] text-slate-400 mt-0.5">End count only</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">End count only</p>
                             )}
                           </div>
 
                           {/* Start */}
                           <div className="text-center">
                             {row.counterType === "end-only" ? (
-                              <span className="text-[10px] text-slate-300">—</span>
+                              <span className="text-[10px] text-muted-foreground">—</span>
                             ) : hasStart ? (
-                              <span className="text-sm font-semibold text-slate-700">{row.start}</span>
+                              <span className="text-sm font-semibold text-foreground">{row.start}</span>
                             ) : (
-                              <span className="text-[10px] text-slate-300">—</span>
+                              <span className="text-[10px] text-muted-foreground">—</span>
                             )}
                           </div>
 
                           {/* End */}
                           <div className="text-center">
                             {hasEnd ? (
-                              <span className="text-sm font-semibold text-slate-700">{row.end}</span>
+                              <span className="text-sm font-semibold text-foreground">{row.end}</span>
                             ) : (
-                              <span className="text-[10px] text-slate-300">—</span>
+                              <span className="text-[10px] text-muted-foreground">—</span>
                             )}
                           </div>
 
@@ -713,7 +713,7 @@ export default function StoreDashboard() {
                                 {row.delta !== 0 ? row.delta : "0"}
                               </span>
                             ) : (
-                              <span className="text-[10px] text-slate-300">—</span>
+                              <span className="text-[10px] text-muted-foreground">—</span>
                             )}
                           </div>
 
@@ -725,7 +725,7 @@ export default function StoreDashboard() {
                                 Done
                               </span>
                             ) : (
-                              <span className="text-[10px] font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200 whitespace-nowrap">
+                              <span className="text-[10px] font-semibold text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full border border-border whitespace-nowrap">
                                 Pending
                               </span>
                             )}
@@ -740,7 +740,7 @@ export default function StoreDashboard() {
           </div>
 
           {prodRows.length === 0 && (
-            <div className="bg-white border border-slate-200 rounded-md px-6 py-8 text-center text-sm text-slate-400">
+            <div className="bg-card border border-border rounded-md px-6 py-8 text-center text-sm text-muted-foreground">
               No productivity counter tasks configured.
             </div>
           )}
@@ -754,17 +754,17 @@ export default function StoreDashboard() {
               onClick={() => setRawDataOpen((o) => !o)}
               className="flex items-center gap-2 text-left"
             >
-              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                 <ClipboardList className="w-4 h-4 text-purple-600" />
                 Raw Task Data
-                <span className="text-xs font-normal text-slate-400">
+                <span className="text-xs font-normal text-muted-foreground">
                   — {doneTodayCount} done · {pendingCount} pending
                 </span>
               </h2>
               {rawDataOpen ? (
-                <ChevronUp className="w-4 h-4 text-slate-400" />
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
               ) : (
-                <ChevronDown className="w-4 h-4 text-slate-400" />
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
               )}
             </button>
 
@@ -778,7 +778,7 @@ export default function StoreDashboard() {
                     className={`px-2.5 py-1 rounded-md text-xs font-bold border transition-all ${
                       rawFilter === f
                         ? "border-purple-400 bg-purple-50 text-purple-700"
-                        : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                        : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"
                     }`}
                   >
                     {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -792,28 +792,28 @@ export default function StoreDashboard() {
           </div>
 
           {rawDataOpen && (
-            <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
+            <div className="bg-card border border-border rounded-md overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+              <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-4 py-2.5 bg-muted/40 border-b border-border">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
                   Task
                 </span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
                   Category
                 </span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
                   Frequency
                 </span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
                   Role
                 </span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide text-right">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide text-right">
                   Status
                 </span>
               </div>
 
               {filteredTasks.length === 0 ? (
-                <div className="px-6 py-8 text-center text-sm text-slate-400">
+                <div className="px-6 py-8 text-center text-sm text-muted-foreground">
                   No tasks match this filter.
                 </div>
               ) : (
@@ -827,11 +827,11 @@ export default function StoreDashboard() {
                       className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-4 py-3 border-b border-slate-50 last:border-0 items-center hover-elevate"
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-800 truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {task.title}
                         </p>
                         {task.taskGroup && task.taskGroup !== task.title && (
-                          <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                          <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                             {task.taskGroup}
                           </p>
                         )}
@@ -841,10 +841,10 @@ export default function StoreDashboard() {
                       >
                         {cfg.label.replace(" Compliance", "").replace(" Metrics", "")}
                       </span>
-                      <span className="text-[10px] font-medium text-slate-500 whitespace-nowrap capitalize">
+                      <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap capitalize">
                         {frequencyLabel(task.frequency)}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap capitalize hidden sm:block">
+                      <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap capitalize hidden sm:block">
                         {task.role.replace(/_/g, " ")}
                       </span>
                       <div className="flex justify-end">
@@ -859,7 +859,7 @@ export default function StoreDashboard() {
                         ) : (
                           <span
                             data-testid={`status-pending-${task.id}`}
-                            className="text-[10px] font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200 whitespace-nowrap"
+                            className="text-[10px] font-semibold text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full border border-border whitespace-nowrap"
                           >
                             Pending
                           </span>

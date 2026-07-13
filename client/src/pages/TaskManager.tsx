@@ -384,11 +384,11 @@ const ROLE_STYLE: Record<
     badgeColor: "bg-fuchsia-100 text-fuchsia-700",
   },
   all_staff: {
-    border: "border-slate-300",
-    bg: "bg-slate-50",
+    border: "border-border",
+    bg: "bg-muted/40",
     label: "All Staff",
-    labelColor: "text-slate-700",
-    badgeColor: "bg-slate-100 text-slate-600",
+    labelColor: "text-foreground",
+    badgeColor: "bg-muted text-muted-foreground",
   },
 };
 
@@ -580,7 +580,7 @@ function TaskRow({
           ? "bg-green-50"
           : isUrgentFromRegional
           ? "bg-red-50"
-          : "hover:bg-slate-50/70"
+          : "hover:bg-muted/40/70"
       }`}
     >
       <TaskCheckbox
@@ -638,7 +638,7 @@ function TaskRow({
               );
             }
             return (
-              <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+              <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
                 Due {dueLabel}
               </span>
             );
@@ -667,7 +667,7 @@ function TaskRow({
         {task.description && (() => {
           const lines = task.description.split("\n").map((l) => l.trim()).filter(Boolean);
           return lines.length > 1 ? (
-            <ul className={`text-xs mt-1 space-y-0.5 ${completed ? "text-slate-300 line-through" : "text-black"}`}>
+            <ul className={`text-xs mt-1 space-y-0.5 ${completed ? "text-muted-foreground line-through" : "text-black"}`}>
               {lines.map((line, i) => (
                 <li key={i} className="flex items-start gap-1 leading-relaxed">
                   <span className="shrink-0 select-none">•</span>
@@ -676,7 +676,7 @@ function TaskRow({
               ))}
             </ul>
           ) : (
-            <p className={`text-xs mt-0.5 leading-relaxed ${completed ? "text-slate-300 line-through" : "text-black"}`}>
+            <p className={`text-xs mt-0.5 leading-relaxed ${completed ? "text-muted-foreground line-through" : "text-black"}`}>
               {task.description}
             </p>
           );
@@ -697,13 +697,13 @@ function TaskRow({
                   onClick={() => !readOnly && handleSubItemToggle(item)}
                   className={`inline-flex items-center gap-1.5 text-[11px] font-medium select-none transition-colors ${
                     readOnly ? "cursor-default" : "cursor-pointer"
-                  } ${done ? "text-green-700" : "text-slate-500 hover:text-slate-700"}`}
+                  } ${done ? "text-green-700" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   <span
                     className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-sm border transition-colors shrink-0 ${
                       done
                         ? "bg-green-600 border-green-600"
-                        : "border-slate-300 bg-white"
+                        : "border-border bg-card"
                     }`}
                   >
                     {done && (
@@ -771,7 +771,7 @@ function TaskRow({
             <div className="flex items-center gap-3">
               {task.counterType === "start-end" && (
                 <label className="flex items-center gap-1.5">
-                  <span className={`text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${counterBlocked && counterStart === "" ? "text-red-500" : "text-slate-500"}`}>
+                  <span className={`text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${counterBlocked && counterStart === "" ? "text-red-500" : "text-muted-foreground"}`}>
                     Start
                   </span>
                   <input
@@ -780,17 +780,17 @@ function TaskRow({
                     value={counterStart}
                     onChange={(e) => handleCounterChange("start", e.target.value)}
                     data-testid={`counter-start-${task.id}`}
-                    className={`w-16 h-6 text-xs text-center rounded border bg-white text-slate-700 focus:outline-none focus:ring-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                    className={`w-16 h-6 text-xs text-center rounded border bg-card text-foreground focus:outline-none focus:ring-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                       counterBlocked && counterStart === ""
                         ? "border-red-400 focus:ring-red-400 focus:border-red-400"
-                        : "border-slate-200 focus:ring-blue-400 focus:border-blue-400"
+                        : "border-border focus:ring-blue-400 focus:border-blue-400"
                     }`}
                     placeholder="—"
                   />
                 </label>
               )}
               <label className="flex items-center gap-1.5">
-                <span className={`text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${counterBlocked && counterEnd === "" ? "text-red-500" : "text-slate-500"}`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${counterBlocked && counterEnd === "" ? "text-red-500" : "text-muted-foreground"}`}>
                   End
                 </span>
                 <input
@@ -799,10 +799,10 @@ function TaskRow({
                   value={counterEnd}
                   onChange={(e) => handleCounterChange("end", e.target.value)}
                   data-testid={`counter-end-${task.id}`}
-                  className={`w-16 h-6 text-xs text-center rounded border bg-white text-slate-700 focus:outline-none focus:ring-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                  className={`w-16 h-6 text-xs text-center rounded border bg-card text-foreground focus:outline-none focus:ring-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                     counterBlocked && counterEnd === ""
                       ? "border-red-400 focus:ring-red-400 focus:border-red-400"
-                      : "border-slate-200 focus:ring-blue-400 focus:border-blue-400"
+                      : "border-border focus:ring-blue-400 focus:border-blue-400"
                   }`}
                   placeholder="—"
                 />
@@ -865,7 +865,7 @@ function TaskRow({
           className={`shrink-0 p-1.5 rounded-md transition-colors ${
             isUrgentFromRegional
               ? "text-red-600 bg-red-50 visible"
-              : "invisible group-hover:visible text-slate-400 hover:text-red-600 hover:bg-red-50"
+              : "invisible group-hover:visible text-muted-foreground hover:text-red-600 hover:bg-red-50"
           }`}
         >
           <AlertTriangle className="w-4 h-4" />
@@ -881,7 +881,7 @@ function TaskRow({
           className={`shrink-0 p-1.5 rounded-md transition-colors ${
             isPrioritized
               ? "text-amber-600 bg-amber-50 visible"
-              : "invisible group-hover:visible text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+              : "invisible group-hover:visible text-muted-foreground hover:text-amber-600 hover:bg-amber-50"
           }`}
         >
           <Flag className="w-4 h-4" />
@@ -894,7 +894,7 @@ function TaskRow({
           data-testid={`button-assign-${task.id}`}
           onClick={() => onAssign(task)}
           title="Assign task"
-          className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+          className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-muted-foreground hover:text-purple-600 hover:bg-purple-50 transition-colors"
         >
           <UserPlus className="w-4 h-4" />
         </button>
@@ -906,7 +906,7 @@ function TaskRow({
           data-testid={`button-edit-task-${task.id}`}
           onClick={() => onEditTask(task)}
           title="Edit this task"
-          className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+          className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
         >
           <Pencil className="w-4 h-4" />
         </button>
@@ -921,7 +921,7 @@ function TaskRow({
           className={`shrink-0 p-1.5 rounded-md transition-colors ${
             hasSpreadsheet
               ? "text-emerald-600 bg-emerald-50 visible"
-              : "invisible group-hover:visible text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+              : "invisible group-hover:visible text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50"
           }`}
         >
           <FileSpreadsheet className="w-4 h-4" />
@@ -945,7 +945,7 @@ function TaskRow({
             data-testid={`button-delete-custom-${task.id}`}
             onClick={() => setConfirmDelete(true)}
             title="Delete this custom task"
-            className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            className="shrink-0 invisible group-hover:visible p-1.5 rounded-md text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -1023,23 +1023,23 @@ function TaskGroupSection({
   });
 
   return (
-    <div className="border-b border-slate-100 last:border-b-0">
+    <div className="border-b border-border last:border-b-0">
       <button
         onClick={() => setOpen((o) => !o)}
         data-testid={`group-header-${groupName.replace(/\s+/g, "-").toLowerCase()}`}
-        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50 transition-colors text-left"
+        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-muted/40 transition-colors text-left"
       >
         {open ? (
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         ) : (
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         )}
         <span className="text-xs font-semibold text-black flex-1">{groupName}</span>
         <span
           className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
             allDone
               ? "bg-green-100 text-green-700"
-              : "bg-slate-100 text-black"
+              : "bg-muted text-black"
           }`}
         >
           {done}/{tasks.length}
@@ -1146,7 +1146,7 @@ function RoleSection({
   return (
     <div
       data-testid={`role-section-${role}`}
-      className={`mb-4 border rounded-md overflow-hidden border-slate-200`}
+      className={`mb-4 border rounded-md overflow-hidden border-border`}
     >
       {/* Role header */}
       <button
@@ -1178,7 +1178,7 @@ function RoleSection({
 
       {/* Task groups */}
       {open && (
-        <div className="bg-white">
+        <div className="bg-card">
           {groups.map(({ groupName, tasks }) => (
             <TaskGroupSection
               siteId={siteId}
@@ -1252,16 +1252,16 @@ function SiteOverviewPanel({
             key={role}
             data-testid={`overview-card-${role}`}
             onClick={() => onSelectRole(isActive ? "own" : role)}
-            className={`text-left bg-white border rounded-md px-4 py-3 transition-all hover-elevate ${
-              isActive ? "border-purple-300 ring-1 ring-purple-200" : "border-slate-100"
+            className={`text-left bg-card border rounded-md px-4 py-3 transition-all hover-elevate ${
+              isActive ? "border-purple-300 ring-1 ring-purple-200" : "border-border"
             }`}
           >
-            <p className="text-xs font-semibold text-slate-500 mb-1">{label}</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">{label}</p>
             <div className="flex items-end gap-1.5">
-              <span className="text-xl font-bold text-slate-800">
+              <span className="text-xl font-bold text-foreground">
                 {done}/{roleTasks.length}
               </span>
-              <span className="text-xs text-slate-400 mb-0.5">done</span>
+              <span className="text-xs text-muted-foreground mb-0.5">done</span>
             </div>
           </button>
         );
@@ -1277,7 +1277,7 @@ type RetentionGroup = "controllable" | "partially_controllable" | "non_controlla
 const GROUP_CONFIG: Record<RetentionGroup, { label: string; badgeBg: string; badgeText: string }> = {
   controllable: { label: "Controllable", badgeBg: "bg-green-100", badgeText: "text-green-800" },
   partially_controllable: { label: "Partially Controllable", badgeBg: "bg-yellow-100", badgeText: "text-yellow-800" },
-  non_controllable: { label: "Non-Controllable", badgeBg: "bg-slate-100", badgeText: "text-slate-600" },
+  non_controllable: { label: "Non-Controllable", badgeBg: "bg-muted", badgeText: "text-muted-foreground" },
 };
 
 const ISSUE_CONFIG: Record<
@@ -1287,10 +1287,10 @@ const ISSUE_CONFIG: Record<
   undesignated: {
     label: "Undesignated Queue",
     color: "slate",
-    headerBg: "bg-slate-50 border-slate-200",
-    borderColor: "border-slate-200",
-    badgeBg: "bg-slate-100",
-    badgeText: "text-slate-700",
+    headerBg: "bg-muted/40 border-border",
+    borderColor: "border-border",
+    badgeBg: "bg-muted",
+    badgeText: "text-foreground",
     reasons: [],
   },
   appointment_lab: {
@@ -1377,7 +1377,7 @@ const ISSUE_CONFIG: Record<
 
 const STATUS_CONFIG: Record<RetentionStatus, { label: string; bg: string; text: string }> = {
   active: { label: "Active", bg: "bg-green-100", text: "text-green-800" },
-  resolved: { label: "Resolved", bg: "bg-slate-100", text: "text-slate-600" },
+  resolved: { label: "Resolved", bg: "bg-muted", text: "text-muted-foreground" },
   referred_out: { label: "Referred Out", bg: "bg-purple-100", text: "text-purple-800" },
 };
 
@@ -1562,16 +1562,16 @@ function PatientCard({
   return (
     <div
       data-testid={`card-retention-patient-${patient.id}`}
-      className="rounded-md border border-slate-200 bg-white"
+      className="rounded-md border border-border bg-card"
     >
       <div className="flex items-start justify-between gap-2 p-3">
         <div className="flex items-start gap-2 min-w-0">
-          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
-            <span className="text-xs font-bold text-slate-700">{patient.initials}</span>
+          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+            <span className="text-xs font-bold text-foreground">{patient.initials}</span>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span data-testid={`text-initials-${patient.id}`} className="text-sm font-semibold text-slate-800">
+              <span data-testid={`text-initials-${patient.id}`} className="text-sm font-semibold text-foreground">
                 {patient.initials}
               </span>
               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${statusCfg.bg} ${statusCfg.text}`}>
@@ -1579,15 +1579,15 @@ function PatientCard({
               </span>
             </div>
             <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-              <span className="text-xs text-slate-500">{days === 0 ? "Added today" : `${days}d ago`}</span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-muted-foreground">{days === 0 ? "Added today" : `${days}d ago`}</span>
+              <span className="text-xs text-muted-foreground">
                 {patient.attemptCount} attempt{patient.attemptCount !== 1 ? "s" : ""}
               </span>
               {patient.lastAttemptDate && (
-                <span className="text-xs text-slate-500">Last: {formatDate(patient.lastAttemptDate)}</span>
+                <span className="text-xs text-muted-foreground">Last: {formatDate(patient.lastAttemptDate)}</span>
               )}
               {!isActive && patient.resolvedDate && (
-                <span className="text-xs text-slate-400">Closed: {formatDate(patient.resolvedDate)}</span>
+                <span className="text-xs text-muted-foreground">Closed: {formatDate(patient.resolvedDate)}</span>
               )}
             </div>
           </div>
@@ -1595,7 +1595,7 @@ function PatientCard({
         <button
           data-testid={`button-expand-${patient.id}`}
           onClick={() => setExpanded((v) => !v)}
-          className="flex-shrink-0 p-1 rounded text-slate-400 hover-elevate"
+          className="flex-shrink-0 p-1 rounded text-muted-foreground hover-elevate"
           aria-label="Toggle details"
         >
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -1603,17 +1603,17 @@ function PatientCard({
       </div>
 
       {expanded && (
-        <div className="border-t border-slate-100 px-3 pb-3 pt-2 space-y-2">
+        <div className="border-t border-border px-3 pb-3 pt-2 space-y-2">
 
           {patient.issueType === "undesignated" && isActive && (
-            <div className="p-2.5 rounded-md bg-slate-100 border border-slate-200 space-y-1.5">
+            <div className="p-2.5 rounded-md bg-muted border border-border space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-600 whitespace-nowrap flex-shrink-0">Categorize as:</span>
+                <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap flex-shrink-0">Categorize as:</span>
                 <select
                   data-testid={`select-categorize-${patient.id}`}
                   value={pendingCategory}
                   onChange={(e) => { setPendingCategory(e.target.value as RetentionIssueType); setPendingReason(""); }}
-                  className="flex-1 text-xs border border-slate-300 rounded-md px-2 py-1 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  className="flex-1 text-xs border border-border rounded-md px-2 py-1 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-slate-400"
                 >
                   <option value="" disabled>— Pick a category —</option>
                   <option value="appointment_lab">Appointment or Lab Issues</option>
@@ -1628,12 +1628,12 @@ function PatientCard({
               </div>
               {pendingCategory && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-600 whitespace-nowrap flex-shrink-0">Reason:</span>
+                  <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap flex-shrink-0">Reason:</span>
                   <select
                     data-testid={`select-categorize-reason-${patient.id}`}
                     value={pendingReason}
                     onChange={(e) => setPendingReason(e.target.value)}
-                    className="flex-1 text-xs border border-slate-300 rounded-md px-2 py-1 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    className="flex-1 text-xs border border-border rounded-md px-2 py-1 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-slate-400"
                   >
                     <option value="">— Optional reason —</option>
                     {ISSUE_CONFIG[pendingCategory].reasons.map((r) => (
@@ -1654,37 +1654,37 @@ function PatientCard({
 
           <div className="grid grid-cols-1 gap-1.5 text-xs">
             {patient.phone1 && (
-              <div className="flex items-center gap-1.5 text-slate-600">
-                <Phone className="w-3 h-3 flex-shrink-0 text-slate-400" />
-                <span className="font-medium text-slate-500 w-20 flex-shrink-0">Primary:</span>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Phone className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
+                <span className="font-medium text-muted-foreground w-20 flex-shrink-0">Primary:</span>
                 <span data-testid={`text-phone1-${patient.id}`}>{patient.phone1}</span>
               </div>
             )}
             {patient.phone2 && (
-              <div className="flex items-center gap-1.5 text-slate-600">
-                <Phone className="w-3 h-3 flex-shrink-0 text-slate-400" />
-                <span className="font-medium text-slate-500 w-20 flex-shrink-0">Emergency:</span>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Phone className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
+                <span className="font-medium text-muted-foreground w-20 flex-shrink-0">Emergency:</span>
                 <span data-testid={`text-phone2-${patient.id}`}>{patient.phone2}</span>
               </div>
             )}
             {patient.email && (
-              <div className="flex items-center gap-1.5 text-slate-600">
-                <Mail className="w-3 h-3 flex-shrink-0 text-slate-400" />
-                <span className="font-medium text-slate-500 w-20 flex-shrink-0">Email:</span>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Mail className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
+                <span className="font-medium text-muted-foreground w-20 flex-shrink-0">Email:</span>
                 <span data-testid={`text-email-${patient.id}`}>{patient.email}</span>
               </div>
             )}
             {patient.caseManagerContact && (
-              <div className="flex items-center gap-1.5 text-slate-600">
-                <Contact className="w-3 h-3 flex-shrink-0 text-slate-400" />
-                <span className="font-medium text-slate-500 w-20 flex-shrink-0">Case Mgr:</span>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Contact className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
+                <span className="font-medium text-muted-foreground w-20 flex-shrink-0">Case Mgr:</span>
                 <span data-testid={`text-case-manager-${patient.id}`}>{patient.caseManagerContact}</span>
               </div>
             )}
             {patient.retentionReason && (
-              <div className="flex items-center gap-1.5 text-slate-600">
-                <Tag className="w-3 h-3 flex-shrink-0 text-slate-400" />
-                <span className="font-medium text-slate-500 w-20 flex-shrink-0">Reason:</span>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Tag className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
+                <span className="font-medium text-muted-foreground w-20 flex-shrink-0">Reason:</span>
                 <span data-testid={`text-reason-${patient.id}`}>{patient.retentionReason}</span>
               </div>
             )}
@@ -1722,8 +1722,8 @@ function PatientCard({
             )}
 
             {patient.notes && (
-              <div className="mt-1 p-2 rounded bg-slate-50 text-slate-600">
-                <span className="font-medium text-slate-500">Notes: </span>
+              <div className="mt-1 p-2 rounded bg-muted/40 text-muted-foreground">
+                <span className="font-medium text-muted-foreground">Notes: </span>
                 {patient.notes}
               </div>
             )}
@@ -1731,21 +1731,21 @@ function PatientCard({
 
           {/* Outreach Sequence Section */}
           {isActive && hasContactInfo && (
-            <div className="mt-2 p-2.5 rounded-md bg-slate-50 border border-slate-200 space-y-2">
+            <div className="mt-2 p-2.5 rounded-md bg-muted/40 border border-border space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
-                  <Send className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Automated Outreach</span>
+                  <Send className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-[11px] font-bold text-foreground uppercase tracking-wide">Automated Outreach</span>
                 </div>
                 <button
                   data-testid={`button-toggle-outreach-${patient.id}`}
                   onClick={toggleOutreach}
-                  className="flex items-center gap-1 text-xs font-medium text-slate-600 hover-elevate rounded px-1"
+                  className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover-elevate rounded px-1"
                   aria-label="Toggle outreach sequence"
                 >
                   {patient.sequenceActive
                     ? <ToggleRight className="w-5 h-5 text-green-600" />
-                    : <ToggleLeft className="w-5 h-5 text-slate-400" />}
+                    : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
                   {patient.sequenceActive ? "Enabled" : "Disabled"}
                 </button>
               </div>
@@ -1755,10 +1755,10 @@ function PatientCard({
                   ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
                   : patient.sequenceActive
                   ? <Clock className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                  : <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+                  : <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
                 <span
                   data-testid={`text-outreach-status-${patient.id}`}
-                  className={`font-medium ${patient.outreachComplete ? "text-green-700" : patient.sequenceActive ? "text-amber-700" : "text-slate-500"}`}
+                  className={`font-medium ${patient.outreachComplete ? "text-green-700" : patient.sequenceActive ? "text-amber-700" : "text-muted-foreground"}`}
                 >
                   {outreachStatusLabel}
                 </span>
@@ -1770,10 +1770,10 @@ function PatientCard({
                     const done = patient.sequenceDay >= step.day;
                     return (
                       <div key={step.day} className="flex items-center gap-1.5 text-[11px]">
-                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 ${done ? "bg-green-500" : "bg-slate-200"}`}>
+                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 ${done ? "bg-green-500" : "bg-muted"}`}>
                           {done && <Check className="w-2 h-2 text-white" />}
                         </div>
-                        <span className={done ? "text-green-700 line-through" : "text-slate-500"}>{step.label}</span>
+                        <span className={done ? "text-green-700 line-through" : "text-muted-foreground"}>{step.label}</span>
                       </div>
                     );
                   })}
@@ -1795,7 +1795,7 @@ function PatientCard({
                     value={attemptBy}
                     onChange={(e) => setAttemptBy(e.target.value.toUpperCase())}
                     onKeyDown={(e) => { if (e.key === "Enter") logAttempt(); if (e.key === "Escape") cancelLogAttempt(); }}
-                    className="w-28 px-2 py-1 rounded-md border border-slate-300 text-xs font-mono font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400 uppercase placeholder:normal-case placeholder:font-normal placeholder:text-slate-400"
+                    className="w-28 px-2 py-1 rounded-md border border-border text-xs font-mono font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-slate-400 uppercase placeholder:normal-case placeholder:font-normal placeholder:text-muted-foreground"
                   />
                   <button
                     data-testid={`button-log-attempt-confirm-${patient.id}`}
@@ -1808,7 +1808,7 @@ function PatientCard({
                   <button
                     data-testid={`button-log-attempt-cancel-${patient.id}`}
                     onClick={cancelLogAttempt}
-                    className="px-2 py-1 rounded-md text-xs text-slate-500 hover-elevate border border-slate-200"
+                    className="px-2 py-1 rounded-md text-xs text-muted-foreground hover-elevate border border-border"
                   >
                     Cancel
                   </button>
@@ -1818,7 +1818,7 @@ function PatientCard({
                   <button
                     data-testid={`button-log-attempt-${patient.id}`}
                     onClick={startLogAttempt}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 hover-elevate"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-muted text-foreground hover-elevate"
                   >
                     <History className="w-3 h-3" /> Log Attempt
                   </button>
@@ -1840,13 +1840,13 @@ function PatientCard({
               )}
 
               {(patient.attemptLog ?? []).length > 0 && (
-                <div className="rounded-md border border-slate-100 bg-slate-50 px-2.5 py-2 space-y-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Attempt Log</p>
+                <div className="rounded-md border border-border bg-muted/40 px-2.5 py-2 space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Attempt Log</p>
                   {[...(patient.attemptLog ?? [])].reverse().map((entry, i) => (
-                    <div key={i} className="flex items-center gap-2 text-[11px] text-slate-600">
-                      <Clock className="w-3 h-3 flex-shrink-0 text-slate-400" />
+                    <div key={i} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <Clock className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
                       <span>{formatAttemptTs(entry.ts)}</span>
-                      <span className="font-bold text-slate-800">{entry.by}</span>
+                      <span className="font-bold text-foreground">{entry.by}</span>
                     </div>
                   ))}
                 </div>
@@ -1938,7 +1938,7 @@ function RetentionSection({
             {active.length} active
           </span>
           {resolved.length > 0 && (
-            <span className="text-[10px] font-medium text-slate-400">{resolved.length} resolved</span>
+            <span className="text-[10px] font-medium text-muted-foreground">{resolved.length} resolved</span>
           )}
         </div>
         <div className="flex items-center gap-1.5">
@@ -1946,7 +1946,7 @@ function RetentionSection({
             <button
               data-testid={`button-show-resolved-${issueType}`}
               onClick={() => setShowResolved((v) => !v)}
-              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-500 hover-elevate"
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover-elevate"
             >
               {showResolved ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
               {showResolved ? "Hide" : "Show"} Resolved
@@ -1963,13 +1963,13 @@ function RetentionSection({
       </div>
 
       {showForm && (
-        <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50 space-y-2">
-          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Patient Info</p>
+        <div className="px-3 py-2.5 border-b border-border bg-muted/40 space-y-2">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Patient Info</p>
 
           {/* Initials + Primary Phone — always shown */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Initials *</label>
+              <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">Initials *</label>
               <input
                 data-testid={`input-initials-${issueType}`}
                 type="text"
@@ -1977,64 +1977,64 @@ function RetentionSection({
                 value={form.initials}
                 onChange={(e) => setForm((f) => ({ ...f, initials: e.target.value }))}
                 placeholder="e.g. J.D."
-                className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full text-xs rounded border border-border bg-card px-2 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-slate-300"
               />
             </div>
             <div>
-              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Primary Phone</label>
+              <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">Primary Phone</label>
               <input
                 data-testid={`input-phone1-${issueType}`}
                 type="tel"
                 value={form.phone1}
                 onChange={(e) => setForm((f) => ({ ...f, phone1: e.target.value }))}
                 placeholder="(555) 000-0000"
-                className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full text-xs rounded border border-border bg-card px-2 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-slate-300"
               />
             </div>
             <div>
-              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Emergency Phone</label>
+              <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">Emergency Phone</label>
               <input
                 data-testid={`input-phone2-${issueType}`}
                 type="tel"
                 value={form.phone2}
                 onChange={(e) => setForm((f) => ({ ...f, phone2: e.target.value }))}
                 placeholder="(555) 000-0000"
-                className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full text-xs rounded border border-border bg-card px-2 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-slate-300"
               />
             </div>
             <div>
-              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Email</label>
+              <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">Email</label>
               <input
                 data-testid={`input-email-${issueType}`}
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                 placeholder="patient@email.com"
-                className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full text-xs rounded border border-border bg-card px-2 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-slate-300"
               />
             </div>
           </div>
           <div>
-            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Case Manager Contact</label>
+            <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">Case Manager Contact</label>
             <input
               data-testid={`input-case-manager-${issueType}`}
               type="text"
               value={form.caseManagerContact}
               onChange={(e) => setForm((f) => ({ ...f, caseManagerContact: e.target.value }))}
               placeholder="Name, phone or email"
-              className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              className="w-full text-xs rounded border border-border bg-card px-2 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-slate-300"
             />
           </div>
 
           {/* ── Reason dropdown (for categories that have approved reasons) ── */}
           {ISSUE_CONFIG[issueType].reasons.length > 0 && (
             <div>
-              <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Reason (optional)</label>
+              <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">Reason (optional)</label>
               <select
                 data-testid={`select-reason-${issueType}`}
                 value={form.retentionReason}
                 onChange={(e) => setForm((f) => ({ ...f, retentionReason: e.target.value }))}
-                className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full text-xs rounded border border-border bg-card px-2 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-slate-300"
               >
                 <option value="">— Select reason —</option>
                 {ISSUE_CONFIG[issueType].reasons.map((r) => (
@@ -2056,14 +2056,14 @@ function RetentionSection({
                   { label: "Member ID", key: "insuranceId" as const, placeholder: "e.g. ABC123456789" },
                 ].map(({ label, key, placeholder }) => (
                   <div key={key}>
-                    <label className="text-[10px] font-medium text-slate-500 block mb-0.5">{label}</label>
+                    <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">{label}</label>
                     <input
                       data-testid={`input-ins-${key}-${issueType}`}
                       type="text"
                       value={form[key]}
                       onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                       placeholder={placeholder}
-                      className="w-full text-xs rounded border border-yellow-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                      className="w-full text-xs rounded border border-yellow-200 bg-card px-2 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-yellow-300"
                     />
                   </div>
                 ))}
@@ -2101,7 +2101,7 @@ function RetentionSection({
                       if (form.ahfLocationMatch) setForm((f) => ({ ...f, ahfLocationMatch: "", city: "", state: "", zip: "" }));
                     }}
                     placeholder="Search by city, state, or zip…"
-                    className="w-full text-xs rounded border border-blue-200 bg-white pl-6 pr-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    className="w-full text-xs rounded border border-blue-200 bg-card pl-6 pr-2 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
 
@@ -2137,10 +2137,10 @@ function RetentionSection({
                           setForm((f) => ({ ...f, ahfLocationMatch: loc.name, city: loc.city, state: loc.state, zip: loc.zip }));
                           setAhfSearchQuery("");
                         }}
-                        className="cursor-pointer rounded-md border border-slate-200 bg-white p-2 text-xs hover-elevate"
+                        className="cursor-pointer rounded-md border border-border bg-card p-2 text-xs hover-elevate"
                       >
-                        <div className="font-semibold text-slate-800">{loc.name}</div>
-                        <div className="text-slate-500">{loc.address}, {loc.city}, {loc.state} {loc.zip}{loc.phone ? ` · ${loc.phone}` : ""}</div>
+                        <div className="font-semibold text-foreground">{loc.name}</div>
+                        <div className="text-muted-foreground">{loc.address}, {loc.city}, {loc.state} {loc.zip}{loc.phone ? ` · ${loc.phone}` : ""}</div>
                       </div>
                     ))}
                   </div>
@@ -2150,14 +2150,14 @@ function RetentionSection({
           })()}
 
           <div>
-            <label className="text-[10px] font-medium text-slate-500 block mb-0.5">Notes (optional)</label>
+            <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">Notes (optional)</label>
             <textarea
               data-testid={`input-notes-${issueType}`}
               rows={2}
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               placeholder="Any relevant context…"
-              className="w-full text-xs rounded border border-slate-200 bg-white px-2 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 resize-none"
+              className="w-full text-xs rounded border border-border bg-card px-2 py-1.5 text-foreground focus:outline-none focus:ring-2 focus:ring-slate-300 resize-none"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -2172,7 +2172,7 @@ function RetentionSection({
             <button
               data-testid={`button-cancel-add-${issueType}`}
               onClick={() => { setForm(EMPTY_FORM); setShowForm(false); setAhfSearchQuery(""); }}
-              className="px-3 py-1.5 rounded-md text-xs font-semibold text-slate-500 hover-elevate"
+              className="px-3 py-1.5 rounded-md text-xs font-semibold text-muted-foreground hover-elevate"
             >
               Cancel
             </button>
@@ -2182,14 +2182,14 @@ function RetentionSection({
 
       <div className="p-2 space-y-2">
         {active.length === 0 && !showResolved && (
-          <p className="text-xs text-slate-400 text-center py-2">No active patients — use Add to track one.</p>
+          <p className="text-xs text-muted-foreground text-center py-2">No active patients — use Add to track one.</p>
         )}
         {active.map((p) => (
           <PatientCard key={p.id} patient={p} onUpdate={handlePatientUpdate} />
         ))}
         {showResolved && resolved.length > 0 && (
-          <div className="space-y-2 pt-1 border-t border-slate-100">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-1">Resolved / Referred</p>
+          <div className="space-y-2 pt-1 border-t border-border">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide px-1">Resolved / Referred</p>
             {resolved.map((p) => (
               <PatientCard key={p.id} patient={p} onUpdate={handlePatientUpdate} />
             ))}
@@ -2333,7 +2333,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
       </div>
 
       <div className="flex items-center justify-between gap-2 px-0.5">
-        <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">Patient Retention Tracker</p>
+        <p className="text-xs font-bold text-foreground uppercase tracking-wide">Patient Retention Tracker</p>
         <button
           data-testid="button-import-ssrs"
           type="button"
@@ -2361,23 +2361,23 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div
             data-testid="dialog-import-ssrs"
-            className="bg-white rounded-md shadow-lg w-full max-w-lg mx-4 p-5 space-y-4"
+            className="bg-card rounded-md shadow-lg w-full max-w-lg mx-4 p-5 space-y-4"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Upload className="w-4 h-4 text-blue-600" />
-                <p className="text-sm font-bold text-slate-800">Import from SSRS Report</p>
+                <p className="text-sm font-bold text-foreground">Import from SSRS Report</p>
               </div>
-              <button type="button" onClick={() => setImportOpen(false)} className="text-slate-400 hover-elevate rounded px-1">
+              <button type="button" onClick={() => setImportOpen(false)} className="text-muted-foreground hover-elevate rounded px-1">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Accepts SSRS exports or a manual CSV with columns: <span className="font-mono font-semibold">Initials, Primary Phone, Secondary Phone</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Imported patients land in the Undesignated Queue — categorize them from there.</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Imported patients land in the Undesignated Queue — categorize them from there.</p>
             </div>
 
             <div className="space-y-2">
@@ -2386,10 +2386,10 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
-                className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed rounded-md px-4 py-5 cursor-pointer transition-colors ${dragOver ? "border-blue-400 bg-blue-50" : "border-slate-200 bg-slate-50"}`}
+                className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed rounded-md px-4 py-5 cursor-pointer transition-colors ${dragOver ? "border-blue-400 bg-blue-50" : "border-border bg-muted/40"}`}
               >
-                <FileUp className={`w-5 h-5 ${dragOver ? "text-blue-500" : "text-slate-400"}`} />
-                <p className="text-xs text-slate-500 font-medium">
+                <FileUp className={`w-5 h-5 ${dragOver ? "text-blue-500" : "text-muted-foreground"}`} />
+                <p className="text-xs text-muted-foreground font-medium">
                   Drag & drop a CSV file here, or
                   <label className="ml-1 text-blue-600 cursor-pointer underline underline-offset-2">
                     browse
@@ -2404,10 +2404,10 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
                 </p>
                 {importText && <p className="text-[10px] text-green-600 font-semibold">{importPreview.length} rows loaded</p>}
               </div>
-              <p className="text-[10px] text-slate-400">or paste CSV below</p>
+              <p className="text-[10px] text-muted-foreground">or paste CSV below</p>
               <textarea
                 data-testid="input-import-csv-text"
-                className="w-full text-xs font-mono border border-slate-200 rounded-md p-2 h-28 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
+                className="w-full text-xs font-mono border border-border rounded-md p-2 h-28 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
                 placeholder={"Initials,Primary Phone,Secondary Phone,Issue Type\nJD,555-1234,555-5678,communication_barriers"}
                 value={importText}
                 onChange={(e) => handleCsvChange(e.target.value)}
@@ -2416,28 +2416,28 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
 
             {importPreview.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-slate-700">Preview ({importPreview.length} rows)</p>
-                <div className="border border-slate-200 rounded-md overflow-auto max-h-36">
+                <p className="text-xs font-semibold text-foreground">Preview ({importPreview.length} rows)</p>
+                <div className="border border-border rounded-md overflow-auto max-h-36">
                   <table className="w-full text-[10px]">
-                    <thead className="bg-slate-50 border-b border-slate-200">
+                    <thead className="bg-muted/40 border-b border-border">
                       <tr>
-                        <th className="text-left px-2 py-1 font-semibold text-slate-600">Initials</th>
-                        <th className="text-left px-2 py-1 font-semibold text-slate-600">Phone 1</th>
-                        <th className="text-left px-2 py-1 font-semibold text-slate-600">Phone 2</th>
-                        <th className="text-left px-2 py-1 font-semibold text-slate-600">Issue Type</th>
+                        <th className="text-left px-2 py-1 font-semibold text-muted-foreground">Initials</th>
+                        <th className="text-left px-2 py-1 font-semibold text-muted-foreground">Phone 1</th>
+                        <th className="text-left px-2 py-1 font-semibold text-muted-foreground">Phone 2</th>
+                        <th className="text-left px-2 py-1 font-semibold text-muted-foreground">Issue Type</th>
                       </tr>
                     </thead>
                     <tbody>
                       {importPreview.slice(0, 10).map((row, i) => (
-                        <tr key={i} className="border-b border-slate-100 last:border-0">
-                          <td className="px-2 py-1 font-mono font-bold text-slate-800">{row.initials}</td>
-                          <td className="px-2 py-1 text-slate-600">{row.phone1 || "—"}</td>
-                          <td className="px-2 py-1 text-slate-600">{row.phone2 || "—"}</td>
-                          <td className="px-2 py-1 text-slate-500">Undesignated</td>
+                        <tr key={i} className="border-b border-border last:border-0">
+                          <td className="px-2 py-1 font-mono font-bold text-foreground">{row.initials}</td>
+                          <td className="px-2 py-1 text-muted-foreground">{row.phone1 || "—"}</td>
+                          <td className="px-2 py-1 text-muted-foreground">{row.phone2 || "—"}</td>
+                          <td className="px-2 py-1 text-muted-foreground">Undesignated</td>
                         </tr>
                       ))}
                       {importPreview.length > 10 && (
-                        <tr><td colSpan={4} className="px-2 py-1 text-slate-400 italic">+{importPreview.length - 10} more…</td></tr>
+                        <tr><td colSpan={4} className="px-2 py-1 text-muted-foreground italic">+{importPreview.length - 10} more…</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -2458,7 +2458,7 @@ function PatientRetentionTracker({ siteId }: { siteId: string }) {
               <button
                 type="button"
                 onClick={() => setImportOpen(false)}
-                className="text-xs text-slate-500 hover-elevate rounded px-3 py-1.5 border border-slate-200"
+                className="text-xs text-muted-foreground hover-elevate rounded px-3 py-1.5 border border-border"
               >
                 Close
               </button>
@@ -2540,7 +2540,7 @@ function RetentionRiskPanel({ siteId, patients }: { siteId: string; patients: Re
               value={value}
               onChange={(e) => set(e.target.value)}
               placeholder="0"
-              className="w-full text-sm rounded border border-amber-200 bg-white px-2 py-1.5 text-center font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full text-sm rounded border border-amber-200 bg-card px-2 py-1.5 text-center font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
           </div>
         ))}
@@ -2580,7 +2580,7 @@ const CATEGORY_COLORS_TM: Record<
   TaskCategory,
   { progress: string; active: string; ring: string }
 > = {
-  operations: { progress: "bg-slate-500", active: "border-slate-400 bg-slate-50", ring: "ring-slate-200" },
+  operations: { progress: "bg-slate-500", active: "border-slate-400 bg-muted/40", ring: "ring-slate-200" },
   achc: { progress: "bg-blue-500", active: "border-blue-400 bg-blue-50", ring: "ring-blue-200" },
   state_board: { progress: "bg-emerald-500", active: "border-emerald-400 bg-emerald-50", ring: "ring-emerald-200" },
   retention: { progress: "bg-amber-500", active: "border-amber-400 bg-amber-50", ring: "ring-amber-200" },
@@ -2603,7 +2603,7 @@ function CategoryOverviewPanel({
 
   return (
     <div>
-      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+      <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1.5">
         <BarChart3 className="w-3.5 h-3.5" />
         Category Performance
       </p>
@@ -2620,17 +2620,17 @@ function CategoryOverviewPanel({
               key={cat}
               data-testid={`category-overview-${cat}`}
               onClick={() => onFilter(isActive ? "all" : cat)}
-              className={`text-left bg-white border rounded-md px-4 py-3 transition-all hover-elevate ${
-                isActive ? `${colors.active} ring-1 ${colors.ring}` : "border-slate-100"
+              className={`text-left bg-card border rounded-md px-4 py-3 transition-all hover-elevate ${
+                isActive ? `${colors.active} ring-1 ${colors.ring}` : "border-border"
               }`}
             >
-              <p className="text-xs font-semibold text-slate-500 mb-1 truncate">{cfg.label}</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-1 truncate">{cfg.label}</p>
               <div className="flex items-end gap-1.5">
-                <span className="text-xl font-bold text-slate-800">{done}/{total}</span>
-                <span className="text-xs text-slate-400 mb-0.5">done</span>
+                <span className="text-xl font-bold text-foreground">{done}/{total}</span>
+                <span className="text-xs text-muted-foreground mb-0.5">done</span>
               </div>
               {isActive && (
-                <p className="text-[10px] font-semibold text-slate-400 mt-1">Click to clear filter</p>
+                <p className="text-[10px] font-semibold text-muted-foreground mt-1">Click to clear filter</p>
               )}
             </button>
           );
@@ -2801,16 +2801,16 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
   return (
     <div
       data-testid="staff-roster-panel"
-      className="bg-white border border-slate-200 rounded-md overflow-hidden"
+      className="bg-card border border-border rounded-md overflow-hidden"
     >
       {/* Header */}
-      <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
-        <Users className="w-4 h-4 text-slate-500 shrink-0" />
-        <span className="text-sm font-bold text-slate-700 flex-1">Team Configuration</span>
+      <div className="px-4 py-3 bg-muted/40 border-b border-border flex items-center gap-2">
+        <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+        <span className="text-sm font-bold text-foreground flex-1">Team Configuration</span>
         <button
           data-testid="button-add-staff"
           onClick={openAdd}
-          className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-white transition-colors"
+          className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border border-border text-muted-foreground hover:bg-card transition-colors"
         >
           <Plus className="w-3.5 h-3.5" /> Add Staff
         </button>
@@ -2819,18 +2819,18 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
       {/* Quick-setup presets */}
       {roster.members.length === 0 && !showAddForm && (
         <div className="px-4 py-4 space-y-3">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Configure your team to automatically distribute task responsibilities.
           </p>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Quick Setup — Number of Techs</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-2">Quick Setup — Number of Techs</p>
             <div className="flex flex-wrap gap-2">
               {[1, 2, 3].map((n) => (
                 <button
                   key={n}
                   data-testid={`quick-setup-${n}-tech`}
                   onClick={() => handleQuickSetup(n)}
-                  className="px-3 py-1.5 rounded-md text-xs font-bold border border-slate-200 text-slate-600 hover:border-purple-300 hover:text-purple-700 hover:bg-purple-50 transition-all"
+                  className="px-3 py-1.5 rounded-md text-xs font-bold border border-border text-muted-foreground hover:border-purple-300 hover:text-purple-700 hover:bg-purple-50 transition-all"
                 >
                   {n} Tech{n > 1 ? "s" : ""}
                 </button>
@@ -2842,7 +2842,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
 
       {/* Member list */}
       {roster.members.length > 0 && !showAddForm && (
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-border">
           {roster.members.map((member) => {
             const activeRoles = new Set(getActiveRoles(member, today));
             return (
@@ -2851,13 +2851,13 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
                 data-testid={`roster-member-${member.id}`}
                 className="flex items-center gap-3 px-4 py-3 group"
               >
-                <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-slate-500">
+                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-muted-foreground">
                     {member.name.slice(0, 2).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-800">{member.name}</p>
+                  <p className="text-sm font-semibold text-foreground">{member.name}</p>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {member.roles.map((r) => {
                       const roleOpt = TECH_ROLE_OPTIONS.find((o) => o.value === r);
@@ -2866,7 +2866,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
                       const status = ra ? getRoleDateStatus(ra, today) : null;
                       const isDimmed = status?.expired || status?.future || (!status && !isActive);
                       const hintColor = status?.expired
-                        ? "text-slate-400"
+                        ? "text-muted-foreground"
                         : status?.future
                         ? "text-amber-500"
                         : "text-purple-500";
@@ -2879,8 +2879,8 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
                             status?.future
                               ? "bg-amber-50 text-amber-600"
                               : status?.expired || !isActive
-                              ? "bg-slate-100 text-slate-400"
-                              : "bg-slate-100 text-slate-600"
+                              ? "bg-muted text-muted-foreground"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {roleOpt?.label ?? r}
@@ -2895,14 +2895,14 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
                 <div className="flex items-center gap-1 invisible group-hover:visible">
                   <button
                     onClick={() => openEdit(member)}
-                    className="p-1.5 rounded text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                    className="p-1.5 rounded text-muted-foreground hover:text-purple-600 hover:bg-purple-50 transition-colors"
                     title="Edit member"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleRemoveMember(member.id)}
-                    className="p-1.5 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
                     title="Remove member"
                   >
                     <Minus className="w-3.5 h-3.5" />
@@ -2926,7 +2926,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
       {showAddForm && (
         <div className="px-4 py-4 space-y-4">
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
               Staff Name
             </p>
             <input
@@ -2935,11 +2935,11 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
               placeholder="e.g., Alex M. or Tech 1"
-              className="w-full text-sm rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700 placeholder:text-slate-400"
+              className="w-full text-sm rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 text-foreground placeholder:text-muted-foreground"
             />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
               Task Roles (select all that apply)
             </p>
             <div className="flex flex-wrap gap-2">
@@ -2951,7 +2951,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
                   className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${
                     formRoles.includes(value)
                       ? "border-purple-400 bg-purple-50 text-purple-700"
-                      : "border-slate-200 text-slate-500 hover:border-slate-300"
+                      : "border-border text-muted-foreground hover:border-border"
                   }`}
                 >
                   {label}
@@ -2963,9 +2963,9 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
           {/* Per-role date ranges — only shown when at least one role is selected */}
           {formRoles.length > 0 && (
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1.5">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
                 Temporary Assignments{" "}
-                <span className="normal-case font-normal text-slate-400">
+                <span className="normal-case font-normal text-muted-foreground">
                   (optional — leave blank for permanent)
                 </span>
               </p>
@@ -2975,7 +2975,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
                   const dates = formRoleDates[roleVal] ?? { startDate: "", endDate: "" };
                   return (
                     <div key={roleVal} className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500 w-28 shrink-0 truncate font-medium">
+                      <span className="text-xs text-muted-foreground w-28 shrink-0 truncate font-medium">
                         {roleOpt?.label ?? roleVal}
                       </span>
                       <div className="flex items-center gap-1 flex-1">
@@ -2985,16 +2985,16 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
                           onChange={(e) => setRoleDate(roleVal, "startDate", e.target.value)}
                           data-testid={`roster-role-start-${roleVal}`}
                           title="Start date (optional)"
-                          className="flex-1 min-w-0 text-xs rounded border border-slate-200 px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-300"
+                          className="flex-1 min-w-0 text-xs rounded border border-border px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-purple-300"
                         />
-                        <span className="text-slate-300 text-xs shrink-0">→</span>
+                        <span className="text-muted-foreground text-xs shrink-0">→</span>
                         <input
                           type="date"
                           value={dates.endDate}
                           onChange={(e) => setRoleDate(roleVal, "endDate", e.target.value)}
                           data-testid={`roster-role-end-${roleVal}`}
                           title="End date (optional)"
-                          className="flex-1 min-w-0 text-xs rounded border border-slate-200 px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-300"
+                          className="flex-1 min-w-0 text-xs rounded border border-border px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-purple-300"
                         />
                       </div>
                     </div>
@@ -3007,7 +3007,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
           <div className="flex items-center gap-2 justify-end pt-1">
             <button
               onClick={() => { setShowAddForm(false); setEditingId(null); }}
-              className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted rounded-md transition-colors"
             >
               Cancel
             </button>
@@ -3068,16 +3068,16 @@ function TaskHistoryCalendar({ siteId }: { siteId: string }) {
   return (
     <div
       data-testid="task-history-calendar"
-      className="bg-white border border-slate-200 rounded-md overflow-hidden"
+      className="bg-card border border-border rounded-md overflow-hidden"
     >
       {/* Panel header */}
-      <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
-        <History className="w-4 h-4 text-slate-500 shrink-0" />
-        <span className="text-sm font-bold text-slate-700 flex-1">Task Completion History</span>
-        <span className="text-xs text-slate-400">Click a highlighted day to view completions</span>
+      <div className="px-4 py-3 bg-muted/40 border-b border-border flex items-center gap-2">
+        <History className="w-4 h-4 text-muted-foreground shrink-0" />
+        <span className="text-sm font-bold text-foreground flex-1">Task Completion History</span>
+        <span className="text-xs text-muted-foreground">Click a highlighted day to view completions</span>
       </div>
 
-      <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+      <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-border">
         {/* Calendar */}
         <div className="sm:w-72 shrink-0">
           <Calendar
@@ -3110,7 +3110,7 @@ function TaskHistoryCalendar({ siteId }: { siteId: string }) {
             }}
           />
           {datesWithCompletions.length === 0 && (
-            <p className="px-4 pb-4 text-xs text-slate-400 text-center">
+            <p className="px-4 pb-4 text-xs text-muted-foreground text-center">
               No historical completions recorded yet. Complete tasks and they will appear here.
             </p>
           )}
@@ -3121,17 +3121,17 @@ function TaskHistoryCalendar({ siteId }: { siteId: string }) {
           {!selectedDate ? (
             <div className="flex flex-col items-center justify-center h-full py-10 px-6 text-center gap-2">
               <CalendarDays className="w-8 h-8 text-slate-200" />
-              <p className="text-sm font-medium text-slate-400">Select a day on the calendar</p>
-              <p className="text-xs text-slate-300">
+              <p className="text-sm font-medium text-muted-foreground">Select a day on the calendar</p>
+              <p className="text-xs text-muted-foreground">
                 Days with a purple dot have recorded completions.
               </p>
             </div>
           ) : (
             <div className="flex flex-col h-full">
               {/* Day header */}
-              <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-                <p className="text-sm font-bold text-slate-800">{selectedDateLabel}</p>
-                <p className="text-xs text-slate-400 mt-0.5">
+              <div className="px-4 py-3 border-b border-border bg-muted/40/50">
+                <p className="text-sm font-bold text-foreground">{selectedDateLabel}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {selectedCompletions.length === 0
                     ? "No completions recorded"
                     : `${selectedCompletions.length} task${selectedCompletions.length !== 1 ? "s" : ""} completed`}
@@ -3141,7 +3141,7 @@ function TaskHistoryCalendar({ siteId }: { siteId: string }) {
               {/* Completion list */}
               {selectedCompletions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center flex-1 py-8 gap-2">
-                  <p className="text-sm text-slate-400">No tasks were completed on this day.</p>
+                  <p className="text-sm text-muted-foreground">No tasks were completed on this day.</p>
                 </div>
               ) : (
                 <div className="overflow-y-auto max-h-72 divide-y divide-slate-50">
@@ -3165,16 +3165,16 @@ function TaskHistoryCalendar({ siteId }: { siteId: string }) {
                           <Check className="w-3 h-3 text-green-600" strokeWidth={3} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-800 leading-snug">{taskTitle}</p>
+                          <p className="text-sm font-medium text-foreground leading-snug">{taskTitle}</p>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                               {roleLabel}
                             </span>
-                            <span className="text-[10px] text-slate-500 font-medium">{displayName}</span>
+                            <span className="text-[10px] text-muted-foreground font-medium">{displayName}</span>
                             {displayName !== c.userEmail && (
-                              <span className="text-[10px] text-slate-300">{c.userEmail}</span>
+                              <span className="text-[10px] text-muted-foreground">{c.userEmail}</span>
                             )}
-                            <span className="text-[10px] text-slate-300">{completedTime}</span>
+                            <span className="text-[10px] text-muted-foreground">{completedTime}</span>
                           </div>
                         </div>
                       </div>
@@ -3257,24 +3257,24 @@ function AssignDialog({
     >
       <div
         data-testid="dialog-assign-task"
-        className="bg-white rounded-lg shadow-xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
+        className="bg-card rounded-lg shadow-xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-900 text-sm">Assign Task</h3>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <h3 className="font-semibold text-foreground text-sm">Assign Task</h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1 rounded-md text-muted-foreground hover:text-muted-foreground hover:bg-muted transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="px-5 py-4 space-y-4">
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Task</p>
-            <p className="text-sm font-medium text-slate-800">{task.title}</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Task</p>
+            <p className="text-sm font-medium text-foreground">{task.title}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
               Assign To
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -3285,7 +3285,7 @@ function AssignDialog({
                 className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm border transition-all ${
                   assignMode === "role"
                     ? "border-purple-500 bg-purple-50 text-purple-800 font-semibold"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300"
+                    : "border-border text-muted-foreground hover:border-border"
                 }`}
               >
                 <Users className="w-3.5 h-3.5" />
@@ -3298,21 +3298,21 @@ function AssignDialog({
                 className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm border transition-all ${
                   assignMode === "person"
                     ? "border-purple-500 bg-purple-50 text-purple-800 font-semibold"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300"
+                    : "border-border text-muted-foreground hover:border-border"
                 }`}
               >
                 <User className="w-3.5 h-3.5" />
                 Specific Person
               </button>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1.5">
+            <p className="text-[10px] text-muted-foreground mt-1.5">
               {assignMode === "role"
                 ? "Shows up for whoever is covering this role that day — no name required."
                 : "Shows up for the named person only. Their role is still recorded so it can appear in the right lists."}
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
               Role
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -3327,15 +3327,15 @@ function AssignDialog({
                     className={`text-left px-3 py-2 rounded-md text-sm border transition-all ${
                       selectedRole === roleKey
                         ? "border-purple-500 bg-purple-50 text-purple-800 font-semibold"
-                        : "border-slate-200 text-slate-600 hover:border-slate-300"
+                        : "border-border text-muted-foreground hover:border-border"
                     }`}
                   >
                     <span className="block">{cfg.label}</span>
                     {hasRosterData && (
                       <span className={`block text-[10px] font-normal mt-0.5 ${
                         activeNames.length > 0
-                          ? selectedRole === roleKey ? "text-purple-500" : "text-slate-400"
-                          : "text-slate-300"
+                          ? selectedRole === roleKey ? "text-purple-500" : "text-muted-foreground"
+                          : "text-muted-foreground"
                       }`}>
                         {activeNames.length > 0
                           ? activeNames.length === 1 ? activeNames[0] : `${activeNames.length} members`
@@ -3349,7 +3349,7 @@ function AssignDialog({
           </div>
           {assignMode === "person" && (
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
                 Specific Staff Member
               </p>
               {activeByRole.get(selectedRole) && (activeByRole.get(selectedRole)?.length ?? 0) > 0 && (
@@ -3362,7 +3362,7 @@ function AssignDialog({
                       className={`text-xs px-2 py-0.5 rounded border transition-all ${
                         specificPerson === name
                           ? "border-purple-400 bg-purple-50 text-purple-700 font-semibold"
-                          : "border-slate-200 text-slate-500 hover:border-slate-300"
+                          : "border-border text-muted-foreground hover:border-border"
                       }`}
                     >
                       {name}
@@ -3376,29 +3376,29 @@ function AssignDialog({
                 onChange={(e) => setSpecificPerson(e.target.value)}
                 data-testid="input-assign-person"
                 placeholder="e.g., Sarah M. or sarah@example.com"
-                className="w-full text-sm rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700 placeholder:text-slate-400"
+                className="w-full text-sm rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 text-foreground placeholder:text-muted-foreground"
               />
             </div>
           )}
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
               Note{" "}
-              <span className="normal-case font-normal text-slate-400">(optional)</span>
+              <span className="normal-case font-normal text-muted-foreground">(optional)</span>
             </p>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               data-testid="input-assign-note"
               placeholder="Add instructions or context..."
-              className="w-full text-sm rounded-md border border-slate-200 px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700 placeholder:text-slate-400"
+              className="w-full text-sm rounded-md border border-border px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-purple-300 text-foreground placeholder:text-muted-foreground"
               rows={2}
             />
           </div>
         </div>
-        <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-end gap-2">
+        <div className="px-5 py-3 border-t border-border flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+            className="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
           >
             Cancel
           </button>
@@ -3457,57 +3457,57 @@ function PriorityDialog({
     >
       <div
         data-testid="dialog-prioritize-task"
-        className="bg-white rounded-lg shadow-xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
+        className="bg-card rounded-lg shadow-xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Flag className="w-4 h-4 text-amber-600" />
-            <h3 className="font-semibold text-slate-900 text-sm">
+            <h3 className="font-semibold text-foreground text-sm">
               {isPrioritized ? "Remove Priority Alert" : "Send Priority Alert"}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1 rounded-md text-muted-foreground hover:text-muted-foreground hover:bg-muted transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="px-5 py-4 space-y-4">
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Task</p>
-            <p className="text-sm font-medium text-slate-800">{task.title}</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Task</p>
+            <p className="text-sm font-medium text-foreground">{task.title}</p>
           </div>
           {isPrioritized ? (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               This task is currently flagged as a priority alert for the Pharmacy Director. Removing it will clear the alert.
             </p>
           ) : (
             <>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 This will send a priority alert to the Pharmacy Director at this store. They will see it highlighted in their task list.
               </p>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
                   Note{" "}
-                  <span className="normal-case font-normal text-slate-400">(optional)</span>
+                  <span className="normal-case font-normal text-muted-foreground">(optional)</span>
                 </p>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   data-testid="input-priority-note"
                   placeholder="Add context for the Pharmacy Director..."
-                  className="w-full text-sm rounded-md border border-slate-200 px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-slate-700 placeholder:text-slate-400"
+                  className="w-full text-sm rounded-md border border-border px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-foreground placeholder:text-muted-foreground"
                   rows={2}
                 />
               </div>
             </>
           )}
         </div>
-        <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-end gap-2">
+        <div className="px-5 py-3 border-t border-border flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+            className="px-4 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
           >
             Cancel
           </button>
@@ -3593,7 +3593,7 @@ function CustomTasksSection({
   return (
     <div
       data-testid="custom-tasks-section"
-      className="bg-white border border-indigo-200 rounded-md overflow-hidden"
+      className="bg-card border border-indigo-200 rounded-md overflow-hidden"
     >
       <div className="px-5 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2 flex-wrap">
         <ClipboardCheck className="w-4 h-4 text-indigo-600 shrink-0" />
@@ -3617,14 +3617,14 @@ function CustomTasksSection({
               className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
                 item.completed
                   ? "bg-green-500 border-green-500 scale-110"
-                  : "border-slate-300 hover:border-indigo-400"
+                  : "border-border hover:border-indigo-400"
               }`}
             >
               {item.completed && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
             </button>
             <span
               className={`text-sm transition-all ${
-                item.completed ? "line-through text-slate-400" : "text-slate-700"
+                item.completed ? "line-through text-muted-foreground" : "text-foreground"
               }`}
             >
               {item.text}
@@ -3783,13 +3783,13 @@ function HandoffPanel({
   return (
     <div
       data-testid="handoff-panel"
-      className="bg-white border border-slate-200 rounded-md overflow-hidden"
+      className="bg-card border border-border rounded-md overflow-hidden"
     >
-      <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2 flex-wrap">
+      <div className="px-5 py-3 border-b border-border flex items-center gap-2 flex-wrap">
         <ClipboardCheck className="w-4 h-4 text-purple-600 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-800">Handoff Notes</p>
-          <p className="text-xs text-slate-400">Schedule tasks for a future date</p>
+          <p className="text-sm font-bold text-foreground">Handoff Notes</p>
+          <p className="text-xs text-muted-foreground">Schedule tasks for a future date</p>
         </div>
         {saved && items.length > 0 && (
           <span
@@ -3804,7 +3804,7 @@ function HandoffPanel({
       <div className="px-5 py-4 space-y-4">
         {/* Role designation chips */}
         <div>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
             For who?
           </p>
           <div className="flex flex-wrap gap-1.5" data-testid="handoff-role-chips">
@@ -3819,7 +3819,7 @@ function HandoffPanel({
                   className={`text-xs font-medium px-2.5 py-1 rounded-md border transition-colors ${
                     isSelected
                       ? "bg-purple-600 text-white border-purple-600"
-                      : "bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-700"
+                      : "bg-card text-muted-foreground border-border hover:border-purple-300 hover:text-purple-700"
                   }`}
                 >
                   {chip.label}
@@ -3831,7 +3831,7 @@ function HandoffPanel({
 
         {/* Date picker */}
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block flex items-center gap-1.5">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block flex items-center gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" /> Schedule for
           </label>
           <div className="flex items-center gap-2 flex-wrap">
@@ -3841,9 +3841,9 @@ function HandoffPanel({
               value={targetDate}
               min={tomorrow}
               onChange={(e) => e.target.value && handleDateChange(e.target.value)}
-              className="text-sm rounded-md border border-slate-200 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700"
+              className="text-sm rounded-md border border-border px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-300 text-foreground"
             />
-            <span className="text-xs text-slate-500 font-medium">{dateLabel}</span>
+            <span className="text-xs text-muted-foreground font-medium">{dateLabel}</span>
             {targetDate !== tomorrow && (
               <button
                 data-testid="handoff-date-reset"
@@ -3858,7 +3858,7 @@ function HandoffPanel({
 
         {/* Raw text input */}
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 block">
             What needs attention on {dateLabel}?
           </label>
           <textarea
@@ -3866,7 +3866,7 @@ function HandoffPanel({
             value={rawText}
             onChange={(e) => { setRawText(e.target.value); setSaved(false); }}
             placeholder="e.g. Patient Jones called about refill, fridge temp alarm triggered, waiting on DEA audit documents from supplier..."
-            className="w-full text-sm rounded-md border border-slate-200 px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700 placeholder:text-slate-400 min-h-[80px]"
+            className="w-full text-sm rounded-md border border-border px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-purple-300 text-foreground placeholder:text-muted-foreground min-h-[80px]"
             rows={3}
           />
           <button
@@ -3888,7 +3888,7 @@ function HandoffPanel({
         {/* Generated / manual bullet list */}
         {items.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               Tasks for {dateLabel} ({items.length})
             </p>
             <ul className="space-y-1.5">
@@ -3897,14 +3897,14 @@ function HandoffPanel({
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0" />
                   <span
                     data-testid={`handoff-item-${item.id}`}
-                    className="flex-1 text-sm text-slate-700"
+                    className="flex-1 text-sm text-foreground"
                   >
                     {item.text}
                   </span>
                   <button
                     data-testid={`handoff-remove-${item.id}`}
                     onClick={() => handleRemoveItem(item.id)}
-                    className="shrink-0 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                    className="shrink-0 text-muted-foreground hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
                     title="Remove item"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -3924,20 +3924,20 @@ function HandoffPanel({
             onChange={(e) => setNewItemText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleAddItem(); }}
             placeholder="Add a custom task…"
-            className="flex-1 text-sm rounded-md border border-slate-200 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700 placeholder:text-slate-400"
+            className="flex-1 text-sm rounded-md border border-border px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-300 text-foreground placeholder:text-muted-foreground"
           />
           <button
             data-testid="handoff-add-btn"
             onClick={handleAddItem}
             disabled={!newItemText.trim()}
-            className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold border border-slate-200 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+            className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold border border-border text-muted-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/40 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> Add
           </button>
         </div>
 
         {/* Save button */}
-        <div className="flex justify-end pt-1 border-t border-slate-100">
+        <div className="flex justify-end pt-1 border-t border-border">
           <button
             data-testid="handoff-save-btn"
             onClick={handleSave}
@@ -4002,7 +4002,7 @@ function PerfSparkline({ data, color = "#8b5cf6", width = 120, height = 36 }: { 
 function PerfTrendIcon({ trend }: { trend: "up" | "down" | "stable" }) {
   if (trend === "up") return <TrendingUp className="w-3.5 h-3.5 text-green-500" />;
   if (trend === "down") return <TrendingDown className="w-3.5 h-3.5 text-red-500" />;
-  return <Minus className="w-3.5 h-3.5 text-slate-400" />;
+  return <Minus className="w-3.5 h-3.5 text-muted-foreground" />;
 }
 
 const PERF_CAT_ORDER: TaskCategory[] = ["achc", "state_board", "retention", "operations"];
@@ -4117,7 +4117,7 @@ function CategoryMiniCard({
       data-testid={`cat-mini-card-${cat}`}
       onClick={onClick}
       role={onClick ? "button" : undefined}
-      className={`bg-white border border-slate-200 rounded-md p-4 transition-all ${onClick ? "cursor-pointer hover-elevate" : ""}`}
+      className={`bg-card border border-border rounded-md p-4 transition-all ${onClick ? "cursor-pointer hover-elevate" : ""}`}
       style={isExpanded ? { outline: `2px solid ${color}`, outlineOffset: "-2px" } : undefined}
     >
       <div className="flex items-center justify-between mb-1">
@@ -4127,13 +4127,13 @@ function CategoryMiniCard({
         <div className="flex items-center gap-1">
           <PerfTrendIcon trend={catTrend.trend} />
           {onClick && (isExpanded
-            ? <ChevronUp className="w-3 h-3 text-slate-400" />
-            : <ChevronDown className="w-3 h-3 text-slate-400" />
+            ? <ChevronUp className="w-3 h-3 text-muted-foreground" />
+            : <ChevronDown className="w-3 h-3 text-muted-foreground" />
           )}
         </div>
       </div>
       <div className="mb-3">
-        <p className="text-[11px] text-slate-400">7-day trend</p>
+        <p className="text-[11px] text-muted-foreground">7-day trend</p>
       </div>
       <ResponsivePerfSparkline data={sparkData} color={color} height={48} />
     </div>
@@ -4203,35 +4203,35 @@ function CategoryDrillDownPanel({
   return (
     <div
       data-testid={`cat-drill-panel-${cat}`}
-      className="bg-white border rounded-md p-5 mt-3"
+      className="bg-card border rounded-md p-5 mt-3"
       style={{ borderColor: color }}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div>
           <p className="text-sm font-bold" style={{ color }}>{cfg.label}</p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             Performance trend &middot; {trend.siteName} &middot; {periodLabel}
           </p>
         </div>
         <button
           data-testid="button-close-trend-panel"
           onClick={onClose}
-          className="text-slate-400 hover:text-slate-600 transition-colors"
+          className="text-muted-foreground hover:text-muted-foreground transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Period tabs */}
-      <div className="flex gap-1 bg-slate-50 border border-slate-100 rounded-md p-1 mb-5">
+      <div className="flex gap-1 bg-muted/40 border border-border rounded-md p-1 mb-5">
         {TREND_PERIODS.map((p) => (
           <button
             key={p.id}
             data-testid={`period-tab-${p.id}`}
             onClick={() => setActivePeriod(p.id)}
             className={`flex-1 px-2 py-1.5 rounded text-xs font-semibold transition-all ${
-              activePeriod === p.id ? "text-white shadow-sm" : "text-slate-500 hover:text-slate-700"
+              activePeriod === p.id ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
             style={activePeriod === p.id ? { backgroundColor: color } : undefined}
           >
@@ -4243,7 +4243,7 @@ function CategoryDrillDownPanel({
       {/* Trend badge */}
       <div className="flex items-center gap-1.5 mb-3">
         <PerfTrendIcon trend={catTrend.trend} />
-        <span className="text-xs text-slate-500 capitalize">{catTrend.trend} trend over {periodLabel.toLowerCase()}</span>
+        <span className="text-xs text-muted-foreground capitalize">{catTrend.trend} trend over {periodLabel.toLowerCase()}</span>
       </div>
 
       {/* Large sparkline */}
@@ -4252,23 +4252,23 @@ function CategoryDrillDownPanel({
       {/* X-axis labels */}
       <div className="flex justify-between mt-1 px-0.5">
         {xLabels.map((lbl, i) => (
-          <p key={i} className="text-[10px] text-slate-400">{lbl}</p>
+          <p key={i} className="text-[10px] text-muted-foreground">{lbl}</p>
         ))}
       </div>
 
       {/* ── Task list ─────────────────────────────────────────────── */}
-      <div className="mt-5 border-t border-slate-100 pt-4">
+      <div className="mt-5 border-t border-border pt-4">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
             Tasks in this category
           </p>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-muted-foreground">
             {doneTasks}/{totalTasks} completed this period
           </span>
         </div>
 
         {tasksByFreq.length === 0 ? (
-          <p className="text-xs text-slate-400 italic">No tasks assigned to this category.</p>
+          <p className="text-xs text-muted-foreground italic">No tasks assigned to this category.</p>
         ) : (
           <div className="space-y-4">
             {tasksByFreq.map(({ freq, label: freqLabel, tasks }) => {
@@ -4283,7 +4283,7 @@ function CategoryDrillDownPanel({
                     >
                       {freqLabel}
                     </span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-muted-foreground">
                       {groupDone}/{tasks.length}
                     </span>
                   </div>
@@ -4294,13 +4294,13 @@ function CategoryDrillDownPanel({
                       <div
                         key={task.id}
                         data-testid={`drill-task-${task.id}`}
-                        className="flex items-start gap-2.5 px-3 py-2 rounded-md bg-slate-50 border border-slate-100"
+                        className="flex items-start gap-2.5 px-3 py-2 rounded-md bg-muted/40 border border-border"
                       >
                         <div
                           className={`mt-0.5 flex-shrink-0 w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${
                             done
                               ? "border-green-500 bg-green-500"
-                              : "border-slate-300 bg-white"
+                              : "border-border bg-card"
                           }`}
                         >
                           {done && (
@@ -4310,11 +4310,11 @@ function CategoryDrillDownPanel({
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-medium leading-snug ${done ? "text-slate-400 line-through" : "text-slate-700"}`}>
+                          <p className={`text-xs font-medium leading-snug ${done ? "text-muted-foreground line-through" : "text-foreground"}`}>
                             {task.taskGroup ?? task.title}
                           </p>
                           {task.taskGroup && task.title !== task.taskGroup && (
-                            <p className="text-[10px] text-slate-400 mt-0.5 truncate">{task.title}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{task.title}</p>
                           )}
                         </div>
                         {task.isUrgent && (
@@ -4352,24 +4352,24 @@ function StorePerformancePanel({
 
   return (
     <div data-testid="store-perf-panel" className="space-y-4">
-      <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+      <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
         <BarChart3 className="w-4 h-4 text-purple-600" />
         Store Performance
       </h2>
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3">
-        <div data-testid="kpi-tasks" className="bg-white border border-slate-200 rounded-md px-4 py-3">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Tasks Today</p>
-          <p className="text-3xl font-bold text-slate-900">{completedCount}</p>
-          <p className="text-xs text-slate-400 mt-0.5">of {totalCount} tasks done</p>
+        <div data-testid="kpi-tasks" className="bg-card border border-border rounded-md px-4 py-3">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1">Tasks Today</p>
+          <p className="text-3xl font-bold text-foreground">{completedCount}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">of {totalCount} tasks done</p>
         </div>
-        <div data-testid="kpi-tier" className="bg-white border border-slate-200 rounded-md px-4 py-3">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Compliance Tier</p>
+        <div data-testid="kpi-tier" className="bg-card border border-border rounded-md px-4 py-3">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1">Compliance Tier</p>
           <span className={`inline-block mt-1 text-xs font-bold px-2.5 py-1 rounded-full border ${tier.bg}`}>
             {tier.label}
           </span>
-          <p className="text-xs text-slate-400 mt-1.5">based on 7d avg</p>
+          <p className="text-xs text-muted-foreground mt-1.5">based on 7d avg</p>
         </div>
       </div>
 
@@ -4906,7 +4906,7 @@ export default function TaskManager() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/40">
       {/* Priority alert banner — Pharmacy Directors see all; staff see alerts on tasks they own */}
       {relevantPriorities.length > 0 && (isPharmDir || !isDir) && (
         <div
@@ -4964,14 +4964,14 @@ export default function TaskManager() {
       )}
 
       {/* Page header */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-4xl mx-auto px-6 py-6">
           {/* Back to dashboard link when drilling into a store */}
           {isRegionalDir && urlSiteId && (
             <Link
               href={isCPO(profile.role) ? "/app/tasks/national" : "/app/tasks/regional"}
               data-testid="link-back-to-regional"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-purple-700 transition-colors mb-4"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-purple-700 transition-colors mb-4"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               {isCPO(profile.role) ? "Back to National Dashboard" : "Back to Regional Dashboard"}
@@ -4981,15 +4981,15 @@ export default function TaskManager() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <ClipboardList className="w-5 h-5 text-purple-600" />
-                <h1 className="text-2xl font-bold text-slate-900">Task Manager</h1>
+                <h1 className="text-2xl font-bold text-foreground">Task Manager</h1>
               </div>
               <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-sm text-slate-400">{displaySiteName}</span>
-                <span className="text-slate-300 mx-1">·</span>
+                <span className="text-sm text-muted-foreground">{displaySiteName}</span>
+                <span className="text-muted-foreground mx-1">·</span>
                 <button
                   type="button"
                   onClick={() => shiftDay(-1)}
-                  className="p-0.5 rounded text-slate-400 hover:text-slate-700 transition-colors"
+                  className="p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
                   aria-label="Previous day"
                   data-testid="button-prev-day"
                 >
@@ -4999,7 +4999,7 @@ export default function TaskManager() {
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 hover:text-purple-700 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-purple-700 transition-colors"
                       data-testid="button-pick-date"
                     >
                       <CalendarDays className="w-3.5 h-3.5" />
@@ -5021,7 +5021,7 @@ export default function TaskManager() {
                 <button
                   type="button"
                   onClick={() => shiftDay(1)}
-                  className="p-0.5 rounded text-slate-400 hover:text-slate-700 transition-colors"
+                  className="p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
                   aria-label="Next day"
                   data-testid="button-next-day"
                 >
@@ -5044,10 +5044,10 @@ export default function TaskManager() {
               <div className="flex items-center gap-3">
                 <div className="text-right">
                   <div className="flex items-center justify-end gap-1.5">
-                    <span className="text-sm font-bold text-slate-800">
+                    <span className="text-sm font-bold text-foreground">
                       {doneTasks}/{totalTasks}
                     </span>
-                    <span className="text-xs text-slate-400">tasks done</span>
+                    <span className="text-xs text-muted-foreground">tasks done</span>
                   </div>
                 </div>
               </div>
@@ -5093,18 +5093,18 @@ export default function TaskManager() {
                   : `/app/store/${siteId}`
               }
               data-testid="link-store-dashboard-banner"
-              className="flex items-center gap-3 mt-4 bg-white border border-slate-200 rounded-md px-4 py-3 hover-elevate group transition-all"
+              className="flex items-center gap-3 mt-4 bg-card border border-border rounded-md px-4 py-3 hover-elevate group transition-all"
             >
               <div className="flex-shrink-0 w-9 h-9 rounded-md bg-purple-50 flex items-center justify-center">
                 <LayoutGrid className="w-4 h-4 text-purple-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 flex items-center gap-1">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5 flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
                   My Store Dashboard
                 </p>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-bold text-slate-900">{displaySiteName}</p>
+                  <p className="text-sm font-bold text-foreground">{displaySiteName}</p>
                 </div>
               </div>
               <span className="text-sm font-semibold text-purple-600 group-hover:text-purple-800 whitespace-nowrap flex items-center gap-1 transition-colors">
@@ -5131,7 +5131,7 @@ export default function TaskManager() {
           >
             <SelectTrigger
               data-testid="select-frequency"
-              className="flex-1 bg-white"
+              className="flex-1 bg-card"
             >
               <SelectValue />
             </SelectTrigger>
@@ -5164,7 +5164,7 @@ export default function TaskManager() {
 
         {/* Category filter chips */}
         <div>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1.5">
             <Filter className="w-3 h-3" /> Filter by Category
           </p>
           <div className="flex flex-wrap gap-2">
@@ -5185,7 +5185,7 @@ export default function TaskManager() {
                   className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${
                     isActive
                       ? "border-purple-400 bg-purple-50 text-purple-700"
-                      : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                      : "border-border text-muted-foreground hover:border-border hover:text-foreground"
                   }`}
                 >
                   {item.label}
@@ -5201,7 +5201,7 @@ export default function TaskManager() {
         {/* Director role-view selector — visible for all directors including CPO/RPD drilling into a store */}
         {isDir && !readOnly && (
           <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">
               View tasks for
             </p>
             <div className="flex flex-wrap gap-2">
@@ -5221,7 +5221,7 @@ export default function TaskManager() {
                   className={`px-3 py-1.5 rounded-md text-xs font-bold border transition-all ${
                     viewingRole === item.value
                       ? "border-purple-400 bg-purple-50 text-purple-700"
-                      : "border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                      : "border-border text-muted-foreground hover:border-border hover:text-foreground"
                   }`}
                 >
                   {item.label}
@@ -5257,7 +5257,7 @@ export default function TaskManager() {
         {isDir && !readOnly && !(isRegionalDir && urlSiteId) && (
           <div>
             <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" /> Team Configuration
               </p>
               <div className="flex items-center gap-3">
@@ -5299,8 +5299,8 @@ export default function TaskManager() {
 
         {/* Role-based task list */}
         {roleGroups.length === 0 ? (
-          <div className="bg-white border border-slate-100 rounded-md px-6 py-12 text-center">
-            <p className="text-slate-400 text-sm">
+          <div className="bg-card border border-border rounded-md px-6 py-12 text-center">
+            <p className="text-muted-foreground text-sm">
               No tasks for this period and role combination.
             </p>
           </div>
@@ -5317,10 +5317,10 @@ export default function TaskManager() {
               return (
                 <section key={freq} data-testid={`cadence-section-${freq}`}>
                   <div className="flex items-baseline justify-between mb-2">
-                    <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                    <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       {FREQ_LABEL[freq]}
                     </h2>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-muted-foreground">
                       {doneForFreq}/{tasksForFreq.length} done
                     </span>
                   </div>

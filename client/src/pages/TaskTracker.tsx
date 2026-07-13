@@ -328,7 +328,7 @@ function TaskRow({
                     {s.done ? (
                       <CheckCircle2 className="w-3 h-3 shrink-0 text-emerald-600" />
                     ) : (
-                      <Clock className="w-3 h-3 shrink-0 text-slate-400" />
+                      <Clock className="w-3 h-3 shrink-0 text-muted-foreground" />
                     )}
                     <span className="truncate font-medium">{s.name}</span>
                   </div>

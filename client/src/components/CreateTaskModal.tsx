@@ -580,7 +580,7 @@ export function CreateTaskModal({
                     className={`px-3 py-2.5 rounded-md border text-left transition-all ${
                       watchScope === s.value
                         ? "border-purple-400 bg-purple-50 text-purple-700"
-                        : "border-slate-200 text-slate-500 hover:border-slate-300"
+                        : "border-border text-muted-foreground hover:border-border"
                     }`}
                   >
                     <p className="text-xs font-bold">{s.label}</p>
@@ -619,7 +619,7 @@ export function CreateTaskModal({
           {!builtinEdit && watchScope === "regional" && !isCpo && userRegion && (
             <div className="space-y-1.5">
               <Label>Region</Label>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-600">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-muted/40 text-sm text-muted-foreground">
                 {userRegion}
               </div>
             </div>
@@ -718,7 +718,7 @@ export function CreateTaskModal({
 
           {/* ── Description ─────────────────────────────────────────── */}
           <div className="space-y-1.5">
-            <Label htmlFor="ct-desc">Description <span className="text-slate-400 font-normal text-xs">(optional)</span></Label>
+            <Label htmlFor="ct-desc">Description <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
             <Textarea
               id="ct-desc"
               data-testid="input-create-task-description"
@@ -770,7 +770,7 @@ export function CreateTaskModal({
                   </SelectContent>
                 </Select>
               ) : (
-                <div className="flex items-center px-3 h-9 rounded-md border border-slate-200 bg-slate-50 text-sm text-slate-400">
+                <div className="flex items-center px-3 h-9 rounded-md border border-border bg-muted/40 text-sm text-muted-foreground">
                   {watchScope === "site" ? "Select a store first" : "Select a region first"}
                 </div>
               )}
@@ -784,7 +784,7 @@ export function CreateTaskModal({
             <Label htmlFor="ct-due">
               Due Date <span className="text-red-500">*</span>
               {watchFrequency !== "one_time" && watchFrequency !== "daily" && (
-                <span className="text-slate-400 font-normal text-xs ml-1">
+                <span className="text-muted-foreground font-normal text-xs ml-1">
                   (repeats {watchFrequency})
                 </span>
               )}
@@ -836,7 +836,7 @@ export function CreateTaskModal({
 
           {/* ── Attach Excel file ────────────────────────────────────── */}
           <div className="space-y-1.5">
-            <Label>Attach Excel file <span className="text-slate-400 font-normal text-xs">(optional)</span></Label>
+            <Label>Attach Excel file <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
             {!spreadsheetForm ? (
               <div
                 data-testid="dropzone-create-task-spreadsheet"
@@ -845,12 +845,12 @@ export function CreateTaskModal({
                 onDrop={handleSpreadsheetDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={`cursor-pointer rounded-md border-2 border-dashed p-4 text-center transition-colors ${
-                  isDraggingFile ? "border-emerald-400 bg-emerald-50" : "border-slate-200 hover:border-slate-300"
+                  isDraggingFile ? "border-emerald-400 bg-emerald-50" : "border-border hover:border-border"
                 }`}
               >
-                <Upload className="w-5 h-5 mx-auto text-slate-400 mb-1.5" />
-                <p className="text-xs font-medium text-slate-700">Drop an Excel file here, or click to browse</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">.xlsx or .xls, up to 5MB</p>
+                <Upload className="w-5 h-5 mx-auto text-muted-foreground mb-1.5" />
+                <p className="text-xs font-medium text-foreground">Drop an Excel file here, or click to browse</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">.xlsx or .xls, up to 5MB</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -867,13 +867,13 @@ export function CreateTaskModal({
             ) : (
               <div
                 data-testid="summary-create-task-spreadsheet"
-                className="flex items-center justify-between gap-2 rounded-md border border-slate-200 p-3"
+                className="flex items-center justify-between gap-2 rounded-md border border-border p-3"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-700 truncate">{spreadsheetForm.fileName}</p>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-xs font-medium text-foreground truncate">{spreadsheetForm.fileName}</p>
+                    <p className="text-[10px] text-muted-foreground">
                       {spreadsheetForm.sheets.length} sheet{spreadsheetForm.sheets.length === 1 ? "" : "s"} · {totalSpreadsheetRows} row{totalSpreadsheetRows === 1 ? "" : "s"}
                     </p>
                   </div>

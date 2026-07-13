@@ -115,7 +115,7 @@ function TaskSummaryWidget({ userEmail, userName }: { userEmail: string; userNam
     <Link href="/app/tasks">
       <div
         data-testid="widget-tasks-today"
-        className="bg-white border border-slate-200 rounded-md px-5 py-4 flex items-center gap-4 hover:shadow-sm transition-shadow cursor-pointer group"
+        className="bg-card border border-border rounded-md px-5 py-4 flex items-center gap-4 hover:shadow-sm transition-shadow cursor-pointer group"
       >
         <div
           className="w-10 h-10 rounded-md flex items-center justify-center shrink-0"
@@ -124,9 +124,9 @@ function TaskSummaryWidget({ userEmail, userName }: { userEmail: string; userNam
           <ClipboardList className="w-5 h-5 text-purple-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Today's Tasks</p>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Today's Tasks</p>
           <div className="flex items-center gap-2 mt-1">
-            <span className={`text-xs font-semibold ${allDone ? "text-green-600" : "text-slate-600"}`}>
+            <span className={`text-xs font-semibold ${allDone ? "text-green-600" : "text-muted-foreground"}`}>
               {done}/{dailyTasks.length} complete
             </span>
           </div>
@@ -150,7 +150,7 @@ function StoreDashboardWidget({ userEmail, userName }: { userEmail: string; user
     <Link href={`/app/store/${profile.siteId}`}>
       <div
         data-testid="widget-store-dashboard"
-        className="bg-white border border-slate-200 rounded-md px-5 py-4 flex items-center gap-4 hover:shadow-sm transition-shadow cursor-pointer group"
+        className="bg-card border border-border rounded-md px-5 py-4 flex items-center gap-4 hover:shadow-sm transition-shadow cursor-pointer group"
       >
         <div
           className="w-10 h-10 rounded-md flex items-center justify-center shrink-0"
@@ -159,12 +159,12 @@ function StoreDashboardWidget({ userEmail, userName }: { userEmail: string; user
           <LayoutDashboard className="w-5 h-5 text-purple-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
             <MapPin className="w-3 h-3 text-purple-400" />
             My Store Dashboard
           </p>
           <div className="flex items-center gap-3 mt-1">
-            <span className="text-sm font-semibold text-slate-700">{profile.siteName}</span>
+            <span className="text-sm font-semibold text-foreground">{profile.siteName}</span>
           </div>
         </div>
         <div className="flex items-center gap-1 text-purple-600 group-hover:gap-2 transition-all text-xs font-semibold shrink-0">
@@ -179,7 +179,7 @@ function StoreDashboardWidget({ userEmail, userName }: { userEmail: string; user
 
 const CATEGORY_ORDER: TaskCategory[] = ["operations", "achc", "state_board", "retention"];
 const CATEGORY_COLORS: Record<TaskCategory, { border: string; icon: string; progress: string; bg: string }> = {
-  operations: { border: "border-slate-200", icon: "text-slate-500", progress: "bg-slate-400", bg: "bg-slate-50" },
+  operations: { border: "border-border", icon: "text-muted-foreground", progress: "bg-slate-400", bg: "bg-muted/40" },
   achc: { border: "border-blue-200", icon: "text-blue-500", progress: "bg-blue-500", bg: "bg-blue-50" },
   state_board: { border: "border-emerald-200", icon: "text-emerald-500", progress: "bg-emerald-500", bg: "bg-emerald-50" },
   retention: { border: "border-amber-200", icon: "text-amber-500", progress: "bg-amber-500", bg: "bg-amber-50" },
@@ -200,18 +200,18 @@ function TechDashboard({ userEmail, userName }: { userEmail: string; userName: s
   const roleLabel = getRoleLabel(profile.role);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/40">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-4xl mx-auto px-6 py-10">
-          <p className="text-sm text-slate-400 mb-1 uppercase tracking-wide font-medium flex items-center gap-1.5">
+          <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wide font-medium flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5" />
             {roleLabel} · {profile.siteName}
           </p>
-          <h1 className="text-3xl font-bold text-slate-900">
+          <h1 className="text-3xl font-bold text-foreground">
             <GradientText>Pharmacy</GradientText> Dashboard
           </h1>
-          <p className="text-slate-500 mt-2 text-base">
+          <p className="text-muted-foreground mt-2 text-base">
             Welcome back, {firstName}. Here's your task overview for today.
           </p>
         </div>
@@ -220,7 +220,7 @@ function TechDashboard({ userEmail, userName }: { userEmail: string; userName: s
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
         {/* Category progress cards */}
         <div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
             <BarChart3 className="w-3.5 h-3.5" />
             Today's Progress by Category
           </p>
@@ -236,12 +236,12 @@ function TechDashboard({ userEmail, userName }: { userEmail: string; userName: s
                 <Link key={cat} href={`/app/tasks?cat=${cat}`}>
                   <div
                     data-testid={`tech-cat-card-${cat}`}
-                    className={`bg-white border rounded-md px-4 py-3 cursor-pointer hover:shadow-sm transition-shadow ${colors.border}`}
+                    className={`bg-card border rounded-md px-4 py-3 cursor-pointer hover:shadow-sm transition-shadow ${colors.border}`}
                   >
-                    <p className="text-xs font-semibold text-slate-500 mb-1 truncate">{cfg.label}</p>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1 truncate">{cfg.label}</p>
                     <div className="flex items-end gap-1.5 mb-2">
-                      <span className="text-2xl font-bold text-slate-800">{done}/{total}</span>
-                      <span className="text-xs text-slate-400 mb-0.5">done</span>
+                      <span className="text-2xl font-bold text-foreground">{done}/{total}</span>
+                      <span className="text-xs text-muted-foreground mb-0.5">done</span>
                     </div>
                     {complete && (
                       <p className="text-[10px] text-green-600 font-semibold mt-1 flex items-center gap-0.5">
@@ -258,7 +258,7 @@ function TechDashboard({ userEmail, userName }: { userEmail: string; userName: s
         {/* Pending tasks today */}
         <div>
           <div className="flex items-center justify-between gap-4 mb-3">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
               <ClipboardList className="w-3.5 h-3.5" />
               Pending Today ({techTasks.filter((t) => !completions.has(t.id)).length} remaining)
             </p>
@@ -269,7 +269,7 @@ function TechDashboard({ userEmail, userName }: { userEmail: string; userName: s
             </Link>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-md divide-y divide-slate-100">
+          <div className="bg-card border border-border rounded-md divide-y divide-border">
             {techTasks.filter((t) => !completions.has(t.id)).length === 0 ? (
               <div className="px-6 py-10 text-center">
                 <p className="text-green-600 font-semibold text-sm flex items-center justify-center gap-2">
@@ -286,9 +286,9 @@ function TechDashboard({ userEmail, userName }: { userEmail: string; userName: s
                     <div key={task.id} className="flex items-start gap-3 px-4 py-3">
                       <div className="w-2 h-2 rounded-full bg-slate-300 shrink-0 mt-1.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800 truncate">{task.title}</p>
+                        <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
                         {task.description && (
-                          <p className="text-xs text-slate-400 mt-0.5 truncate">{task.description}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.description}</p>
                         )}
                       </div>
                       <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${cat.badge}`}>
@@ -300,7 +300,7 @@ function TechDashboard({ userEmail, userName }: { userEmail: string; userName: s
             )}
             {techTasks.filter((t) => !completions.has(t.id)).length > 8 && (
               <Link href="/app/tasks">
-                <div className="px-4 py-3 text-center text-xs font-semibold text-purple-600 hover:bg-slate-50 cursor-pointer">
+                <div className="px-4 py-3 text-center text-xs font-semibold text-purple-600 hover:bg-muted/40 cursor-pointer">
                   + {techTasks.filter((t) => !completions.has(t.id)).length - 8} more tasks — view in Task Manager
                 </div>
               </Link>
@@ -358,17 +358,17 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted/40">
       {/* Header band */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-5xl mx-auto px-6 py-10">
-          <p className="text-sm text-slate-400 mb-1 uppercase tracking-wide font-medium">
+          <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wide font-medium">
             Welcome back, {firstName}
           </p>
-          <h1 className="text-3xl font-bold text-slate-900">
+          <h1 className="text-3xl font-bold text-foreground">
             <GradientText>{dashboardTitle}</GradientText> Dashboard
           </h1>
-          <p className="text-slate-500 mt-2 text-base">
+          <p className="text-muted-foreground mt-2 text-base">
             Select a tool or resume a recent patient.
           </p>
         </div>
@@ -381,8 +381,8 @@ export default function DashboardPage() {
             <Link key={tool.id} href={tool.href}>
               <div
                 data-testid={`card-tool-${tool.id}`}
-                className={`group relative flex flex-col h-full rounded-md border bg-white hover:shadow-md transition-shadow cursor-pointer ${
-                  tool.featured ? "border-purple-200 ring-1 ring-purple-100" : "border-slate-200"
+                className={`group relative flex flex-col h-full rounded-md border bg-card hover:shadow-md transition-shadow cursor-pointer ${
+                  tool.featured ? "border-purple-200 ring-1 ring-purple-100" : "border-border"
                 }`}
               >
                 <div
@@ -409,11 +409,11 @@ export default function DashboardPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-0.5">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">
                     {tool.label}
                   </p>
-                  <h2 className="text-lg font-bold text-slate-900 mb-2">{tool.title}</h2>
-                  <p className="text-sm text-slate-500 leading-relaxed flex-1">
+                  <h2 className="text-lg font-bold text-foreground mb-2">{tool.title}</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed flex-1">
                     {tool.description}
                   </p>
                   <div className="mt-5 flex items-center gap-1 text-sm font-semibold text-purple-600 group-hover:gap-2 transition-all">
@@ -439,7 +439,7 @@ export default function DashboardPage() {
         {/* Recent Patients */}
         <div>
           <div className="flex items-center justify-between gap-4 mb-4">
-            <h2 className="text-lg font-bold text-slate-900">Recent Patients</h2>
+            <h2 className="text-lg font-bold text-foreground">Recent Patients</h2>
             <Link href="/app/assessment">
               <span className="text-sm font-semibold text-purple-600 hover:text-purple-700 cursor-pointer flex items-center gap-1">
                 New patient
@@ -449,11 +449,11 @@ export default function DashboardPage() {
           </div>
 
           {assessments.length === 0 ? (
-            <div className="rounded-md border border-slate-200 bg-white px-6 py-10 text-center">
-              <p className="text-slate-400 text-sm">No saved patients yet. Start an assessment and it will appear here automatically.</p>
+            <div className="rounded-md border border-border bg-card px-6 py-10 text-center">
+              <p className="text-muted-foreground text-sm">No saved patients yet. Start an assessment and it will appear here automatically.</p>
             </div>
           ) : (
-            <div className="rounded-md border border-slate-200 bg-white divide-y divide-slate-100">
+            <div className="rounded-md border border-border bg-card divide-y divide-border">
               {assessments.map((a) => {
                 const progress = stepProgress(a);
                 return (
@@ -472,23 +472,23 @@ export default function DashboardPage() {
 
                     {/* Regimen */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {getRegimenSummary(a)}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
                         {/* Progress bar */}
-                        <div className="w-24 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="w-24 h-1.5 rounded-full bg-muted overflow-hidden">
                           <div
                             className="h-full rounded-full"
                             style={{ width: `${progress.pct}%`, backgroundImage: GRADIENT }}
                           />
                         </div>
-                        <span className="text-[11px] text-slate-400">{progress.label}</span>
+                        <span className="text-[11px] text-muted-foreground">{progress.label}</span>
                       </div>
                     </div>
 
                     {/* Timestamp */}
-                    <div className="flex items-center gap-1 text-[11px] text-slate-400 shrink-0">
+                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground shrink-0">
                       <Clock className="w-3 h-3" />
                       {formatRelativeTime(a.savedAt)}
                     </div>
@@ -507,7 +507,7 @@ export default function DashboardPage() {
                       <button
                         onClick={() => handleDelete(a.patientId)}
                         data-testid={`button-delete-${a.patientId}`}
-                        className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
                         title="Delete patient"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -521,7 +521,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Info strip */}
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-xs text-slate-400">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-xs text-muted-foreground">
           {[
             "EHR-connected workflow",
             "AI-powered assessments",

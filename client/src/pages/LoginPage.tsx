@@ -105,16 +105,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-card flex flex-col">
       {/* Top nav */}
-      <header className="px-6 h-16 flex items-center border-b border-slate-200">
+      <header className="px-6 h-16 flex items-center border-b border-border">
         <Link href="/">
           <KoheezLogo className="text-xl cursor-pointer" />
         </Link>
       </header>
 
       {/* Card */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12 bg-slate-50">
+      <div className="flex-1 flex items-center justify-center px-4 py-12 bg-muted/40">
         <div className="w-full max-w-md">
           {/* Logo mark */}
           <div className="text-center mb-8">
@@ -124,26 +124,26 @@ export default function LoginPage() {
             >
               <Activity className="w-6 h-6 text-purple-600" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-2xl font-bold text-foreground">
               {activeTab === "signin" ? "Welcome back" : "Create your account"}
             </h1>
-            <p className="text-slate-500 text-sm mt-1">
+            <p className="text-muted-foreground text-sm mt-1">
               {activeTab === "signin"
                 ? "Sign in to your Koheez.ai account"
                 : "Start your clinical intelligence journey"}
             </p>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-md overflow-hidden shadow-sm">
+          <div className="bg-card border border-border rounded-md overflow-hidden shadow-sm">
             {/* Tabs */}
-            <div className="grid grid-cols-2 border-b border-slate-200">
+            <div className="grid grid-cols-2 border-b border-border">
               <button
                 data-testid="tab-signin"
                 onClick={() => switchTab("signin")}
                 className={`py-3.5 text-sm font-medium transition-colors ${
                   activeTab === "signin"
-                    ? "text-slate-900 bg-white border-b-2 border-purple-500"
-                    : "text-slate-400 hover:text-slate-700 bg-slate-50"
+                    ? "text-foreground bg-card border-b-2 border-purple-500"
+                    : "text-muted-foreground hover:text-foreground bg-muted/40"
                 }`}
               >
                 Sign in
@@ -153,8 +153,8 @@ export default function LoginPage() {
                 onClick={() => switchTab("signup")}
                 className={`py-3.5 text-sm font-medium transition-colors ${
                   activeTab === "signup"
-                    ? "text-slate-900 bg-white border-b-2 border-purple-500"
-                    : "text-slate-400 hover:text-slate-700 bg-slate-50"
+                    ? "text-foreground bg-card border-b-2 border-purple-500"
+                    : "text-muted-foreground hover:text-foreground bg-muted/40"
                 }`}
               >
                 Create account
@@ -167,7 +167,7 @@ export default function LoginPage() {
                 <div>
                   <label
                     htmlFor="name"
-                    className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide"
+                    className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide"
                   >
                     Full name
                   </label>
@@ -179,7 +179,7 @@ export default function LoginPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Dr. Jane Smith"
-                    className="w-full px-3.5 py-2.5 rounded-md bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-md bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 transition-colors"
                   />
                 </div>
               )}
@@ -187,7 +187,7 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide"
+                  className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide"
                 >
                   Email address
                 </label>
@@ -200,14 +200,14 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full px-3.5 py-2.5 rounded-md bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-md bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 transition-colors"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide"
+                  className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide"
                 >
                   Password
                 </label>
@@ -220,7 +220,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 rounded-md bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-md bg-card border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300 transition-colors"
                 />
               </div>
 
@@ -247,7 +247,7 @@ export default function LoginPage() {
               </button>
 
               {activeTab === "signin" && (
-                <p className="text-center text-xs text-slate-400 pt-1">
+                <p className="text-center text-xs text-muted-foreground pt-1">
                   Test login:{" "}
                   <button
                     type="button"
@@ -265,9 +265,9 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <p className="text-center text-sm text-slate-400 mt-6">
+          <p className="text-center text-sm text-muted-foreground mt-6">
             <Link href="/">
-              <span className="hover:text-slate-600 transition-colors cursor-pointer">
+              <span className="hover:text-muted-foreground transition-colors cursor-pointer">
                 Back to home
               </span>
             </Link>

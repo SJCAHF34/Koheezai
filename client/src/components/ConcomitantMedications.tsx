@@ -152,7 +152,7 @@ export default function ConcomitantMedications({
         </div>
 
         {showPaste && (
-          <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+          <div className="space-y-3 rounded-md border border-border bg-muted/40 p-4">
             <p className="text-xs text-muted-foreground leading-relaxed">
               Copy the full med list from your pharmacy software and paste below.
               Section labels like <span className="font-mono">VIAL/MAIL</span>, <span className="font-mono">PRN</span>,
@@ -169,7 +169,7 @@ export default function ConcomitantMedications({
             {/* Live preview of parsed drugs */}
             {parsedPreview.length > 0 && (
               <div className="space-y-1.5">
-                <p className="text-xs font-medium text-slate-600">
+                <p className="text-xs font-medium text-muted-foreground">
                   Drugs found ({parsedPreview.length}):
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -221,7 +221,7 @@ export default function ConcomitantMedications({
         {/* ── Added medications ─────────────────────────────────── */}
         {medications.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-700">
+            <p className="text-sm font-medium text-foreground">
               Medications ({medications.length})
             </p>
             <div className="flex flex-wrap gap-2">
