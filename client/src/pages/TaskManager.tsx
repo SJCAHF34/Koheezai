@@ -420,8 +420,8 @@ function TaskCheckbox({
           : animating
           ? "border-green-400 scale-125 bg-green-50"
           : disabled
-          ? "border-black opacity-50"
-          : "border-black hover:border-purple-400 hover:scale-110"
+          ? "border-border opacity-50"
+          : "border-border hover:border-purple-400 hover:scale-110"
       }`}
     >
       <div
