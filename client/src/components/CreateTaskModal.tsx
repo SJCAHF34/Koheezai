@@ -268,6 +268,16 @@ export function CreateTaskModal({
     return "";
   });
 
+  // ── Recurrence options (outside RHF schema — managed as local state) ──────
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
+  const [lastBusinessDayOfMonth, setLastBusinessDayOfMonth] = useState(false);
+
+  function toggleDow(dow: number) {
+    setDaysOfWeek((prev) =>
+      prev.includes(dow) ? prev.filter((d) => d !== dow) : [...prev, dow]
+    );
+  }
+
   // When the modal opens in edit mode, populate form from the task being edited
   useEffect(() => {
     if (!open) return;
@@ -290,6 +300,8 @@ export function CreateTaskModal({
       // frequency-change effect below never silently overwrites it.
       dueDateTouched.current = true;
       setAssigneeValue(taskToEdit.assignedToLabel ?? "");
+      setDaysOfWeek(taskToEdit.daysOfWeek ?? []);
+      setLastBusinessDayOfMonth(taskToEdit.lastBusinessDayOfMonth ?? false);
     } else {
       // For PDs (not CPO, not RPD), pre-select their own store.
       // Note: isPD is defined earlier in the component and captures this correctly.
@@ -316,6 +328,8 @@ export function CreateTaskModal({
       } else {
         setAssigneeValue("");
       }
+      setDaysOfWeek([]);
+      setLastBusinessDayOfMonth(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, taskToEdit]);
@@ -519,6 +533,12 @@ export function CreateTaskModal({
       createdByRole: profile.role,
       createdAt: new Date().toISOString(),
       dueDate: values.dueDate,
+      daysOfWeek: (values.frequency === "weekly" || values.frequency === "biweekly") && daysOfWeek.length > 0
+        ? daysOfWeek
+        : undefined,
+      lastBusinessDayOfMonth: (values.frequency === "monthly" || values.frequency === "quarterly" || values.frequency === "biannual")
+        ? lastBusinessDayOfMonth || undefined
+        : undefined,
     };
     saveCustomTask(customTask);
     persistSpreadsheet(id);
@@ -530,6 +550,8 @@ export function CreateTaskModal({
     }
     setSpreadsheetForm(null);
     setSpreadsheetRemoved(false);
+    setDaysOfWeek([]);
+    setLastBusinessDayOfMonth(false);
     form.reset({ ...form.formState.defaultValues, scope: defaultScope, selectedRegion: userRegion ?? "", dueDate: computeDefaultDueDate("daily") });
     // Reset assignee to sensible default for this user's default scope
     if (defaultScope === "national") {
@@ -777,6 +799,60 @@ export function CreateTaskModal({
             </div>
             )}
           </div>
+
+          {/* ── Days of week (weekly / biweekly only) ────────────────── */}
+          {(watchFrequency === "weekly" || watchFrequency === "biweekly") && (
+            <div className="space-y-1.5">
+              <Label>Recurs on <span className="text-muted-foreground font-normal text-xs">(optional — leave blank for any day)</span></Label>
+              <div className="flex flex-wrap gap-1.5">
+                {(["Sun","Mon","Tue","Wed","Thu","Fri","Sat"] as const).map((label, dow) => (
+                  <button
+                    key={dow}
+                    type="button"
+                    data-testid={`toggle-dow-${label.toLowerCase()}`}
+                    onClick={() => toggleDow(dow)}
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-md border transition-colors ${
+                      daysOfWeek.includes(dow)
+                        ? "bg-purple-600 border-purple-600 text-white"
+                        : "bg-muted border-border text-muted-foreground hover:text-foreground hover:border-purple-400"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Last business day of month (monthly / quarterly / biannual) */}
+          {(watchFrequency === "monthly" || watchFrequency === "quarterly" || watchFrequency === "biannual") && (
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={lastBusinessDayOfMonth}
+                data-testid="toggle-last-business-day"
+                onClick={() => setLastBusinessDayOfMonth((v) => !v)}
+                className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                  lastBusinessDayOfMonth
+                    ? "bg-purple-600 border-purple-600"
+                    : "border-border bg-background"
+                }`}
+              >
+                {lastBusinessDayOfMonth && (
+                  <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="1.5,5 4,8 8.5,2" />
+                  </svg>
+                )}
+              </button>
+              <label
+                className="text-sm text-foreground cursor-pointer select-none"
+                onClick={() => setLastBusinessDayOfMonth((v) => !v)}
+              >
+                Due on last business day of the month
+              </label>
+            </div>
+          )}
 
           {/* ── Due Date ─────────────────────────────────────────────── */}
           {!builtinEdit && (

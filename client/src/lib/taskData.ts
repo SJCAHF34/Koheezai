@@ -58,6 +58,10 @@ export interface PharmacyTask {
   region?: string;
   dueDate?: string;
   subItems?: string[];
+  /** Which weekdays (0=Sun … 6=Sat) the task recurs on for weekly/biweekly tasks */
+  daysOfWeek?: number[];
+  /** When true, a monthly task is due on the last business day of each month */
+  lastBusinessDayOfMonth?: boolean;
 }
 
 export interface Site {

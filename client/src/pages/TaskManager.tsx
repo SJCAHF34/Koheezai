@@ -628,7 +628,10 @@ function TaskRow({
             const displayDate =
               task.frequency === "one_time"
                 ? effectiveDue
-                : formatDateOnly(occurrenceDateForPeriod(task.frequency, effectiveDue, ref));
+                : formatDateOnly(occurrenceDateForPeriod(task.frequency, effectiveDue, ref, {
+                    daysOfWeek: task.daysOfWeek,
+                    lastBusinessDayOfMonth: task.lastBusinessDayOfMonth,
+                  }));
             const dueLabel = new Date(displayDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
             if (dueTodayNow) {
               return (

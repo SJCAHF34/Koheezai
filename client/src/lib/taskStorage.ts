@@ -913,6 +913,10 @@ export interface CustomTask {
   createdByRole: string;
   createdAt: string;
   dueDate?: string;
+  /** Which weekdays (0=Sun … 6=Sat) the task recurs on for weekly/biweekly tasks */
+  daysOfWeek?: number[];
+  /** When true, a monthly task is due on the last business day of each month */
+  lastBusinessDayOfMonth?: boolean;
 }
 
 function readCustomTasks(): CustomTask[] {
@@ -1177,16 +1181,45 @@ function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
+/** Returns the last Monday–Friday of the given month. */
+function computeLastBusinessDay(year: number, month: number): Date {
+  let d = new Date(year, month + 1, 0); // last calendar day
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1);
+  }
+  return d;
+}
+
 export function occurrenceDateForPeriod(
   frequency: TaskFrequency,
   anchorDueDate: string,
-  referenceDate: Date
+  referenceDate: Date,
+  opts?: { daysOfWeek?: number[]; lastBusinessDayOfMonth?: boolean }
 ): Date {
   const anchor = toDateOnly(parseDateOnly(anchorDueDate));
   const ref = toDateOnly(referenceDate);
   switch (frequency) {
     case "weekly":
     case "biweekly": {
+      // If specific days-of-week are configured, find the most recently passed
+      // one in the current period (or the first upcoming if none have passed).
+      if (opts?.daysOfWeek && opts.daysOfWeek.length > 0) {
+        const periodStart = getRecurrencePeriodStart(frequency, ref);
+        let best: Date | null = null;
+        for (const dow of opts.daysOfWeek) {
+          const offset = (dow - periodStart.getDay() + 7) % 7;
+          const candidate = new Date(periodStart.getFullYear(), periodStart.getMonth(), periodStart.getDate() + offset);
+          if (candidate.getTime() <= ref.getTime()) {
+            if (!best || candidate.getTime() > best.getTime()) best = candidate;
+          }
+        }
+        if (best) return best;
+        // All days are still upcoming — return the earliest one
+        const periodStart2 = getRecurrencePeriodStart(frequency, ref);
+        const sorted = [...opts.daysOfWeek].sort((a, b) => a - b);
+        const offset = (sorted[0] - periodStart2.getDay() + 7) % 7;
+        return new Date(periodStart2.getFullYear(), periodStart2.getMonth(), periodStart2.getDate() + offset);
+      }
       // Weekday-based anchor: fixed-length periods (7 or 14 days), so the
       // anchor's offset-within-period (in days) is stable across periods —
       // apply it to the current reference period's start.
@@ -1196,6 +1229,9 @@ export function occurrenceDateForPeriod(
       return new Date(refPeriodStart.getFullYear(), refPeriodStart.getMonth(), refPeriodStart.getDate() + offsetDays);
     }
     case "monthly": {
+      if (opts?.lastBusinessDayOfMonth) {
+        return computeLastBusinessDay(ref.getFullYear(), ref.getMonth());
+      }
       const monthsDiff = (ref.getFullYear() - anchor.getFullYear()) * 12 + (ref.getMonth() - anchor.getMonth());
       const targetMonthIndex = anchor.getMonth() + monthsDiff;
       const targetYear = anchor.getFullYear() + Math.floor(targetMonthIndex / 12);
@@ -1205,6 +1241,13 @@ export function occurrenceDateForPeriod(
     }
     case "quarterly":
     case "biannual": {
+      if (opts?.lastBusinessDayOfMonth) {
+        // Last business day of the last month of the current period
+        const stepMonths = frequency === "quarterly" ? 3 : 6;
+        const periodStart = getRecurrencePeriodStart(frequency, ref);
+        const lastMonthOfPeriod = new Date(periodStart.getFullYear(), periodStart.getMonth() + stepMonths - 1, 1);
+        return computeLastBusinessDay(lastMonthOfPeriod.getFullYear(), lastMonthOfPeriod.getMonth());
+      }
       const stepMonths = frequency === "quarterly" ? 3 : 6;
       const monthsDiff = (ref.getFullYear() - anchor.getFullYear()) * 12 + (ref.getMonth() - anchor.getMonth());
       const periods = Math.floor(monthsDiff / stepMonths);
@@ -1227,7 +1270,7 @@ export function occurrenceDateForPeriod(
  * in (daily tasks are always due; one-time tasks never recur).
  */
 export function isTaskDueOn(
-  task: { dueDate?: string; frequency: TaskFrequency },
+  task: { dueDate?: string; frequency: TaskFrequency; daysOfWeek?: number[]; lastBusinessDayOfMonth?: boolean },
   referenceDate: Date,
   isCompletedForCurrentPeriod: boolean
 ): boolean {
@@ -1243,7 +1286,29 @@ export function isTaskDueOn(
   // the anchor only starts repeating once its initial occurrence has passed.
   if (ref.getTime() < firstDue.getTime()) return false;
   if (isCompletedForCurrentPeriod) return false;
-  const occurrence = occurrenceDateForPeriod(task.frequency, effectiveDue, ref);
+
+  // ── daysOfWeek: task is due on any of the specified weekdays each period ──
+  if (task.daysOfWeek && task.daysOfWeek.length > 0 &&
+      (task.frequency === "weekly" || task.frequency === "biweekly")) {
+    const periodStart = getRecurrencePeriodStart(task.frequency, ref);
+    for (const dow of task.daysOfWeek) {
+      const offset = (dow - periodStart.getDay() + 7) % 7;
+      const candidate = new Date(periodStart.getFullYear(), periodStart.getMonth(), periodStart.getDate() + offset);
+      if (candidate.getTime() <= ref.getTime()) return true;
+    }
+    return false;
+  }
+
+  // ── lastBusinessDayOfMonth ────────────────────────────────────────────────
+  if (task.lastBusinessDayOfMonth && task.frequency === "monthly") {
+    const lbd = computeLastBusinessDay(ref.getFullYear(), ref.getMonth());
+    return lbd.getTime() <= ref.getTime();
+  }
+
+  const occurrence = occurrenceDateForPeriod(task.frequency, effectiveDue, ref, {
+    daysOfWeek: task.daysOfWeek,
+    lastBusinessDayOfMonth: task.lastBusinessDayOfMonth,
+  });
   return occurrence.getTime() <= ref.getTime();
 }
 
