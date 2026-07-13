@@ -2378,7 +2378,8 @@ ${context.troubleCategories && context.troubleCategories.length > 0 ? `\nLowest-
 
     const messageSchema = z.object({
       role: z.enum(["user", "assistant"]),
-      content: z.string().min(1).max(4000),
+      content: z.string().max(4000),
+      imageDataUrl: z.string().max(10_000_000).optional(),
     });
 
     const taskSchema = z.object({
@@ -2446,7 +2447,18 @@ ${taskLines}`;
         model: "gpt-4o",
         messages: [
           { role: "system", content: systemPrompt },
-          ...messages.map((m) => ({ role: m.role, content: m.content })),
+          ...messages.map((m) => {
+            if (m.imageDataUrl) {
+              return {
+                role: m.role as "user" | "assistant",
+                content: [
+                  ...(m.content ? [{ type: "text" as const, text: m.content }] : []),
+                  { type: "image_url" as const, image_url: { url: m.imageDataUrl, detail: "auto" as const } },
+                ],
+              };
+            }
+            return { role: m.role as "user" | "assistant", content: m.content };
+          }),
         ],
         temperature: 0.5,
         max_tokens: 900,

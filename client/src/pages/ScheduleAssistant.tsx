@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/App";
 import { getUserProfile, isDirectorRole, getRoleLabel } from "@/lib/userProfile";
 import { getDueTasksForToday, type DueTaskSummary } from "@/lib/taskStorage";
@@ -6,11 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Sparkles, AlertTriangle, RefreshCw, CalendarClock, Clock } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Send, Sparkles, AlertTriangle, RefreshCw, CalendarClock, Clock, ImagePlus, X } from "lucide-react";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  imageDataUrl?: string;
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -20,6 +22,17 @@ const CATEGORY_LABEL: Record<string, string> = {
   operations: "Operations",
 };
 
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB client-side guard
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ScheduleAssistant() {
   const { user } = useAuth();
   const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
@@ -28,9 +41,14 @@ export default function ScheduleAssistant() {
   const [workEnd, setWorkEnd] = useState("17:00");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [stagedImage, setStagedImage] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const dueTasks: DueTaskSummary[] = useMemo(() => {
     if (!profile) return [];
@@ -50,10 +68,17 @@ export default function ScheduleAssistant() {
 
   async function sendMessage(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || loading || !profile) return;
+    if ((!trimmed && !stagedImage) || loading || !profile) return;
     setError(null);
     setInput("");
-    const updated: ChatMessage[] = [...messages, { role: "user", content: trimmed }];
+    const imageToSend = stagedImage;
+    setStagedImage(null);
+    setImageError(null);
+
+    const newMsg: ChatMessage = { role: "user", content: trimmed };
+    if (imageToSend) newMsg.imageDataUrl = imageToSend;
+
+    const updated: ChatMessage[] = [...messages, newMsg];
     setMessages(updated);
     setLoading(true);
     scrollToBottom();
@@ -88,16 +113,63 @@ export default function ScheduleAssistant() {
   }
 
   function handleBuildSchedule() {
-    sendMessage(
-      "Please build me a time-blocked schedule for today using the tasks due, fitting my working hours."
-    );
+    sendMessage("Please build me a time-blocked schedule for today using the tasks due, fitting my working hours.");
   }
+
+  async function processImageFile(file: File) {
+    setImageError(null);
+    if (!file.type.startsWith("image/")) {
+      setImageError("Only image files are supported.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageError("Image must be under 4 MB.");
+      return;
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setStagedImage(dataUrl);
+      textareaRef.current?.focus();
+    } catch {
+      setImageError("Could not read the image file.");
+    }
+  }
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) await processImageFile(file);
+  }, []);
+
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
+    const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith("image/"));
+    if (!item) return;
+    const file = item.getAsFile();
+    if (file) {
+      e.preventDefault();
+      await processImageFile(file);
+    }
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   if (!profile) return null;
+
+  const canSend = (input.trim().length > 0 || stagedImage !== null) && !loading;
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -107,7 +179,7 @@ export default function ScheduleAssistant() {
           <h1 className="text-lg font-bold text-foreground" data-testid="text-page-title">Schedule Assistant</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Chat with an AI assistant to build a time-blocked plan for today's tasks — daily tasks plus anything else that's currently due.
+          Chat with an AI assistant to build a time-blocked plan for today's tasks — daily tasks plus anything else that's currently due. You can also drop or paste an image to share context.
         </p>
 
         <Card>
@@ -148,9 +220,9 @@ export default function ScheduleAssistant() {
                     variant="outline"
                     className={
                       t.isOverdue
-                        ? "text-red-700 border-red-200 bg-red-50"
+                        ? "text-red-700 border-red-200 bg-red-50 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800"
                         : t.isUrgent
-                          ? "text-orange-700 border-orange-200 bg-orange-50"
+                          ? "text-orange-700 border-orange-200 bg-orange-50 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800"
                           : "text-muted-foreground border-border bg-muted/40"
                     }
                     data-testid={`badge-due-task-${t.id}`}
@@ -164,83 +236,182 @@ export default function ScheduleAssistant() {
           </CardContent>
         </Card>
 
-        <Card className="flex flex-col" style={{ minHeight: "420px" }}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Chat</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col gap-3">
-            <div
-              ref={threadRef}
-              className="flex-1 overflow-y-auto space-y-3 pr-1"
-              style={{ maxHeight: "440px" }}
-              data-testid="chat-thread"
-            >
-              {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-10">
-                  <Sparkles className="w-8 h-8 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground max-w-sm">
-                    Ask for a time-blocked schedule, or tell me about your day (meetings, a shorter shift, etc.) and I'll work it in.
-                  </p>
-                  <Button size="sm" onClick={handleBuildSchedule} disabled={loading} data-testid="button-build-schedule">
-                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                    Build my schedule
-                  </Button>
-                </div>
-              )}
-              {messages.map((m, i) => (
-                <div
-                  key={i}
-                  className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-md px-3 py-2 text-sm whitespace-pre-wrap ${
-                      m.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground border border-border"
-                    }`}
-                    data-testid={`text-chat-message-${i}`}
-                  >
-                    {m.content}
-                  </div>
-                </div>
-              ))}
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="max-w-[85%] rounded-md px-3 py-2 text-sm bg-muted text-muted-foreground border border-border flex items-center gap-2">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    Thinking...
-                  </div>
-                </div>
-              )}
+        {/* ── Chat card — drag-and-drop target ─────────────────────────── */}
+        <div
+          className={`relative rounded-lg border transition-colors ${
+            isDragging ? "border-purple-400 bg-purple-50/60 dark:bg-purple-950/30" : "border-border bg-card"
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {/* Drag overlay hint */}
+          {isDragging && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-lg pointer-events-none">
+              <ImagePlus className="w-8 h-8 text-purple-500" />
+              <p className="text-sm font-semibold text-purple-600 dark:text-purple-400">Drop image to attach</p>
+            </div>
+          )}
+
+          <div className={`transition-opacity ${isDragging ? "opacity-20 pointer-events-none" : "opacity-100"}`}>
+            {/* Card header */}
+            <div className="px-6 pt-4 pb-2">
+              <p className="text-sm font-semibold text-foreground">Chat</p>
             </div>
 
-            {error && (
-              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2" data-testid="text-chat-error">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                {error}
+            <div className="px-6 pb-6 flex flex-col gap-3">
+              {/* ── Message thread ──────────────────────────────────────── */}
+              <div
+                ref={threadRef}
+                className="overflow-y-auto space-y-3 pr-1"
+                style={{ minHeight: "200px", maxHeight: "440px" }}
+                data-testid="chat-thread"
+              >
+                {messages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-10">
+                    <Sparkles className="w-8 h-8 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground max-w-sm">
+                      Ask for a time-blocked schedule, or tell me about your day (meetings, a shorter shift, etc.) and I'll work it in. You can also drop or paste a screenshot for context.
+                    </p>
+                    <Button size="sm" onClick={handleBuildSchedule} disabled={loading} data-testid="button-build-schedule">
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                      Build my schedule
+                    </Button>
+                  </div>
+                )}
+                {messages.map((m, i) => (
+                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[85%] rounded-md px-3 py-2 text-sm whitespace-pre-wrap space-y-2 ${
+                        m.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-foreground border border-border"
+                      }`}
+                      data-testid={`text-chat-message-${i}`}
+                    >
+                      {m.imageDataUrl && (
+                        <img
+                          src={m.imageDataUrl}
+                          alt="Attached"
+                          className="max-w-full max-h-48 rounded-md object-contain"
+                        />
+                      )}
+                      {m.content && <p>{m.content}</p>}
+                    </div>
+                  </div>
+                ))}
+                {loading && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-md px-3 py-2 text-sm bg-muted text-muted-foreground border border-border flex items-center gap-2">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      Thinking...
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                sendMessage(input);
-              }}
-              className="flex items-center gap-2"
-            >
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="e.g. Build my schedule for today"
-                disabled={loading}
-                data-testid="input-chat-message"
-              />
-              <Button type="submit" size="icon" disabled={loading || !input.trim()} data-testid="button-send-chat">
-                <Send className="w-4 h-4" />
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+              {/* ── Error banner ─────────────────────────────────────────── */}
+              {error && (
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-md px-3 py-2" data-testid="text-chat-error">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  {error}
+                </div>
+              )}
+
+              {/* ── Staged image preview ─────────────────────────────────── */}
+              {stagedImage && (
+                <div className="flex items-start gap-2">
+                  <div className="relative shrink-0">
+                    <img
+                      src={stagedImage}
+                      alt="Staged attachment"
+                      className="h-20 w-auto max-w-[160px] rounded-md border border-border object-contain bg-muted"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setStagedImage(null); setImageError(null); }}
+                      data-testid="button-remove-staged-image"
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center hover-elevate"
+                    >
+                      <X className="w-3 h-3 text-foreground" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-1">Image ready to send</p>
+                </div>
+              )}
+
+              {imageError && (
+                <p className="text-xs text-red-600 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  {imageError}
+                </p>
+              )}
+
+              {/* ── Input row ────────────────────────────────────────────── */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  sendMessage(input);
+                }}
+                className="flex items-end gap-2"
+              >
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  data-testid="input-image-file"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) await processImageFile(file);
+                    e.target.value = "";
+                  }}
+                />
+
+                {/* Image attach button */}
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  disabled={loading}
+                  data-testid="button-attach-image"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Attach image"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                </Button>
+
+                {/* Text input */}
+                <Textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onPaste={handlePaste}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage(input);
+                    }
+                  }}
+                  placeholder="e.g. Build my schedule for today — or drop / paste an image"
+                  disabled={loading}
+                  rows={1}
+                  className="flex-1 resize-none text-sm min-h-9"
+                  data-testid="input-chat-message"
+                />
+
+                <Button type="submit" size="icon" disabled={!canSend} data-testid="button-send-chat">
+                  <Send className="w-4 h-4" />
+                </Button>
+              </form>
+
+              <p className="text-[11px] text-muted-foreground">
+                Drop or paste an image anywhere in this panel, or use the image button. Press Enter to send, Shift+Enter for a new line.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
