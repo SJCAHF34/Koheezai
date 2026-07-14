@@ -66,6 +66,14 @@ export interface TaskCompletion {
   siteId: string;
   userEmail: string;
   userRole: string;
+  /** ISO timestamp updated on every write (check or uncheck). Used by the
+   *  server merge to determine which device's version of a record is most
+   *  recent (LWW). Falls back to completedAt for legacy records. */
+  updatedAt?: string;
+  /** True when the user unchecked this task. The record is kept as a
+   *  tombstone so the uncheck propagates through server-side LWW merge
+   *  and prevents a stale "checked" copy from another device resurrecting it. */
+  deleted?: boolean;
 }
 
 export interface TaskAssignment {
@@ -149,6 +157,7 @@ export function loadCompletions(
   const all = readCompletions();
   const filtered = all.filter(
     (c) =>
+      !c.deleted &&
       c.siteId === siteId &&
       c.period === period &&
       (roleFilter == null || taskRoleMatches(c.taskRole, roleFilter))
@@ -162,7 +171,7 @@ export function loadCompletionsForSite(
   date?: Date
 ): TaskCompletion[] {
   const period = getPeriodKey(frequency, date);
-  return readCompletions().filter((c) => c.siteId === siteId && c.period === period);
+  return readCompletions().filter((c) => !c.deleted && c.siteId === siteId && c.period === period);
 }
 
 export function loadAllSiteCompletions(
@@ -172,7 +181,7 @@ export function loadAllSiteCompletions(
   const all = readCompletions();
   const bySite: Record<string, Set<string>> = {};
   for (const c of all) {
-    if (c.period === period) {
+    if (!c.deleted && c.period === period) {
       if (!bySite[c.siteId]) bySite[c.siteId] = new Set();
       bySite[c.siteId].add(c.taskId);
     }
@@ -189,7 +198,8 @@ export function loadSiteCompletions(
   siteId: string
 ): Record<string, TaskCompletion[]> {
   const all = readCompletions();
-  const filtered = siteId === "ALL" ? all : all.filter((c) => c.siteId === siteId);
+  const filtered = (siteId === "ALL" ? all : all.filter((c) => c.siteId === siteId))
+    .filter((c) => !c.deleted);
   const byDate: Record<string, TaskCompletion[]> = {};
   for (const c of filtered) {
     // Only include daily completions — they have YYYY-MM-DD period keys
@@ -214,13 +224,15 @@ export function saveCompletion(
   date?: Date
 ): void {
   const period = getPeriodKey(frequency, date);
+  const now = new Date().toISOString();
   const all = readCompletions().filter(
     (c) => !(c.taskId === taskId && c.siteId === siteId && c.period === period)
   );
   all.push({
     taskId,
     taskRole,
-    completedAt: new Date().toISOString(),
+    completedAt: now,
+    updatedAt: now,
     period,
     siteId,
     userEmail,
@@ -235,12 +247,21 @@ export function removeCompletion(
   frequency: TaskFrequency,
   date?: Date
 ): void {
+  // Write a tombstone (deleted: true) instead of removing the record so the
+  // uncheck propagates through the server-side LWW merge and prevents a stale
+  // "checked" copy from another device from resurrecting this completion.
   const period = getPeriodKey(frequency, date);
-  writeCompletions(
-    readCompletions().filter(
-      (c) => !(c.taskId === taskId && c.siteId === siteId && c.period === period)
-    )
+  const now = new Date().toISOString();
+  const all = readCompletions();
+  const existing = all.find(
+    (c) => c.taskId === taskId && c.siteId === siteId && c.period === period
   );
+  if (!existing) return; // nothing to uncheck
+  const rest = all.filter(
+    (c) => !(c.taskId === taskId && c.siteId === siteId && c.period === period)
+  );
+  rest.push({ ...existing, deleted: true, updatedAt: now });
+  writeCompletions(rest);
 }
 
 // ── Assignments ────────────────────────────────────────────────────────────
@@ -1322,6 +1343,10 @@ export interface SubItemCompletion {
   taskId: string;
   item: string;
   date: string; // YYYY-MM-DD
+  /** ISO timestamp of last write (check or uncheck); used for LWW server merge. */
+  updatedAt?: string;
+  /** Tombstone marker: true when this sub-item was unchecked. Filtered out on read. */
+  deleted?: boolean;
 }
 
 function readSubItems(): SubItemCompletion[] {
@@ -1344,7 +1369,7 @@ function writeSubItems(items: SubItemCompletion[]): void {
 export function loadSubItemCompletions(siteId: string, taskId: string, date: string): Set<string> {
   return new Set(
     readSubItems()
-      .filter((s) => s.siteId === siteId && s.taskId === taskId && s.date === date)
+      .filter((s) => !s.deleted && s.siteId === siteId && s.taskId === taskId && s.date === date)
       .map((s) => s.item)
   );
 }
@@ -1352,15 +1377,18 @@ export function loadSubItemCompletions(siteId: string, taskId: string, date: str
 /** Toggle a sub-item on/off for a task on a given date. */
 export function toggleSubItemCompletion(siteId: string, taskId: string, item: string, date: string): boolean {
   const all = readSubItems();
+  const now = new Date().toISOString();
   const idx = all.findIndex(
     (s) => s.siteId === siteId && s.taskId === taskId && s.item === item && s.date === date
   );
   if (idx >= 0) {
-    all.splice(idx, 1);
+    // Write tombstone so the uncheck propagates through the server LWW merge.
+    const existing = all[idx];
+    all.splice(idx, 1, { ...existing, deleted: true, updatedAt: now });
     writeSubItems(all);
     return false;
   }
-  all.push({ siteId, taskId, item, date });
+  all.push({ siteId, taskId, item, date, updatedAt: now });
   writeSubItems(all);
   return true;
 }

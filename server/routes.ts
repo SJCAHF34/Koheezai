@@ -1150,11 +1150,13 @@ FORMATTING RULES (strict):
     "koheez_task_spreadsheets",
   ]);
 
-  // Keys whose records are union-merged on each PUT rather than replaced.
-  // Merge key function returns a dedup string for each record; incoming wins
-  // on conflict (handles unchecking when the caller had the latest state).
-  // Records present in the stored value but absent from the incoming set are
-  // preserved — this prevents one device from erasing another device's checks.
+  // Keys whose records are LWW-merged on each PUT rather than replaced.
+  // Each record carries an `updatedAt` ISO timestamp (set by the client on every
+  // check or uncheck). The server keeps whichever version of a record is most
+  // recent, and preserves records from the stored blob that the incoming set
+  // doesn't mention at all — preventing one device from silently erasing another
+  // device's completions. Unchecks are represented as tombstones (deleted: true)
+  // so they propagate correctly even against an older "checked" copy.
   const MERGE_KEY_FN: Record<string, (r: Record<string, unknown>) => string> = {
     "koheez_task_completions": (r) =>
       `${String(r.taskId)}|${String(r.siteId)}|${String(r.period)}`,
@@ -1173,6 +1175,17 @@ FORMATTING RULES (strict):
       }
     }
     return [];
+  }
+
+  /** Compare two records and return the more recent one. Falls back to
+   *  `completedAt` so old records without `updatedAt` are handled gracefully. */
+  function newerRecord(
+    a: Record<string, unknown>,
+    b: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const tsA = String(a.updatedAt ?? a.completedAt ?? "");
+    const tsB = String(b.updatedAt ?? b.completedAt ?? "");
+    return tsB > tsA ? b : a;
   }
 
   // Rows are scoped per site: staff can only read/write the saved data for a
@@ -1218,18 +1231,25 @@ FORMATTING RULES (strict):
 
       let valueToStore: unknown = incomingValue;
       if (keyFn) {
-        // Union-merge: keep every record from the existing server blob that
-        // is absent from the incoming set (preserves other devices' work),
-        // then layer in all incoming records (incoming wins on conflict so
-        // unchecking propagates when the caller had the up-to-date state).
-        const existing = await storage.getClientStores(siteId);
-        const existingRow = existing.find((r) => r.storeKey === key);
+        // LWW merge: start from the existing server blob (preserves other
+        // devices' records not in this push), then apply the incoming records
+        // using timestamp comparison — whichever version of a key is more
+        // recent (updatedAt, falling back to completedAt) wins. This lets
+        // tombstones (deleted: true) from a newer uncheck beat an older
+        // "checked" copy from another device, while still protecting against
+        // a stale push from a device that hadn't yet seen the newer state.
+        const allStores = await storage.getClientStores(siteId);
+        const existingRow = allStores.find((r) => r.storeKey === key);
         const existingItems = parseJsonArray(existingRow?.value);
         const incomingItems = parseJsonArray(incomingValue);
 
         const merged = new Map<string, Record<string, unknown>>();
         for (const item of existingItems) merged.set(keyFn(item), item);
-        for (const item of incomingItems) merged.set(keyFn(item), item);
+        for (const item of incomingItems) {
+          const k = keyFn(item);
+          const prev = merged.get(k);
+          merged.set(k, prev ? newerRecord(prev, item) : item);
+        }
         valueToStore = Array.from(merged.values());
       }
 
