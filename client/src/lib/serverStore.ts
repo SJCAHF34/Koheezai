@@ -31,6 +31,7 @@
 
 const STORE_KEYS = [
   "koheez_task_completions",
+  "koheez_task_sub_items",
   "koheez_task_assignments",
   "koheez_task_priorities",
   "koheez_urgent_tasks",
@@ -53,11 +54,14 @@ const STORE_KEYS = [
 ] as const;
 
 const TRACKED = new Set<string>(STORE_KEYS);
-// Small, frequent interactions (task completions) get a much shorter debounce
-// so the loss window on a quick refresh/close is tiny. Larger, chunkier
-// blobs (inventory, ACHC docs, rosters, …) keep the original debounce so we
-// don't hammer the server on every keystroke.
-const FAST_SYNC_KEYS = new Set<string>(["koheez_task_completions"]);
+// Small, frequent interactions (task completions, sub-item checks) get a much
+// shorter debounce so the loss window on a quick refresh/close is tiny. Larger,
+// chunkier blobs (inventory, ACHC docs, rosters, …) keep the original debounce
+// so we don't hammer the server on every keystroke.
+const FAST_SYNC_KEYS = new Set<string>([
+  "koheez_task_completions",
+  "koheez_task_sub_items",
+]);
 const PUSH_DEBOUNCE_MS = 800;
 const FAST_PUSH_DEBOUNCE_MS = 150;
 

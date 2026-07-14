@@ -1123,9 +1123,12 @@ FORMATTING RULES (strict):
 
   // ── Client store: server-side backing for browser localStorage ─────────────
   // Only known app store keys are accepted so the table can't be used as an
-  // arbitrary dump. Values are whole-store JSON blobs (last write wins per key).
+  // arbitrary dump. Values are whole-store JSON blobs (last write wins per key),
+  // except the merge keys below which use union-merge to prevent one device
+  // from silently erasing another device's completions.
   const CLIENT_STORE_KEYS = new Set([
     "koheez_task_completions",
+    "koheez_task_sub_items",
     "koheez_task_assignments",
     "koheez_task_priorities",
     "koheez_urgent_tasks",
@@ -1146,6 +1149,31 @@ FORMATTING RULES (strict):
     "koheez_task_overrides",
     "koheez_task_spreadsheets",
   ]);
+
+  // Keys whose records are union-merged on each PUT rather than replaced.
+  // Merge key function returns a dedup string for each record; incoming wins
+  // on conflict (handles unchecking when the caller had the latest state).
+  // Records present in the stored value but absent from the incoming set are
+  // preserved — this prevents one device from erasing another device's checks.
+  const MERGE_KEY_FN: Record<string, (r: Record<string, unknown>) => string> = {
+    "koheez_task_completions": (r) =>
+      `${String(r.taskId)}|${String(r.siteId)}|${String(r.period)}`,
+    "koheez_task_sub_items": (r) =>
+      `${String(r.siteId)}|${String(r.taskId)}|${String(r.item)}|${String(r.date)}`,
+  };
+
+  function parseJsonArray(val: unknown): Record<string, unknown>[] {
+    if (Array.isArray(val)) return val as Record<string, unknown>[];
+    if (typeof val === "string") {
+      try {
+        const p: unknown = JSON.parse(val);
+        return Array.isArray(p) ? (p as Record<string, unknown>[]) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
 
   // Rows are scoped per site: staff can only read/write the saved data for a
   // site they're authorized on (director = own store, RPD = region, CPO = all;
@@ -1184,7 +1212,28 @@ FORMATTING RULES (strict):
       if (!access.canViewSite(siteId)) {
         return res.status(403).json({ message: "Not authorized for this site" });
       }
-      await storage.setClientStore(siteId, key, req.body?.value ?? null);
+
+      const incomingValue = req.body?.value ?? null;
+      const keyFn = MERGE_KEY_FN[key];
+
+      let valueToStore: unknown = incomingValue;
+      if (keyFn) {
+        // Union-merge: keep every record from the existing server blob that
+        // is absent from the incoming set (preserves other devices' work),
+        // then layer in all incoming records (incoming wins on conflict so
+        // unchecking propagates when the caller had the up-to-date state).
+        const existing = await storage.getClientStores(siteId);
+        const existingRow = existing.find((r) => r.storeKey === key);
+        const existingItems = parseJsonArray(existingRow?.value);
+        const incomingItems = parseJsonArray(incomingValue);
+
+        const merged = new Map<string, Record<string, unknown>>();
+        for (const item of existingItems) merged.set(keyFn(item), item);
+        for (const item of incomingItems) merged.set(keyFn(item), item);
+        valueToStore = Array.from(merged.values());
+      }
+
+      await storage.setClientStore(siteId, key, valueToStore);
       res.json({ ok: true });
     } catch (err) {
       console.error("[client-store] write failed:", err);
