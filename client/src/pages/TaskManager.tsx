@@ -443,6 +443,7 @@ function TaskRow({
   animating,
   assignment,
   canAssign,
+  canEditTask,
   canPrioritize,
   isPrioritized,
   isUrgentFromRegional,
@@ -468,6 +469,7 @@ function TaskRow({
   animating: boolean;
   assignment?: TaskAssignment;
   canAssign: boolean;
+  canEditTask: boolean;
   canPrioritize: boolean;
   isPrioritized: boolean;
   isUrgentFromRegional: boolean;
@@ -903,8 +905,8 @@ function TaskRow({
         </button>
       )}
 
-      {/* Edit task button — directors only, works on any task */}
-      {canAssign && !readOnly && (
+      {/* Edit task button — store-scoped: PD own store only, RPD their region, CPO all */}
+      {canEditTask && !readOnly && (
         <button
           data-testid={`button-edit-task-${task.id}`}
           onClick={() => onEditTask(task)}
@@ -970,6 +972,7 @@ function TaskGroupSection({
   urgentIds,
   urgentDetails,
   canAssign,
+  canEditTask,
   canPrioritize,
   canMarkUrgent,
   canDeleteCustom,
@@ -996,6 +999,7 @@ function TaskGroupSection({
   urgentIds: Set<string>;
   urgentDetails: Map<string, string>;
   canAssign: boolean;
+  canEditTask: boolean;
   canPrioritize: boolean;
   canMarkUrgent: boolean;
   canDeleteCustom: boolean;
@@ -1059,6 +1063,7 @@ function TaskGroupSection({
               animating={animating.has(task.id)}
               assignment={assignments.get(task.id)}
               canAssign={canAssign}
+              canEditTask={canEditTask}
               canPrioritize={canPrioritize}
               isPrioritized={priorities.has(task.id)}
               isUrgentFromRegional={urgentIds.has(task.id)}
@@ -1098,6 +1103,7 @@ function RoleSection({
   urgentIds,
   urgentDetails,
   canAssign,
+  canEditTask,
   canPrioritize,
   canMarkUrgent,
   canDeleteCustom,
@@ -1123,6 +1129,7 @@ function RoleSection({
   urgentIds: Set<string>;
   urgentDetails: Map<string, string>;
   canAssign: boolean;
+  canEditTask: boolean;
   canPrioritize: boolean;
   canMarkUrgent: boolean;
   canDeleteCustom: boolean;
@@ -1196,6 +1203,7 @@ function RoleSection({
               urgentIds={urgentIds}
               urgentDetails={urgentDetails}
               canAssign={canAssign}
+              canEditTask={canEditTask}
               canPrioritize={canPrioritize}
               canMarkUrgent={canMarkUrgent}
               canDeleteCustom={canDeleteCustom}
@@ -4454,6 +4462,19 @@ export default function TaskManager() {
   // site-specific tasks require a store context (urlSiteId for regional/CPO, always for PD).
   const canCreateTask = isDir;
   const canDeleteCustom = isPharmDir || (isRegionalDir && !!urlSiteId);
+  // Edit is store-scoped:
+  //   CPO → always allowed
+  //   RPD → only when drilling into a specific store (urlSiteId is set)
+  //   Pharmacy Director → only when viewing their own store
+  const canEditTask = profile
+    ? isCPO(profile.role)
+      ? true
+      : isRegionalOrAbove(profile.role)
+        ? !!urlSiteId
+        : isPharmacyDirector(profile.role)
+          ? siteId === profile.siteId
+          : false
+    : false;
 
   useEffect(() => {
     setSpreadsheetTaskIds(loadSpreadsheetFormTaskIds(siteId));
@@ -5339,6 +5360,7 @@ export default function TaskManager() {
                       urgentIds={urgentIds}
                       urgentDetails={urgentDetails}
                       canAssign={isDir}
+                      canEditTask={canEditTask}
                       canPrioritize={canPrioritize}
                       canMarkUrgent={canMarkUrgent}
                       canDeleteCustom={canDeleteCustom}
@@ -5374,6 +5396,7 @@ export default function TaskManager() {
                 urgentIds={urgentIds}
                 urgentDetails={urgentDetails}
                 canAssign={isDir}
+                canEditTask={canEditTask}
                 canPrioritize={canPrioritize}
                 canMarkUrgent={canMarkUrgent}
                 canDeleteCustom={canDeleteCustom}
