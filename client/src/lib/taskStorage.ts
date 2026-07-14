@@ -1002,9 +1002,10 @@ export function loadAllCustomTasksForRole(
   });
 }
 
-/** Return every raw completion record (for cross-store tracker view). */
+/** Return every raw completion record (for cross-store tracker view).
+ *  Tombstoned (deleted) records are excluded so callers see only active checks. */
 export function loadAllCompletionsRaw(): TaskCompletion[] {
-  return readCompletions();
+  return readCompletions().filter((c) => !c.deleted);
 }
 
 // ── Deleted Custom Tasks (soft-delete bin) ────────────────────────────────────
@@ -1378,16 +1379,24 @@ export function loadSubItemCompletions(siteId: string, taskId: string, date: str
 export function toggleSubItemCompletion(siteId: string, taskId: string, item: string, date: string): boolean {
   const all = readSubItems();
   const now = new Date().toISOString();
-  const idx = all.findIndex(
-    (s) => s.siteId === siteId && s.taskId === taskId && s.item === item && s.date === date
+  // Only treat non-deleted records as "currently checked".
+  const activeIdx = all.findIndex(
+    (s) => !s.deleted && s.siteId === siteId && s.taskId === taskId && s.item === item && s.date === date
   );
-  if (idx >= 0) {
-    // Write tombstone so the uncheck propagates through the server LWW merge.
-    const existing = all[idx];
-    all.splice(idx, 1, { ...existing, deleted: true, updatedAt: now });
+  if (activeIdx >= 0) {
+    // Currently checked → uncheck: replace with tombstone so the LWW merge
+    // on the server propagates the deletion even against an older checked copy.
+    const existing = all[activeIdx];
+    all.splice(activeIdx, 1, { ...existing, deleted: true, updatedAt: now });
     writeSubItems(all);
     return false;
   }
+  // Currently unchecked → check: remove any existing tombstone for this key
+  // (re-check after uncheck) then push a fresh active record.
+  const tombstoneIdx = all.findIndex(
+    (s) => s.siteId === siteId && s.taskId === taskId && s.item === item && s.date === date
+  );
+  if (tombstoneIdx >= 0) all.splice(tombstoneIdx, 1);
   all.push({ siteId, taskId, item, date, updatedAt: now });
   writeSubItems(all);
   return true;
