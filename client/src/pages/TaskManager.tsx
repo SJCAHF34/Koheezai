@@ -4439,6 +4439,7 @@ export default function TaskManager() {
   const [urgentDetails, setUrgentDetails] = useState<Map<string, string>>(new Map());
   const [todayHandoffs, setTodayHandoffs] = useState<HandoffNote[]>([]);
   const [customTasks, setCustomTasks] = useState<PharmacyTask[]>([]);
+  const [dueTodayOpen, setDueTodayOpen] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState<PharmacyTask | null>(null);
   const [spreadsheetTask, setSpreadsheetTask] = useState<PharmacyTask | null>(null);
@@ -4892,26 +4893,43 @@ export default function TaskManager() {
     );
   }
 
-  const mergedVisible = [...baseVisible, ...relevantCustom, ...crossAssigned, ...dueTodayExtra];
+  const mergedVisible = [...baseVisible, ...relevantCustom, ...crossAssigned];
   const seenVisibleIds = new Set<string>();
   const visible = mergedVisible.filter((t) => {
     if (seenVisibleIds.has(t.id)) return false;
     seenVisibleIds.add(t.id);
     return true;
   });
+  // Keep due-today tasks separate so they render in their own pinned section
+  // and don't appear again inside the role groups.
+  const visibleDueToday = dueTodayExtra.filter((t) => !seenVisibleIds.has(t.id));
   const filteredVisible = categoryFilter === "all"
     ? visible
     : visible.filter((t) => t.category === categoryFilter);
+  const filteredDueToday = (categoryFilter === "all"
+    ? visibleDueToday
+    : visibleDueToday.filter((t) => t.category === categoryFilter)
+  ).sort((a, b) => {
+    const aUrgent = (a.isUrgent || urgentIds.has(a.id)) && !completions.has(a.id);
+    const bUrgent = (b.isUrgent || urgentIds.has(b.id)) && !completions.has(b.id);
+    if (aUrgent && !bUrgent) return -1;
+    if (!aUrgent && bUrgent) return 1;
+    return (a.title ?? "").localeCompare(b.title ?? "");
+  });
 
   // Priority alerts: directors see all; non-directors see only those on tasks
   // they can actually act on (their own role tasks + cross-assigned tasks).
-  const visibleTaskIds = useMemo(() => new Set(visible.map((t) => t.id)), [visible]);
+  const visibleTaskIds = useMemo(
+    () => new Set([...visible, ...visibleDueToday].map((t) => t.id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visible, visibleDueToday],
+  );
   const relevantPriorities = isDir
     ? activePriorities
     : activePriorities.filter((p) => visibleTaskIds.has(p.taskId));
   const roleGroups = buildRoleGroups(filteredVisible, viewingRole, profile.role, extraRoles);
-  const totalTasks = filteredVisible.length;
-  const doneTasks = filteredVisible.filter((t) => completions.has(t.id)).length;
+  const totalTasks = filteredVisible.length + filteredDueToday.length;
+  const doneTasks = [...filteredVisible, ...filteredDueToday].filter((t) => completions.has(t.id)).length;
 
   const browseDateLabel = browseDate.toLocaleDateString("en-US", {
     weekday: "long",
@@ -5322,7 +5340,7 @@ export default function TaskManager() {
         ))}
 
         {/* Role-based task list */}
-        {roleGroups.length === 0 ? (
+        {roleGroups.length === 0 && filteredDueToday.length === 0 ? (
           <div className="bg-card border border-border rounded-md px-6 py-12 text-center">
             <p className="text-muted-foreground text-sm">
               No tasks for this period and role combination.
@@ -5384,6 +5402,75 @@ export default function TaskManager() {
           </div>
         ) : (
           <div>
+            {/* ── Due Today section ─────────────────────────────────────────────
+                Non-daily tasks whose due date has arrived are pinned here so
+                they can't be missed. Hidden when the list is empty. */}
+            {filteredDueToday.length > 0 && (
+              <div
+                className="mb-3 border border-orange-200 dark:border-orange-800/60 rounded-md overflow-hidden"
+                data-testid="due-today-section"
+              >
+                <button
+                  onClick={() => setDueTodayOpen((o) => !o)}
+                  data-testid="due-today-toggle"
+                  className="w-full flex items-center gap-2 px-4 py-3 bg-orange-50 dark:bg-orange-950/30 text-left"
+                >
+                  {dueTodayOpen ? (
+                    <ChevronDown className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 shrink-0" />
+                  )}
+                  <span className="flex-1 text-sm font-bold text-orange-700 dark:text-orange-300">
+                    Due Today
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      filteredDueToday.every((t) => completions.has(t.id))
+                        ? "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300"
+                        : "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300"
+                    }`}
+                    data-testid="due-today-count"
+                  >
+                    {filteredDueToday.filter((t) => completions.has(t.id)).length}/{filteredDueToday.length}
+                  </span>
+                </button>
+
+                {dueTodayOpen && (
+                  <div className="divide-y divide-border bg-card">
+                    {filteredDueToday.map((task) => (
+                      <TaskRow
+                        key={task.id}
+                        task={task}
+                        completed={completions.has(task.id)}
+                        animating={animating.has(task.id)}
+                        assignment={assignments.get(task.id)}
+                        canAssign={isDir}
+                        canEditTask={canEditTask}
+                        canPrioritize={canPrioritize}
+                        isPrioritized={priorityIds.has(task.id)}
+                        isUrgentFromRegional={urgentIds.has(task.id)}
+                        urgentMarkedBy={urgentDetails.get(task.id)}
+                        canMarkUrgent={canMarkUrgent}
+                        canDeleteCustom={canDeleteCustom}
+                        readOnly={readOnly}
+                        siteId={siteId}
+                        highlighted={task.id === highlightTaskId}
+                        hasSpreadsheet={spreadsheetTaskIds?.has(task.id)}
+                        browseDate={browseDate}
+                        onToggle={toggleCompletion}
+                        onAssign={setAssigningTask}
+                        onPrioritize={setPrioritizingTask}
+                        onMarkUrgent={handleMarkUrgent}
+                        onDeleteCustom={handleDeleteCustom}
+                        onEditTask={setEditingTask}
+                        onOpenSpreadsheet={setSpreadsheetTask}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {roleGroups.map(({ role, groups }) => (
               <RoleSection
                 key={role}
