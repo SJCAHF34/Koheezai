@@ -83,6 +83,9 @@ function saveState(state: WaFormState): void {
 }
 
 function parseItemId(id: string): { num: string; sub: string } {
+  // Handle "29-header" style IDs — extract the leading number
+  const headerMatch = id.match(/^(\d+)-/);
+  if (headerMatch) return { num: headerMatch[1], sub: "" };
   const m = id.match(/^(\d+)([a-z]?)$/);
   if (!m) return { num: "", sub: "" };
   return { num: m[1], sub: m[2] };

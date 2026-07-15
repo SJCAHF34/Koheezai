@@ -262,42 +262,42 @@ export const WA_SECTIONS: WaSection[] = [
       {
         id: "29b",
         text: "Name of Patient / Authorized entity / Animal Name and Species",
-        rule: `WAC 246-945-010(3)(b)`,
+        rule: `WAC 246-945-010(3)(b) "Name of patient, authorized entity, or animal name and species."`,
       },
       {
         id: "29c",
         text: "Date of Issuance",
-        rule: `WAC 246-945-010(3)(c)`,
+        rule: `WAC 246-945-010(3)(c) "Date of issuance."`,
       },
       {
         id: "29d",
         text: "Drug Name, Strength, and Quantity",
-        rule: `WAC 246-945-010(3)(d)`,
+        rule: `WAC 246-945-010(3)(d) "Drug name, strength, and quantity."`,
       },
       {
         id: "29e",
         text: "Directions for Use",
-        rule: `WAC 246-945-010(3)(e)`,
+        rule: `WAC 246-945-010(3)(e) "Directions for use."`,
       },
       {
         id: "29f",
         text: "Number of Refills",
-        rule: `WAC 246-945-010(3)(f)`,
+        rule: `WAC 246-945-010(3)(f) "Number of refills (if any)."`,
       },
       {
         id: "29g",
         text: "Substitution Directions",
-        rule: `WAC 246-945-010(3)(g)`,
+        rule: `WAC 246-945-010(3)(g) "Instruction on whether or not a therapeutically equivalent generic drug or interchangeable biological product may be substituted, unless substitution is permitted under a prior-consent authorization."`,
       },
       {
         id: "29h",
         text: "Prescriber's Signature",
-        rule: `WAC 246-945-010(3)(h)`,
+        rule: `WAC 246-945-010(3)(h) "Prescriber's manual or electronic signature, or prescriber's authorized agent signature if allowed by law."`,
       },
       {
         id: "29i",
         text: "If written, on Tamper-resistant Paper",
-        rule: `WAC 246-945-010(3)(i)`,
+        rule: `WAC 246-945-010(3)(i) "If the prescription is written, it must be written on tamper-resistant prescription pad or paper approved by the commission pursuant to RCW 18.64.500."`,
       },
       {
         id: "30-header",
@@ -312,17 +312,17 @@ export const WA_SECTIONS: WaSection[] = [
       {
         id: "30b",
         text: "Dosage Form",
-        rule: `WAC 246-945-010(4)(b)`,
+        rule: `WAC 246-945-010(4)(b) "Dosage form."`,
       },
       {
         id: "30c",
         text: "Prescriber's Address",
-        rule: `WAC 246-945-010(4)(c)`,
+        rule: `WAC 246-945-010(4)(c) "Prescriber's address."`,
       },
       {
         id: "30d",
         text: "Prescriber's DEA Number",
-        rule: `WAC 246-945-010(4)(d)`,
+        rule: `WAC 246-945-010(4)(d) "Prescriber's DEA registration number."`,
       },
       {
         id: "31",
@@ -472,37 +472,37 @@ export const WA_SECTIONS: WaSection[] = [
       {
         id: "55b",
         text: "Ordering",
-        rule: `WAC 246-945-410(6)(a)`,
+        rule: `WAC 246-945-410(6)(a) "Purchasing, ordering, storing, compounding, delivering, dispensing, and administering legend drugs, including controlled substances."`,
         locationField: true,
       },
       {
         id: "55c",
         text: "Storing",
-        rule: `WAC 246-945-410(6)(a)`,
+        rule: `WAC 246-945-410(6)(a) "Purchasing, ordering, storing, compounding, delivering, dispensing, and administering legend drugs, including controlled substances."`,
         locationField: true,
       },
       {
         id: "55d",
         text: "Compounding",
-        rule: `WAC 246-945-410(6)(a)`,
+        rule: `WAC 246-945-410(6)(a) "Purchasing, ordering, storing, compounding, delivering, dispensing, and administering legend drugs, including controlled substances."`,
         locationField: true,
       },
       {
         id: "55e",
         text: "Delivering",
-        rule: `WAC 246-945-410(6)(a)`,
+        rule: `WAC 246-945-410(6)(a) "Purchasing, ordering, storing, compounding, delivering, dispensing, and administering legend drugs, including controlled substances."`,
         locationField: true,
       },
       {
         id: "55f",
         text: "Dispensing",
-        rule: `WAC 246-945-410(6)(a)`,
+        rule: `WAC 246-945-410(6)(a) "Purchasing, ordering, storing, compounding, delivering, dispensing, and administering legend drugs, including controlled substances."`,
         locationField: true,
       },
       {
         id: "55g",
         text: "Administration",
-        rule: `WAC 246-945-410(6)(a)`,
+        rule: `WAC 246-945-410(6)(a) "Purchasing, ordering, storing, compounding, delivering, dispensing, and administering legend drugs, including controlled substances."`,
         locationField: true,
       },
       {
