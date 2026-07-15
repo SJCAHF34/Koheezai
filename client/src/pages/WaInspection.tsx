@@ -640,7 +640,11 @@ export default function WaInspection() {
                             </Badge>
                           )}
                         </div>
-                        {managerName && <p className="text-xs text-foreground font-medium truncate mb-1">{managerName}</p>}
+                        {managerName && (
+                          <p className="text-xs text-foreground font-medium truncate mb-1">
+                            <span className="text-muted-foreground font-normal">Pharmacy Manager: </span>{managerName}
+                          </p>
+                        )}
                         {updatedLabel && <p className="text-xs text-muted-foreground mb-2">{updatedLabel}</p>}
                         <div className="flex items-center gap-2 mt-2">
                           <button
