@@ -95,6 +95,15 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     taskRoles: ["data_entry_tech", "pv2_tech", "delivery_tech"],
   },
 
+  // ── RX Tacoma (1310) ─────────────────────────────────────────────────────────
+  "stephanie.nam@aidshealth.org": {
+    name: "Stephanie Nam",
+    role: "pharmacy_director",
+    siteId: "1310",
+    siteName: "RX Tacoma",
+    region: "Western Region",
+  },
+
   // ── RX Pike Street (1417) ───────────────────────────────────────────────────
   "seth.collins@aidshealth.org": {
     name: "Seth Collins",

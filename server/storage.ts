@@ -301,6 +301,20 @@ export class MemStorage implements IStorage {
       holidayClosures: [],
       updatedAt: now,
     });
+    this.hours.set("1310", {
+      siteId: "1310",
+      weekdays: [
+        null, // Sun closed
+        { open: "08:30", close: "17:30" }, // Mon
+        { open: "08:30", close: "17:30" }, // Tue
+        { open: "08:30", close: "17:30" }, // Wed
+        { open: "08:30", close: "17:30" }, // Thu
+        { open: "08:30", close: "17:30" }, // Fri
+        null, // Sat closed
+      ],
+      holidayClosures: [],
+      updatedAt: now,
+    });
     const seedDefault = (
       staffId: string,
       staffName: string,

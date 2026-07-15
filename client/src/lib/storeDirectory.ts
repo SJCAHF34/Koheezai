@@ -29,6 +29,7 @@ export const STORE_REGIONS: StoreRegion[] = [
       { id: "1413", name: "RX East Los Angeles" },
       { id: "1415", name: "RX San Diego Flagship" },
       { id: "1417", name: "RX Pike Street" },
+      { id: "1310", name: "RX Tacoma" },
       { id: "1440", name: "RX Vista" },
       { id: "1423", name: "RX Las Vegas" },
       { id: "1404", name: "RX Valley" },
