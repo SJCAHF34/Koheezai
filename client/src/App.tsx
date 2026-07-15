@@ -26,11 +26,13 @@ import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
 import TeamsConfig from "@/pages/TeamsConfig";
 import FaxLog from "@/pages/FaxLog";
+import WaInspection from "@/pages/WaInspection";
 import PharmacyDirectory from "@/pages/PharmacyDirectory";
 import ScheduleAssistant from "@/pages/ScheduleAssistant";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
 import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
+import { isWaStore } from "@/lib/waInspectionData";
 import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2, Send, Sparkles, BookMarked, Sun, Moon } from "lucide-react";
 import type { AppNotification } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -264,6 +266,7 @@ function AppNav() {
   // form stays director-only (enforced inside the CQIMeeting page).
   const showCQI = !!profile;
   const showFaxLog = profile ? isDirectorRole(profile.role) : false;
+  const showWaInspection = profile ? isDirectorRole(profile.role) && isWaStore(profile.siteId) : false;
 
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("/api/auth/logout", { method: "POST" }),
@@ -357,6 +360,10 @@ function AppNav() {
             )}
             {showWorkbook && (
               <NavMenuItem href="/app/qa-audit" icon={FileCheck2} label="QA Audit Readiness" testId="nav-qa-audit" onClick={close} />
+            )}
+
+            {showWaInspection && (
+              <NavMenuItem href="/app/wa-inspection" icon={ClipboardCheck} label="WA Self-Inspection" testId="nav-wa-inspection" onClick={close} />
             )}
 
             {showCQI && (
@@ -542,6 +549,10 @@ function Router() {
       {/* Fax Log — director and above only */}
       <Route path="/app/fax-log">
         <DirectorProtected component={FaxLog} />
+      </Route>
+      {/* WA State Self-Inspection Worksheet — WA pharmacy directors only */}
+      <Route path="/app/wa-inspection">
+        <DirectorProtected component={WaInspection} />
       </Route>
       {/* Pharmacy Directory — all authenticated staff */}
       <Route path="/app/pharmacy-directory">

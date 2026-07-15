@@ -4159,9 +4159,10 @@ const FREQ_LABEL: Record<string, string> = {
   monthly: "Monthly",
   quarterly: "Quarterly",
   biannual: "Bi-Annual",
+  annual: "Annual",
   one_time: "One-Time",
 };
-const FREQ_ORDER: TaskFrequency[] = ["daily", "weekly", "biweekly", "monthly", "quarterly", "biannual", "one_time"];
+const FREQ_ORDER: TaskFrequency[] = ["daily", "weekly", "biweekly", "monthly", "quarterly", "biannual", "annual", "one_time"];
 
 // Expanded drill-down panel — shows all 4 periods for a single category + tasks list
 function CategoryDrillDownPanel({
@@ -4791,13 +4792,14 @@ export default function TaskManager() {
   // When the cadence selector is set to "All tasks", we union the per-cadence
   // visible lists so the existing per-cadence filtering rules still apply.
   const baseVisible = useMemo(() => {
+    const storeFilter = (t: PharmacyTask) => !t.storeIds || t.storeIds.includes(siteId ?? "");
     if (frequency !== "all") {
-      return getVisibleTasks(frequency, profile.role, viewingRole, extraRoles);
+      return getVisibleTasks(frequency, profile.role, viewingRole, extraRoles).filter(storeFilter);
     }
     return FREQ_ORDER.flatMap((f) =>
       getVisibleTasks(f, profile.role, viewingRole, extraRoles)
-    );
-  }, [frequency, profile.role, viewingRole, extraRoles]);
+    ).filter(storeFilter);
+  }, [frequency, profile.role, viewingRole, extraRoles, siteId]);
   // Merge in custom tasks that match the current frequency and role view.
   // Mirror getVisibleTasks semantics exactly: director tasks are only visible
   // to directors; non-directors see only their assigned role(s) + all_staff.
@@ -4850,7 +4852,7 @@ export default function TaskManager() {
   // due today per their due-date anchor, or overdue and still incomplete.
   let dueTodayExtra: PharmacyTask[] = [];
   if (frequency === "daily") {
-    const nonDailyBuiltIn = TASKS.filter((t) => t.frequency !== "daily" && !t.hidden);
+    const nonDailyBuiltIn = TASKS.filter((t) => t.frequency !== "daily" && !t.hidden && (!t.storeIds || t.storeIds.includes(siteId ?? "")));
     const roleFilteredBuiltIn = isDir
       ? viewingRole === "all"
         ? nonDailyBuiltIn

@@ -36,7 +36,7 @@ export function rolesForTaskRole(taskRole: TaskRole): TaskRole[] {
   return [taskRole];
 }
 
-export type TaskFrequency = "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "biannual" | "one_time";
+export type TaskFrequency = "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "biannual" | "annual" | "one_time";
 
 export type TaskCategory = "achc" | "state_board" | "retention" | "operations";
 
@@ -56,6 +56,7 @@ export interface PharmacyTask {
   isCustom?: boolean;
   scope?: "site" | "regional" | "national";
   region?: string;
+  storeIds?: string[];
   dueDate?: string;
   subItems?: string[];
   /** Which weekdays (0=Sun … 6=Sat) the task recurs on for weekly/biweekly tasks */
@@ -1128,5 +1129,18 @@ export const TASKS: PharmacyTask[] = [
     taskGroup: "Training & Development",
     url: "https://www.healthstream.com/HSAPP/Login/HighlightMessage",
     urlLabel: "Open HealthStream",
+  },
+  {
+    id: "wa-state-self-inspection",
+    title: "WA State Pharmacy Self-Inspection Worksheet",
+    description: "Complete the annual Washington State General Pharmacy Self-Inspection Worksheet (DOH 690-318) as required by WAC 246-945-005. Due by March 31 each year. File the completed worksheet on-site for at least 2 years.",
+    role: "director",
+    frequency: "annual",
+    category: "state_board",
+    taskGroup: "State Compliance",
+    dueDate: "2026-03-31",
+    storeIds: ["1417", "1310", "1416"],
+    url: "/app/wa-inspection",
+    urlLabel: "Open Worksheet",
   },
 ];

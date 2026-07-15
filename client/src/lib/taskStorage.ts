@@ -128,6 +128,7 @@ export function getPeriodKey(frequency: TaskFrequency, date?: Date): string {
   if (frequency === "monthly") return `${y}-${pad(m)}`;
   if (frequency === "quarterly") return `${y}-Q${Math.ceil(m / 3)}`;
   if (frequency === "biannual") return `${y}-${m <= 6 ? "H1" : "H2"}`;
+  if (frequency === "annual") return `${y}`;
   if (frequency === "one_time") return "one-time";
   return `${y}-${pad(m)}-${pad(d)}`;
 }
@@ -1177,6 +1178,8 @@ export function computeDefaultDueDate(frequency: TaskFrequency, from?: Date): st
       const start = getRecurrencePeriodStart("biannual", today);
       return formatDateOnly(new Date(start.getFullYear(), start.getMonth() + 6, 0));
     }
+    case "annual":
+      return `${today.getFullYear()}-03-31`;
     default:
       return formatDateOnly(today);
   }
@@ -1303,6 +1306,10 @@ export function isTaskDueOn(
   if (task.frequency === "one_time") {
     if (isCompletedForCurrentPeriod) return false;
     return firstDue.getTime() <= ref.getTime();
+  }
+  if (task.frequency === "annual") {
+    if (isCompletedForCurrentPeriod) return false;
+    return ref.getFullYear() >= firstDue.getFullYear();
   }
   // Recurring tasks never surface before their first configured due date —
   // the anchor only starts repeating once its initial occurrence has passed.
