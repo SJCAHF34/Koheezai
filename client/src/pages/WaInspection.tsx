@@ -404,6 +404,15 @@ export default function WaInspection() {
     return () => { if (serverSaveTimer.current) clearTimeout(serverSaveTimer.current); };
   }, [state, viewingYear, siteId]);
 
+  // Immediate save when signature is entered — cancels debounce and saves right away
+  useEffect(() => {
+    if (!initialServerLoadDone.current || !siteId || siteId === "ALL") return;
+    if (!state.finalSignature) return;
+    if (serverSaveTimer.current) clearTimeout(serverSaveTimer.current);
+    setServerSaving(true);
+    saveMutation.mutate({ year: viewingYear, formState: state });
+  }, [state.finalSignature]);
+
   // Load a specific year's archive into the form
   function openArchiveYear(archive: WaInspectionArchive) {
     const data = archive.data as WaFormState;
