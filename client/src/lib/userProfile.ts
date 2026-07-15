@@ -726,6 +726,13 @@ const DEFAULT_PROFILE: Pick<UserProfile, "role" | "siteId" | "siteName"> = {
   siteName: "RX Pike Street",
 };
 
+/** Returns the raw (non-overridden) siteId + siteName for an email. */
+export function getHomeSite(email: string): { siteId: string; siteName: string } | null {
+  const entry = PROFILE_MAP[email.toLowerCase()];
+  if (!entry) return null;
+  return { siteId: entry.siteId, siteName: entry.siteName };
+}
+
 export function getUserProfile(email: string, name: string): UserProfile {
   const override = PROFILE_MAP[email.toLowerCase()];
   const base: UserProfile = { email, name, ...(override ?? DEFAULT_PROFILE) };

@@ -31,11 +31,12 @@ import PharmacyDirectory from "@/pages/PharmacyDirectory";
 import ScheduleAssistant from "@/pages/ScheduleAssistant";
 import NotFound from "@/pages/not-found";
 import { ClinicalToolsPanel } from "@/components/ClinicalToolsPanel";
-import { getUserProfile, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
+import { getUserProfile, getHomeSite, isRegionalOrAbove, isTechRole, isDirectorRole, isCPO } from "@/lib/userProfile";
 import { isWaStore } from "@/lib/waInspectionData";
-import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2, Send, Sparkles, BookMarked, Sun, Moon } from "lucide-react";
+import { Activity, HeartHandshake, LogOut, LayoutDashboard, ClipboardList, Globe, BookCheck, ClipboardCheck, Menu, X, Wrench, ListChecks, CalendarDays, Bell, ShieldCheck, ShieldAlert, FileCheck2, Send, Sparkles, BookMarked, Sun, Moon, ChevronDown, Building2 } from "lucide-react";
 import type { AppNotification } from "@shared/schema";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { isInTeams, teamsSilentLogin } from "@/lib/teams";
 import { hydrateClientStores, resetClientStoreHydration } from "@/lib/serverStore";
 
@@ -298,24 +299,50 @@ function AppNav() {
 
             {/* Right side: notifications + theme toggle + hamburger + logout */}
             <div className="flex items-center gap-1">
-              {profile?.additionalSites?.length ? (
-                <button
-                  data-testid="btn-store-switcher"
-                  title="Click to switch store"
-                  onClick={() => {
-                    const isOverridden = !!localStorage.getItem("koheez_active_site_override");
-                    if (isOverridden) {
-                      localStorage.removeItem("koheez_active_site_override");
-                    } else {
-                      localStorage.setItem("koheez_active_site_override", profile.additionalSites![0].siteId);
-                    }
-                    window.location.reload();
-                  }}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border border-border bg-muted/50 text-foreground hover:bg-muted transition-colors"
-                >
-                  {profile.siteName}
-                </button>
-              ) : null}
+              {profile?.additionalSites?.length ? (() => {
+                const home = getHomeSite(user!.email);
+                const allSites = [
+                  { siteId: home?.siteId ?? "", siteName: home?.siteName ?? "" },
+                  ...(profile.additionalSites ?? []),
+                ];
+                return (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        data-testid="btn-store-switcher"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border border-border bg-muted/50 text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Building2 className="w-3.5 h-3.5" />
+                        {profile.siteName}
+                        <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Switch store</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {allSites.map((s) => (
+                        <DropdownMenuItem
+                          key={s.siteId}
+                          data-testid={`store-option-${s.siteId}`}
+                          className={profile.siteId === s.siteId ? "font-semibold" : ""}
+                          onClick={() => {
+                            if (profile.siteId === s.siteId) return;
+                            if (s.siteId === home?.siteId) {
+                              localStorage.removeItem("koheez_active_site_override");
+                            } else {
+                              localStorage.setItem("koheez_active_site_override", s.siteId);
+                            }
+                            window.location.reload();
+                          }}
+                        >
+                          {s.siteName}
+                          {profile.siteId === s.siteId && <span className="ml-auto text-primary text-xs">Active</span>}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              })() : null}
               <NotificationsBell />
               <button
                 data-testid="btn-theme-toggle"
