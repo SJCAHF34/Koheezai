@@ -125,10 +125,24 @@ function ChecklistRow({ item, response, note, location, onResponse, onNote, onLo
   item: WaItem; response: YNAValue; note: string; location: string;
   onResponse: (v: YNAValue) => void; onNote: (v: string) => void; onLocation: (v: string) => void;
 }) {
+  const { num, sub } = parseItemId(item.id);
+  const displayId = sub ? `${num}.${sub}` : num;
+
+  if (item.noCheckbox) {
+    return (
+      <div className="border-b border-border py-2 bg-muted/20">
+        <div className="flex gap-3 items-center px-0">
+          <span className="text-xs font-mono font-bold text-foreground w-8 shrink-0">{displayId}</span>
+          <p className="text-sm font-semibold text-foreground flex-1">{item.text}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`border-b border-border last:border-b-0 py-3 ${item.highlighted ? "bg-blue-50/30 dark:bg-blue-950/20" : ""}`}>
       <div className="flex gap-3 items-start">
-        <span className="text-xs font-mono text-muted-foreground w-8 shrink-0 pt-0.5">{item.id}</span>
+        <span className="text-xs font-mono text-muted-foreground w-8 shrink-0 pt-0.5">{displayId}</span>
         <div className="flex-1 min-w-0">
           <p className="text-sm leading-snug">{item.text}</p>
           {item.rule && <p className="text-xs text-muted-foreground mt-0.5">{item.rule}</p>}
