@@ -50,6 +50,9 @@ const STORE_KEYS = [
   "koheez_custom_controlled_catalog",
   "koheez_assessments",
   "koheez_wa_inspection",
+  "koheez_wa_inspection_1310",
+  "koheez_wa_inspection_1416",
+  "koheez_wa_inspection_1417",
   "koheez_task_overrides",
   "koheez_task_spreadsheets",
 ] as const;

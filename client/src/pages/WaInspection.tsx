@@ -10,7 +10,12 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Printer, Save, ChevronDown, ChevronRight, AlertCircle, Archive, Clock, CheckCircle2, FolderOpen, Plus } from "lucide-react";
 import type { WaInspectionArchive } from "@shared/schema";
 
-const STORAGE_KEY = "koheez_wa_inspection";
+// Per-store localStorage keys isolate each site's form data.
+// Falls back to the legacy shared key on first read so existing data migrates.
+const LEGACY_STORAGE_KEY = "koheez_wa_inspection";
+function getStorageKey(siteId: string): string {
+  return siteId ? `koheez_wa_inspection_${siteId}` : LEGACY_STORAGE_KEY;
+}
 type YNAValue = "yes" | "no" | "na" | "";
 
 // The WA inspection cycle starts March 1 each year.
@@ -77,17 +82,30 @@ function buildDefault(pharmacyName: string): WaFormState {
   };
 }
 
-function loadState(defaultPharmacyName: string): WaFormState {
+function loadState(siteId: string, defaultPharmacyName: string): WaFormState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = getStorageKey(siteId);
+    const raw = localStorage.getItem(key);
     if (raw) return JSON.parse(raw) as WaFormState;
+    // One-time migration: fall back to legacy shared key if new key is empty
+    if (siteId) {
+      const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacy) {
+        const parsed = JSON.parse(legacy) as WaFormState;
+        // Only migrate if the stored pharmacy name matches this store
+        if (!parsed.pharmacyName || parsed.pharmacyName === defaultPharmacyName) {
+          localStorage.setItem(key, legacy);
+          return parsed;
+        }
+      }
+    }
   } catch {}
   return buildDefault(defaultPharmacyName);
 }
 
-function saveState(state: WaFormState): void {
+function saveState(siteId: string, state: WaFormState): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(getStorageKey(siteId), JSON.stringify(state));
   } catch {}
 }
 
@@ -335,7 +353,7 @@ export default function WaInspection() {
 
   // Which archive year's data is loaded into the form right now
   const [viewingYear, setViewingYear] = useState<number>(currentCycleYear);
-  const [state, setState] = useState<WaFormState>(() => loadState(defaultPharmacyName));
+  const [state, setState] = useState<WaFormState>(() => loadState(siteId, defaultPharmacyName));
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [serverSaving, setServerSaving] = useState(false);
   const serverSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -378,7 +396,7 @@ export default function WaInspection() {
         if (archive?.data) {
           const loaded = archive.data as WaFormState;
           setState(loaded);
-          saveState(loaded);
+          saveState(siteId, loaded);
           initialServerLoadDone.current = true;
         } else {
           // No server archive yet — use saveMutation (same path as the debounced
@@ -391,9 +409,9 @@ export default function WaInspection() {
   }, [siteId, currentCycleYear]);
 
   const persist = useCallback((s: WaFormState) => {
-    saveState(s);
+    saveState(siteId, s);
     setSavedAt(new Date());
-  }, []);
+  }, [siteId]);
 
   useEffect(() => {
     const t = setTimeout(() => persist(state), 400);
@@ -425,7 +443,7 @@ export default function WaInspection() {
     const data = archive.data as WaFormState;
     setViewingYear(archive.year);
     setState(data);
-    saveState(data);
+    saveState(siteId, data);
   }
 
   // Start a fresh form for the current cycle year
@@ -433,7 +451,7 @@ export default function WaInspection() {
     const fresh = buildDefault(defaultPharmacyName);
     setViewingYear(currentCycleYear);
     setState(fresh);
-    saveState(fresh);
+    saveState(siteId, fresh);
   }
 
   function patch(updates: Partial<WaFormState>) {
