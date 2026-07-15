@@ -166,13 +166,13 @@ export const WA_SECTIONS: WaSection[] = [
       },
       {
         id: "15",
-        text: "Are refrigerators temperatures maintained between 2–8°C (36–46°F)? **Electronic monitoring is acceptable.**",
+        text: "Are refrigerators temperatures maintained between 2–8°C (36–46°F)? Electronic monitoring is acceptable.",
         rule: `WAC 246-945-415(1) "A pharmacy may deliver filled prescriptions as long as appropriate measures are taken to ensure product integrity and receipt by the patient or patient's agent."`,
         highlighted: true,
       },
       {
         id: "16",
-        text: "Are medication freezer temperatures maintained between −25° & −10°C (−13° & 14°F) or within acceptable range based on manufacturers' storage requirements? **Electronic monitoring is acceptable.**",
+        text: "Are medication freezer temperatures maintained between −25° & −10°C (−13° & 14°F) or within acceptable range based on manufacturers' storage requirements? Electronic monitoring is acceptable.",
         rule: `WAC 246-945-415(1) "A pharmacy may deliver filled prescriptions as long as appropriate measures are taken to ensure product integrity and receipt by the patient or patient's agent."`,
         highlighted: true,
       },
@@ -246,7 +246,7 @@ export const WA_SECTIONS: WaSection[] = [
       },
       {
         id: "28",
-        text: "Are all legend drugs dispensed in child-resistant containers, as required by federal law or regulation? (This includes special packaging used such as customized patient medication packages; blister packs, med-minders, etc.) ** Best practice recommendation: It is recommended that these authorizations are updated annually. **",
+        text: "Are all legend drugs dispensed in child-resistant containers, as required by federal law or regulation? (This includes special packaging used such as customized patient medication packages; blister packs, med-minders, etc.) Best practice recommendation: It is recommended that these authorizations are updated annually.",
         rule: `WAC 246-945-032(1) "All legend drugs shall be dispensed in a child-resistant container as required by federal law or regulation, including 16 CFR, Part 1700, unless: (a) Authorization is received from the prescriber to dispense in a container that is not child-resistant. (b) Authorization is obtained from the patient or a representative of the patient to dispense in a container that is not child-resistant."`,
       },
       {
@@ -529,7 +529,7 @@ export const WA_SECTIONS: WaSection[] = [
       },
       {
         id: "60",
-        text: "Is all merchandise in date? Including OTC medications anywhere within the store, not solely behind the counter.\n*It's advised to perform an inventory check for expired medications while filling out this self-inspection report*",
+        text: "Is all merchandise in date? Including OTC medications anywhere within the store, not solely behind the counter. It is advised to perform an inventory check for expired medications while filling out this self-inspection report.",
         rule: `RCW 69.04.100 "Whenever the director shall find in intrastate commerce an article subject to this chapter which is so adulterated or misbranded that it is unfit or unsafe for human use and its immediate condemnation is required to protect the public health, such article is hereby declared to be a nuisance and the director is hereby authorized forthwith to destroy such article or to render it unsalable for human use."\nWAC 246-945-415(1) "A pharmacy may deliver filled prescriptions as long as appropriate measures are taken to ensure product integrity and receipt by the patient or patient's agent."`,
         highlighted: true,
       },
@@ -581,11 +581,11 @@ export const WA_SECTIONS: WaSection[] = [
   {
     id: "remote-supervision",
     title: "Remote Supervision and Access in the Absence of a Pharmacist",
-    note: "If the pharmacy does NOT store, dispense, or deliver drugs without a pharmacist on-site, mark questions 69–75 as N/A.",
+    note: "If you answered 'No' to question 68, mark questions 69–75 as N/A.",
     items: [
       {
         id: "69",
-        text: "Does the pharmacy store, dispense, or deliver drugs to patients without a pharmacist on site?\n**If you answered \"No\" to question 68, mark questions 69–75 as N/A.**",
+        text: "Does the pharmacy store, dispense, or deliver drugs to patients without a pharmacist on site?",
         rule: `WAC 246-945-430(1) "The following requirements apply to pharmacies storing, dispensing and delivering drugs to patients without a pharmacist on-site and are in addition to applicable state and federal laws applying to pharmacies."`,
         naOption: true,
       },
