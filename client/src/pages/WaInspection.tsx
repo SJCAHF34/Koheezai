@@ -631,9 +631,8 @@ export default function WaInspection() {
           <div style={{ marginTop: "20pt", fontSize: "7.5pt" }}>
             To request this document in another format, call 1-800-525-0127. Deaf or hard of hearing customers, please call 711 (Washington Relay) or email doh.information@doh.wa.gov.
           </div>
-          <div style={{ marginTop: "4pt", display: "flex", justifyContent: "space-between", fontSize: "7.5pt" }}>
+          <div style={{ marginTop: "4pt", fontSize: "7.5pt" }}>
             <span>DOH 690-318 (January 2026)</span>
-            <span>Page 1 of 28</span>
           </div>
         </div>
 
@@ -757,9 +756,8 @@ export default function WaInspection() {
             </tbody>
           </table>
 
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "7.5pt", marginTop: "8pt" }}>
+          <div style={{ fontSize: "7.5pt", marginTop: "8pt" }}>
             <span>DOH 690-318 (January 2026)</span>
-            <span>Page 2 of 28</span>
           </div>
         </div>
 
@@ -836,9 +834,8 @@ export default function WaInspection() {
             </tbody>
           </table>
 
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "7.5pt", marginTop: "8pt" }}>
+          <div style={{ fontSize: "7.5pt", marginTop: "8pt" }}>
             <span>DOH 690-318 (January 2026)</span>
-            <span>Page 3 of 28</span>
           </div>
         </div>
 
@@ -905,9 +902,8 @@ export default function WaInspection() {
                     {state.finalDate || "\u00a0"}
                   </span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "7.5pt", marginTop: "4pt" }}>
+                <div style={{ fontSize: "7.5pt", marginTop: "4pt" }}>
                   <span>DOH 690-318 (January 2026)</span>
-                  <span>Page 28 of 28</span>
                 </div>
               </td>
             </tr>
