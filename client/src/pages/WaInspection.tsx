@@ -369,7 +369,7 @@ export default function WaInspection() {
           .wa-screen-only { display: none !important; }
           .wa-print-only { display: block !important; }
           @page {
-            size: letter portrait;
+            size: letter;
             margin: 0.55in 0.55in 0.75in 0.55in;
             @bottom-left {
               content: "DOH 690-318 (January 2026)";
