@@ -367,7 +367,9 @@ export default function WaInspection() {
     onError: () => setServerSaving(false),
   });
 
-  // On first load: hydrate state from server archive for current cycle year
+  // On first load: hydrate state from server archive for current cycle year.
+  // If no server archive exists yet, immediately push local state so the archive
+  // card reflects the correct status (including "completed" if already signed).
   useEffect(() => {
     if (initialServerLoadDone.current || !siteId || siteId === "ALL") return;
     fetch(`/api/wa-inspection/${siteId}/archives/${currentCycleYear}`, { credentials: "include" })
@@ -377,8 +379,18 @@ export default function WaInspection() {
           const loaded = archive.data as WaFormState;
           setState(loaded);
           saveState(loaded);
+          initialServerLoadDone.current = true;
+        } else {
+          // No server archive yet — push whatever we have locally right now
+          initialServerLoadDone.current = true;
+          setState((current) => {
+            const status: "in-progress" | "completed" = current.finalSignature ? "completed" : "in-progress";
+            apiRequest("PUT", `/api/wa-inspection/${siteId}/archives/${currentCycleYear}`, { status, data: current })
+              .then(() => queryClient.invalidateQueries({ queryKey: ["/api/wa-inspection", siteId, "archives"] }))
+              .catch(() => {});
+            return current;
+          });
         }
-        initialServerLoadDone.current = true;
       })
       .catch(() => { initialServerLoadDone.current = true; });
   }, [siteId, currentCycleYear]);
