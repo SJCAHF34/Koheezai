@@ -370,7 +370,17 @@ export default function WaInspection() {
           .wa-print-only { display: block !important; }
           @page {
             size: letter portrait;
-            margin: 0.55in 0.55in 0.6in 0.55in;
+            margin: 0.55in 0.55in 0.75in 0.55in;
+            @bottom-left {
+              content: "DOH 690-318 (January 2026)";
+              font-family: Arial, sans-serif;
+              font-size: 7.5pt;
+            }
+            @bottom-right {
+              content: "Page " counter(page) " of " counter(pages);
+              font-family: Arial, sans-serif;
+              font-size: 7.5pt;
+            }
           }
           .wa-page-break { page-break-before: always; break-before: page; }
           .wa-avoid-break { page-break-inside: avoid; break-inside: avoid; }
@@ -631,9 +641,6 @@ export default function WaInspection() {
           <div style={{ marginTop: "20pt", fontSize: "7.5pt" }}>
             To request this document in another format, call 1-800-525-0127. Deaf or hard of hearing customers, please call 711 (Washington Relay) or email doh.information@doh.wa.gov.
           </div>
-          <div style={{ marginTop: "4pt", fontSize: "7.5pt" }}>
-            <span>DOH 690-318 (January 2026)</span>
-          </div>
         </div>
 
         {/* ── PAGE 2: Manager / Pharmacy Info ── */}
@@ -756,9 +763,6 @@ export default function WaInspection() {
             </tbody>
           </table>
 
-          <div style={{ fontSize: "7.5pt", marginTop: "8pt" }}>
-            <span>DOH 690-318 (January 2026)</span>
-          </div>
         </div>
 
         {/* ── PAGE 3: Additional questions + Doc Review ── */}
@@ -834,9 +838,6 @@ export default function WaInspection() {
             </tbody>
           </table>
 
-          <div style={{ fontSize: "7.5pt", marginTop: "8pt" }}>
-            <span>DOH 690-318 (January 2026)</span>
-          </div>
         </div>
 
         {/* ── PAGES 5–28: Main Checklist Table ── */}
@@ -901,9 +902,6 @@ export default function WaInspection() {
                   <span style={{ borderBottom: "1px solid #000", display: "inline-block", minWidth: "80pt" }}>
                     {state.finalDate || "\u00a0"}
                   </span>
-                </div>
-                <div style={{ fontSize: "7.5pt", marginTop: "4pt" }}>
-                  <span>DOH 690-318 (January 2026)</span>
                 </div>
               </td>
             </tr>
