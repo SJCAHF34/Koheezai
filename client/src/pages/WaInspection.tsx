@@ -381,15 +381,14 @@ export default function WaInspection() {
           saveState(loaded);
           initialServerLoadDone.current = true;
         } else {
-          // No server archive yet — push whatever we have locally right now
+          // No server archive yet — push local state directly so the archive
+          // card shows the correct status (including "completed" if already signed).
           initialServerLoadDone.current = true;
-          setState((current) => {
-            const status: "in-progress" | "completed" = current.finalSignature ? "completed" : "in-progress";
-            apiRequest("PUT", `/api/wa-inspection/${siteId}/archives/${currentCycleYear}`, { status, data: current })
-              .then(() => queryClient.invalidateQueries({ queryKey: ["/api/wa-inspection", siteId, "archives"] }))
-              .catch(() => {});
-            return current;
-          });
+          const snapshot = state;
+          const status: "in-progress" | "completed" = snapshot.finalSignature ? "completed" : "in-progress";
+          apiRequest("PUT", `/api/wa-inspection/${siteId}/archives/${currentCycleYear}`, { status, data: snapshot })
+            .then(() => queryClient.invalidateQueries({ queryKey: ["/api/wa-inspection", siteId, "archives"] }))
+            .catch(() => {});
         }
       })
       .catch(() => { initialServerLoadDone.current = true; });
