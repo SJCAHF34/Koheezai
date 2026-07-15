@@ -270,7 +270,7 @@ function PrintRow({ item, resp, note }: { item: WaItem; resp: YNAValue; note: st
         <td style={{ padding: "2pt 4pt", width: "34%", fontSize: "8pt", lineHeight: "1.25", fontWeight: "bold" }}>
           {item.text}
         </td>
-        <td style={{ padding: "2pt 4pt", width: "36%", fontSize: "7.5pt", lineHeight: "1.2", color: "#222" }}>
+        <td style={{ padding: "2pt 4pt", width: "36%", fontSize: "7.5pt", lineHeight: "1.2", color: "#222", whiteSpace: "pre-line" }}>
           {item.rule || ""}
         </td>
         <td style={{ padding: "2pt 4pt", width: "15%", fontSize: "8pt", color: "#333" }}>{"\u00a0"}</td>
@@ -299,7 +299,7 @@ function PrintRow({ item, resp, note }: { item: WaItem; resp: YNAValue; note: st
           </div>
         )}
       </td>
-      <td style={{ padding: "2pt 4pt", width: "36%", fontSize: "7.5pt", lineHeight: "1.2", color: "#222" }}>
+      <td style={{ padding: "2pt 4pt", width: "36%", fontSize: "7.5pt", lineHeight: "1.2", color: "#222", whiteSpace: "pre-line" }}>
         {item.rule || ""}
       </td>
       <td style={{ padding: "2pt 4pt", width: "15%", fontSize: "8pt", color: "#333" }}>
@@ -820,7 +820,7 @@ export default function WaInspection() {
                       </span>
                     </div>
                   </td>
-                  <td style={{ ...tb, padding: "3pt 5pt", verticalAlign: "top", fontSize: "7.5pt", lineHeight: "1.3", color: "#222" }}>
+                  <td style={{ ...tb, padding: "3pt 5pt", verticalAlign: "top", fontSize: "7.5pt", lineHeight: "1.3", color: "#222", whiteSpace: "pre-line" }}>
                     {doc.rule}
                   </td>
                 </tr>

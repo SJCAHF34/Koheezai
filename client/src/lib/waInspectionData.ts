@@ -585,7 +585,7 @@ export const WA_SECTIONS: WaSection[] = [
     items: [
       {
         id: "69",
-        text: "Does the pharmacy store, dispense, or deliver drugs to patients without a pharmacist on site?",
+        text: "Does the pharmacy store, dispense, or deliver drugs to patients without a pharmacist on site? If you answered 'No' to question 68, mark questions 69–75 as N/A.",
         rule: `WAC 246-945-430(1) "The following requirements apply to pharmacies storing, dispensing and delivering drugs to patients without a pharmacist on-site and are in addition to applicable state and federal laws applying to pharmacies."`,
         naOption: true,
       },
