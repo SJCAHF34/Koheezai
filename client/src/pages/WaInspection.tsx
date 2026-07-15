@@ -441,14 +441,40 @@ export default function WaInspection() {
     return () => clearTimeout(t);
   }, [state, persist]);
 
-  // Debounce server save (2s after last change)
+  // Keep refs current so beforeunload always has the latest values
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const viewingYearRef = useRef(viewingYear);
+  viewingYearRef.current = viewingYear;
+
+  // Flush to server when tab/browser is closed — keepalive ensures it completes
+  useEffect(() => {
+    if (!siteId || siteId === "ALL") return;
+    const handleUnload = () => {
+      if (!initialServerLoadDone.current) return;
+      const s = stateRef.current;
+      const yr = viewingYearRef.current;
+      const status = s.finalSignature ? "completed" : "in-progress";
+      fetch(`/api/wa-inspection/${siteId}/archives/${yr}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, data: s }),
+        keepalive: true,
+        credentials: "include",
+      });
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [siteId]);
+
+  // Debounce server save — 300ms after last change (was 2 s)
   useEffect(() => {
     if (!initialServerLoadDone.current || !siteId || siteId === "ALL") return;
     if (serverSaveTimer.current) clearTimeout(serverSaveTimer.current);
     setServerSaving(true);
     serverSaveTimer.current = setTimeout(() => {
       saveMutation.mutate({ year: viewingYear, formState: state });
-    }, 2000);
+    }, 300);
     return () => { if (serverSaveTimer.current) clearTimeout(serverSaveTimer.current); };
   }, [state, viewingYear, siteId]);
 
@@ -483,7 +509,26 @@ export default function WaInspection() {
     setState((s) => ({ ...s, ...updates }));
   }
   function setResponse(id: string, v: YNAValue) {
-    setState((s) => ({ ...s, responses: { ...s.responses, [id]: v } }));
+    setState((s) => {
+      const next = { ...s, responses: { ...s.responses, [id]: v } };
+      // Immediately flush to server — cancel any pending debounce and save now
+      if (initialServerLoadDone.current && siteId && siteId !== "ALL") {
+        if (serverSaveTimer.current) clearTimeout(serverSaveTimer.current);
+        const status = next.finalSignature ? "completed" : "in-progress";
+        fetch(`/api/wa-inspection/${siteId}/archives/${viewingYearRef.current}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status, data: next }),
+          credentials: "include",
+        }).then(() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/wa-inspection", siteId, "archives"] });
+          setServerSaving(false);
+          setSavedAt(new Date());
+        });
+        setServerSaving(true);
+      }
+      return next;
+    });
   }
   function setNote(id: string, v: string) {
     setState((s) => ({ ...s, notes: { ...s.notes, [id]: v } }));
