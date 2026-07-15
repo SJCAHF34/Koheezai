@@ -739,10 +739,9 @@ export default function WaInspection() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                {serverSaving
-                  ? <span className="text-xs text-muted-foreground hidden sm:inline">Saving…</span>
-                  : savedAt && <span className="text-xs text-muted-foreground hidden sm:inline">Saved {savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                }
+                <span className="text-xs text-muted-foreground hidden sm:inline w-24 text-right" style={{ visibility: (serverSaving || savedAt) ? "visible" : "hidden" }}>
+                  {serverSaving ? "Saving…" : savedAt ? `Saved ${savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
+                </span>
                 <Badge variant="outline" className="text-xs">{answeredItems}/{totalItems}</Badge>
                 {noItems > 0 && <Badge variant="destructive" className="text-xs">{noItems} issue{noItems !== 1 ? "s" : ""}</Badge>}
                 <Button size="sm" variant="outline" onClick={() => { persist(state); saveMutation.mutate({ year: viewingYear, formState: state }); }} data-testid="btn-wa-save">
