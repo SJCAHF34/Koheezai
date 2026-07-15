@@ -297,43 +297,43 @@ function PrintRow({ item, resp, note }: { item: WaItem; resp: YNAValue; note: st
   if (item.noCheckbox) {
     return (
       <tr style={bgStyle}>
-        <td style={{ textAlign: "center", padding: "2pt", width: "3%" }}>—</td>
-        <td style={{ textAlign: "center", padding: "2pt", width: "3%" }}>—</td>
-        <td style={{ textAlign: "center", padding: "2pt", width: "4%", color: "#aaa" }}>—</td>
-        <td style={{ textAlign: "center", padding: "2pt 4pt", width: "5%" }}>{num || ""}</td>
-        <td style={{ padding: "2pt 4pt", width: "34%", fontSize: "8pt", lineHeight: "1.25", fontWeight: "bold" }}>
+        <td style={{ textAlign: "center", padding: "2pt", width: "2.5%" }}>—</td>
+        <td style={{ textAlign: "center", padding: "2pt", width: "2.5%" }}>—</td>
+        <td style={{ textAlign: "center", padding: "2pt", width: "3%", color: "#aaa" }}>—</td>
+        <td style={{ textAlign: "center", padding: "2pt 4pt", width: "4%" }}>{num || ""}</td>
+        <td style={{ padding: "2pt 4pt", width: "44%", fontSize: "8pt", lineHeight: "1.25", fontWeight: "bold" }}>
           {item.text}
         </td>
-        <td style={{ padding: "2pt 4pt", width: "36%", fontSize: "7.5pt", lineHeight: "1.2", color: "#222", whiteSpace: "pre-line" }}>
+        <td style={{ padding: "2pt 4pt", width: "28%", fontSize: "7.5pt", lineHeight: "1.2", color: "#222", whiteSpace: "pre-line" }}>
           {item.rule || ""}
         </td>
-        <td style={{ padding: "2pt 4pt", width: "15%", fontSize: "8pt", color: "#333" }}>{"\u00a0"}</td>
+        <td style={{ padding: "2pt 4pt", width: "16%", fontSize: "8pt", color: "#333" }}>{"\u00a0"}</td>
       </tr>
     );
   }
 
   return (
     <tr style={bgStyle}>
-      <td style={{ textAlign: "center", padding: "2pt", width: "3%" }}><Chk checked={resp === "yes"} /></td>
-      <td style={{ textAlign: "center", padding: "2pt", width: "3%" }}><Chk checked={resp === "no"} /></td>
-      <td style={{ textAlign: "center", padding: "2pt", width: "4%" }}>
+      <td style={{ textAlign: "center", padding: "2pt", width: "2.5%" }}><Chk checked={resp === "yes"} /></td>
+      <td style={{ textAlign: "center", padding: "2pt", width: "2.5%" }}><Chk checked={resp === "no"} /></td>
+      <td style={{ textAlign: "center", padding: "2pt", width: "3%" }}>
         <Chk checked={resp === "na"} />
       </td>
-      <td style={{ textAlign: "center", padding: "2pt 4pt", width: "5%", fontWeight: sub ? "normal" : "bold", whiteSpace: "nowrap" }}>
+      <td style={{ textAlign: "center", padding: "2pt 4pt", width: "4%", fontWeight: sub ? "normal" : "bold", whiteSpace: "nowrap" }}>
         {sub ? `${num}.${sub.toUpperCase()}` : num}
       </td>
-      <td style={{ padding: "2pt 4pt", width: "34%", fontSize: "8pt", lineHeight: "1.25" }}>
+      <td style={{ padding: "2pt 4pt", width: "44%", fontSize: "8pt", lineHeight: "1.25" }}>
         {item.text}
         {item.locationField && (
           <div style={{ marginTop: "2pt" }}>
             <span style={{ fontSize: "7.5pt" }}>Location or file pathway: </span>
-            <span style={{ borderBottom: "1px solid #000", display: "inline-block", minWidth: "100pt", fontSize: "8pt" }}>
+            <span style={{ borderBottom: "1px solid #000", display: "inline-block", minWidth: "120pt", fontSize: "8pt" }}>
               {"\u00a0"}
             </span>
           </div>
         )}
       </td>
-      <td style={{ padding: "2pt 4pt", width: "36%", fontSize: "7.5pt", lineHeight: "1.2", color: "#222", whiteSpace: "pre-line" }}>
+      <td style={{ padding: "2pt 4pt", width: "28%", fontSize: "7.5pt", lineHeight: "1.2", color: "#222", whiteSpace: "pre-line" }}>
         {item.rule || ""}
       </td>
       <td style={{ padding: "2pt 4pt", width: "15%", fontSize: "8pt", color: "#333" }}>
@@ -498,8 +498,8 @@ export default function WaInspection() {
           .wa-screen-only { display: none !important; }
           .wa-print-only { display: block !important; }
           @page {
-            size: letter;
-            margin: 0.55in 0.55in 0.75in 0.55in;
+            size: letter landscape;
+            margin: 0.5in 0.5in 0.65in 0.5in;
             @bottom-left {
               content: "DOH 690-318 (January 2026)";
               font-family: Arial, sans-serif;
@@ -1052,18 +1052,18 @@ export default function WaInspection() {
               </td>
             </tr>
             <tr>
-              <th colSpan={3} style={{ ...tb, textAlign: "center", width: "10%", padding: "2pt", fontSize: "7.5pt" }}>
+              <th colSpan={3} style={{ ...tb, textAlign: "center", width: "8%", padding: "2pt", fontSize: "7.5pt" }}>
                 Compliant
               </th>
-              <th rowSpan={2} style={{ ...tb, textAlign: "center", width: "5%", padding: "2pt", fontSize: "7.5pt" }}>#</th>
-              <th rowSpan={2} style={{ ...tb, width: "34%", padding: "2pt 4pt", fontSize: "7.5pt" }}></th>
-              <th rowSpan={2} style={{ ...tb, width: "36%", padding: "2pt 4pt", fontSize: "7.5pt", textAlign: "center" }}>Rule Reference</th>
-              <th rowSpan={2} style={{ ...tb, width: "15%", padding: "2pt 4pt", fontSize: "7.5pt", textAlign: "center" }}>Notes/Corrective Action</th>
+              <th rowSpan={2} style={{ ...tb, textAlign: "center", width: "4%", padding: "2pt", fontSize: "7.5pt" }}>#</th>
+              <th rowSpan={2} style={{ ...tb, width: "44%", padding: "2pt 4pt", fontSize: "7.5pt" }}></th>
+              <th rowSpan={2} style={{ ...tb, width: "28%", padding: "2pt 4pt", fontSize: "7.5pt", textAlign: "center" }}>Rule Reference</th>
+              <th rowSpan={2} style={{ ...tb, width: "16%", padding: "2pt 4pt", fontSize: "7.5pt", textAlign: "center" }}>Notes/Corrective Action</th>
             </tr>
             <tr>
-              <th style={{ ...tb, textAlign: "center", width: "3%", padding: "2pt", fontSize: "7.5pt" }}>Yes</th>
-              <th style={{ ...tb, textAlign: "center", width: "3%", padding: "2pt", fontSize: "7.5pt" }}>No</th>
-              <th style={{ ...tb, textAlign: "center", width: "4%", padding: "2pt", fontSize: "7.5pt" }}>N/A</th>
+              <th style={{ ...tb, textAlign: "center", width: "2.5%", padding: "2pt", fontSize: "7.5pt" }}>Yes</th>
+              <th style={{ ...tb, textAlign: "center", width: "2.5%", padding: "2pt", fontSize: "7.5pt" }}>No</th>
+              <th style={{ ...tb, textAlign: "center", width: "3%", padding: "2pt", fontSize: "7.5pt" }}>N/A</th>
             </tr>
           </thead>
           <tbody>
