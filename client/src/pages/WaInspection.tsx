@@ -275,8 +275,8 @@ function PrintRow({ item, resp, note }: { item: WaItem; resp: YNAValue; note: st
     <tr style={bgStyle}>
       <td style={{ textAlign: "center", padding: "2pt", width: "3%" }}><Chk checked={resp === "yes"} /></td>
       <td style={{ textAlign: "center", padding: "2pt", width: "3%" }}><Chk checked={resp === "no"} /></td>
-      <td style={{ textAlign: "center", padding: "2pt", width: "4%", color: item.naOption ? undefined : "#aaa" }}>
-        {item.naOption ? <Chk checked={resp === "na"} /> : "—"}
+      <td style={{ textAlign: "center", padding: "2pt", width: "4%" }}>
+        <Chk checked={resp === "na"} />
       </td>
       <td style={{ textAlign: "center", padding: "2pt 4pt", width: "5%", fontWeight: sub ? "normal" : "bold", whiteSpace: "nowrap" }}>
         {sub ? `${num}.${sub.toUpperCase()}` : num}
@@ -351,6 +351,7 @@ export default function WaInspection() {
       <style>{`
         @media print {
           body, html { margin: 0; padding: 0; }
+          header, [data-testid="button-clinical-tools-panel"], [data-testid="panel-clinical-tools"] { display: none !important; }
           .wa-screen-only { display: none !important; }
           .wa-print-only { display: block !important; }
           @page {
