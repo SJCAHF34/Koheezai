@@ -1729,7 +1729,11 @@ FORMATTING RULES (strict):
     const canEditSite = (siteId: string) => {
       if (!isDirectorRole(profile.role)) return false;
       if (isCPO(profile.role)) return true;
-      if (isPharmacyDirector(profile.role)) return profile.siteId === siteId;
+      if (isPharmacyDirector(profile.role)) {
+        if (profile.siteId === siteId) return true;
+        // Grant access to explicitly configured additional sites
+        return !!profile.additionalSites?.some((s) => s.siteId === siteId);
+      }
       // RPD — same region
       const sr = findStoreRegion(siteId);
       return !!sr && !!region && sr.region === region;

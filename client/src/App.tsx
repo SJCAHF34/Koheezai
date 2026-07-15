@@ -298,6 +298,24 @@ function AppNav() {
 
             {/* Right side: notifications + theme toggle + hamburger + logout */}
             <div className="flex items-center gap-1">
+              {profile?.additionalSites?.length ? (
+                <button
+                  data-testid="btn-store-switcher"
+                  title="Click to switch store"
+                  onClick={() => {
+                    const isOverridden = !!localStorage.getItem("koheez_active_site_override");
+                    if (isOverridden) {
+                      localStorage.removeItem("koheez_active_site_override");
+                    } else {
+                      localStorage.setItem("koheez_active_site_override", profile.additionalSites![0].siteId);
+                    }
+                    window.location.reload();
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border border-border bg-muted/50 text-foreground hover:bg-muted transition-colors"
+                >
+                  {profile.siteName}
+                </button>
+              ) : null}
               <NotificationsBell />
               <button
                 data-testid="btn-theme-toggle"

@@ -16,9 +16,10 @@ export interface UserProfile {
   siteName: string;
   region?: string;
   taskRoles?: UserRole[];
+  additionalSites?: Array<{ siteId: string; siteName: string }>;
 }
 
-type ProfileEntry = Pick<UserProfile, "role" | "siteId" | "siteName" | "region" | "taskRoles"> & { name?: string };
+type ProfileEntry = Pick<UserProfile, "role" | "siteId" | "siteName" | "region" | "taskRoles" | "additionalSites"> & { name?: string };
 
 const PROFILE_MAP: Record<string, ProfileEntry> = {
   // ── CPO ─────────────────────────────────────────────────────────────────────
@@ -111,6 +112,7 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     siteId: "1417",
     siteName: "RX Pike Street",
     region: "Western Region",
+    additionalSites: [{ siteId: "1310", siteName: "RX Tacoma" }],
   },
   "claire.wood@aidshealth.org": {
     name: "Claire Wood",
@@ -726,7 +728,22 @@ const DEFAULT_PROFILE: Pick<UserProfile, "role" | "siteId" | "siteName"> = {
 
 export function getUserProfile(email: string, name: string): UserProfile {
   const override = PROFILE_MAP[email.toLowerCase()];
-  return { email, name, ...(override ?? DEFAULT_PROFILE) };
+  const base: UserProfile = { email, name, ...(override ?? DEFAULT_PROFILE) };
+
+  // If this user has additionalSites, check for a stored site override (client-side only).
+  if (base.additionalSites?.length) {
+    try {
+      const stored = (typeof localStorage !== "undefined")
+        ? localStorage.getItem("koheez_active_site_override")
+        : null;
+      if (stored) {
+        const found = base.additionalSites.find((s) => s.siteId === stored);
+        if (found) return { ...base, siteId: found.siteId, siteName: found.siteName };
+      }
+    } catch {}
+  }
+
+  return base;
 }
 
 /**
