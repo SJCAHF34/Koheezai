@@ -1148,6 +1148,7 @@ FORMATTING RULES (strict):
     "koheez_assessments",
     "koheez_task_overrides",
     "koheez_task_spreadsheets",
+    "koheez_wa_inspection",
   ]);
 
   // Keys whose records are LWW-merged on each PUT rather than replaced.
