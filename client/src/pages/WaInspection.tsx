@@ -125,13 +125,6 @@ function ChecklistRow({ item, response, note, location, onResponse, onNote, onLo
   item: WaItem; response: YNAValue; note: string; location: string;
   onResponse: (v: YNAValue) => void; onNote: (v: string) => void; onLocation: (v: string) => void;
 }) {
-  if (item.noCheckbox) {
-    return (
-      <div className="border-b border-border py-2 bg-muted/20">
-        <p className="text-sm font-semibold px-1 text-foreground">{item.text}</p>
-      </div>
-    );
-  }
   return (
     <div className={`border-b border-border last:border-b-0 py-3 ${item.highlighted ? "bg-blue-50/30 dark:bg-blue-950/20" : ""}`}>
       <div className="flex gap-3 items-start">

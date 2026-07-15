@@ -262,42 +262,42 @@ export const WA_SECTIONS: WaSection[] = [
       {
         id: "29b",
         text: "Name of Patient / Authorized entity / Animal Name and Species",
-        rule: `WAC 246-945-010(3)(b) "Name of patient, authorized entity, or animal name and species."`,
+        rule: `WAC 246-945-010(3) "A prescription for a noncontrolled legend drug must include, but is not limited to, the following: (a) Prescriber's name; (b) Name of patient, authorized entity, or animal name and species; (c) Date of issuance; (d) Drug name, strength, and quantity; (e) Directions for use; (f) Number of refills (if any); (g) Instruction on whether or not a therapeutically equivalent generic drug or interchangeable biological product may be substituted, unless substitution is permitted under a prior-consent authorization; (h) Prescriber's manual or electronic signature, or prescriber's authorized agent signature if allowed by law; and (i) If the prescription is written, it must be written on tamper-resistant prescription pad or paper approved by the commission pursuant to RCW 18.64.500."`,
       },
       {
         id: "29c",
         text: "Date of Issuance",
-        rule: `WAC 246-945-010(3)(c) "Date of issuance."`,
+        rule: `WAC 246-945-010(3) "A prescription for a noncontrolled legend drug must include, but is not limited to, the following: (a) Prescriber's name; (b) Name of patient, authorized entity, or animal name and species; (c) Date of issuance; (d) Drug name, strength, and quantity; (e) Directions for use; (f) Number of refills (if any); (g) Instruction on whether or not a therapeutically equivalent generic drug or interchangeable biological product may be substituted, unless substitution is permitted under a prior-consent authorization; (h) Prescriber's manual or electronic signature, or prescriber's authorized agent signature if allowed by law; and (i) If the prescription is written, it must be written on tamper-resistant prescription pad or paper approved by the commission pursuant to RCW 18.64.500."`,
       },
       {
         id: "29d",
         text: "Drug Name, Strength, and Quantity",
-        rule: `WAC 246-945-010(3)(d) "Drug name, strength, and quantity."`,
+        rule: `WAC 246-945-010(3) "A prescription for a noncontrolled legend drug must include, but is not limited to, the following: (a) Prescriber's name; (b) Name of patient, authorized entity, or animal name and species; (c) Date of issuance; (d) Drug name, strength, and quantity; (e) Directions for use; (f) Number of refills (if any); (g) Instruction on whether or not a therapeutically equivalent generic drug or interchangeable biological product may be substituted, unless substitution is permitted under a prior-consent authorization; (h) Prescriber's manual or electronic signature, or prescriber's authorized agent signature if allowed by law; and (i) If the prescription is written, it must be written on tamper-resistant prescription pad or paper approved by the commission pursuant to RCW 18.64.500."`,
       },
       {
         id: "29e",
         text: "Directions for Use",
-        rule: `WAC 246-945-010(3)(e) "Directions for use."`,
+        rule: `WAC 246-945-010(3) "A prescription for a noncontrolled legend drug must include, but is not limited to, the following: (a) Prescriber's name; (b) Name of patient, authorized entity, or animal name and species; (c) Date of issuance; (d) Drug name, strength, and quantity; (e) Directions for use; (f) Number of refills (if any); (g) Instruction on whether or not a therapeutically equivalent generic drug or interchangeable biological product may be substituted, unless substitution is permitted under a prior-consent authorization; (h) Prescriber's manual or electronic signature, or prescriber's authorized agent signature if allowed by law; and (i) If the prescription is written, it must be written on tamper-resistant prescription pad or paper approved by the commission pursuant to RCW 18.64.500."`,
       },
       {
         id: "29f",
         text: "Number of Refills",
-        rule: `WAC 246-945-010(3)(f) "Number of refills (if any)."`,
+        rule: `WAC 246-945-010(3) "A prescription for a noncontrolled legend drug must include, but is not limited to, the following: (a) Prescriber's name; (b) Name of patient, authorized entity, or animal name and species; (c) Date of issuance; (d) Drug name, strength, and quantity; (e) Directions for use; (f) Number of refills (if any); (g) Instruction on whether or not a therapeutically equivalent generic drug or interchangeable biological product may be substituted, unless substitution is permitted under a prior-consent authorization; (h) Prescriber's manual or electronic signature, or prescriber's authorized agent signature if allowed by law; and (i) If the prescription is written, it must be written on tamper-resistant prescription pad or paper approved by the commission pursuant to RCW 18.64.500."`,
       },
       {
         id: "29g",
         text: "Substitution Directions",
-        rule: `WAC 246-945-010(3)(g) "Instruction on whether or not a therapeutically equivalent generic drug or interchangeable biological product may be substituted, unless substitution is permitted under a prior-consent authorization."`,
+        rule: `WAC 246-945-010(3) "A prescription for a noncontrolled legend drug must include, but is not limited to, the following: (a) Prescriber's name; (b) Name of patient, authorized entity, or animal name and species; (c) Date of issuance; (d) Drug name, strength, and quantity; (e) Directions for use; (f) Number of refills (if any); (g) Instruction on whether or not a therapeutically equivalent generic drug or interchangeable biological product may be substituted, unless substitution is permitted under a prior-consent authorization; (h) Prescriber's manual or electronic signature, or prescriber's authorized agent signature if allowed by law; and (i) If the prescription is written, it must be written on tamper-resistant prescription pad or paper approved by the commission pursuant to RCW 18.64.500."`,
       },
       {
         id: "29h",
         text: "Prescriber's Signature",
-        rule: `WAC 246-945-010(3)(h) "Prescriber's manual or electronic signature, or prescriber's authorized agent signature if allowed by law."`,
+        rule: `WAC 246-945-010(3) "A prescription for a noncontrolled legend drug must include, but is not limited to, the following: (a) Prescriber's name; (b) Name of patient, authorized entity, or animal name and species; (c) Date of issuance; (d) Drug name, strength, and quantity; (e) Directions for use; (f) Number of refills (if any); (g) Instruction on whether or not a therapeutically equivalent generic drug or interchangeable biological product may be substituted, unless substitution is permitted under a prior-consent authorization; (h) Prescriber's manual or electronic signature, or prescriber's authorized agent signature if allowed by law; and (i) If the prescription is written, it must be written on tamper-resistant prescription pad or paper approved by the commission pursuant to RCW 18.64.500."`,
       },
       {
         id: "29i",
         text: "If written, on Tamper-resistant Paper",
-        rule: `WAC 246-945-010(3)(i) "If the prescription is written, it must be written on tamper-resistant prescription pad or paper approved by the commission pursuant to RCW 18.64.500."`,
+        rule: `WAC 246-945-010(3) "A prescription for a noncontrolled legend drug must include, but is not limited to, the following: (a) Prescriber's name; (b) Name of patient, authorized entity, or animal name and species; (c) Date of issuance; (d) Drug name, strength, and quantity; (e) Directions for use; (f) Number of refills (if any); (g) Instruction on whether or not a therapeutically equivalent generic drug or interchangeable biological product may be substituted, unless substitution is permitted under a prior-consent authorization; (h) Prescriber's manual or electronic signature, or prescriber's authorized agent signature if allowed by law; and (i) If the prescription is written, it must be written on tamper-resistant prescription pad or paper approved by the commission pursuant to RCW 18.64.500."`,
       },
       {
         id: "30-header",
@@ -312,17 +312,17 @@ export const WA_SECTIONS: WaSection[] = [
       {
         id: "30b",
         text: "Dosage Form",
-        rule: `WAC 246-945-010(4)(b) "Dosage form."`,
+        rule: `WAC 246-945-010(4) "A prescription for a controlled substance must include all the information listed in subsection (3) of this section and the following: (a) Patient's address; (b) Dosage form; (c) Prescriber's address; (d) Prescriber's DEA registration number; and (e) Any other requirements listed in 21 C.F.R. Secs. 1300 through 1399 in effect as of March 7, 2024."`,
       },
       {
         id: "30c",
         text: "Prescriber's Address",
-        rule: `WAC 246-945-010(4)(c) "Prescriber's address."`,
+        rule: `WAC 246-945-010(4) "A prescription for a controlled substance must include all the information listed in subsection (3) of this section and the following: (a) Patient's address; (b) Dosage form; (c) Prescriber's address; (d) Prescriber's DEA registration number; and (e) Any other requirements listed in 21 C.F.R. Secs. 1300 through 1399 in effect as of March 7, 2024."`,
       },
       {
         id: "30d",
         text: "Prescriber's DEA Number",
-        rule: `WAC 246-945-010(4)(d) "Prescriber's DEA registration number."`,
+        rule: `WAC 246-945-010(4) "A prescription for a controlled substance must include all the information listed in subsection (3) of this section and the following: (a) Patient's address; (b) Dosage form; (c) Prescriber's address; (d) Prescriber's DEA registration number; and (e) Any other requirements listed in 21 C.F.R. Secs. 1300 through 1399 in effect as of March 7, 2024."`,
       },
       {
         id: "31",
