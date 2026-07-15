@@ -253,6 +253,7 @@ export const WA_SECTIONS: WaSection[] = [
         id: "29-header",
         text: "Do all prescriptions for non-controlled legend drugs include all required elements?",
         noCheckbox: true,
+        rule: `WAC 246-945-010(3) "A prescription for a noncontrolled legend drug must include, but is not limited to, the following: (a) Prescriber's name; (b) Name of patient, authorized entity, or animal name and species; (c) Date of issuance; (d) Drug name, strength, and quantity; (e) Directions for use; (f) Number of refills (if any); (g) Instruction on whether or not a therapeutically equivalent generic drug or interchangeable biological product may be substituted, unless substitution is permitted under a prior-consent authorization; (h) Prescriber's manual or electronic signature, or prescriber's authorized agent signature if allowed by law; and (i) If the prescription is written, it must be written on tamper-resistant prescription pad or paper approved by the commission pursuant to RCW 18.64.500."`,
       },
       {
         id: "29a",
@@ -303,6 +304,7 @@ export const WA_SECTIONS: WaSection[] = [
         id: "30-header",
         text: "Do all prescriptions for controlled drugs include additional required elements?",
         noCheckbox: true,
+        rule: `WAC 246-945-010(4) "A prescription for a controlled substance must include all the information listed in subsection (3) of this section and the following: (a) Patient's address; (b) Dosage form; (c) Prescriber's address; (d) Prescriber's DEA registration number; and (e) Any other requirements listed in 21 C.F.R. Secs. 1300 through 1399 in effect as of March 7, 2024."`,
       },
       {
         id: "30a",
@@ -462,6 +464,7 @@ export const WA_SECTIONS: WaSection[] = [
         id: "55-header",
         text: "Does the pharmacy have policies and procedures in place for the following as applicable?",
         noCheckbox: true,
+        rule: `WAC 246-945-410(6) "The facility shall create and implement policies and procedures related to: (a) Purchasing, ordering, storing, compounding, delivering, dispensing, and administering legend drugs, including controlled substances."`,
       },
       {
         id: "55a",
