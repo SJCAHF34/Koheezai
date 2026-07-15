@@ -624,6 +624,11 @@ export default function WaInspection() {
                         </Badge>
                       )}
                     </div>
+                    {(() => {
+                      const d = arc.data as WaFormState | undefined;
+                      const name = d?.finalSignature || d?.managerName;
+                      return name ? <p className="text-xs text-foreground font-medium truncate mt-1">{name}</p> : null;
+                    })()}
                     {updatedLabel && <p className="text-xs text-muted-foreground">{updatedLabel}</p>}
                     {isViewing ? (
                       <div className="mt-2 flex items-center gap-1 text-xs text-primary font-medium">
