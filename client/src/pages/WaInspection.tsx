@@ -7,7 +7,7 @@ import type { WaItem } from "@/lib/waInspectionData";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Printer, Save, ChevronDown, ChevronRight, AlertCircle, Archive, Clock, CheckCircle2, FolderOpen, Plus } from "lucide-react";
+import { Printer, Save, ChevronDown, ChevronRight, AlertCircle, Archive, Clock, CheckCircle2, FolderOpen, Plus, Trash2, ArrowLeft } from "lucide-react";
 import type { WaInspectionArchive } from "@shared/schema";
 
 // Per-store localStorage keys isolate each site's form data.
@@ -351,6 +351,10 @@ export default function WaInspection() {
   const siteId = profile?.siteId ?? "";
   const currentCycleYear = getCycleYear();
 
+  // View: "archive" = landing page, "form" = open document
+  const [view, setView] = useState<"archive" | "form">("archive");
+  const [deleteConfirm, setDeleteConfirm] = useState<{ year: number; stage: 1 | 2 } | null>(null);
+
   // Which archive year's data is loaded into the form right now
   const [viewingYear, setViewingYear] = useState<number>(currentCycleYear);
   const [state, setState] = useState<WaFormState>(() => loadState(siteId, defaultPharmacyName));
@@ -383,6 +387,23 @@ export default function WaInspection() {
       setServerSaving(false);
     },
     onError: () => setServerSaving(false),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (year: number) => {
+      await apiRequest("DELETE", `/api/wa-inspection/${siteId}/archives/${year}`);
+    },
+    onSuccess: (_, year) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/wa-inspection", siteId, "archives"] });
+      if (year === viewingYear) {
+        setViewingYear(currentCycleYear);
+        const fresh = buildDefault(defaultPharmacyName);
+        setState(fresh);
+        saveState(siteId, fresh);
+      }
+      setDeleteConfirm(null);
+    },
+    onError: () => setDeleteConfirm(null),
   });
 
   // On first load: hydrate state from server archive for current cycle year.
@@ -444,6 +465,7 @@ export default function WaInspection() {
     setViewingYear(archive.year);
     setState(data);
     saveState(siteId, data);
+    setView("form");
   }
 
   // Start a fresh form for the current cycle year
@@ -452,6 +474,7 @@ export default function WaInspection() {
     setViewingYear(currentCycleYear);
     setState(fresh);
     saveState(siteId, fresh);
+    setView("form");
   }
 
   function patch(updates: Partial<WaFormState>) {
@@ -560,102 +583,125 @@ export default function WaInspection() {
       {/* ══════════════════════════════════════ */}
       {/* SCREEN VIEW                           */}
       {/* ══════════════════════════════════════ */}
-      <div className="wa-screen-only max-w-4xl mx-auto px-4 pb-16">
-        {/* Sticky toolbar */}
-        <div className="sticky top-14 z-10 bg-background border-b border-border py-2 mb-4 flex items-center justify-between gap-3">
-          <div>
-            <h1 className="font-bold text-base leading-tight">WA General Pharmacy Self-Inspection Worksheet</h1>
-            <p className="text-xs text-muted-foreground">
-              DOH 690-318 — Cycle {viewingYear}
-              {viewingYear !== currentCycleYear && <span className="ml-2 text-amber-600 dark:text-amber-400">(viewing past record)</span>}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {serverSaving
-              ? <span className="text-xs text-muted-foreground hidden sm:inline">Saving…</span>
-              : savedAt && <span className="text-xs text-muted-foreground hidden sm:inline">Saved {savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-            }
-            <Badge variant="outline" className="text-xs">{answeredItems}/{totalItems}</Badge>
-            {noItems > 0 && <Badge variant="destructive" className="text-xs">{noItems} issue{noItems !== 1 ? "s" : ""}</Badge>}
-            <Button size="sm" variant="outline" onClick={() => { persist(state); saveMutation.mutate({ year: viewingYear, formState: state }); }} data-testid="btn-wa-save">
-              <Save className="w-3.5 h-3.5 mr-1" />Save
-            </Button>
-            <Button size="sm" onClick={() => window.print()} data-testid="btn-wa-print">
-              <Printer className="w-3.5 h-3.5 mr-1" />Print / PDF
-            </Button>
-          </div>
-        </div>
+      <div className="wa-screen-only">
 
-        {/* ── Archive section ── */}
-        <div className="mb-5 border border-border rounded-md p-4">
-          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Archive className="w-4 h-4 text-muted-foreground" />
-              <span className="font-semibold text-sm">Inspection Archive</span>
-              <span className="text-xs text-muted-foreground">— one record per cycle year, stored permanently on the server</span>
-            </div>
-            {viewingYear !== currentCycleYear && (
-              <Button size="sm" variant="outline" onClick={() => {
-                const current = archives.find((a) => a.year === currentCycleYear);
-                if (current) { openArchiveYear(current); } else { startNewCycle(); }
-              }} data-testid="btn-wa-return-current">
-                <Plus className="w-3.5 h-3.5 mr-1" />Return to Current Cycle
+        {view === "archive" ? (
+          /* ── ARCHIVE LANDING ── */
+          <div className="max-w-4xl mx-auto px-4 py-8">
+            <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
+              <div>
+                <h1 className="font-bold text-xl leading-tight">WA General Pharmacy Self-Inspection Worksheet</h1>
+                <p className="text-sm text-muted-foreground">DOH 690-318</p>
+              </div>
+              <Button onClick={startNewCycle} data-testid="btn-wa-new">
+                <Plus className="w-4 h-4 mr-1.5" />New Assessment
               </Button>
-            )}
-          </div>
-          {archiveCards.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No records yet — start filling out the form below to create the {currentCycleYear} cycle record.</p>
-          ) : (
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {archiveCards.map((arc) => {
-                const isViewing = arc.year === viewingYear;
-                const isCurrentCycle = arc.year === currentCycleYear;
-                const updatedLabel = arc.updatedAt
-                  ? new Date(arc.updatedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })
-                  : null;
-                return (
-                  <div
-                    key={arc.year}
-                    className={`shrink-0 rounded-md border p-3 w-40 cursor-pointer transition-colors ${
-                      isViewing ? "border-primary bg-primary/5" : "border-border hover-elevate"
-                    }`}
-                    onClick={() => !isViewing && openArchiveYear(arc)}
-                    data-testid={`archive-card-${arc.year}`}
-                  >
-                    <div className="flex items-start justify-between gap-1 mb-2">
-                      <span className="font-bold text-sm">{arc.year}</span>
-                      {isCurrentCycle && <Badge variant="outline" className="text-xs px-1 py-0">Current</Badge>}
-                    </div>
-                    <div className="mb-2">
-                      {arc.status === "completed" ? (
-                        <Badge className="text-xs bg-green-600 text-white border-0 gap-1">
-                          <CheckCircle2 className="w-3 h-3" />Completed
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs gap-1 text-amber-600 border-amber-400">
-                          <Clock className="w-3 h-3" />In Progress
-                        </Badge>
-                      )}
-                    </div>
-                    {(() => {
-                      const d = arc.data as WaFormState | undefined;
-                      const name = d?.finalSignature || d?.managerName;
-                      return name ? <p className="text-xs text-foreground font-medium truncate mt-1">{name}</p> : null;
-                    })()}
-                    {updatedLabel && <p className="text-xs text-muted-foreground">{updatedLabel}</p>}
-                    {isViewing ? (
-                      <div className="mt-2 flex items-center gap-1 text-xs text-primary font-medium">
-                        <FolderOpen className="w-3 h-3" />Open
-                      </div>
-                    ) : (
-                      <div className="mt-2 text-xs text-muted-foreground">Click to open</div>
-                    )}
-                  </div>
-                );
-              })}
             </div>
-          )}
-        </div>
+
+            <div className="border border-border rounded-md p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Archive className="w-4 h-4 text-muted-foreground" />
+                <span className="font-semibold text-sm">Inspection Archive</span>
+                <span className="text-xs text-muted-foreground">— one record per cycle year, stored permanently on the server</span>
+              </div>
+              {archiveCards.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No records yet. Click "New Assessment" to create the {currentCycleYear} cycle record.</p>
+              ) : (
+                <div className="flex gap-3 flex-wrap">
+                  {archiveCards.map((arc) => {
+                    const isCurrentCycle = arc.year === currentCycleYear;
+                    const updatedLabel = arc.updatedAt
+                      ? new Date(arc.updatedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })
+                      : null;
+                    const managerName = (() => {
+                      const d = arc.data as WaFormState | undefined;
+                      return d?.finalSignature || d?.managerName || null;
+                    })();
+                    return (
+                      <div
+                        key={arc.year}
+                        className="shrink-0 rounded-md border border-border p-3 w-44"
+                        data-testid={`archive-card-${arc.year}`}
+                      >
+                        <div className="flex items-start justify-between gap-1 mb-2">
+                          <span className="font-bold text-sm">{arc.year}</span>
+                          {isCurrentCycle && <Badge variant="outline" className="text-xs px-1 py-0">Current</Badge>}
+                        </div>
+                        <div className="mb-2">
+                          {arc.status === "completed" ? (
+                            <Badge className="text-xs bg-green-600 text-white border-0 gap-1">
+                              <CheckCircle2 className="w-3 h-3" />Completed
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs gap-1 text-amber-600 border-amber-400">
+                              <Clock className="w-3 h-3" />In Progress
+                            </Badge>
+                          )}
+                        </div>
+                        {managerName && <p className="text-xs text-foreground font-medium truncate mb-1">{managerName}</p>}
+                        {updatedLabel && <p className="text-xs text-muted-foreground mb-2">{updatedLabel}</p>}
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 text-xs text-primary font-medium hover:underline"
+                            onClick={() => openArchiveYear(arc)}
+                            data-testid={`btn-open-archive-${arc.year}`}
+                          >
+                            <FolderOpen className="w-3 h-3" />Open
+                          </button>
+                          <span className="text-muted-foreground/40">·</span>
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 text-xs text-destructive font-medium hover:underline"
+                            onClick={() => setDeleteConfirm({ year: arc.year, stage: 1 })}
+                            data-testid={`btn-delete-archive-${arc.year}`}
+                          >
+                            <Trash2 className="w-3 h-3" />Delete
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* ── FORM VIEW ── */
+          <div className="max-w-4xl mx-auto px-4 pb-16">
+            {/* Sticky toolbar */}
+            <div className="sticky top-14 z-10 bg-background border-b border-border py-2 mb-4 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground shrink-0"
+                  onClick={() => setView("archive")}
+                  data-testid="btn-wa-back-archive"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />Archive
+                </button>
+                <span className="text-muted-foreground/40">·</span>
+                <div className="min-w-0">
+                  <span className="font-bold text-sm">WA General Pharmacy Self-Inspection Worksheet</span>
+                  <span className="text-xs text-muted-foreground ml-2">Cycle {viewingYear}</span>
+                  {viewingYear !== currentCycleYear && <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">(past record)</span>}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                {serverSaving
+                  ? <span className="text-xs text-muted-foreground hidden sm:inline">Saving…</span>
+                  : savedAt && <span className="text-xs text-muted-foreground hidden sm:inline">Saved {savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                }
+                <Badge variant="outline" className="text-xs">{answeredItems}/{totalItems}</Badge>
+                {noItems > 0 && <Badge variant="destructive" className="text-xs">{noItems} issue{noItems !== 1 ? "s" : ""}</Badge>}
+                <Button size="sm" variant="outline" onClick={() => { persist(state); saveMutation.mutate({ year: viewingYear, formState: state }); }} data-testid="btn-wa-save">
+                  <Save className="w-3.5 h-3.5 mr-1" />Save
+                </Button>
+                <Button size="sm" onClick={() => window.print()} data-testid="btn-wa-print">
+                  <Printer className="w-3.5 h-3.5 mr-1" />Print / PDF
+                </Button>
+              </div>
+            </div>
 
         {/* Progress bar */}
         <div className="mb-4">
@@ -805,6 +851,43 @@ export default function WaInspection() {
         <p className="text-xs text-muted-foreground text-center mt-4">
           WA Pharmacy Quality Assurance Commission — DOH 690-318 — Do not send to the commission office.
         </p>
+          </div>
+        )}
+
+        {/* ── Delete Confirmation Overlay ── */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setDeleteConfirm(null)}>
+            <div className="bg-background border border-border rounded-md p-6 max-w-sm w-full shadow-lg" onClick={(e) => e.stopPropagation()}>
+              {deleteConfirm.stage === 1 ? (
+                <>
+                  <h3 className="font-semibold text-base mb-2">Delete {deleteConfirm.year} Assessment?</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Are you sure you want to delete the {deleteConfirm.year} self-inspection assessment? This action cannot be undone.
+                  </p>
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" size="sm" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+                    <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm({ year: deleteConfirm.year, stage: 2 })}>
+                      Continue
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="font-semibold text-base mb-2 text-destructive">Are you absolutely sure?</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    This will permanently delete the {deleteConfirm.year} self-inspection assessment and all its data from the server.
+                  </p>
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" size="sm" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+                    <Button variant="destructive" size="sm" onClick={() => deleteMutation.mutate(deleteConfirm.year)} disabled={deleteMutation.isPending}>
+                      {deleteMutation.isPending ? "Deleting…" : "Yes, Delete Permanently"}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ══════════════════════════════════════ */}

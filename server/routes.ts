@@ -2745,6 +2745,21 @@ ${taskLines}`;
     }
   });
 
+  app.delete("/api/wa-inspection/:siteId/archives/:year", requireAuth, async (req, res) => {
+    const { siteId } = req.params;
+    const year = parseInt(req.params.year, 10);
+    if (isNaN(year)) return res.status(400).json({ message: "Invalid year" });
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    if (!access.canViewSite(siteId)) return res.status(403).json({ message: "Not authorized" });
+    try {
+      await storage.deleteWaInspectionArchive(siteId, year);
+      return res.json({ ok: true });
+    } catch (err: any) {
+      return res.status(500).json({ message: err?.message ?? "Unknown error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

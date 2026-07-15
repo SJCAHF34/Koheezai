@@ -208,6 +208,7 @@ export interface IStorage {
   listWaInspectionArchives(siteId: string): Promise<WaInspectionArchive[]>;
   getWaInspectionArchive(siteId: string, year: number): Promise<WaInspectionArchive | undefined>;
   upsertWaInspectionArchive(siteId: string, year: number, status: "in-progress" | "completed", data: unknown): Promise<WaInspectionArchive>;
+  deleteWaInspectionArchive(siteId: string, year: number): Promise<void>;
 }
 
 function entryKey(siteId: string, staffId: string, date: string) {
@@ -954,6 +955,10 @@ export class MemStorage implements IStorage {
     };
     this.waInspectionArchives.set(`${siteId}|${year}`, record);
     return record;
+  }
+
+  async deleteWaInspectionArchive(siteId: string, year: number): Promise<void> {
+    this.waInspectionArchives.delete(`${siteId}|${year}`);
   }
 
   // ── ADP Workforce Now (in-memory) ─────────────────────────────────────
@@ -1838,6 +1843,12 @@ export class DbStorage extends MemStorage {
         set: { status, data, updatedAt: now },
       });
     return { siteId, year, status, data, createdAt, updatedAt: now };
+  }
+
+  override async deleteWaInspectionArchive(siteId: string, year: number): Promise<void> {
+    await db
+      .delete(waInspectionArchivesTable)
+      .where(and(eq(waInspectionArchivesTable.siteId, siteId), eq(waInspectionArchivesTable.year, year)));
   }
 
   // ── One-time boot migration ────────────────────────────────────────────
