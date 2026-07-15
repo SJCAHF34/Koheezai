@@ -32,9 +32,11 @@ import {
   adpWorkerMappingsTable,
   adpSyncStatusTable,
   adpSyncHistoryTable,
+  waInspectionArchivesTable,
   type AdpWorkerMapping,
   type AdpSyncStatus,
   type AdpSyncHistoryEntry,
+  type WaInspectionArchive,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -201,6 +203,11 @@ export interface IStorage {
   getAdpMappedSiteIds(): Promise<string[]>;
   addAdpSyncHistory(entry: Omit<AdpSyncHistoryEntry, "id">): Promise<AdpSyncHistoryEntry>;
   getAdpSyncHistory(siteId: string, limit?: number): Promise<AdpSyncHistoryEntry[]>;
+
+  // ── WA Self-Inspection archives ─────────────────────────────────────────
+  listWaInspectionArchives(siteId: string): Promise<WaInspectionArchive[]>;
+  getWaInspectionArchive(siteId: string, year: number): Promise<WaInspectionArchive | undefined>;
+  upsertWaInspectionArchive(siteId: string, year: number, status: "in-progress" | "completed", data: unknown): Promise<WaInspectionArchive>;
 }
 
 function entryKey(siteId: string, staffId: string, date: string) {
@@ -225,6 +232,7 @@ export class MemStorage implements IStorage {
   private auditLogs: AuditLogEntry[];
   private clientStores: Map<string, { value: unknown; updatedAt: string }>;
   private timeOffBalances: Map<string, StaffTimeOffBalance>;
+  protected waInspectionArchives: Map<string, WaInspectionArchive> = new Map();
 
   constructor() {
     this.users = new Map();
@@ -922,6 +930,30 @@ export class MemStorage implements IStorage {
 
   async setClientStore(siteId: string, storeKey: string, value: unknown): Promise<void> {
     this.clientStores.set(`${siteId}|${storeKey}`, { value, updatedAt: new Date().toISOString() });
+  }
+
+  // ── WA Self-Inspection archives (in-memory) ────────────────────────────
+
+  async listWaInspectionArchives(siteId: string): Promise<WaInspectionArchive[]> {
+    return Array.from(this.waInspectionArchives.values())
+      .filter((a) => a.siteId === siteId)
+      .sort((a, b) => b.year - a.year);
+  }
+
+  async getWaInspectionArchive(siteId: string, year: number): Promise<WaInspectionArchive | undefined> {
+    return this.waInspectionArchives.get(`${siteId}|${year}`);
+  }
+
+  async upsertWaInspectionArchive(siteId: string, year: number, status: "in-progress" | "completed", data: unknown): Promise<WaInspectionArchive> {
+    const now = new Date().toISOString();
+    const existing = this.waInspectionArchives.get(`${siteId}|${year}`);
+    const record: WaInspectionArchive = {
+      siteId, year, status, data,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    };
+    this.waInspectionArchives.set(`${siteId}|${year}`, record);
+    return record;
   }
 
   // ── ADP Workforce Now (in-memory) ─────────────────────────────────────
@@ -1765,6 +1797,47 @@ export class DbStorage extends MemStorage {
         target: [clientStoreTable.siteId, clientStoreTable.storeKey],
         set: { value, updatedAt },
       });
+  }
+
+  // ── WA Self-Inspection archives (DB-backed) ────────────────────────────
+
+  override async listWaInspectionArchives(siteId: string): Promise<WaInspectionArchive[]> {
+    const rows = await db
+      .select()
+      .from(waInspectionArchivesTable)
+      .where(eq(waInspectionArchivesTable.siteId, siteId))
+      .orderBy(desc(waInspectionArchivesTable.year));
+    return rows.map((r) => ({
+      siteId: r.siteId,
+      year: r.year,
+      status: r.status,
+      data: r.data,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
+  }
+
+  override async getWaInspectionArchive(siteId: string, year: number): Promise<WaInspectionArchive | undefined> {
+    const [row] = await db
+      .select()
+      .from(waInspectionArchivesTable)
+      .where(and(eq(waInspectionArchivesTable.siteId, siteId), eq(waInspectionArchivesTable.year, year)));
+    if (!row) return undefined;
+    return { siteId: row.siteId, year: row.year, status: row.status, data: row.data, createdAt: row.createdAt, updatedAt: row.updatedAt };
+  }
+
+  override async upsertWaInspectionArchive(siteId: string, year: number, status: "in-progress" | "completed", data: unknown): Promise<WaInspectionArchive> {
+    const now = new Date().toISOString();
+    const existing = await this.getWaInspectionArchive(siteId, year);
+    const createdAt = existing?.createdAt ?? now;
+    await db
+      .insert(waInspectionArchivesTable)
+      .values({ siteId, year, status, data, createdAt, updatedAt: now })
+      .onConflictDoUpdate({
+        target: [waInspectionArchivesTable.siteId, waInspectionArchivesTable.year],
+        set: { status, data, updatedAt: now },
+      });
+    return { siteId, year, status, data, createdAt, updatedAt: now };
   }
 
   // ── One-time boot migration ────────────────────────────────────────────

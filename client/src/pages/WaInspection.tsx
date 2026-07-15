@@ -1,14 +1,23 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/App";
 import { getUserProfile } from "@/lib/userProfile";
 import { WA_SECTIONS, WA_DOC_REVIEW_ITEMS } from "@/lib/waInspectionData";
 import type { WaItem } from "@/lib/waInspectionData";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Printer, Save, ChevronDown, ChevronRight, AlertCircle } from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Printer, Save, ChevronDown, ChevronRight, AlertCircle, Archive, Clock, CheckCircle2, FolderOpen, Plus } from "lucide-react";
+import type { WaInspectionArchive } from "@shared/schema";
 
 const STORAGE_KEY = "koheez_wa_inspection";
 type YNAValue = "yes" | "no" | "na" | "";
+
+// The WA inspection cycle starts March 1 each year.
+// e.g. Jan/Feb 2026 → 2025 cycle; Mar–Dec 2026 → 2026 cycle.
+function getCycleYear(date = new Date()): number {
+  return date.getMonth() >= 2 ? date.getFullYear() : date.getFullYear() - 1;
+}
 
 interface WaFormState {
   completionDate: string;
@@ -321,9 +330,58 @@ export default function WaInspection() {
   const { user } = useAuth();
   const profile = user ? getUserProfile(user.email, user.name ?? "") : null;
   const defaultPharmacyName = profile?.siteName ?? "";
+  const siteId = profile?.siteId ?? "";
+  const currentCycleYear = getCycleYear();
 
+  // Which archive year's data is loaded into the form right now
+  const [viewingYear, setViewingYear] = useState<number>(currentCycleYear);
   const [state, setState] = useState<WaFormState>(() => loadState(defaultPharmacyName));
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [serverSaving, setServerSaving] = useState(false);
+  const serverSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialServerLoadDone = useRef(false);
+
+  // Fetch all archives for this site
+  const { data: archives = [] } = useQuery<WaInspectionArchive[]>({
+    queryKey: ["/api/wa-inspection", siteId, "archives"],
+    queryFn: async () => {
+      if (!siteId || siteId === "ALL") return [];
+      const res = await fetch(`/api/wa-inspection/${siteId}/archives`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!siteId && siteId !== "ALL",
+    staleTime: 30_000,
+  });
+
+  // Save to server
+  const saveMutation = useMutation({
+    mutationFn: async ({ year, formState }: { year: number; formState: WaFormState }) => {
+      const status: "in-progress" | "completed" = formState.finalSignature ? "completed" : "in-progress";
+      await apiRequest("PUT", `/api/wa-inspection/${siteId}/archives/${year}`, { status, data: formState });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/wa-inspection", siteId, "archives"] });
+      setServerSaving(false);
+    },
+    onError: () => setServerSaving(false),
+  });
+
+  // On first load: hydrate state from server archive for current cycle year
+  useEffect(() => {
+    if (initialServerLoadDone.current || !siteId || siteId === "ALL") return;
+    fetch(`/api/wa-inspection/${siteId}/archives/${currentCycleYear}`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((archive: WaInspectionArchive | null) => {
+        if (archive?.data) {
+          const loaded = archive.data as WaFormState;
+          setState(loaded);
+          saveState(loaded);
+        }
+        initialServerLoadDone.current = true;
+      })
+      .catch(() => { initialServerLoadDone.current = true; });
+  }, [siteId, currentCycleYear]);
 
   const persist = useCallback((s: WaFormState) => {
     saveState(s);
@@ -334,6 +392,33 @@ export default function WaInspection() {
     const t = setTimeout(() => persist(state), 400);
     return () => clearTimeout(t);
   }, [state, persist]);
+
+  // Debounce server save (2s after last change)
+  useEffect(() => {
+    if (!initialServerLoadDone.current || !siteId || siteId === "ALL") return;
+    if (serverSaveTimer.current) clearTimeout(serverSaveTimer.current);
+    setServerSaving(true);
+    serverSaveTimer.current = setTimeout(() => {
+      saveMutation.mutate({ year: viewingYear, formState: state });
+    }, 2000);
+    return () => { if (serverSaveTimer.current) clearTimeout(serverSaveTimer.current); };
+  }, [state, viewingYear, siteId]);
+
+  // Load a specific year's archive into the form
+  function openArchiveYear(archive: WaInspectionArchive) {
+    const data = archive.data as WaFormState;
+    setViewingYear(archive.year);
+    setState(data);
+    saveState(data);
+  }
+
+  // Start a fresh form for the current cycle year
+  function startNewCycle() {
+    const fresh = buildDefault(defaultPharmacyName);
+    setViewingYear(currentCycleYear);
+    setState(fresh);
+    saveState(fresh);
+  }
 
   function patch(updates: Partial<WaFormState>) {
     setState((s) => ({ ...s, ...updates }));
@@ -356,6 +441,16 @@ export default function WaInspection() {
   const answeredItems = allItems.filter((i) => state.responses[i.id] && state.responses[i.id] !== "").length;
   const noItems = allItems.filter((i) => state.responses[i.id] === "no").length;
   const completionPct = totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0;
+
+  // Archive card list: include all server archives + ensure current year appears
+  const archiveCards: WaInspectionArchive[] = (() => {
+    const hasCurrentYear = archives.some((a) => a.year === currentCycleYear);
+    const base = hasCurrentYear ? archives : [
+      { siteId, year: currentCycleYear, status: "in-progress" as const, data: state, createdAt: "", updatedAt: "" },
+      ...archives,
+    ];
+    return base.sort((a, b) => b.year - a.year);
+  })();
 
   /* Shared print table cell border style */
   const tb: React.CSSProperties = { border: "1px solid #000" };
@@ -436,17 +531,19 @@ export default function WaInspection() {
         <div className="sticky top-14 z-10 bg-background border-b border-border py-2 mb-4 flex items-center justify-between gap-3">
           <div>
             <h1 className="font-bold text-base leading-tight">WA General Pharmacy Self-Inspection Worksheet</h1>
-            <p className="text-xs text-muted-foreground">DOH 690-318 — Due by March 31 each year</p>
+            <p className="text-xs text-muted-foreground">
+              DOH 690-318 — Cycle {viewingYear}
+              {viewingYear !== currentCycleYear && <span className="ml-2 text-amber-600 dark:text-amber-400">(viewing past record)</span>}
+            </p>
           </div>
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {savedAt && (
-              <span className="text-xs text-muted-foreground hidden sm:inline">
-                Saved {savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
+            {serverSaving
+              ? <span className="text-xs text-muted-foreground hidden sm:inline">Saving…</span>
+              : savedAt && <span className="text-xs text-muted-foreground hidden sm:inline">Saved {savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+            }
             <Badge variant="outline" className="text-xs">{answeredItems}/{totalItems}</Badge>
             {noItems > 0 && <Badge variant="destructive" className="text-xs">{noItems} issue{noItems !== 1 ? "s" : ""}</Badge>}
-            <Button size="sm" variant="outline" onClick={() => persist(state)} data-testid="btn-wa-save">
+            <Button size="sm" variant="outline" onClick={() => { persist(state); saveMutation.mutate({ year: viewingYear, formState: state }); }} data-testid="btn-wa-save">
               <Save className="w-3.5 h-3.5 mr-1" />Save
             </Button>
             <Button size="sm" onClick={() => window.print()} data-testid="btn-wa-print">
@@ -455,10 +552,76 @@ export default function WaInspection() {
           </div>
         </div>
 
+        {/* ── Archive section ── */}
+        <div className="mb-5 border border-border rounded-md p-4">
+          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Archive className="w-4 h-4 text-muted-foreground" />
+              <span className="font-semibold text-sm">Inspection Archive</span>
+              <span className="text-xs text-muted-foreground">— one record per cycle year, stored permanently on the server</span>
+            </div>
+            {viewingYear !== currentCycleYear && (
+              <Button size="sm" variant="outline" onClick={() => {
+                const current = archives.find((a) => a.year === currentCycleYear);
+                if (current) { openArchiveYear(current); } else { startNewCycle(); }
+              }} data-testid="btn-wa-return-current">
+                <Plus className="w-3.5 h-3.5 mr-1" />Return to Current Cycle
+              </Button>
+            )}
+          </div>
+          {archiveCards.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No records yet — start filling out the form below to create the {currentCycleYear} cycle record.</p>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {archiveCards.map((arc) => {
+                const isViewing = arc.year === viewingYear;
+                const isCurrentCycle = arc.year === currentCycleYear;
+                const updatedLabel = arc.updatedAt
+                  ? new Date(arc.updatedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })
+                  : null;
+                return (
+                  <div
+                    key={arc.year}
+                    className={`shrink-0 rounded-md border p-3 w-40 cursor-pointer transition-colors ${
+                      isViewing ? "border-primary bg-primary/5" : "border-border hover-elevate"
+                    }`}
+                    onClick={() => !isViewing && openArchiveYear(arc)}
+                    data-testid={`archive-card-${arc.year}`}
+                  >
+                    <div className="flex items-start justify-between gap-1 mb-2">
+                      <span className="font-bold text-sm">{arc.year}</span>
+                      {isCurrentCycle && <Badge variant="outline" className="text-xs px-1 py-0">Current</Badge>}
+                    </div>
+                    <div className="mb-2">
+                      {arc.status === "completed" ? (
+                        <Badge className="text-xs bg-green-600 text-white border-0 gap-1">
+                          <CheckCircle2 className="w-3 h-3" />Completed
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs gap-1 text-amber-600 border-amber-400">
+                          <Clock className="w-3 h-3" />In Progress
+                        </Badge>
+                      )}
+                    </div>
+                    {updatedLabel && <p className="text-xs text-muted-foreground">{updatedLabel}</p>}
+                    {isViewing ? (
+                      <div className="mt-2 flex items-center gap-1 text-xs text-primary font-medium">
+                        <FolderOpen className="w-3 h-3" />Open
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-xs text-muted-foreground">Click to open</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Progress bar */}
         <div className="mb-4">
           <div className="flex justify-between text-xs text-muted-foreground mb-1">
-            <span>Completion</span><span>{completionPct}%</span>
+            <span>Cycle {viewingYear} — Completion</span><span>{completionPct}%</span>
           </div>
           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <div className="h-full bg-primary transition-all duration-300 rounded-full" style={{ width: `${completionPct}%` }} />

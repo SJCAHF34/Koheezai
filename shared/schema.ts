@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, text, jsonb, bigserial, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, jsonb, bigserial, primaryKey, integer } from "drizzle-orm/pg-core";
 
 // ── Scheduling ───────────────────────────────────────────────────────────────
 
@@ -749,3 +749,29 @@ export const adpSyncHistoryTable = pgTable("adp_sync_history", {
   result: text("result").$type<"success" | "error">().notNull(),
   message: text("message").notNull().default(""),
 });
+
+// ── WA Self-Inspection annual archive ─────────────────────────────────────
+// One record per site per inspection cycle year. The cycle starts March 1,
+// so the 2026 cycle covers March 1 2026 – Feb 28 2027. Records persist
+// permanently and survive all redeploys.
+export interface WaInspectionArchive {
+  siteId: string;
+  year: number;
+  status: "in-progress" | "completed";
+  data: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const waInspectionArchivesTable = pgTable(
+  "wa_inspection_archives",
+  {
+    siteId: text("site_id").notNull(),
+    year: integer("year").notNull(),
+    status: text("status").$type<"in-progress" | "completed">().notNull().default("in-progress"),
+    data: jsonb("data").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.siteId, t.year] }) }),
+);

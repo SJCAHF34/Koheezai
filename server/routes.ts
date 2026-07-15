@@ -2688,6 +2688,54 @@ ${taskLines}`;
     }
   });
 
+  // ── WA Self-Inspection archives ─────────────────────────────────────────
+  app.get("/api/wa-inspection/:siteId/archives", requireAuth, async (req, res) => {
+    const { siteId } = req.params;
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    if (!access.canViewSite(siteId)) return res.status(403).json({ message: "Not authorized" });
+    try {
+      const archives = await storage.listWaInspectionArchives(siteId);
+      return res.json(archives);
+    } catch (err: any) {
+      return res.status(500).json({ message: err?.message ?? "Unknown error" });
+    }
+  });
+
+  app.get("/api/wa-inspection/:siteId/archives/:year", requireAuth, async (req, res) => {
+    const { siteId } = req.params;
+    const year = parseInt(req.params.year, 10);
+    if (isNaN(year)) return res.status(400).json({ message: "Invalid year" });
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    if (!access.canViewSite(siteId)) return res.status(403).json({ message: "Not authorized" });
+    try {
+      const archive = await storage.getWaInspectionArchive(siteId, year);
+      if (!archive) return res.status(404).json({ message: "Not found" });
+      return res.json(archive);
+    } catch (err: any) {
+      return res.status(500).json({ message: err?.message ?? "Unknown error" });
+    }
+  });
+
+  app.put("/api/wa-inspection/:siteId/archives/:year", requireAuth, async (req, res) => {
+    const { siteId } = req.params;
+    const year = parseInt(req.params.year, 10);
+    if (isNaN(year)) return res.status(400).json({ message: "Invalid year" });
+    const access = getSiteAccess(req);
+    if (!access.ok) return res.status(access.status).json({ message: access.message });
+    if (!access.canViewSite(siteId)) return res.status(403).json({ message: "Not authorized" });
+    const { status, data } = req.body ?? {};
+    if (!data) return res.status(400).json({ message: "Missing data" });
+    const safeStatus: "in-progress" | "completed" = status === "completed" ? "completed" : "in-progress";
+    try {
+      const archive = await storage.upsertWaInspectionArchive(siteId, year, safeStatus, data);
+      return res.json(archive);
+    } catch (err: any) {
+      return res.status(500).json({ message: err?.message ?? "Unknown error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
