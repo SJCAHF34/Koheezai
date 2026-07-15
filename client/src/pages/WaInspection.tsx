@@ -148,7 +148,7 @@ function ChecklistRow({ item, response, note, location, onResponse, onNote, onLo
           />
         </div>
         <div className="shrink-0">
-          <YNAButtons id={item.id} value={response} naOption={item.naOption} onChange={onResponse} />
+          <YNAButtons id={item.id} value={response} naOption={true} onChange={onResponse} />
         </div>
       </div>
     </div>
