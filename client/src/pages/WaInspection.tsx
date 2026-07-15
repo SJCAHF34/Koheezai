@@ -814,10 +814,17 @@ export default function WaInspection() {
 
         {/* ── PAGE 1: Read This Page Carefully ── */}
         <div style={{ marginBottom: "0" }}>
-          <div style={{ textAlign: "center", marginBottom: "10pt" }}>
-            <div style={{ fontWeight: "bold", fontSize: "11pt" }}>Read this Page Carefully</div>
-            <div style={{ fontWeight: "bold", fontSize: "11pt" }}>WA Pharmacy Quality Assurance Commission</div>
-            <div style={{ fontWeight: "bold", fontSize: "11pt" }}>2026 General Pharmacy Self-Inspection Worksheet</div>
+          <div style={{ position: "relative", marginBottom: "10pt", minHeight: "46pt" }}>
+            <img
+              src="/wa-doh-logo.png"
+              alt="Washington State Department of Health"
+              style={{ position: "absolute", top: 0, left: 0, height: "44pt", width: "auto" }}
+            />
+            <div style={{ textAlign: "center", paddingTop: "4pt" }}>
+              <div style={{ fontWeight: "bold", fontSize: "11pt" }}>Read this Page Carefully</div>
+              <div style={{ fontWeight: "bold", fontSize: "11pt" }}>WA Pharmacy Quality Assurance Commission</div>
+              <div style={{ fontWeight: "bold", fontSize: "11pt" }}>2026 General Pharmacy Self-Inspection Worksheet</div>
+            </div>
           </div>
 
           <p style={{ fontWeight: "bold", marginBottom: "6pt" }}>Attention: Responsible Pharmacy Manager or Equivalent Manager</p>
@@ -1056,7 +1063,7 @@ export default function WaInspection() {
                 Compliant
               </th>
               <th rowSpan={2} style={{ ...tb, textAlign: "center", width: "4%", padding: "2pt", fontSize: "7.5pt" }}>#</th>
-              <th rowSpan={2} style={{ ...tb, width: "44%", padding: "2pt 4pt", fontSize: "7.5pt" }}></th>
+              <th rowSpan={2} style={{ ...tb, width: "44%", padding: "2pt 4pt", fontSize: "7.5pt" }}>Statement</th>
               <th rowSpan={2} style={{ ...tb, width: "28%", padding: "2pt 4pt", fontSize: "7.5pt", textAlign: "center" }}>Rule Reference</th>
               <th rowSpan={2} style={{ ...tb, width: "16%", padding: "2pt 4pt", fontSize: "7.5pt", textAlign: "center" }}>Notes/Corrective Action</th>
             </tr>
