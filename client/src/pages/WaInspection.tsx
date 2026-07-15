@@ -419,6 +419,8 @@ export default function WaInspection() {
           setState(loaded);
           saveState(siteId, loaded);
           initialServerLoadDone.current = true;
+          // Existing record found — go straight to the form so users land on their checklist
+          setView("form");
         } else {
           // No server archive yet — use saveMutation (same path as the debounced
           // save) so the archive card shows the correct status immediately.
