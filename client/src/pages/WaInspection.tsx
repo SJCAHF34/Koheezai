@@ -84,7 +84,7 @@ function saveState(state: WaFormState): void {
 
 function parseItemId(id: string): { num: string; sub: string } {
   const m = id.match(/^(\d+)([a-z]?)$/);
-  if (!m) return { num: id, sub: "" };
+  if (!m) return { num: "", sub: "" };
   return { num: m[1], sub: m[2] };
 }
 
@@ -122,6 +122,13 @@ function ChecklistRow({ item, response, note, location, onResponse, onNote, onLo
   item: WaItem; response: YNAValue; note: string; location: string;
   onResponse: (v: YNAValue) => void; onNote: (v: string) => void; onLocation: (v: string) => void;
 }) {
+  if (item.noCheckbox) {
+    return (
+      <div className="border-b border-border py-2 bg-muted/20">
+        <p className="text-sm font-semibold px-1 text-foreground">{item.text}</p>
+      </div>
+    );
+  }
   return (
     <div className={`border-b border-border last:border-b-0 py-3 ${item.highlighted ? "bg-blue-50/30 dark:bg-blue-950/20" : ""}`}>
       <div className="flex gap-3 items-start">
@@ -159,9 +166,10 @@ function SectionPanel({ section, state, onResponse, onNote, onLocation }: {
   onLocation: (id: string, v: string) => void;
 }) {
   const [open, setOpen] = useState(true);
-  const answered = section.items.filter((i) => state.responses[i.id] && state.responses[i.id] !== "").length;
-  const total = section.items.length;
-  const hasIssue = section.items.some((i) => state.responses[i.id] === "no");
+  const checkableItems = section.items.filter((i) => !i.noCheckbox);
+  const answered = checkableItems.filter((i) => state.responses[i.id] && state.responses[i.id] !== "").length;
+  const total = checkableItems.length;
+  const hasIssue = checkableItems.some((i) => state.responses[i.id] === "no");
 
   return (
     <div className="border border-border rounded-md overflow-hidden mb-3">
@@ -249,6 +257,24 @@ function PrintRow({ item, resp, note }: { item: WaItem; resp: YNAValue; note: st
   const isHighlighted = item.highlighted;
   const bgStyle = isHighlighted ? { backgroundColor: "#dbeafe" } : {};
 
+  if (item.noCheckbox) {
+    return (
+      <tr style={bgStyle}>
+        <td style={{ textAlign: "center", padding: "2pt", width: "3%" }}>—</td>
+        <td style={{ textAlign: "center", padding: "2pt", width: "3%" }}>—</td>
+        <td style={{ textAlign: "center", padding: "2pt", width: "4%", color: "#aaa" }}>—</td>
+        <td style={{ textAlign: "center", padding: "2pt 4pt", width: "5%" }}>{num || ""}</td>
+        <td style={{ padding: "2pt 4pt", width: "34%", fontSize: "8pt", lineHeight: "1.25", fontWeight: "bold" }}>
+          {item.text}
+        </td>
+        <td style={{ padding: "2pt 4pt", width: "36%", fontSize: "7.5pt", lineHeight: "1.2", color: "#222" }}>
+          {item.rule || ""}
+        </td>
+        <td style={{ padding: "2pt 4pt", width: "15%", fontSize: "8pt", color: "#333" }}>{"\u00a0"}</td>
+      </tr>
+    );
+  }
+
   return (
     <tr style={bgStyle}>
       <td style={{ textAlign: "center", padding: "2pt", width: "3%" }}><Chk checked={resp === "yes"} /></td>
@@ -315,7 +341,7 @@ export default function WaInspection() {
     setState((s) => ({ ...s, docLocations: { ...s.docLocations, [id]: v } }));
   }
 
-  const allItems = WA_SECTIONS.flatMap((s) => s.items);
+  const allItems = WA_SECTIONS.flatMap((s) => s.items.filter((i) => !i.noCheckbox));
   const totalItems = allItems.length;
   const answeredItems = allItems.filter((i) => state.responses[i.id] && state.responses[i.id] !== "").length;
   const noItems = allItems.filter((i) => state.responses[i.id] === "no").length;
@@ -332,7 +358,7 @@ export default function WaInspection() {
           .wa-screen-only { display: none !important; }
           .wa-print-only { display: block !important; }
           @page {
-            size: letter;
+            size: letter portrait;
             margin: 0.55in 0.55in 0.6in 0.55in;
           }
           .wa-page-break { page-break-before: always; break-before: page; }
