@@ -129,6 +129,7 @@ const PROFILE_MAP: Record<string, ProfileEntry> = {
     siteName: "RX Pike Street",
     region: "Western Region",
     taskRoles: ["data_entry_tech"],
+    additionalSites: [{ siteId: "1310", siteName: "RX Tacoma" }],
   },
   "pairiss.wilcox@aidshealth.org": {
     name: "Pairiss Wilcox",
