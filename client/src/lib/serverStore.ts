@@ -215,15 +215,28 @@ function installInterceptor() {
 
   Storage.prototype.setItem = function (key: string, value: string) {
     originalSetItem.call(this, key, value);
-    if (this === window.localStorage && !suppressPush && activeSiteId && TRACKED.has(key)) {
-      schedulePush(key);
+    if (this === window.localStorage && activeSiteId && TRACKED.has(key)) {
+      if (suppressPush) {
+        // Hydration is writing to localStorage right now. We can't push yet,
+        // but we must record it as pending so it gets re-pushed once hydration
+        // finishes — otherwise a write during the suppressPush window is lost.
+        markPending(activeSiteId, key);
+        dirtyKeys.add(key);
+      } else {
+        schedulePush(key);
+      }
     }
   };
 
   Storage.prototype.removeItem = function (key: string) {
     originalRemoveItem.call(this, key);
-    if (this === window.localStorage && !suppressPush && activeSiteId && TRACKED.has(key)) {
-      schedulePush(key);
+    if (this === window.localStorage && activeSiteId && TRACKED.has(key)) {
+      if (suppressPush) {
+        markPending(activeSiteId, key);
+        dirtyKeys.add(key);
+      } else {
+        schedulePush(key);
+      }
     }
   };
 

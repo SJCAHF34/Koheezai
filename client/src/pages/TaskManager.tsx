@@ -4490,7 +4490,12 @@ export default function TaskManager() {
       else if (viewingRole === "own") roleFilter = "director";
       else roleFilter = viewingRole as string;
     } else {
-      roleFilter = profile.role;
+      // Non-directors: do NOT filter by role when loading completions.
+      // Task IDs are unique across roles, so there is no collision risk.
+      // Filtering by profile.role (e.g. "data_entry_tech") silently drops
+      // completions saved with a different task role (e.g. "pv2_tech") that
+      // the same user sees via their extraRoles — causing same-day unchecking.
+      roleFilter = undefined;
     }
     if (frequency === "all" || frequency === "daily") {
       // Merge completions across every cadence so the "All tasks" view (and

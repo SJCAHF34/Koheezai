@@ -142,10 +142,46 @@ function readCompletions(): TaskCompletion[] {
   }
 }
 
+/** Maximum age to keep completion records, keyed by frequency.
+ *  Tombstones (deleted:true) are pruned after one extra period so they have
+ *  time to propagate through the server LWW merge before being discarded. */
+const COMPLETION_LOOKBACK_DAYS: Partial<Record<TaskFrequency | "one_time", number>> = {
+  daily:     90,
+  weekly:    200,
+  biweekly:  200,
+  monthly:   550,
+  quarterly: 730,
+  biannual:  730,
+  annual:    1825,
+  one_time:  1825,
+};
+
+function pruneCompletions(completions: TaskCompletion[]): TaskCompletion[] {
+  const now = Date.now();
+  return completions.filter((c) => {
+    const days = COMPLETION_LOOKBACK_DAYS[c.period === "one-time" ? "one_time" : (c.period.includes("Q") ? "quarterly" : c.period.includes("H") ? "biannual" : c.period.includes("W") ? "weekly" : c.period.includes("BW") ? "biweekly" : /^\d{4}$/.test(c.period) ? "annual" : /^\d{4}-\d{2}$/.test(c.period) ? "monthly" : "daily")];
+    if (!days) return true;
+    const ref = c.updatedAt ?? c.completedAt;
+    if (!ref) return false;
+    return (now - new Date(ref).getTime()) < days * 86400000;
+  });
+}
+
 function writeCompletions(completions: TaskCompletion[]): void {
+  const pruned = pruneCompletions(completions);
   try {
-    localStorage.setItem(COMPLETIONS_KEY, JSON.stringify(completions));
-  } catch {}
+    localStorage.setItem(COMPLETIONS_KEY, JSON.stringify(pruned));
+  } catch {
+    // Quota exceeded even after pruning — try writing only the most recent 500 records
+    try {
+      const recent = [...pruned].sort((a, b) =>
+        (b.updatedAt ?? b.completedAt ?? "").localeCompare(a.updatedAt ?? a.completedAt ?? "")
+      ).slice(0, 500);
+      localStorage.setItem(COMPLETIONS_KEY, JSON.stringify(recent));
+    } catch {
+      // Storage completely unavailable — nothing more we can do
+    }
+  }
 }
 
 export function loadCompletions(
