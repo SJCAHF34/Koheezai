@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Send, RefreshCw, AlertTriangle, CheckCircle2, XCircle, FileText } from "lucide-react";
+import { Send, RefreshCw, AlertTriangle, CheckCircle2, XCircle, FileText, FlaskConical } from "lucide-react";
 
 interface FaxLogEntry {
   submissionID: string;
@@ -13,6 +13,7 @@ interface FaxLogEntry {
   status: "sent" | "failed";
   sfaxJobId?: string;
   errorMessage?: string;
+  _demo?: boolean;
 }
 
 interface FaxLogResponse {
@@ -31,6 +32,61 @@ function formatTime(iso: string): string {
     minute: "2-digit",
   });
 }
+
+function daysAgo(d: number): string {
+  return new Date(Date.now() - d * 86400000).toISOString();
+}
+
+const DEMO_ENTRIES: FaxLogEntry[] = [
+  {
+    submissionID: "DEMO-10042",
+    patientName: "Marcus T.",
+    submittedAt: daysAgo(0.3),
+    status: "sent",
+    sfaxJobId: "SFX-88214",
+    _demo: true,
+  },
+  {
+    submissionID: "DEMO-20187",
+    patientName: "Diana R.",
+    submittedAt: daysAgo(1.1),
+    status: "sent",
+    sfaxJobId: "SFX-88197",
+    _demo: true,
+  },
+  {
+    submissionID: "DEMO-30561",
+    patientName: "James F.",
+    submittedAt: daysAgo(2.4),
+    status: "failed",
+    errorMessage: "sFax API key not configured — demo mode only.",
+    _demo: true,
+  },
+  {
+    submissionID: "DEMO-40093",
+    patientName: "Sofia M.",
+    submittedAt: daysAgo(3.7),
+    status: "sent",
+    sfaxJobId: "SFX-88001",
+    _demo: true,
+  },
+  {
+    submissionID: "DEMO-50329",
+    patientName: "Kevin A.",
+    submittedAt: daysAgo(5.0),
+    status: "failed",
+    errorMessage: "JotForm API key not configured — demo mode only.",
+    _demo: true,
+  },
+  {
+    submissionID: "DEMO-60714",
+    patientName: "Priya N.",
+    submittedAt: daysAgo(6.5),
+    status: "sent",
+    sfaxJobId: "SFX-87944",
+    _demo: true,
+  },
+];
 
 export default function FaxLog() {
   const { toast } = useToast();
@@ -60,10 +116,27 @@ export default function FaxLog() {
     },
   });
 
-  const entries = data?.entries ?? [];
   const config = data?.config;
+  const isDemoMode = !config?.ok;
+  const liveEntries = data?.entries ?? [];
+  const entries: FaxLogEntry[] = isDemoMode && liveEntries.length === 0
+    ? DEMO_ENTRIES
+    : liveEntries;
+
   const sentCount = entries.filter((e) => e.status === "sent").length;
   const failedCount = entries.filter((e) => e.status === "failed").length;
+
+  function handleRetry(entry: FaxLogEntry) {
+    if (entry._demo) {
+      toast({
+        title: "API keys required",
+        description: "Configure SFAX_API_KEY, JOTFORM_API_KEY, and ICQ_FAX_NUMBER to enable live faxing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    retryMutation.mutate(entry.submissionID);
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -72,11 +145,19 @@ export default function FaxLog() {
           <Send className="w-5 h-5 text-purple-600" />
         </div>
         <div>
-          <h1 className="text-xl font-bold" data-testid="text-faxlog-title">
-            Fax Log
-          </h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl font-bold" data-testid="text-faxlog-title">
+              PCCSA Depository
+            </h1>
+            {isDemoMode && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 tracking-wide uppercase border border-amber-200 dark:border-amber-700 flex items-center gap-1">
+                <FlaskConical className="w-3 h-3" />
+                Demo Mode
+              </span>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">
-            Auto-faxed Patient Service Agreements sent to the McKesson ICQ queue
+            Patient Service Agreements auto-faxed to the McKesson ICQ queue
           </p>
         </div>
       </div>
@@ -90,7 +171,7 @@ export default function FaxLog() {
           <div className="text-sm text-amber-800 dark:text-amber-200">
             Auto-fax is not fully configured. Missing secrets:{" "}
             <span className="font-medium">{config.missing.join(", ")}</span>. Faxes will fail until these
-            are added.
+            are added. The table below shows demo data for illustration.
           </div>
         </div>
       )}
@@ -99,7 +180,7 @@ export default function FaxLog() {
         <Card>
           <CardContent className="pt-5">
             <div className="text-2xl font-bold" data-testid="stat-total">{entries.length}</div>
-            <div className="text-xs text-muted-foreground mt-1">Total attempts</div>
+            <div className="text-xs text-muted-foreground mt-1">Total submissions</div>
           </CardContent>
         </Card>
         <Card>
@@ -118,7 +199,9 @@ export default function FaxLog() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-base">Recent Faxes</CardTitle>
+          <CardTitle className="text-base">
+            Recent Submissions{isDemoMode && <span className="ml-2 text-xs font-normal text-muted-foreground">(sample data)</span>}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -126,7 +209,7 @@ export default function FaxLog() {
           ) : entries.length === 0 ? (
             <div className="py-10 text-center" data-testid="empty-faxlog">
               <FileText className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No faxes yet.</p>
+              <p className="text-sm text-muted-foreground">No submissions yet.</p>
               <p className="text-xs text-muted-foreground mt-1">
                 New Patient Service Agreement submissions will appear here automatically.
               </p>
@@ -140,7 +223,7 @@ export default function FaxLog() {
                   className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border px-4 py-3"
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {entry.status === "sent" ? (
                         <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
                       ) : (
@@ -149,6 +232,9 @@ export default function FaxLog() {
                       <span className="font-medium truncate" data-testid={`text-patient-${entry.submissionID}`}>
                         {entry.patientName}
                       </span>
+                      {entry._demo && (
+                        <span className="text-[10px] text-muted-foreground font-mono">{entry.submissionID}</span>
+                      )}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
                       {formatTime(entry.submittedAt)}
@@ -178,7 +264,7 @@ export default function FaxLog() {
                         size="sm"
                         variant="outline"
                         data-testid={`button-retry-${entry.submissionID}`}
-                        onClick={() => retryMutation.mutate(entry.submissionID)}
+                        onClick={() => handleRetry(entry)}
                         disabled={retryMutation.isPending}
                       >
                         <RefreshCw

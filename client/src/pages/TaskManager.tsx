@@ -208,7 +208,7 @@ const FREQUENCY_TABS: { value: TaskFrequency; label: string; sub: string }[] = [
   { value: "biweekly", label: "Biweekly", sub: "Every other week" },
   { value: "monthly", label: "Monthly", sub: "This month" },
   { value: "quarterly", label: "Quarterly", sub: "This quarter" },
-  { value: "biannual", label: "Bi-Annual", sub: "This half-year" },
+  { value: "biannual", label: "Biennial", sub: "This half-year" },
   { value: "one_time", label: "One-Time", sub: "Ad hoc tasks" },
 ];
 
@@ -4158,7 +4158,7 @@ const FREQ_LABEL: Record<string, string> = {
   biweekly: "Biweekly",
   monthly: "Monthly",
   quarterly: "Quarterly",
-  biannual: "Bi-Annual",
+  biannual: "Biennial",
   annual: "Annual",
   one_time: "One-Time",
 };

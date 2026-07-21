@@ -420,7 +420,7 @@ function AppNav() {
             <NavMenuItem href="/app/controlled-inventory" icon={ShieldCheck} label="Controlled Inv Mgmt" testId="nav-controlled-inventory" onClick={close} />
 
             {showFaxLog && (
-              <NavMenuItem href="/app/fax-log" icon={Send} label="Fax Log" testId="nav-fax-log" onClick={close} />
+              <NavMenuItem href="/app/fax-log" icon={Send} label="PCCSA Depository" testId="nav-fax-log" onClick={close} />
             )}
 
             <NavMenuItem href="/app/pharmacy-directory" icon={BookMarked} label="Pharmacy Directory" testId="nav-pharmacy-directory" onClick={close} />

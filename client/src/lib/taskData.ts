@@ -819,9 +819,9 @@ export const TASKS: PharmacyTask[] = [
     role: "director",
     frequency: "biannual",
     category: "state_board",
-    taskGroup: "Bi-Annual",
+    taskGroup: "Biennial",
     url: "/app/controlled-inventory?tab=biannual",
-    urlLabel: "Open Bi-Annual Count",
+    urlLabel: "Open Biennial Count",
   },
   // Retention
   {

@@ -769,7 +769,7 @@ export function CreateTaskModal({
                   <SelectItem value="biweekly">Biweekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
                   <SelectItem value="quarterly">Quarterly</SelectItem>
-                  {builtinEdit && <SelectItem value="biannual">Bi-Annual</SelectItem>}
+                  {builtinEdit && <SelectItem value="biannual">Biennial</SelectItem>}
                 </SelectContent>
               </Select>
             </div>

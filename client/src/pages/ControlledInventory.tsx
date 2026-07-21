@@ -153,7 +153,7 @@ export default function ControlledInventory() {
             Controlled Inventory Management
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Per-store perpetual inventory, adjustment ledger, and bi-annual
+            Per-store perpetual inventory, adjustment ledger, and biennial
             controlled-substance count for DEA Schedules II – V.
           </p>
         </div>
@@ -198,7 +198,7 @@ export default function ControlledInventory() {
             <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
             <span>
               Only pharmacists can adjust the perpetual inventory or finalize a
-              bi-annual count. You can view all data below.
+              biennial count. You can view all data below.
             </span>
           </CardContent>
         </Card>
@@ -213,7 +213,7 @@ export default function ControlledInventory() {
           </TabsTrigger>
           <TabsTrigger value="biannual" data-testid="tab-biannual">
             <ClipboardCheck className="w-4 h-4 mr-1.5" />
-            Bi-Annual Count
+            Biennial Count
           </TabsTrigger>
           <TabsTrigger value="ledger" data-testid="tab-ledger">
             <History className="w-4 h-4 mr-1.5" />
@@ -949,7 +949,7 @@ function BiAnnualPanel({ siteId, canEdit, performerName, performerRole, onChange
           <div>
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="w-5 h-5" />
-              Bi-Annual Controlled Substance Count
+              Biennial Controlled Substance Count
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               Required physical count of every C-II–C-V drug. Current period: <strong>{period}</strong>.
@@ -967,7 +967,7 @@ function BiAnnualPanel({ siteId, canEdit, performerName, performerRole, onChange
         {counts.length === 0 ? (
           <div className="text-center py-10 text-sm text-muted-foreground">
             <ClipboardCheck className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            No bi-annual counts on file for this store yet.
+            No biennial counts on file for this store yet.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-md border">
@@ -1014,7 +1014,7 @@ function BiAnnualPanel({ siteId, canEdit, performerName, performerRole, onChange
                               variant="ghost"
                               title="Discard count"
                               onClick={() => {
-                                if (confirm("Discard this in-progress bi-annual count?")) {
+                                if (confirm("Discard this in-progress biennial count?")) {
                                   deleteBiAnnualCount(c.id);
                                   onChanged();
                                 }
@@ -1168,7 +1168,7 @@ function BiAnnualEditor({ count, canEdit, performerName, performerRole, onClose,
           <div>
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="w-5 h-5" />
-              Bi-Annual Count {count.completedAt ? "(Completed)" : "(In progress)"}
+              Biennial Count {count.completedAt ? "(Completed)" : "(In progress)"}
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               Started {formatDateTime(count.startedAt)} by {count.performedBy}
