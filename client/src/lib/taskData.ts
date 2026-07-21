@@ -814,8 +814,8 @@ export const TASKS: PharmacyTask[] = [
   },
   {
     id: "sb-b-001",
-    title: "Bi-annual controlled substance count (C-II–C-V)",
-    description: "Complete the bi-annual physical count of all controlled substances (Schedules II–V) for this store. Reconcile any discrepancies in the perpetual inventory and finalize the count for the current half-year period (H1: Jan–Jun, H2: Jul–Dec).",
+    title: "Biennial controlled substance count (C-II–C-V)",
+    description: "Complete the biennial physical count of all controlled substances (Schedules II–V) for this store. Reconcile any discrepancies in the perpetual inventory and finalize the count for the current half-year period (H1: Jan–Jun, H2: Jul–Dec).",
     role: "director",
     frequency: "biannual",
     category: "state_board",

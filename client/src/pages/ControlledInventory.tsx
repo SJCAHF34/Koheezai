@@ -1099,7 +1099,7 @@ function BiAnnualEditor({ count, canEdit, performerName, performerRole, onClose,
 
   function saveDraft() {
     persist();
-    toast({ title: "Draft saved", description: "Bi-annual count saved as in-progress." });
+    toast({ title: "Draft saved", description: "Biennial count saved as in-progress." });
     onChanged();
   }
 
@@ -1150,13 +1150,13 @@ function BiAnnualEditor({ count, canEdit, performerName, performerRole, onClose,
         type: e.variance > 0 ? "Addition" : "Subtraction",
         quantity: Math.abs(e.variance),
         countAfter: e.actualCount,
-        reason: `Bi-annual count reconciliation (${count.id})`,
+        reason: `Biennial count reconciliation (${count.id})`,
         performedBy: performerName,
         performedByRole: performerRole,
         performedAt: now,
       });
     });
-    toast({ title: "Bi-annual count complete", description: "Inventory reconciled to physical count." });
+    toast({ title: "Biennial count complete", description: "Inventory reconciled to physical count." });
     onChanged();
     onClose();
   }
@@ -1515,7 +1515,7 @@ function AddCustomNdcDialog({ open, onOpenChange, onSaved }: AddCustomNdcDialogP
       });
       toast({
         title: "NDC added to catalog",
-        description: `${saved.name} (${saved.ndc}) is now searchable from Add NDC and the bi-annual count.`,
+        description: `${saved.name} (${saved.ndc}) is now searchable from Add NDC and the biennial count.`,
       });
       onSaved();
     } catch (err) {
@@ -1539,7 +1539,7 @@ function AddCustomNdcDialog({ open, onOpenChange, onSaved }: AddCustomNdcDialogP
           <DialogDescription>
             Register a controlled-substance NDC that isn't in the built-in
             catalog. Once saved it can be searched from the perpetual inventory
-            and is included in the next bi-annual count.
+            and is included in the next biennial count.
           </DialogDescription>
         </DialogHeader>
 

@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Send, RefreshCw, AlertTriangle, CheckCircle2, XCircle, FileText, FlaskConical } from "lucide-react";
+import { Send, RefreshCw, AlertTriangle, CheckCircle2, XCircle, FileText, FlaskConical, Clock } from "lucide-react";
 
 interface FaxLogEntry {
   submissionID: string;
   patientName: string;
   submittedAt: string;
-  status: "sent" | "failed";
+  status: "sent" | "failed" | "pending";
   sfaxJobId?: string;
   errorMessage?: string;
   _demo?: boolean;
@@ -82,8 +82,7 @@ const DEMO_ENTRIES: FaxLogEntry[] = [
     submissionID: "DEMO-60714",
     patientName: "Priya N.",
     submittedAt: daysAgo(6.5),
-    status: "sent",
-    sfaxJobId: "SFX-87944",
+    status: "pending",
     _demo: true,
   },
 ];
@@ -125,6 +124,7 @@ export default function FaxLog() {
 
   const sentCount = entries.filter((e) => e.status === "sent").length;
   const failedCount = entries.filter((e) => e.status === "failed").length;
+  const pendingCount = entries.filter((e) => e.status === "pending").length;
 
   function handleRetry(entry: FaxLogEntry) {
     if (entry._demo) {
@@ -176,17 +176,23 @@ export default function FaxLog() {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3 mt-6">
+      <div className="grid grid-cols-4 gap-3 mt-6">
         <Card>
           <CardContent className="pt-5">
             <div className="text-2xl font-bold" data-testid="stat-total">{entries.length}</div>
-            <div className="text-xs text-muted-foreground mt-1">Total submissions</div>
+            <div className="text-xs text-muted-foreground mt-1">Total</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-5">
             <div className="text-2xl font-bold text-green-600" data-testid="stat-sent">{sentCount}</div>
             <div className="text-xs text-muted-foreground mt-1">Sent</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5">
+            <div className="text-2xl font-bold text-amber-500" data-testid="stat-pending">{pendingCount}</div>
+            <div className="text-xs text-muted-foreground mt-1">Pending</div>
           </CardContent>
         </Card>
         <Card>
@@ -226,6 +232,8 @@ export default function FaxLog() {
                     <div className="flex items-center gap-2 flex-wrap">
                       {entry.status === "sent" ? (
                         <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                      ) : entry.status === "pending" ? (
+                        <Clock className="w-4 h-4 text-amber-500 shrink-0" />
                       ) : (
                         <XCircle className="w-4 h-4 text-red-500 shrink-0" />
                       )}
@@ -253,6 +261,10 @@ export default function FaxLog() {
                     {entry.status === "sent" ? (
                       <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                         Sent
+                      </Badge>
+                    ) : entry.status === "pending" ? (
+                      <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                        Pending
                       </Badge>
                     ) : (
                       <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
