@@ -164,7 +164,8 @@ function AthenaPatientLookup({ onPopulate }: AthenaLookupProps) {
         (p) =>
           p.name.toLowerCase().includes(query.toLowerCase()) ||
           p.athenaId.toLowerCase().includes(query.toLowerCase()) ||
-          p.primaryDx.toLowerCase().includes(query.toLowerCase())
+          p.primaryDx.toLowerCase().includes(query.toLowerCase()) ||
+          p.dob.includes(query.trim())
       )
     : ATHENA_DEMO_PATIENTS;
 
