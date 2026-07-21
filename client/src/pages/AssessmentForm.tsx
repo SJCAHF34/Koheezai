@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, BookOpen, ExternalLink, Copy, Check, FileText, Save, ShieldAlert, AlertTriangle, Info } from "lucide-react";
+import { Loader2, BookOpen, ExternalLink, Copy, Check, FileText, Save, ShieldAlert, AlertTriangle, Info, Search, UserRound, FlaskConical, Plug, ChevronDown, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import NoteConsentModal from "@/components/NoteConsentModal";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,355 @@ import {
 } from "@/lib/patientStorage";
 
 const GRADIENT = "linear-gradient(135deg, #7c3aed, #9333ea)";
+
+// ── Athena EMR Demo Data ───────────────────────────────────────────────────
+interface AthenaPatient {
+  athenaId: string;
+  name: string;
+  dob: string;
+  age: number;
+  sex: string;
+  mode: "hiv" | "prep";
+  pregnancy: "yes" | "no" | "unknown";
+  hlab5701: "positive" | "negative" | "unknown";
+  treatmentStatus: "naive" | "experienced";
+  viralLoad?: number;
+  cd4Count?: number;
+  egfr?: number;
+  hepaticFunction: "normal" | "mild" | "moderate" | "severe";
+  selectedDrugs: string[];
+  regimenMode: "new" | "change";
+  concomitantMeds: string[];
+  medicationAllergies: string;
+  geneticResistanceNotes?: string;
+  caseManager?: string;
+  insurancePlan?: string;
+  primaryDx: string;
+  lastVisit: string;
+}
+
+const ATHENA_DEMO_PATIENTS: AthenaPatient[] = [
+  {
+    athenaId: "ATH-10042",
+    name: "Marcus T.",
+    dob: "04/12/1977",
+    age: 47,
+    sex: "Male",
+    mode: "hiv",
+    pregnancy: "no",
+    hlab5701: "negative",
+    treatmentStatus: "experienced",
+    viralLoad: 20,
+    cd4Count: 412,
+    egfr: 68,
+    hepaticFunction: "normal",
+    selectedDrugs: ["Biktarvy (bictegravir/TAF/FTC)"],
+    regimenMode: "change",
+    concomitantMeds: ["Atorvastatin 40mg", "Metformin 1000mg", "Lisinopril 10mg"],
+    medicationAllergies: "Penicillin",
+    geneticResistanceNotes: "K65R mutation documented 2019. No integrase resistance on file.",
+    caseManager: "Sarah Okonkwo (AHF Care Services) — (206) 555-0193",
+    insurancePlan: "Medicaid",
+    primaryDx: "HIV-1 infection, undetectable",
+    lastVisit: "06/28/2026",
+  },
+  {
+    athenaId: "ATH-20187",
+    name: "Diana R.",
+    dob: "09/03/1990",
+    age: 34,
+    sex: "Female",
+    mode: "hiv",
+    pregnancy: "unknown",
+    hlab5701: "unknown",
+    treatmentStatus: "naive",
+    viralLoad: 48000,
+    cd4Count: 285,
+    egfr: 92,
+    hepaticFunction: "normal",
+    selectedDrugs: [],
+    regimenMode: "new",
+    concomitantMeds: ["Sertraline 100mg", "Norethindrone-ethinyl estradiol (oral contraceptive)"],
+    medicationAllergies: "NKDA",
+    geneticResistanceNotes: "",
+    insurancePlan: "AHF Pharmacy Assistance",
+    primaryDx: "HIV-1 infection, newly diagnosed",
+    lastVisit: "07/10/2026",
+  },
+  {
+    athenaId: "ATH-30561",
+    name: "James F.",
+    dob: "11/17/1962",
+    age: 62,
+    sex: "Male",
+    mode: "hiv",
+    pregnancy: "no",
+    hlab5701: "negative",
+    treatmentStatus: "experienced",
+    viralLoad: 125000,
+    cd4Count: 198,
+    egfr: 38,
+    hepaticFunction: "mild",
+    selectedDrugs: ["Descovy (TAF/FTC)", "Isentress (raltegravir)"],
+    regimenMode: "change",
+    concomitantMeds: ["Amlodipine 10mg", "Omeprazole 20mg", "Rifampin 600mg"],
+    medicationAllergies: "Sulfa drugs",
+    geneticResistanceNotes: "M184V confirmed. Multiple thymidine analog mutations (TAMs). Consult ID re: virologic failure.",
+    caseManager: "David Park (AHF) — (310) 555-0287",
+    insurancePlan: "Medicare Part D",
+    primaryDx: "HIV-1 infection, virologic failure on current regimen",
+    lastVisit: "07/14/2026",
+  },
+  {
+    athenaId: "ATH-40093",
+    name: "Sofia M.",
+    dob: "03/22/1998",
+    age: 26,
+    sex: "Female",
+    mode: "prep",
+    pregnancy: "unknown",
+    hlab5701: "unknown",
+    treatmentStatus: "naive",
+    egfr: 102,
+    hepaticFunction: "normal",
+    selectedDrugs: [],
+    regimenMode: "new",
+    concomitantMeds: ["Ibuprofen 400mg PRN"],
+    medicationAllergies: "NKDA",
+    insurancePlan: "Private — Blue Shield PPO",
+    primaryDx: "PrEP candidate — high-risk exposure history",
+    lastVisit: "07/15/2026",
+  },
+];
+
+// ── Athena Patient Lookup Panel ────────────────────────────────────────────
+interface AthenaLookupProps {
+  onPopulate: (patient: AthenaPatient) => void;
+}
+
+function AthenaPatientLookup({ onPopulate }: AthenaLookupProps) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<AthenaPatient | null>(null);
+  const [populated, setPopulated] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const matches = query.trim().length > 0
+    ? ATHENA_DEMO_PATIENTS.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query.toLowerCase()) ||
+          p.athenaId.toLowerCase().includes(query.toLowerCase()) ||
+          p.primaryDx.toLowerCase().includes(query.toLowerCase())
+      )
+    : ATHENA_DEMO_PATIENTS;
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+        inputRef.current && !inputRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const handleSelect = (p: AthenaPatient) => {
+    setSelected(p);
+    setQuery(p.name);
+    setOpen(false);
+    setPopulated(false);
+  };
+
+  const handlePopulate = () => {
+    if (!selected) return;
+    onPopulate(selected);
+    setPopulated(true);
+  };
+
+  const handleClear = () => {
+    setSelected(null);
+    setQuery("");
+    setPopulated(false);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  return (
+    <Card className="border-purple-200 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-950/20">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Plug className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            Athena EMR — Patient Lookup
+          </CardTitle>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 tracking-wide uppercase border border-amber-200 dark:border-amber-700">
+            Demo Mode
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Search by patient name or Athena ID to auto-populate clinical fields. Live API key not yet configured.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Search input */}
+        <div className="relative">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-background focus-within:border-purple-400 focus-within:ring-1 focus-within:ring-purple-300">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              data-testid="input-athena-search"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setOpen(true); setSelected(null); setPopulated(false); }}
+              onFocus={() => setOpen(true)}
+              placeholder="Search name or Athena ID…"
+              className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+            />
+            {query && (
+              <button type="button" onClick={handleClear} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+          </div>
+
+          {/* Dropdown */}
+          {open && (
+            <div
+              ref={dropdownRef}
+              className="absolute z-50 top-full mt-1 left-0 right-0 rounded-md border border-border bg-popover shadow-md overflow-hidden"
+            >
+              {matches.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-muted-foreground">No patients found</div>
+              ) : (
+                matches.map((p) => (
+                  <button
+                    key={p.athenaId}
+                    type="button"
+                    data-testid={`option-athena-patient-${p.athenaId}`}
+                    onClick={() => handleSelect(p)}
+                    className="w-full text-left px-4 py-2.5 hover-elevate flex items-start gap-3 border-b border-border last:border-0"
+                  >
+                    <UserRound className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-foreground">{p.name}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">{p.athenaId}</span>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${p.mode === "prep" ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400" : "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400"}`}>
+                          {p.mode === "prep" ? "PrEP" : "HIV"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{p.primaryDx}</p>
+                      <p className="text-xs text-muted-foreground">DOB {p.dob} · {p.sex} · Last visit {p.lastVisit}</p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Selected patient card */}
+        {selected && (
+          <div className="rounded-md border border-border bg-background p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold text-sm text-foreground">{selected.name}</p>
+                  <span className="text-xs font-mono text-muted-foreground">{selected.athenaId}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${selected.mode === "prep" ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400" : "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400"}`}>
+                    {selected.mode === "prep" ? "PrEP" : "HIV"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{selected.primaryDx}</p>
+                <p className="text-xs text-muted-foreground">DOB {selected.dob} · {selected.sex} · {selected.age} yo · Last visit {selected.lastVisit}</p>
+              </div>
+              {populated && (
+                <span className="flex items-center gap-1 text-xs text-green-700 dark:text-green-400 font-semibold">
+                  <Check className="w-3.5 h-3.5" />
+                  Form populated
+                </span>
+              )}
+            </div>
+
+            {/* Clinical snapshot */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {selected.mode === "hiv" && selected.cd4Count !== undefined && (
+                <div className="rounded-md bg-muted/60 px-2.5 py-2">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">CD4</p>
+                  <p className="text-sm font-semibold text-foreground">{selected.cd4Count}<span className="text-[10px] text-muted-foreground font-normal ml-0.5">cells/µL</span></p>
+                </div>
+              )}
+              {selected.mode === "hiv" && selected.viralLoad !== undefined && (
+                <div className="rounded-md bg-muted/60 px-2.5 py-2">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Viral Load</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {selected.viralLoad <= 20 ? "<20" : selected.viralLoad.toLocaleString()}
+                    <span className="text-[10px] text-muted-foreground font-normal ml-0.5">cp/mL</span>
+                  </p>
+                </div>
+              )}
+              {selected.egfr !== undefined && (
+                <div className="rounded-md bg-muted/60 px-2.5 py-2">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">eGFR</p>
+                  <p className={`text-sm font-semibold ${selected.egfr < 45 ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>
+                    {selected.egfr}<span className="text-[10px] text-muted-foreground font-normal ml-0.5">mL/min</span>
+                  </p>
+                </div>
+              )}
+              <div className="rounded-md bg-muted/60 px-2.5 py-2">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Hepatic</p>
+                <p className="text-sm font-semibold text-foreground capitalize">{selected.hepaticFunction}</p>
+              </div>
+            </div>
+
+            {/* Meds + allergies snapshot */}
+            <div className="space-y-1.5">
+              {selected.selectedDrugs.length > 0 && (
+                <div className="flex items-start gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mt-0.5">ARV:</span>
+                  {selected.selectedDrugs.map((d) => (
+                    <span key={d} className="text-[11px] px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 font-medium">{d}</span>
+                  ))}
+                </div>
+              )}
+              {selected.concomitantMeds.length > 0 && (
+                <div className="flex items-start gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mt-0.5">Meds:</span>
+                  {selected.concomitantMeds.map((m) => (
+                    <span key={m} className="text-[11px] px-1.5 py-0.5 rounded-full bg-muted text-foreground font-medium">{m}</span>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0">Allergies:</span>
+                <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 font-medium border border-red-100 dark:border-red-900">{selected.medicationAllergies}</span>
+              </div>
+            </div>
+
+            {selected.insurancePlan && (
+              <p className="text-xs text-muted-foreground">Insurance: {selected.insurancePlan}</p>
+            )}
+
+            <button
+              type="button"
+              data-testid="button-athena-populate"
+              onClick={handlePopulate}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-md transition-opacity hover:opacity-90 w-full justify-center sm:w-auto"
+              style={{ backgroundImage: GRADIENT }}
+            >
+              <FlaskConical className="w-4 h-4" />
+              {populated ? "Re-populate Form" : "Populate Form"}
+            </button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 // ── Steps definition ──────────────────────────────────────────────────────
 const STEPS = [
@@ -484,6 +833,32 @@ export default function AssessmentForm() {
     },
   });
 
+  // ── Athena populate handler ────────────────────────────────────────────
+  const handleAthenaPopulate = useCallback((p: AthenaPatient) => {
+    setMode(p.mode);
+    setAge(p.age);
+    setPregnancy(p.pregnancy);
+    setHlab5701(p.hlab5701);
+    setTreatmentStatus(p.treatmentStatus);
+    setViralLoad(p.viralLoad);
+    setCd4Count(p.cd4Count);
+    setEgfr(p.egfr);
+    setHepaticFunction(p.hepaticFunction);
+    setSelectedDrugs(p.selectedDrugs);
+    setRegimenMode(p.regimenMode);
+    setConcomitantMeds(p.concomitantMeds);
+    setMedicationAllergies(p.medicationAllergies);
+    setGeneticResistanceNotes(p.geneticResistanceNotes ?? "");
+    if (p.caseManager) {
+      setCaseManagerStatus("yes");
+      setCaseManagerInfo(p.caseManager);
+    }
+    setAssessmentResult(null);
+    setOeResponse("");
+    setComprehensiveNote(null);
+    toast({ title: "Patient loaded from Athena", description: `${p.name} (${p.athenaId}) — review fields and proceed.` });
+  }, [toast]);
+
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleCreateQuery = () => {
     if (selectedDrugs.length === 0) {
@@ -743,6 +1118,9 @@ export default function AssessmentForm() {
             <section>
               <SectionLabel num={1} label="Input Clinical Details" active={activeStep === 1} />
               <div className="space-y-6 mt-4">
+                {/* Athena EMR lookup */}
+                <AthenaPatientLookup onPopulate={handleAthenaPopulate} />
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <PatientDemographics
                     age={age}
