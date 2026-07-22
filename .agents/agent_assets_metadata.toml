@@ -24,3 +24,9 @@ id = "wekdpvqrkSf8vY-azA73v"
 uri = "file://koheez-architecture-audit.pdf"
 type = "pdf"
 title = "Koheez.ai — Architecture & Security Assessment v3.0 (July 2026)"
+
+[[outputs]]
+id = "m_vIAUChdb7K91ixQX_oC"
+uri = "file://koheez-informatics-review.pdf"
+type = "pdf"
+title = "Koheez.ai — Technical Architecture & Risk Assessment v4.0 (Director of Informatics)"

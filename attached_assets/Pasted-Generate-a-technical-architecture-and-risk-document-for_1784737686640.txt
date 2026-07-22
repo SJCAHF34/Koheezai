@@ -1,0 +1,76 @@
+Generate a technical architecture and risk document for Koheez.ai, written for 
+a hospital/health-system Director of Informatics conducting a governance and 
+integration review. This document is a work sample demonstrating engineering 
+competency — it will be read by someone whose job is to find what's wrong with 
+it, so accuracy and directness matter more than polish.
+
+Audit the actual codebase for every claim below. Do not describe intended 
+behavior — describe what is actually implemented, and mark anything partial 
+or planned as such explicitly.
+
+STRUCTURE:
+
+1. SYSTEM OVERVIEW
+   - What Koheez does, in one paragraph, no marketing language
+   - Tech stack (languages, frameworks, database, hosting) with version numbers
+   - A simple architecture diagram (can be ASCII/mermaid) showing app layer, 
+     database, external integrations, and where PHI flows
+
+2. DATA ARCHITECTURE
+   - Schema overview: what tables/entities exist, what PHI fields they hold
+   - Data lifecycle: where PHI is created, where it's stored at rest, how 
+     long it's retained, how it's deleted
+   - Environment separation: exactly what's in prod vs dev/staging, and 
+     whether PHI ever touches non-prod
+
+3. AUTHENTICATION & ACCESS CONTROL
+   - Auth method, session handling, password storage (hashing algorithm, 
+     cost factor)
+   - Role/permission model — who can see what
+   - Known gaps (e.g., shared credentials, missing per-user auth, no rate 
+     limiting) stated plainly, not softened
+
+4. INTEGRATIONS
+   - Every external system this connects to (list each one), what data 
+     moves each direction, protocol/auth method, and current status 
+     (production, pilot, planned)
+   - Known reliability issues (lag, sync failures, manual steps)
+
+5. SECURITY POSTURE
+   - Encryption in transit and at rest
+   - Secrets management approach (env vars vs vault, rotation policy)
+   - CSRF/injection/session protections — implemented vs not
+   - Audit logging: what's logged, what isn't
+   - BAA status for every third-party vendor that touches PHI — list vendor, 
+     BAA status (executed/pending/missing), and what data they see
+
+6. RISK REGISTER
+   - A table: Risk | Severity (High/Med/Low) | Current Status | Owner | 
+     Target Resolution
+   - Include every open item honestly, even ones that make the platform 
+     look unfinished — a Director of Informatics will trust an incomplete-but- 
+     honest register far more than a clean one
+
+7. REMEDIATION ROADMAP
+   - Immediate (before next review) / 30-60 days / 60-90 days, tied to the 
+     risk register above
+
+8. GOVERNANCE FIT
+   - How this platform's data handling maps to standard informatics 
+     governance concerns: HIPAA Security Rule technical safeguards, audit 
+     trail requirements, minimum necessary access, vendor BAA management
+   - What formal review/sign-off this platform has NOT yet gone through, 
+     stated directly (e.g., "has not undergone formal security review by 
+     Informatics")
+
+TONE: Written by an engineer, for a technical peer. No sales language, no 
+adjectives like "seamless," "robust," "powerful." State facts and gaps 
+plainly. If something is unverified, say "not verified" rather than assuming 
+it's fine.
+
+FORMAT: Structured document (headers, tables where appropriate) suitable for 
+export to PDF or Word. Include a version number, date, and classification 
+line (e.g., "Internal — Prepared for Informatics Review") at the top.
+
+Base every section on the actual code — reference specific files, routes, 
+or config where relevant so claims are verifiable, not asserted.
