@@ -2741,6 +2741,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
     const newRoster: SiteRoster = { siteId, members };
     saveRoster(newRoster);
     setRoster(newRoster);
+    window.dispatchEvent(new CustomEvent("koheez:roster-changed", { detail: { siteId } }));
     setShowAddForm(false);
     setEditingId(null);
   }
@@ -2808,6 +2809,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
     const newRoster: SiteRoster = { siteId, members: updatedMembers };
     saveRoster(newRoster);
     setRoster(newRoster);
+    window.dispatchEvent(new CustomEvent("koheez:roster-changed", { detail: { siteId } }));
     setShowAddForm(false);
     setEditingId(null);
   }
@@ -2817,6 +2819,7 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
     const newRoster: SiteRoster = { siteId, members: updatedMembers };
     saveRoster(newRoster);
     setRoster(newRoster);
+    window.dispatchEvent(new CustomEvent("koheez:roster-changed", { detail: { siteId } }));
   }
 
   function toggleFormRole(roleVal: string) {
@@ -4460,6 +4463,15 @@ export default function TaskManager() {
     effectiveRawSiteId && isRegionalDir ? effectiveRawSiteId : null;
   const readOnly = false;
 
+  // Increments whenever StaffRosterPanel saves a roster change, so that
+  // any useMemo that reads localStorage rosters re-evaluates immediately.
+  const [rosterVersion, setRosterVersion] = useState(0);
+  useEffect(() => {
+    const handler = () => setRosterVersion((v) => v + 1);
+    window.addEventListener("koheez:roster-changed", handler);
+    return () => window.removeEventListener("koheez:roster-changed", handler);
+  }, []);
+
   const [frequency, setFrequency] = useState<FrequencyView>(
     highlightedTask ? highlightedTask.frequency : "daily"
   );
@@ -4840,7 +4852,7 @@ export default function TaskManager() {
       merged.delete("director");
     }
     return Array.from(merged);
-  }, [profile, siteId]);
+  }, [profile, siteId, rosterVersion]);
 
   // When the cadence selector is set to "All tasks", we union the per-cadence
   // visible lists so the existing per-cadence filtering rules still apply.
