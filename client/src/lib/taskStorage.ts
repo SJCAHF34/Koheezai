@@ -15,6 +15,8 @@ export interface TaskOverride {
   frequency?: TaskFrequency;
   category?: TaskCategory;
   taskGroup?: string;
+  dueDate?: string;
+  hidden?: boolean;
 }
 
 export function loadTaskOverrides(): Record<string, TaskOverride> {
@@ -39,6 +41,8 @@ export function applyTaskOverridesToMemory(): void {
     if (o.frequency !== undefined) task.frequency = o.frequency;
     if (o.category !== undefined) task.category = o.category;
     if (o.taskGroup !== undefined) task.taskGroup = o.taskGroup;
+    if (o.dueDate !== undefined) task.dueDate = o.dueDate;
+    if (o.hidden !== undefined) task.hidden = o.hidden;
   }
 }
 

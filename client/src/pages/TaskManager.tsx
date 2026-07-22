@@ -933,8 +933,8 @@ function TaskRow({
         </button>
       )}
 
-      {/* Delete custom task button — directors only, custom tasks only */}
-      {task.isCustom && canDeleteCustom && !readOnly && (
+      {/* Delete task button — directors only */}
+      {canDeleteCustom && !readOnly && (
         confirmDelete ? (
           <button
             data-testid={`button-delete-custom-confirm-${task.id}`}
@@ -4677,9 +4677,13 @@ export default function TaskManager() {
   }, [profile, urlSiteId, urgentIds]);
 
   const handleDeleteCustom = useCallback((task: PharmacyTask) => {
-    if (!task.isCustom) return;
-    deleteCustomTask(task.id);
-    setCustomTasks((prev) => prev.filter((t) => t.id !== task.id));
+    if (task.isCustom) {
+      deleteCustomTask(task.id);
+      setCustomTasks((prev) => prev.filter((t) => t.id !== task.id));
+    } else {
+      saveTaskOverride(task.id, { hidden: true });
+      setOverrideVersion((v) => v + 1);
+    }
   }, [siteId]);
 
   // ── Store performance data — always computed (hooks must be unconditional) ──
@@ -5592,6 +5596,7 @@ export default function TaskManager() {
                 frequency: task.frequency,
                 category: task.category,
                 taskGroup: task.taskGroup,
+                dueDate: task.dueDate,
               });
               setOverrideVersion((v) => v + 1);
             }

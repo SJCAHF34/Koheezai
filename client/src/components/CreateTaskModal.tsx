@@ -461,6 +461,7 @@ export function CreateTaskModal({
         frequency: values.frequency,
         category: values.category,
         taskGroup: values.taskGroup || taskToEdit.taskGroup,
+        dueDate: values.dueDate || undefined,
       };
       persistSpreadsheet(taskToEdit.id);
       onUpdated?.(updated);
@@ -855,10 +856,10 @@ export function CreateTaskModal({
           )}
 
           {/* ── Due Date ─────────────────────────────────────────────── */}
-          {!builtinEdit && (
           <div className="space-y-1.5">
             <Label htmlFor="ct-due">
-              Due Date <span className="text-red-500">*</span>
+              Due Date {!builtinEdit && <span className="text-red-500">*</span>}
+              {builtinEdit && <span className="text-muted-foreground font-normal text-xs ml-1">(optional)</span>}
               {watchFrequency !== "one_time" && watchFrequency !== "daily" && (
                 <span className="text-muted-foreground font-normal text-xs ml-1">
                   (repeats {watchFrequency})
@@ -878,7 +879,6 @@ export function CreateTaskModal({
               <p className="text-xs text-red-600">{form.formState.errors.dueDate.message}</p>
             )}
           </div>
-          )}
 
           {/* ── Category + Task Group ────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
