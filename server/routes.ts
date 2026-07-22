@@ -12,7 +12,6 @@ import { checkRenalFunction } from "./lib/renalValidation";
 import { checkHepaticPregnancyFunction } from "./lib/hepaticPregnancyValidation";
 import { generateClinicalRecommendations } from "./lib/clinicalRecommendations";
 import { openEvidenceClient } from "./lib/openEvidence";
-import { checkLiverpoolInteractions, isConfigured as liverpoolConfigured } from "./lib/liverpoolDDI";
 import { isConfigured as adpIsConfigured, getConfigStatus as adpGetConfigStatus } from "./lib/adpClient";
 import { runAdpSync } from "./lib/adpSync";
 import { hivDrugs } from "../client/src/lib/hivDrugs";
@@ -711,34 +710,7 @@ ${audienceHtml}
       await recordAccess(req, "assessment.generate", "assessment");
 
       const localInteractions = checkDrugInteractions(data.selectedDrugs, data.concomitantMeds);
-
-      // ── Liverpool HIV Drug Interactions API (parallel) ───────────────────
-      // Map selected drug IDs → generic names for Liverpool lookup
-      const selectedDrugNames = data.selectedDrugs.map(id => {
-        const drug = hivDrugs.find(d => d.id === id);
-        return drug ? drug.name : id;
-      });
-      const liverpoolResult = await checkLiverpoolInteractions(selectedDrugNames, data.concomitantMeds).catch(() => null);
-
-      // Merge: Liverpool interactions NOT already covered by our rules engine
-      let interactions = localInteractions;
-      let liverpoolNewCount = 0;
-      if (liverpoolResult && liverpoolResult.interactions.length > 0) {
-        const localPairs = new Set(
-          localInteractions.map(i =>
-            [i.drug1.toLowerCase(), i.drug2.toLowerCase()].sort().join("|")
-          )
-        );
-        const newFromLiverpool = liverpoolResult.interactions.filter(li => {
-          const pairKey = [li.drug1.toLowerCase(), li.drug2.toLowerCase()].sort().join("|");
-          return !localPairs.has(pairKey);
-        });
-        liverpoolNewCount = newFromLiverpool.length;
-        interactions = [...localInteractions, ...newFromLiverpool];
-        if (newFromLiverpool.length > 0) {
-          console.log(`[Assessment] Liverpool contributed ${newFromLiverpool.length} new DDI(s)`);
-        }
-      }
+      const interactions = localInteractions;
 
       const renalAlerts = checkRenalFunction(data.selectedDrugs, data.egfr);
       const hepaticPregnancyAlerts = checkHepaticPregnancyFunction(
@@ -910,11 +882,6 @@ ${audienceHtml}
         citations: result.citations,
         sources: result.sources,
         aiProvider: result.provider,
-        liverpoolDDI: {
-          enabled: liverpoolConfigured(),
-          resolvedDrugs: liverpoolResult?.resolvedCount ?? 0,
-          newInteractions: liverpoolNewCount,
-        },
       });
     } catch (error) {
       console.error("Assessment generation error:", error);

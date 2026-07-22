@@ -99,7 +99,6 @@ export const clinicalTools: ToolCard[] = [
       "Add ARV regimen components individually to check all pairwise interactions",
       "Severity ratings: Contraindicated, Serious, Significant, Minor — prioritize Contraindicated and Serious",
       "Subscription required — confirm your institution has UpToDate access before relying on it",
-      "Cross-reference with Liverpool HIV DDI checker for ARV-specific guidance",
     ],
     primaryAction: {
       label: "Open UpToDate DDI Checker",

@@ -16,7 +16,7 @@ The backend is an Express.js (Node.js, TypeScript) RESTful API. The primary `/ap
 
 ### Core Features
 -   **Authentication & Authorization**: Session-based authentication supports hierarchical roles (CPO, RPD, Pharmacy Director, Pharmacy Technician) with corresponding access controls.
--   **Drug Interaction Engine**: An evidence-based engine with over 100 rules for ARV-to-concomitant, ARV-to-ARV, and duplicate therapy interactions, integrating with the Liverpool HIV DDI database. Includes severity levels and clinical recommendations.
+-   **Drug Interaction Engine**: An evidence-based engine with over 100 rules for ARV-to-concomitant, ARV-to-ARV, and duplicate therapy interactions. Includes severity levels and clinical recommendations.
 -   **Clinical Validation**: Modules for renal (eGFR), hepatic/pregnancy (Child-Pugh, Efavirenz), and genetic (HLA-B\*5701) considerations.
 -   **Clinical Recommendations**: Provides evidence-based support for opportunistic infection prophylaxis (PCP, MAC, Toxoplasmosis), viral load assessment, and immunizations per CDC/ACIP guidelines.
 -   **HIV Medication Database**: An internal library of HIV medications, including classifications, generic/brand names, and dosing.
@@ -62,7 +62,6 @@ The Store Performance Dashboard (`/app/store/:siteId`) stats are restricted to *
 ## External Dependencies
 
 -   **OpenAI API**: For AI-powered clinical summaries and consultation questions.
--   **Liverpool HIV Drug Interactions API**: For comprehensive drug interaction data and ratings.
 -   **NIH RxTerms API (Clinical Tables Search Service)**: For medication autocomplete suggestions.
 -   **PostgreSQL Database**: For data persistence, session storage, and user management. Integrates with Neon serverless PostgreSQL.
 -   **Third-Party UI Libraries**: Radix UI, Lucide React, date-fns, Embla Carousel, Cmdk for UI components, iconography, date manipulation, carousels, and command palettes.
