@@ -2699,6 +2699,29 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
   const [formName, setFormName] = useState("");
   const [formRoles, setFormRoles] = useState<string[]>(["data_entry_tech"]);
   const [formRoleDates, setFormRoleDates] = useState<Record<string, { startDate: string; endDate: string }>>({});
+  const [nameDropdownOpen, setNameDropdownOpen] = useState(false);
+
+  // Collect all unique staff names from every roster stored in localStorage
+  const allStaffNames = useMemo(() => {
+    const names = new Set<string>();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith("koheez_roster_")) continue;
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key) ?? "{}") as SiteRoster;
+        for (const m of parsed.members ?? []) {
+          if (m.name?.trim()) names.add(m.name.trim());
+        }
+      } catch {}
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, []);
+
+  const filteredNameSuggestions = useMemo(() => {
+    const q = formName.trim().toLowerCase();
+    if (!q) return allStaffNames;
+    return allStaffNames.filter((n) => n.toLowerCase().includes(q));
+  }, [allStaffNames, formName]);
 
   function handleQuickSetup(techCount: number) {
     const members: StaffMember[] = [];
@@ -2940,14 +2963,35 @@ function StaffRosterPanel({ siteId }: { siteId: string }) {
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
               Staff Name
             </p>
-            <input
-              data-testid="input-roster-name"
-              type="text"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder="e.g., Alex M. or Tech 1"
-              className="w-full text-sm rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 text-foreground placeholder:text-muted-foreground"
-            />
+            <div className="relative">
+              <input
+                data-testid="input-roster-name"
+                type="text"
+                value={formName}
+                onChange={(e) => { setFormName(e.target.value); setNameDropdownOpen(true); }}
+                onFocus={() => setNameDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setNameDropdownOpen(false), 150)}
+                placeholder="Type to search or enter a new name"
+                autoComplete="off"
+                className="w-full text-sm rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 text-foreground placeholder:text-muted-foreground"
+              />
+              {nameDropdownOpen && filteredNameSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover shadow-md">
+                  {filteredNameSuggestions.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { setFormName(name); setNameDropdownOpen(false); }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground text-foreground transition-colors"
+                      data-testid={`roster-name-suggestion-${name.replace(/\s+/g, "-")}`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
