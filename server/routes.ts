@@ -1,5 +1,6 @@
 import express, { type Express } from "express";
 import { createServer, type Server } from "http";
+import rateLimit from "express-rate-limit";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import fs from "fs";
@@ -447,7 +448,15 @@ ${audienceHtml}
     return res.status(401).json({ error: "Not authenticated" });
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: { error: "Too many login attempts. Please try again in 15 minutes." },
+  });
+
+  app.post("/api/auth/login", loginLimiter, async (req, res) => {
     const { email, password } = req.body as { email?: string; password?: string };
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
@@ -460,6 +469,15 @@ ${audienceHtml}
       // Audit failed attempt — resource carries the attempted email (no password logged)
       await recordAccess(req, "auth.login.failure", email.toLowerCase());
       return res.status(401).json({ error: "Invalid email or password" });
+    }
+    // Regenerate the session ID on successful login to prevent session fixation.
+    // The new session ID is set by connect-pg-simple before the response is sent.
+    try {
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => (err ? reject(err) : resolve()));
+      });
+    } catch {
+      return res.status(500).json({ error: "Session error" });
     }
     req.session.userId = found.email;
     req.session.user = { email: found.email, name: found.name };
@@ -1008,7 +1026,7 @@ FORMATTING RULES (strict):
   });
 
   // ── Handoff note generation — converts free text → action bullet items ──
-  app.post("/api/handoff/generate", async (req, res) => {
+  app.post("/api/handoff/generate", requireAuth, async (req, res) => {
     const { text } = req.body as { text?: string };
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return res.status(400).json({ error: "text is required" });
@@ -2160,6 +2178,7 @@ FORMATTING RULES (strict):
     const year = typeof req.query.year === "string" ? req.query.year : undefined;
     const list = await storage.listQaAuditWorkbooks(year);
     const filtered = list.filter((w) => canViewQaAudit(auth.profile, w.siteId));
+    await recordAccess(req, "qa.audit.workbook.list", `year:${year ?? "all"}`);
     return res.json(filtered);
   });
 
@@ -2170,6 +2189,7 @@ FORMATTING RULES (strict):
       return res.status(403).json({ message: "You do not have permission to view this site's audit." });
     }
     const wb = await storage.getQaAuditWorkbook(req.params.siteId, req.params.year);
+    await recordAccess(req, "qa.audit.workbook.read", `site:${req.params.siteId} year:${req.params.year}`);
     return res.json(wb ?? null);
   });
 
@@ -2188,6 +2208,7 @@ FORMATTING RULES (strict):
       return res.status(403).json({ message: "Only the assigned Pharmacy Director may edit this site's audit." });
     }
     const wb = await storage.upsertQaAuditWorkbook(parsed.data, auth.user);
+    await recordAccess(req, "qa.audit.workbook.edit", `site:${req.params.siteId} year:${req.params.year}`);
     return res.json(wb);
   });
 
@@ -2208,6 +2229,7 @@ FORMATTING RULES (strict):
       });
     }
     const wb = await storage.submitQaAuditWorkbook(req.params.siteId, req.params.year, auth.user);
+    await recordAccess(req, "qa.audit.workbook.submit", `site:${req.params.siteId} year:${req.params.year}`);
     return res.json(wb);
   });
 
@@ -2258,6 +2280,7 @@ FORMATTING RULES (strict):
       year: parsed.data.year,
       data: buffer,
     });
+    await recordAccess(req, "qa.audit.evidence.upload", `site:${parsed.data.siteId} year:${parsed.data.year} file:${parsed.data.fileName}`);
     return res.json({
       id: file.id,
       fileName: file.fileName,
@@ -2289,6 +2312,7 @@ FORMATTING RULES (strict):
       "Content-Disposition",
       `${isInlineSafe ? "inline" : "attachment"}; filename="${safeName}"`,
     );
+    await recordAccess(req, "qa.audit.evidence.download", `id:${req.params.id} site:${file.siteId} year:${file.year} file:${file.fileName}`);
     return res.end(file.data);
   });
 

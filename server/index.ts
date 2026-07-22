@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
 import session from "express-session";
 import { randomBytes } from "node:crypto";
 import connectPgSimple from "connect-pg-simple";
@@ -46,6 +47,11 @@ if (isProduction) {
     next();
   });
 }
+
+// Helmet adds security headers (X-Content-Type-Options, HSTS, Referrer-Policy,
+// etc.). We disable frameguard (we use CSP frame-ancestors above instead) and
+// contentSecurityPolicy (managed manually above for Teams compatibility).
+app.use(helmet({ frameguard: false, contentSecurityPolicy: false }));
 
 // Persist sessions in PostgreSQL so logins survive process restarts and
 // redeploys (Aptible recycles the container filesystem). The table is created

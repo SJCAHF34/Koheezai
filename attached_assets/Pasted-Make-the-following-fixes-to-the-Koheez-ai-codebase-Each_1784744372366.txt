@@ -1,0 +1,51 @@
+Make the following fixes to the Koheez.ai codebase. Each is independent — commit 
+separately so they can be reviewed and rolled back individually if needed. Do not 
+touch anything outside what's listed. After each fix, state the file and line 
+changed so it can be verified.
+
+1. SESSION FIXATION (routes.ts, login handler ~line 460-490)
+   After successful password verification and before setting req.session.user, 
+   call req.session.regenerate() and re-set the session data inside its callback. 
+   Confirm the session ID changes between an unauthenticated and authenticated 
+   request from the same browser.
+
+2. SECURITY HEADERS (server/index.ts)
+   Install helmet. Configure it to allow this app to run inside a Microsoft Teams 
+   iframe -- do not use helmet's default frameguard/CSP, which will break Teams 
+   embedding. Explicitly set frame-ancestors to allow Teams domains 
+   (teams.microsoft.com, and any others already referenced in teamsAuth.ts or the 
+   Teams manifest's validDomains). Confirm the app still loads inside Teams after 
+   this change, not just in a browser.
+
+3. RATE LIMITING (server/index.ts or routes.ts, /api/auth/login)
+   Install express-rate-limit. Apply a limiter to POST /api/auth/login: 10 
+   attempts per 15 minutes per IP. Return 429 on threshold. Do not apply this 
+   limiter to other routes without confirming with me first -- some integrations 
+   (e.g. JotForm webhook) should not be rate-limited the same way.
+
+4. UNAUDITED PATIENT DELETION (routes.ts, ~line 1593, DELETE /api/retention/patients/:id)
+   Add a recordAccess('patient.delete', ...) call in this handler, following the 
+   exact same pattern used for patient.create/.update/.read elsewhere in the file. 
+   Confirm the audit_logs table receives an entry when a patient is deleted.
+
+5. UNAUDITED QA WORKBOOK ACTIONS (routes.ts, ~2187-2227 and ~2259, 2305)
+   Add recordAccess calls to the QA audit workbook read/edit/submit handlers and 
+   the evidence upload/download handlers, following the same audit pattern used 
+   elsewhere. List every route you added logging to.
+
+6. UNVERIFIED AUTH ON TWO ROUTES (routes.ts, line ~942 and ~1044)
+   POST /api/generate-note and POST /api/handoff/generate currently have no 
+   requireAuth middleware and no visible in-handler session check. Confirm 
+   whether this is intentional. If not intentional, add requireAuth to both and 
+   confirm existing legitimate usage still works.
+
+7. JOTFORM WEBHOOK SECRET (environment, not code)
+   Check whether JOTFORM_WEBHOOK_SECRET is currently set in this Replit 
+   environment's secrets. If not, this means the webhook is currently accepting 
+   unauthenticated requests (routes.ts:663-672 falls open when unset). Report 
+   the current state -- do not set it yourself if you don't have the actual 
+   secret value; flag it for me to add.
+
+For each item, after the change, tell me exactly what changed and what to test 
+manually to confirm it works, including how to confirm Teams embedding still 
+works for #2 specifically -- that one is easy to break.
