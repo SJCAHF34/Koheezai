@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import { randomBytes } from "node:crypto";
 import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -56,7 +57,14 @@ app.use(session({
     tableName: "session",
     createTableIfMissing: true,
   }),
-  secret: process.env.SESSION_SECRET || "koheez-dev-secret",
+  secret: (() => {
+    if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+    if (isProduction) {
+      throw new Error("[security] SESSION_SECRET environment variable must be set in production.");
+    }
+    console.warn("[security] SESSION_SECRET not set — using random ephemeral secret for development. Sessions will not survive restarts.");
+    return randomBytes(32).toString("hex");
+  })(),
   resave: false,
   saveUninitialized: false,
   cookie: {

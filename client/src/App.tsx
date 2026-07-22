@@ -272,6 +272,10 @@ function AppNav() {
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("/api/auth/logout", { method: "POST" }),
     onSuccess: () => {
+      // Clear PHI from localStorage before redirect so clinical assessment
+      // data is not left on the device after sign-out (HIPAA data hygiene)
+      const phiKeys = ["koheez_assessments"];
+      phiKeys.forEach((k) => localStorage.removeItem(k));
       queryClient.clear();
       resetClientStoreHydration();
       window.location.href = "/";

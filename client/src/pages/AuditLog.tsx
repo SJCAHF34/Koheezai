@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import type { AuditLogEntry } from "@shared/schema";
 
 function formatWhen(iso: string): string {
@@ -15,6 +17,14 @@ function formatWhen(iso: string): string {
   });
 }
 
+function downloadCsv() {
+  const url = "/api/audit-log/export";
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "";
+  a.click();
+}
+
 export default function AuditLog() {
   const { data, isLoading, error } = useQuery<AuditLogEntry[]>({
     queryKey: ["/api/audit-log"],
@@ -22,13 +32,24 @@ export default function AuditLog() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold" data-testid="text-audit-title">
-          Access Audit Log
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          HIPAA access record of who viewed or changed patient information and when.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold" data-testid="text-audit-title">
+            Access Audit Log
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            HIPAA access record of who viewed or changed patient information and when.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="default"
+          data-testid="button-audit-export"
+          onClick={downloadCsv}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       <Card>

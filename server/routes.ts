@@ -1,5 +1,6 @@
 import express, { type Express } from "express";
 import { createServer, type Server } from "http";
+import bcrypt from "bcryptjs";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
@@ -165,6 +166,24 @@ const DEMO_USERS = [
   // ── RX Downtown (1402) — Western ────────────────────────────────────────────
   { email: "albert.chen@aidshealth.org",            password: "AHF1", name: "Albert Chen" },
 ];
+
+const BCRYPT_ROUNDS = 10;
+
+// Hash all DEMO_USER passwords once at startup. All currently share one plaintext
+// so this is a single bcrypt.hash call; the result is cached for each unique plaintext.
+const _plainToHash = new Map<string, string>();
+for (const u of DEMO_USERS) {
+  if (!_plainToHash.has(u.password)) {
+    _plainToHash.set(u.password, bcrypt.hashSync(u.password, BCRYPT_ROUNDS));
+  }
+  (u as any).password = _plainToHash.get(u.password)!;
+}
+
+const passwordComplexitySchema = z
+  .string()
+  .min(12, "Password must be at least 12 characters")
+  .regex(/[a-zA-Z]/, "Password must contain at least one letter")
+  .regex(/[0-9]/, "Password must contain at least one number");
 
 const inMemoryUsers: Array<{ email: string; password: string; name: string }> = [];
 
@@ -429,20 +448,23 @@ ${audienceHtml}
     return res.status(401).json({ error: "Not authenticated" });
   });
 
-  app.post("/api/auth/login", (req, res) => {
+  app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body as { email?: string; password?: string };
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
     }
     const allUsers = [...DEMO_USERS, ...inMemoryUsers];
     const found = allUsers.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
+      (u) => u.email.toLowerCase() === email.toLowerCase(),
     );
-    if (!found) {
+    if (!found || !bcrypt.compareSync(password, found.password)) {
+      // Audit failed attempt — resource carries the attempted email (no password logged)
+      await recordAccess(req, "auth.login.failure", email.toLowerCase());
       return res.status(401).json({ error: "Invalid email or password" });
     }
     req.session.userId = found.email;
     req.session.user = { email: found.email, name: found.name };
+    await recordAccess(req, "auth.login.success", found.email.toLowerCase());
     return res.json({ user: req.session.user });
   });
 
@@ -451,11 +473,16 @@ ${audienceHtml}
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
     }
+    const complexity = passwordComplexitySchema.safeParse(password);
+    if (!complexity.success) {
+      return res.status(400).json({ error: complexity.error.errors[0]?.message ?? "Password does not meet requirements" });
+    }
     const allUsers = [...DEMO_USERS, ...inMemoryUsers];
     if (allUsers.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
       return res.status(409).json({ error: "An account with this email already exists" });
     }
-    const newUser = { email, password, name: name || email };
+    const hashedPassword = bcrypt.hashSync(password, BCRYPT_ROUNDS);
+    const newUser = { email, password: hashedPassword, name: name || email };
     inMemoryUsers.push(newUser);
     req.session.userId = email;
     req.session.user = { email, name: newUser.name };
@@ -545,6 +572,26 @@ ${audienceHtml}
     return res.json(entries);
   });
 
+  // CPO-only CSV export of the full audit log (HIPAA 6-year retention artifact)
+  app.get("/api/audit-log/export", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ error: "Not authenticated" });
+    const email = req.session.userId as string;
+    const name = req.session.user?.name ?? "";
+    const profile = getUserProfile(email, name);
+    if (!isCPO(profile.role)) return res.status(403).json({ error: "Forbidden" });
+    const entries = await storage.listAuditLogs(50000);
+    const header = "timestamp,actorEmail,actorName,role,action,resource,method,path\n";
+    const rows = entries.map((e) => {
+      const esc = (s: string) => `"${(s ?? "").replace(/"/g, '""')}"`;
+      return [esc(e.at), esc(e.actorEmail), esc(e.actorName), esc(e.role), esc(e.action), esc(e.resource), esc(e.method), esc(e.path)].join(",");
+    });
+    const csv = header + rows.join("\n");
+    const filename = `koheez-audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    return res.send(csv);
+  });
+
   // ── JotForm webhook → sFax auto-fax (public, no auth) ─────────────────────
   // Parse a raw multipart/urlencoded/json body into a flat field map.
   async function parseWebhookFields(req: any): Promise<Record<string, string>> {
@@ -613,6 +660,18 @@ ${audienceHtml}
     express.raw({ type: () => true, limit: "25mb" }),
     async (req, res) => {
       try {
+        // Validate inbound webhook secret when configured
+        const webhookSecret = process.env.JOTFORM_WEBHOOK_SECRET;
+        if (webhookSecret) {
+          const inbound = req.headers["x-webhook-secret"] as string | undefined;
+          if (!inbound || inbound !== webhookSecret) {
+            console.warn("[Fax] Webhook rejected — invalid or missing X-Webhook-Secret header");
+            return res.status(401).json({ error: "Unauthorized" });
+          }
+        } else {
+          console.warn("[security] JOTFORM_WEBHOOK_SECRET not set — webhook endpoint is unauthenticated");
+        }
+
         const fields = await parseWebhookFields(req);
         const formID = fields.formID ?? fields.formId ?? "";
         const submissionID = fields.submissionID ?? fields.submissionId ?? "";
@@ -1260,6 +1319,10 @@ FORMATTING RULES (strict):
       }
 
       await storage.setClientStore(siteId, key, valueToStore);
+      // Audit PHI-bearing store writes so there is a HIPAA-attributable record
+      if (key === "koheez_assessments") {
+        await recordAccess(req, "client-store.write.phi", `site:${siteId} key:${key}`);
+      }
       res.json({ ok: true });
     } catch (err) {
       console.error("[client-store] write failed:", err);
@@ -1716,6 +1779,7 @@ FORMATTING RULES (strict):
         }
       }
 
+      await recordAccess(req, "patient.import", `site:${siteId} imported:${imported} skipped:${skipped}`);
       return res.json({ imported, skipped, errors });
     } catch (err) {
       return res.status(500).json({ message: "Import failed" });
