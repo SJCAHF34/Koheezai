@@ -10,7 +10,7 @@
 endobj
 4 0 obj
 <<
-/Length 5084
+/Length 5089
 >>
 stream
 0.200025 w
@@ -26,7 +26,7 @@ BT
 9.1999999999999993 TL
 0.576 0.773 0.992 rg
 48. 724. Td
-(INTERNAL ó PREPARED FOR INFORMATICS REVIEW) Tj
+(INTERNAL -- PREPARED FOR INFORMATICS REVIEW) Tj
 ET
 BT
 /F2 26 Tf
@@ -47,7 +47,7 @@ BT
 10.3499999999999996 TL
 0.576 0.773 0.992 rg
 48. 644. Td
-(Version 4.0  ó  July 22, 2026) Tj
+(Version 4.0  --  July 22, 2026) Tj
 ET
 BT
 /F1 9 Tf
@@ -220,7 +220,7 @@ BT
 9.1999999999999993 TL
 0.278 0.333 0.412 rg
 48. 338. Td
-(SNAPSHOT ó STATE AS OF JULY 22, 2026) Tj
+(SNAPSHOT -- STATE AS OF JULY 22, 2026) Tj
 ET
 BT
 /F2 9 Tf
@@ -276,7 +276,7 @@ BT
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
 98. 282. Td
-(CSRF protection tokens issued ó no middleware installed) Tj
+(CSRF protection tokens issued -- no middleware installed) Tj
 ET
 BT
 /F2 9 Tf
@@ -325,7 +325,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -351,7 +351,7 @@ endobj
 endobj
 6 0 obj
 <<
-/Length 7031
+/Length 4043
 >>
 stream
 0.5 w
@@ -361,7 +361,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -391,7 +391,7 @@ BT
 0.059 0.09 0.165 rg
 48. 708. Td
 (Koheez.ai is a web-based clinical decision support and pharmacy operations management platform serving AHF \(AIDS Healthcare) Tj
-T* (Foundation\) pharmacies. Its primary functions are: \(1\) HIV/PrEP drug regimen assessment ó checking drug-drug interactions,) Tj
+T* (Foundation\) pharmacies. Its primary functions are: \(1\) HIV/PrEP drug regimen assessment -- checking drug-drug interactions,) Tj
 T* (renal/hepatic contraindications, and generating AI-written clinical summaries; \(2\) operational task management, scheduling, QA) Tj
 T* (compliance tracking, and controlled substance inventory for pharmacy directors and staff; and \(3\) automated patient retention) Tj
 T* (outreach via SMS and email. It is not an EHR, does not store full patient charts, and does not integrate with an EHR system.) Tj
@@ -401,10 +401,10 @@ BT
 11.5 TL
 0.114 0.306 0.847 rg
 48. 633. Td
-(Tech Stack \(versions from package.json\)) Tj
+(Tech Stack  \(versions from package.json\)) Tj
 ET
 0.97 0.98 0.99 rg
-48. 621. 516. -30. re
+48. 621. 516. -19. re
 f
 BT
 /F1 8 Tf
@@ -418,217 +418,183 @@ BT
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
 200. 614. Td
-(Node.js \(version not pinned in package.json; Replit environment provides) Tj
-T* (~20.x\)) Tj
+(Node.js \(version not pinned; Replit provides ~20.x\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 584. Td
+52. 595. Td
 (Language) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-200. 584. Td
-(TypeScript 5.x \(inferred; tsconfig.json not audited for target\)) Tj
+200. 595. Td
+(TypeScript 5.x) Tj
 ET
 0.97 0.98 0.99 rg
-48. 572. 516. -19. re
+48. 583. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 565. Td
-(Frontend framework) Tj
+52. 576. Td
+(Frontend) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-200. 565. Td
-(React 18.3.1 + Vite \(version from vite devDependency, not listed in snippet\)) Tj
+200. 576. Td
+(React 18.3.1 + Vite) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 546. Td
-(Backend framework) Tj
+52. 557. Td
+(Backend) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-200. 546. Td
+200. 557. Td
 (Express.js 4.21.2) Tj
 ET
 0.97 0.98 0.99 rg
-48. 534. 516. -19. re
+48. 545. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 527. Td
+52. 538. Td
 (ORM) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-200. 527. Td
+200. 538. Td
 (Drizzle ORM 0.39.1 + drizzle-zod 0.7.0) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 508. Td
-(Database driver) Tj
+52. 519. Td
+(DB driver) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-200. 508. Td
-(@neondatabase/serverless 0.10.4 \(WebSocket-based Neon PostgreSQL\)) Tj
+200. 519. Td
+(@neondatabase/serverless 0.10.4 \(WebSocket-based\)) Tj
 ET
 0.97 0.98 0.99 rg
-48. 496. 516. -19. re
+48. 507. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 489. Td
+52. 500. Td
 (Session store) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-200. 489. Td
+200. 500. Td
 (express-session 1.18.1 + connect-pg-simple 10.0.0) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 470. Td
+52. 481. Td
 (Password hashing) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-200. 470. Td
+200. 481. Td
 (bcryptjs 3.0.3 \(pure JS; no native bindings\)) Tj
 ET
 0.97 0.98 0.99 rg
-48. 458. 516. -19. re
+48. 469. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 451. Td
+52. 462. Td
 (JWT validation) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-200. 451. Td
+200. 462. Td
 (jose 6.2.3 \(Teams SSO JWKS verification\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 432. Td
+52. 443. Td
 (AI client) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-200. 432. Td
-( o p e n a i   S D K   6 . 8 . 1  !í   a p i . o p e n a i . c o m) Tj
+200. 443. Td
+(openai SDK 6.8.1  ->  api.openai.com \(NOT Azure\)) Tj
 ET
 0.97 0.98 0.99 rg
-48. 420. 516. -19. re
+48. 431. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 413. Td
+52. 424. Td
 (Hosting) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-200. 413. Td
-(Replit \(development\); Aptible-compatible \(TLS termination via proxy\)) Tj
+200. 424. Td
+(Replit \(dev\); Aptible-compatible \(TLS terminated at proxy\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 394. Td
+52. 405. Td
 (Scheduling) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-200. 394. Td
-(node-cron 4.2.1 \(in-process; not a queue system\)) Tj
+200. 405. Td
+(node-cron 4.2.1 \(in-process; not a queue\)) Tj
 ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
-48. 363. Td
-(Architecture ó PHI Flow Diagram) Tj
-ET
-0.97 0.98 0.99 rg
-56. 356. 508. -292. re
-f
-BT
-/F5 8.5 Tf
-9.7749999999999986 TL
-0.278 0.333 0.412 rg
-60. 348. Td
-(  Browser \(React SPA\)) Tj
-T* (              %   H T T P S   \( T L S - t e r m i n a t e d   a t   R e p l i t / A p t i b l e   p r o x y \)) Tj
-T* (              %º) Tj
-T* (     E x p r e s s . j s   A P I    % % % %    O p e n A I   a p i . o p e n a i . c o m  % % % %    [ P H I   I N   P R O M P T   ó   N O   B A A ]) Tj
-T* (              %                    % % % %    M i c r o s o f t   G r a p h   \( O u t l o o k \)  %    [ P H I   i n   e m a i l   b o d y ]) Tj
-T* (              %                    % % % %    C l e r k c h a t   S M S   A P I  % % % % % % % % %      [ P H I :   p a t i e n t   p h o n e + m s g ]) Tj
-T* (              %                    % % % %    S a l e s f o r c e   R E S T   A P I  % % % % % % % %    [ P H I :   p a t i e n t   a c t i v i t y ]) Tj
-T* (              %                    % % % %    s F a x   A P I  % % % % % % % % % % % % % % % % % %    [ P H I :   p a t i e n t   P D F ]) Tj
-T* (              %                    % % % %    A D P   W o r k f o r c e   N o w  % % % % % % % % % %      [ e m p l o y e e   d a t a ,   n o t   P H I ]) Tj
-T* (              %                    % % % %    L i v e r p o o l   H I V   D D I   A P I  % % % % % % %      [ d r u g   n a m e s   o n l y ,   n o   P H I ]) Tj
-T* (              %                    % % % %    N I H   R x T e r m s   A P I  % % % % % % % % % % % % %      [ d r u g   n a m e s   o n l y ,   n o   P H I ]) Tj
-T* (              %) Tj
-T* (              %º) Tj
-T* (  Neon PostgreSQL \(TLS over WebSocket\)) Tj
-T* (              %     T a b l e s   h o l d i n g   P H I :   r e t e n t i o n _ p a t i e n t s . r e c o r d   \( J S O N B \)) Tj
-T* (              %                                             c q i _ m e e t i n g s . a t t e n d e e s   \( J S O N B ,   n a m e s + s i g n a t u r e s \)) Tj
-T* (              %                                             a u d i t _ l o g s   \( e m a i l   a d d r e s s e s   o f   s t a f f \)) Tj
-T* (              %                                             c l i e n t _ s t o r e   \( k o h e e z _ a s s e s s m e n t s :   c l i n i c a l   n o t e s \)) Tj
-T* (              %º) Tj
-T* (     B r o w s e r   l o c a l S t o r a g e    !ê% %    s y n c e d   v i a   / a p i / c l i e n t - s t o r e  % % %∫     P o s t g r e S Q L) Tj
-T* (              %     k o h e e z _ a s s e s s m e n t s :   c l i n i c a l   n o t e s   \( P H I \)) Tj
-T* (              %     C l e a r e d   o n   l o g o u t   \( c l i e n t / s r c / A p p . t s x : 2 7 8 \)) Tj
-T* (              %     N O T   e n c r y p t e d   c l i e n t - s i d e) Tj
-T* () Tj
+48. 374. Td
+(Architecture -- PHI Flow Diagram) Tj
 ET
 endstream
 endobj
@@ -642,7 +608,7 @@ endobj
 endobj
 8 0 obj
 <<
-/Length 807
+/Length 4501
 >>
 stream
 0.5 w
@@ -652,7 +618,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -666,15 +632,217 @@ ET
 48. 32. m
 564. 32. l
 S
+0.97 0.98 0.99 rg
+48. 750. 516. -334. re
+f
+0.8 0.84 0.88 RG
+0.4 w
+48. 750. 516. -334. re
+S
 BT
-/F1 7.5 Tf
-8.625 TL
-0.392 0.455 0.545 rg
-48. 744. Td
-(PHI does not flow to: Liverpool HIV DDI API, NIH RxTerms, ADP Workforce Now, Microsoft Entra ID / Azure AD JWKS endpoint.) Tj
-T* (PHI does flow to: OpenAI \(clinical notes in AI prompt\), Outlook \(patient contact info in outreach email\), Clerkchat \(patient phone) Tj
-T* (number and message body\), Salesforce \(patient activity records\), sFax \(patient document PDFs\). BAA status for each is covered) Tj
-T* (in Section 5.) Tj
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 744. Td
+(  Browser \(React SPA\)) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 732.5 Td
+(       |) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 721. Td
+(       | HTTPS \(TLS-terminated at Replit/Aptible proxy\)) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 709.5 Td
+(       |) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 698. Td
+(       v) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 686.5 Td
+(  Express.js API  ----  OpenAI api.openai.com      [PHI IN PROMPT -- NO BAA CONFIRMED]) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 675. Td
+(       |          ----  Microsoft Graph \(Outlook\)   [PHI: patient name, phone, msg body]) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 663.5 Td
+(       |          ----  Clerkchat SMS API           [PHI: patient phone + message body]) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 652. Td
+(       |          ----  Salesforce REST API         [PHI: patient activity records]) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 640.5 Td
+(       |          ----  sFax API                   [PHI: patient PDF document]) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 629. Td
+(       |          ----  JotForm webhook             [PHI: patient service agreement PDF]) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 617.5 Td
+(       |          ----  ADP Workforce Now           [Employee data only -- no patient PHI]) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 606. Td
+(       |          ----  Liverpool HIV DDI API       [Drug names only -- no PHI]) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 594.5 Td
+(       |          ----  NIH RxTerms API            [Drug names only -- no PHI]) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 583. Td
+(       |) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 571.5 Td
+(       v) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 560. Td
+(  Neon PostgreSQL  \(TLS over WebSocket\)) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 548.5 Td
+(       |   Tables holding PHI:) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 537. Td
+(       |     retention_patients.record \(JSONB\) -- initials, phone, email, address, insur. ID) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 525.5 Td
+(       |     cqi_meetings.attendees   \(JSONB\) -- staff names + signatures) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 514. Td
+(       |     audit_logs              -- staff email addresses) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 502.5 Td
+(       |     client_store.value      \(JSONB\) -- koheez_assessments: clinical notes) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 491. Td
+(       |) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 479.5 Td
+(       v) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 468. Td
+(  Browser localStorage  <-- synced via /api/client-store -->  PostgreSQL client_store) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 456.5 Td
+(       |   koheez_assessments: clinical notes \(PHI in browser\)) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 445. Td
+(       |   Cleared on logout \(App.tsx\)) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 433.5 Td
+(       |   NOT encrypted client-side) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.059 0.09 0.165 rg
+48. 402. Td
+(PHI does NOT flow to: Liverpool HIV DDI, NIH RxTerms, ADP Workforce Now, Microsoft Entra ID JWKS endpoint. PHI DOES) Tj
+T* (flow to: OpenAI \(clinical notes in AI prompt\), Outlook \(patient outreach email\), Clerkchat \(patient phone + SMS body\), Salesforce) Tj
+T* (\(patient activity\), sFax \(patient PDF\), JotForm PDF download. BAA status for each is in Section 5.) Tj
 ET
 endstream
 endobj
@@ -688,17 +856,17 @@ endobj
 endobj
 10 0 obj
 <<
-/Length 8370
+/Length 8081
 >>
 stream
-0.5 w
+0.4 w
 0.8 0.84 0.88 RG
 BT
 /F1 7.5 Tf
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -727,7 +895,7 @@ BT
 11.5 TL
 0.114 0.306 0.847 rg
 48. 702. Td
-(2.1  Schema Overview  \(shared/schema.ts + shared/schema.ts:550-780\)) Tj
+(2.1  Schema Overview  \(shared/schema.ts lines 550-780\)) Tj
 ET
 BT
 /F1 9 Tf
@@ -735,7 +903,7 @@ BT
 0.059 0.09 0.165 rg
 48. 687. Td
 (The database uses a flat JSONB pattern: most tables store a primary key and a `record` JSONB blob containing the full typed) Tj
-T* (object. Column-level queries are not possible on JSONB fields without json operators. Drizzle schema was verified at) Tj
+T* (object. Column-level queries are not possible on JSONB sub-fields without json operators. Drizzle schema was verified at) Tj
 T* (shared/schema.ts.) Tj
 ET
 0.06 0.14 0.29 rg
@@ -752,7 +920,7 @@ BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-212. 638. Td
+202. 638. Td
 (PHI Fields \(if any\)) Tj
 ET
 BT
@@ -776,7 +944,7 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 619. Td
+202. 619. Td
 (initials, phone1, phone2, email,) Tj
 T* (city, state, zip, bin, pcn,) Tj
 T* (insuranceId) Tj
@@ -787,8 +955,8 @@ BT
 0.059 0.09 0.165 rg
 342. 619. Td
 (All PHI in JSONB `record` column. Patients can be) Tj
-T* (hard-deleted \(storage.ts:1274\). No soft-delete or deletion) Tj
-T* (audit trail.) Tj
+T* (hard-deleted \(storage.ts:1274\). No soft-delete. Deletion) Tj
+T* (not written to audit log.) Tj
 ET
 BT
 /F1 8 Tf
@@ -801,10 +969,9 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 578. Td
+202. 578. Td
 (attendees[].printName,) Tj
-T* (attendees[].signatureName,) Tj
-T* (attendees[].userEmail) Tj
+T* (.signatureName, .userEmail) Tj
 ET
 BT
 /F1 8 Tf
@@ -814,55 +981,56 @@ BT
 (Quarterly meeting records including staff signatures. JSONB.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 544. 516. -30. re
+48. 555. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 537. Td
+52. 548. Td
 (audit_logs) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 537. Td
+202. 548. Td
 (actorEmail, actorName) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-342. 537. Td
-(Staff identity only ó by design contains no patient PHI.) Tj
-T* (Append-only in application code; no DELETE route exists.) Tj
+342. 548. Td
+(Staff identity only -- by design contains no patient PHI.) Tj
+T* (Append-only in application code; no DELETE route.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 507. Td
+52. 518. Td
 (client_store) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 507. Td
-(value \(JSONB, contains) Tj
-T* (koheez_assessments blob\)) Tj
+202. 518. Td
+(value \(JSONB: koheez_assessments) Tj
+T* (blob\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-342. 507. Td
+342. 518. Td
 (koheez_assessments holds clinical assessment JSON) Tj
-T* (including patient details entered during assessment session.) Tj
+T* (including patient-level clinical data entered during) Tj
+T* (assessment session.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 484. 516. -41. re
+48. 484. 516. -30. re
 f
 BT
 /F1 8 Tf
@@ -875,7 +1043,7 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 477. Td
+202. 477. Td
 (uploadedBy \(staff email\)) Tj
 ET
 BT
@@ -884,99 +1052,97 @@ BT
 0.059 0.09 0.165 rg
 342. 477. Td
 (Compliance workbook data. Evidence files stored as base64) Tj
-T* (in qa_audit_evidence.data_b64 column ó not in object) Tj
-T* (storage.) Tj
+T* (in qa_audit_evidence.data_b64 -- not in object storage.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 436. Td
-(schedule_submissions / entries / defaults) Tj
+52. 447. Td
+(schedule_submissions / entries /) Tj
+T* (defaults) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 436. Td
-(staffName, staffId,) Tj
-T* (submittedByEmail) Tj
+202. 447. Td
+(staffName, staffId, submittedByEmail) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-342. 436. Td
-(Staff scheduling; no patient PHI.) Tj
+342. 447. Td
+(Staff scheduling. No patient PHI.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 413. 516. -19. re
+48. 424. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 406. Td
+52. 417. Td
 (notifications) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 406. Td
+202. 417. Td
 (toEmail) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-342. 406. Td
+342. 417. Td
 (Staff email. No patient PHI.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 387. Td
+52. 398. Td
 (pharmacy_hours) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 387. Td
+202. 398. Td
 (None) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-342. 387. Td
+342. 398. Td
 (Store hours config only.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 375. 516. -30. re
+48. 386. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 368. Td
+52. 379. Td
 (session) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 368. Td
-(sess \(JSONB ó contains user) Tj
-T* (email+name\)) Tj
+202. 379. Td
+(sess JSONB \(user email + name\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-342. 368. Td
+342. 379. Td
 (Auto-created by connect-pg-simple. Contains authenticated) Tj
 T* (user's email and name in session JSON.) Tj
 ET
@@ -984,7 +1150,7 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 338. Td
+52. 349. Td
 (adp_worker_mappings / sync_status /) Tj
 T* (history) Tj
 ET
@@ -992,162 +1158,147 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 338. Td
+202. 349. Td
 (None \(employee IDs\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-342. 338. Td
-(ADP worker IDs for schedule sync. Employee data, not) Tj
-T* (patient PHI.) Tj
+342. 349. Td
+(ADP worker IDs. Employee data, not patient PHI.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 315. 516. -19. re
+48. 326. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 308. Td
+52. 319. Td
 (wa_inspection_archives) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 308. Td
+202. 319. Td
 (None identified) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-342. 308. Td
-(WA state inspection checklists; no patient PHI identified.) Tj
+342. 319. Td
+(WA state inspection checklists.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 289. Td
+52. 300. Td
 (staff_time_off_balances) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 289. Td
+202. 300. Td
 (staffName, staffId) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-342. 289. Td
+342. 300. Td
 (PTO balances. No patient PHI.) Tj
 ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
-48. 258. Td
+48. 269. Td
 (2.2  PHI Lifecycle) Tj
 ET
 BT
-/F2 9 Tf
+/F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 243. Td
-(ï) Tj
-ET
-BT
-/F2 9 Tf
-10.3499999999999996 TL
-0.278 0.333 0.412 rg
-60. 243. Td
-(Creation) Tj
+48. 254. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-138. 243. Td
-( P a t i e n t   P H I   e n t e r s   v i a :   \( a \)   m a n u a l   e n t r y   i n   R e t e n t i o n   T r a c k e r   U I  !í   P O S T   / a p i / r e t e n t i o n / p a t i e n t s ;   \( b \)   b u l k) Tj
-T* ( C S V / S S R S   i m p o r t  !í   P O S T   / a p i / r e t e n t i o n / i m p o r t   \( s e r v e r / r o u t e s . t s : 1 6 9 1 \) ;   \( c \)   c l i n i c a l   a s s e s s m e n t   f o r m) Tj
-T* (\(drug regimen data, age, labs\) stored client-side in koheez_assessments localStorage key, synced to) Tj
-T* (client_store table.) Tj
+60. 254. Td
+(Creation: Patient PHI enters via \(a\) manual entry in Retention Tracker UI -> POST /api/retention/patients; \(b\) bulk CSV/SSRS) Tj
+T* (import -> POST /api/retention/import \(server/routes.ts:1691\); \(c\) clinical assessment form \(drug regimen, age, labs\) stored) Tj
+T* (client-side in koheez_assessments localStorage key, synced to client_store table.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 193. Td
-(ï) Tj
-ET
-BT
-/F2 9 Tf
-10.3499999999999996 TL
-0.278 0.333 0.412 rg
-60. 193. Td
-(Storage at rest) Tj
+48. 213. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-138. 193. Td
-(PostgreSQL on Neon serverless. Neon encrypts data at rest using AES-256 at the infrastructure level) Tj
-T* ([NOT VERIFIED independently ó based on Neon documentation, not confirmed by code inspection]. No) Tj
-T* (application-level column encryption \(no pgcrypto usage found in codebase\).) Tj
+60. 213. Td
+(Storage at rest: PostgreSQL on Neon serverless. Neon encrypts data at rest using AES-256 at the infrastructure level [NOT) Tj
+T* (VERIFIED independently -- based on Neon documentation, not confirmed by code inspection]. No application-level column) Tj
+T* (encryption. No pgcrypto usage found in codebase.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 155. Td
-(ï) Tj
-ET
-BT
-/F2 9 Tf
-10.3499999999999996 TL
-0.278 0.333 0.412 rg
-60. 155. Td
-(Retention) Tj
+48. 172. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-138. 155. Td
-(No automated retention or expiry policy exists in code. Retention patients persist until manually deleted.) Tj
-T* (Audit logs are append-only in the application; the PostgreSQL audit_logs table has no DELETE route) Tj
-T* (and no TTL. The in-memory cap \(AUDIT_LOG_CAP = 10,000, storage.ts:63\) applies only to the) Tj
-T* (file-backed dev fallback ó the PostgreSQL table is unbounded.) Tj
+60. 172. Td
+(Retention: No automated retention or expiry policy exists in code. Retention patients persist until manually deleted. Audit logs) Tj
+T* (are append-only in the application; the PostgreSQL audit_logs table has no DELETE route and no TTL. The in-memory) Tj
+T* (fallback cap \(AUDIT_LOG_CAP = 10,000, storage.ts:63\) applies only to the dev file-backed fallback -- the PostgreSQL table is) Tj
+T* (unbounded.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 105. Td
-(ï) Tj
-ET
-BT
-/F2 9 Tf
-10.3499999999999996 TL
-0.278 0.333 0.412 rg
-60. 105. Td
-(Deletion) Tj
+48. 119. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-138. 105. Td
-(Retention patients can be hard-deleted via DELETE /api/retention/patients/:id \(requireAuth enforced;) Tj
-T* (storage.ts:1274\). Deletion itself is not logged in the audit trail ó no recordAccess call in the delete) Tj
-T* (handler \(routes.ts:1593-1605\). No deletion policy or right-to-be-forgotten workflow exists.) Tj
+60. 119. Td
+(Deletion: Retention patients can be hard-deleted via DELETE /api/retention/patients/:id \(requireAuth enforced;) Tj
+T* (storage.ts:1274\). Deletion itself is NOT logged in the audit trail -- no recordAccess call in the delete handler) Tj
+T* (\(routes.ts:1593-1605\). No right-to-be-forgotten workflow or deletion policy exists.) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.059 0.09 0.165 rg
+48. 78. Td
+(-) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.059 0.09 0.165 rg
+60. 78. Td
+(Transit: All API traffic flows over TLS terminated at the Replit/Aptible proxy. The Node process receives plain HTTP internally.) Tj
+T* (Server-to-Neon uses TLS over WebSocket.) Tj
 ET
 endstream
 endobj
@@ -1161,7 +1312,7 @@ endobj
 endobj
 12 0 obj
 <<
-/Length 1654
+/Length 1035
 >>
 stream
 0.5 w
@@ -1171,7 +1322,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -1186,52 +1337,22 @@ ET
 564. 32. l
 S
 BT
-/F1 7.5 Tf
-8.625 TL
-0.059 0.09 0.165 rg
-48. 744. Td
-(ï) Tj
-ET
-BT
-/F2 7.5 Tf
-8.625 TL
-0.278 0.333 0.412 rg
-60. 744. Td
-(Transit) Tj
-ET
-BT
-/F1 7.5 Tf
-8.625 TL
-0.059 0.09 0.165 rg
-138. 744. Td
-(All API traffic flows over TLS terminated at the Replit/Aptible proxy. The Node process receives plaintext HTTP internally. No) Tj
-T* (mutual TLS between Node and Neon \(Neon uses TLS on the WebSocket connection; the connection string in) Tj
-T* (DATABASE_URL encodes the Neon host\).) Tj
-ET
-BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
-48. 692. Td
+48. 738. Td
 (2.3  Environment Separation) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 677. Td
+48. 723. Td
 (As of July 22, 2026: there is one DATABASE_URL environment variable. No separate staging or production database is) Tj
-T* (provisioned. Development work and the production deployment share the same Neon PostgreSQL instance. This means test data,) Tj
-T* (seed data written during development, and production patient records coexist in the same database. This is noted in the risk) Tj
-T* (register as a HIGH severity item.) Tj
-ET
-BT
-/F1 9 Tf
-10.3499999999999996 TL
-0.059 0.09 0.165 rg
-48. 622. Td
-(The session table \(connect-pg-simple\) is shared across environments. A developer session on the same DATABASE_URL will) Tj
-T* (appear in the same session store as a production user session.) Tj
+T* (provisioned. Development work and production share the same Neon PostgreSQL instance. Test data, seed data written during) Tj
+T* (development, and production patient records coexist in the same database. The session table is shared across environments -- a) Tj
+T* (developer session on the same DATABASE_URL appears in the same session store as a production user session. This is rated) Tj
+T* (HIGH severity in the risk register.) Tj
 ET
 endstream
 endobj
@@ -1245,7 +1366,7 @@ endobj
 endobj
 14 0 obj
 <<
-/Length 6913
+/Length 7184
 >>
 stream
 0.5 w
@@ -1255,7 +1376,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -1291,7 +1412,7 @@ BT
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
 48. 687. Td
-(Authentication is session-based. On successful credential check, the server calls req.session.user = { email, name } and the) Tj
+(Authentication is session-based. On successful credential check, the server writes req.session.user = { email, name } and the) Tj
 T* (session is persisted in the PostgreSQL `session` table via connect-pg-simple. Subsequent requests are authenticated by the) Tj
 T* (presence of req.session.user.) Tj
 ET
@@ -1325,294 +1446,309 @@ BT
 0.059 0.09 0.165 rg
 182. 621. Td
 (SESSION_SECRET env var \(required; server throws at startup if absent\). server/index.ts:61-66.) Tj
-T* (Ephemeral random value used in development.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 598. 516. -30. re
+48. 609. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 591. Td
+52. 602. Td
 (Cookie flags) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 591. Td
-(HttpOnly: true | Secure: true \(production only\) | SameSite: 'none' \(required for Teams iframe embedding\) |) Tj
-T* (maxAge: 7 days) Tj
+182. 602. Td
+(HttpOnly: true | Secure: true \(production only\) | SameSite: 'none' \(required for Teams iframe\) | maxAge: 7) Tj
+T* (days \(server/index.ts:70-78\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 561. Td
+52. 572. Td
 (Cookie name) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 561. Td
-(Not customized ó default 'connect.sid') Tj
+182. 572. Td
+(Not customized -- default 'connect.sid') Tj
 ET
 0.97 0.98 0.99 rg
-48. 549. 516. -30. re
+48. 560. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 542. Td
+52. 553. Td
 (Trust proxy) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 542. Td
-(app.set\('trust proxy', 1\) ó server/index.ts:23. Required for correct Secure cookie emission behind) Tj
-T* (Aptible/Replit TLS proxy.) Tj
+182. 553. Td
+(app.set\('trust proxy', 1\) -- server/index.ts:23. Required for Secure flag behind Aptible/Replit TLS proxy.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 512. Td
+52. 534. Td
 (Password hashing) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 512. Td
-(bcryptjs 3.0.3, cost factor 10. All DEMO_USERS passwords hashed at module load) Tj
-T* (\(server/routes.ts:170-178\). bcrypt.compareSync used in login handler \(routes.ts:460\).) Tj
+182. 534. Td
+(bcryptjs 3.0.3, cost factor 10. DEMO_USERS hashed at module load \(routes.ts:170-178\).) Tj
+T* (bcrypt.compareSync used at login \(routes.ts:460\).) Tj
 ET
 0.97 0.98 0.99 rg
-48. 489. 516. -19. re
+48. 511. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 482. Td
-(Second auth factor) Tj
+52. 504. Td
+(Second factor) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 482. Td
+182. 504. Td
 (None implemented.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 463. Td
+52. 485. Td
 (Password reset) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 463. Td
+182. 485. Td
 (Not implemented. No /api/auth/reset-password route exists.) Tj
 ET
+0.97 0.98 0.99 rg
+48. 473. 516. -19. re
+f
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+52. 466. Td
+(Session fixation) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+182. 466. Td
+(req.session.regenerate\(\) NOT called after login. Session ID is unchanged pre/post-authentication.) Tj
+ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
-48. 432. Td
-(3.2  User Registry ó Known Gap) Tj
+48. 435. Td
+(3.2  User Registry -- Known Gap  \(server/routes.ts:74-169\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 417. Td
-(User accounts are defined in a hardcoded DEMO_USERS array in server/routes.ts:74-169. As of this audit, the array contains 50+) Tj
-T* (named users. Every user in the array has the same source password 'AHF1' \(4 characters\). This password is hashed with bcrypt) Tj
-T* (at startup \(cost 10\), but all users share the same hash derived from the same plaintext. A compromised credential for any one) Tj
-T* (user exposes access for all users at that credential level.) Tj
+48. 420. Td
+(User accounts are defined in a hardcoded DEMO_USERS array. As of this audit the array contains 53 named entries. Every entry) Tj
+T* (has the source password 'AHF1' \(4 characters\), hashed with bcrypt at startup. All users share a credential derived from the same) Tj
+T* (4-character plaintext. A compromised session or credential for any one user reveals a password that opens every other account at) Tj
+T* (any role level.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 362. Td
+48. 365. Td
 (There is no database-backed user table. Adding or removing a user requires a code change and redeployment. A POST) Tj
 T* (/api/auth/signup endpoint exists \(routes.ts:499\) but is not linked to any UI and creates in-memory-only accounts that do not survive) Tj
-T* (restarts. No mustChangePassword flag, no forced rotation, no account lockout.) Tj
-ET
-BT
-/F1 9 Tf
-10.3499999999999996 TL
-0.059 0.09 0.165 rg
-48. 319. Td
-(Note: both cpo@koheez.ai and cpo@aidshealth.org map to CPO-level access. There is no audit separation between these two) Tj
-T* (accounts.) Tj
+T* (restarts. No mustChangePassword flag, no forced rotation, no account lockout after failed attempts.) Tj
 ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
-48. 278. Td
-(3.3  Role Model  \(server/lib/userProfile.ts ó not read in this audit; roles verified via routes.ts usage\)) Tj
+48. 312. Td
+(3.3  Role Model) Tj
 ET
 0.06 0.14 0.29 rg
-48. 266. 516. -19. re
+48. 300. 516. -19. re
 f
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-52. 259. Td
+52. 293. Td
 (Role) Tj
 ET
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-182. 259. Td
+182. 293. Td
 (Data Scope) Tj
 ET
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-252. 259. Td
+252. 293. Td
 (Notable Permissions) Tj
 ET
 0.97 0.98 0.99 rg
-48. 247. 516. -30. re
+48. 281. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 240. Td
+52. 274. Td
 (CPO) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 240. Td
-(All stores /) Tj
-T* (national) Tj
+182. 274. Td
+(All stores) Tj
+T* (\(national\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-252. 240. Td
-(Audit log read + CSV export. All store data. No admin UI exists yet ó user) Tj
+252. 274. Td
+(Audit log read + CSV export. All store data. No admin UI exists -- user) Tj
 T* (management is code-only.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 210. Td
-(RPD \(Regional Pharmacy) Tj
-T* (Director\)) Tj
+52. 244. Td
+(RPD \(Regional Director\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 210. Td
+182. 244. Td
 (Assigned region) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-252. 210. Td
-(Schedule approval workflow. Regional dashboard. QA audit oversight. Cannot access) Tj
-T* (other regions' data \(enforced via getSiteAccess in routes\).) Tj
+252. 244. Td
+(Schedule approval. Regional dashboard. QA audit oversight. Cross-region access) Tj
+T* (blocked via getSiteAccess\(\).) Tj
 ET
 0.97 0.98 0.99 rg
-48. 187. 516. -30. re
+48. 221. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 180. Td
+52. 214. Td
 (Pharmacy Director) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 180. Td
+182. 214. Td
 (Assigned store) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-252. 180. Td
-(CQI meeting editing. Schedule submission. ACHC workbook. Controlled inventory. Fax) Tj
-T* (log. Cannot access other stores' data.) Tj
+252. 214. Td
+(CQI editing. Schedule submission. ACHC workbook. Controlled inventory. Fax log.) Tj
+T* (Cross-store access blocked.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 150. Td
-(Staff Pharmacist / Pharmacist) Tj
+52. 184. Td
+(Staff Pharmacist) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 150. Td
+182. 184. Td
 (Assigned store) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-252. 150. Td
+252. 184. Td
 (Assessment generation. Task completion. CQI signing. Inventory adjustments.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 138. 516. -19. re
+48. 172. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 131. Td
+52. 165. Td
 (Pharmacy Technician) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 131. Td
+182. 165. Td
 (Assigned store) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-252. 131. Td
+252. 165. Td
 (Task completion. CQI signing. Controlled inventory read-only.) Tj
 ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
-48. 100. Td
-(3.4  Auth Enforcement Gaps) Tj
+48. 134. Td
+(3.4  Auth Enforcement Gaps  \(server/routes.ts\)) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.059 0.09 0.165 rg
+48. 119. Td
+(Of 72 routes, 28 use the requireAuth Express middleware \(routes.ts:1153-1159\). The remaining routes rely on in-handler session) Tj
+T* (checks via getSiteAccess\(\) or role guards applied inside the handler body. The following routes have no requireAuth middleware) Tj
+T* (and appear to have incomplete or absent auth enforcement:) Tj
 ET
 endstream
 endobj
@@ -1626,7 +1762,7 @@ endobj
 endobj
 16 0 obj
 <<
-/Length 2331
+/Length 2419
 >>
 stream
 0.5 w
@@ -1636,7 +1772,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -1650,53 +1786,85 @@ ET
 48. 32. m
 564. 32. l
 S
-BT
-/F1 7.5 Tf
-8.625 TL
-0.392 0.455 0.545 rg
-48. 744. Td
-(Of 72 routes, 28 use the requireAuth Express middleware \(routes.ts:1153-1159\). The remaining routes rely on one of: \(a\)) Tj
-T* (in-handler session checks via getSiteAccess\(\); \(b\) a separate isCPO\(\) / isDirectorRole\(\) check applied inside the handler; or \(c\) no) Tj
-T* (authentication at all for intentionally public routes.) Tj
-ET
-BT
-/F1 9 Tf
-10.3499999999999996 TL
-0.059 0.09 0.165 rg
-48. 701. Td
-(The following routes were found to have no requireAuth middleware AND no obvious in-handler auth check ó they appear) Tj
-T* (accessible without a valid session [REQUIRES FURTHER VERIFICATION]:) Tj
-ET
 0.97 0.98 0.99 rg
-56. 682. 508. -64. re
+48. 750. 516. -104. re
 f
+0.8 0.84 0.88 RG
+0.4 w
+48. 750. 516. -104. re
+S
 BT
-/F5 8.5 Tf
-9.7749999999999986 TL
+/F5 8 Tf
+9.1999999999999993 TL
 0.278 0.333 0.412 rg
-60. 674. Td
-(GET  /api/generate-note        routes.ts:942  ó generates handoff notes, accepts freeform text) Tj
-T* (POST /api/handoff/generate      routes.ts:1044 ó handoff note generation) Tj
-T* (GET  /api/audit-log             routes.ts:560  ó has isCPO\(\) check inside, but no middleware) Tj
-T* (GET  /api/audit-log/export      routes.ts:576  ó same pattern: isCPO\(\) check inside handler only) Tj
-T* (GET/PUT /api/scheduling/*       routes.ts:1850+ ó getSiteAccess\(\) check inside, but no middleware) Tj
+56. 744. Td
+(  Route                              Line    Auth situation) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 732.5 Td
+(  ----------------------------------------------------------) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 721. Td
+(  POST /api/generate-note           942     No requireAuth, no in-handler session check visible) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 709.5 Td
+(  POST /api/handoff/generate        1044    No requireAuth, no in-handler session check visible) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 698. Td
+(  GET  /api/audit-log               560     isCPO\(\) check inside handler only \(no middleware\)) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 686.5 Td
+(  GET  /api/audit-log/export        576     isCPO\(\) check inside handler only \(no middleware\)) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 675. Td
+(  GET/PUT /api/scheduling/*         1850+   getSiteAccess\(\) inside handler \(functional but not middleware\)) Tj
+ET
+BT
+/F5 8 Tf
+9.1999999999999993 TL
+0.278 0.333 0.412 rg
+56. 663.5 Td
+(  POST /api/webhooks/jotform        658     Intentionally public; X-Webhook-Secret validated) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 608. Td
-(The scheduling routes call getSiteAccess\(\) which internally reads req.session.user and returns an error object if not found ó) Tj
-T* (functionally equivalent to an auth check but not enforced at the middleware level. The /api/generate-note and) Tj
-T* (/api/handoff/generate routes require independent verification of whether they enforce auth.) Tj
+48. 632. Td
+(Note: getSiteAccess\(\) reads req.session.user and returns an error response if not found -- it is functionally an auth check, but it is) Tj
+T* (applied per-handler, not at the middleware layer. The /api/generate-note and /api/handoff/generate routes require independent) Tj
+T* (verification of whether they enforce authentication.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 565. Td
-(No rate limiting is applied to any route, including /api/auth/login. An attacker can attempt password enumeration without triggering) Tj
-T* (any server-side throttle. express-rate-limit is not installed \(not present in package.json\).) Tj
+48. 589. Td
+(No rate limiting is applied to any route, including /api/auth/login. express-rate-limit is not installed. An attacker can enumerate) Tj
+T* (passwords or user accounts without triggering any server-side throttle.) Tj
 ET
 endstream
 endobj
@@ -1710,17 +1878,17 @@ endobj
 endobj
 18 0 obj
 <<
-/Length 7050
+/Length 7515
 >>
 stream
-0.5 w
+0.4 w
 0.8 0.84 0.88 RG
 BT
 /F1 7.5 Tf
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -1758,14 +1926,14 @@ BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-162. 704. Td
+157. 704. Td
 (Auth Method) Tj
 ET
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-242. 704. Td
+247. 704. Td
 (PHI?) Tj
 ET
 BT
@@ -1779,7 +1947,7 @@ BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-377. 704. Td
+367. 704. Td
 (Notes / Known Issues) Tj
 ET
 0.97 0.98 0.99 rg
@@ -1797,25 +1965,25 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-162. 685. Td
-(API key in env var ) Tj
-T* (OPENAI_API_KEY) Tj
-T* (1 or) Tj
-T* (OPENAI_API_KEY) Tj
+157. 685. Td
+(API key:) Tj
+T* (OPENAI_API_KEY1) Tj
+T* (or OPENAI_API_KEY) Tj
+T* (env var) Tj
 T* (\(routes.ts:191\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-242. 685. Td
-(YES ó) Tj
+247. 685. Td
+(YES) Tj
 T* (clinical) Tj
 T* (notes, drug) Tj
 T* (regimens,) Tj
 T* (patient) Tj
-T* (context sent) Tj
-T* (in prompt) Tj
+T* (context in) Tj
+T* (prompt) Tj
 ET
 BT
 /F1 8 Tf
@@ -1828,12 +1996,12 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-377. 685. Td
-(Uses api.openai.com, not Azure OpenAI.) Tj
-T* (Standard OpenAI tier does not include a BAA.) Tj
-T* (PHI in AI prompts is a HIPAA violation without a) Tj
-T* (BAA. Task #75 tracks Azure OpenAI migration) Tj
-T* (ó PLANNED, not complete.) Tj
+367. 685. Td
+(Uses api.openai.com NOT Azure OpenAI. Standard) Tj
+T* (OpenAI does not include a HIPAA BAA. PHI in AI) Tj
+T* (prompts without a BAA is a HIPAA violation. Azure) Tj
+T* (OpenAI migration is PLANNED \(Task #75\) -- not) Tj
+T* (complete.) Tj
 ET
 BT
 /F1 8 Tf
@@ -1847,23 +2015,23 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-162. 600. Td
-(Static Bearer token) Tj
-T* (in OUTLOOK_ACC) Tj
-T* (ESS_TOKEN env) Tj
-T* (var) Tj
+157. 600. Td
+(Static Bearer token:) Tj
+T* (OUTLOOK_ACCESS_) Tj
+T* (TOKEN env var) Tj
 T* (\(outlookClient.ts:4\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-242. 600. Td
-(YES ó) Tj
-T* (patient name,) Tj
+247. 600. Td
+(YES) Tj
+T* (patient) Tj
+T* (name,) Tj
 T* (phone,) Tj
 T* (outreach) Tj
-T* (message body) Tj
+T* (msg body) Tj
 ET
 BT
 /F1 8 Tf
@@ -1876,71 +2044,68 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-377. 600. Td
+367. 600. Td
 (OUTLOOK_ACCESS_TOKEN is a static OAuth2) Tj
-T* (access token stored as a plain env var. It is NOT a) Tj
-T* (refresh token ó when it expires the integration) Tj
-T* (silently fails \(returns false, logs warn\). No) Tj
-T* (automated rotation. BAA status: Microsoft 365 /) Tj
-T* (Graph API is HIPAA-eligible under Microsoft's BAA) Tj
-T* (ó [NOT VERIFIED whether AHF has executed this) Tj
-T* (BAA].) Tj
+T* (access token stored as a plain env var -- NOT a) Tj
+T* (refresh token. When it expires the integration silently) Tj
+T* (returns false and logs a warning. No automated) Tj
+T* (rotation. Microsoft 365 / Graph is HIPAA-eligible under) Tj
+T* (Microsoft BAA [NOT VERIFIED whether AHF has) Tj
+T* (executed that BAA].) Tj
 ET
 0.97 0.98 0.99 rg
-48. 511. 516. -63. re
+48. 522. 516. -63. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 504. Td
+52. 515. Td
 (Clerkchat) Tj
-T* (\(SMS\)) Tj
+T* (\(SMS outreach\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-162. 504. Td
-(Bearer API key in C) Tj
-T* (LERKCHAT_API_K) Tj
-T* (EY env var \(clerkch) Tj
-T* (atClient.ts:4\)) Tj
+157. 515. Td
+(Bearer API key:) Tj
+T* (CLERKCHAT_API_KE) Tj
+T* (Y env var) Tj
+T* (\(clerkchatClient.ts:4\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-242. 504. Td
-(YES ó) Tj
-T* (patient phone) Tj
-T* (number,) Tj
-T* (outreach SMS) Tj
-T* (text) Tj
+247. 515. Td
+(YES) Tj
+T* (patient) Tj
+T* (phone) Tj
+T* (number +) Tj
+T* (SMS body) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-302. 504. Td
+302. 515. Td
 (Production) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-377. 504. Td
-(CLERKCHAT_API_KEY and) Tj
-T* (CLERKCHAT_CHANNEL_ID stored as plain env) Tj
-T* (vars. No rotation policy. Clerkchat BAA status:) Tj
-T* ([NOT VERIFIED / MISSING ó flagged as HIGH) Tj
-T* (risk].) Tj
+367. 515. Td
+(No BAA confirmed. Clerkchat BAA status: MISSING /) Tj
+T* (NOT VERIFIED. Patient phone numbers and outreach) Tj
+T* (message content transmitted.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 441. Td
+52. 452. Td
 (Salesforce) Tj
 T* (\(CRM activity log\)) Tj
 ET
@@ -1948,24 +2113,25 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-162. 441. Td
+157. 452. Td
 (OAuth2 password) Tj
-T* (grant ó) Tj
-T* (SF_CLIENT_ID, SF) Tj
-T* (_CLIENT_SECRET,) Tj
+T* (grant:) Tj
+T* (SF_CLIENT_ID,) Tj
+T* (SF_CLIENT_SECRET,) Tj
 T* (SF_USERNAME,) Tj
-T* (SF_PASSWORD, S) Tj
-T* (F_SECURITY_TOK) Tj
-T* (EN \(salesforceClien) Tj
-T* (t.ts:15-35\)) Tj
+T* (SF_PASSWORD,) Tj
+T* (SF_SECURITY_TOKE) Tj
+T* (N) Tj
+T* (\(salesforceClient.ts:15-) Tj
+T* (35\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-242. 441. Td
-(YES ó) Tj
-T* (patient contact) Tj
+247. 452. Td
+(YES) Tj
+T* (patient) Tj
 T* (activity) Tj
 T* (records) Tj
 ET
@@ -1973,23 +2139,23 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-302. 441. Td
+302. 452. Td
 (Production) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-377. 441. Td
+367. 452. Td
 (Password grant type \(grant_type=password\) is) Tj
-T* (deprecated by Salesforce and scheduled for) Tj
-T* (removal. Token cached 90 min in memory \(process) Tj
-T* (restart clears cache\). BAA status: [NOT VERIFIED) Tj
-T* (ó Salesforce Health Cloud has HIPAA BAA) Tj
-T* (capability; standard CRM does not].) Tj
+T* (deprecated by Salesforce and scheduled for removal.) Tj
+T* (Token cached 90 min in process memory \(cleared on) Tj
+T* (restart\). BAA status: NOT VERIFIED -- Salesforce) Tj
+T* (Health Cloud has HIPAA BAA; standard Sales Cloud) Tj
+T* (may not.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 341. 516. -96. re
+48. 341. 516. -63. re
 f
 BT
 /F1 8 Tf
@@ -1997,29 +2163,27 @@ BT
 0.059 0.09 0.165 rg
 52. 334. Td
 (JotForm) Tj
-T* (\(webhook\)) Tj
+T* (\(webhook + PDF\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-162. 334. Td
+157. 334. Td
 (X-Webhook-Secret) Tj
-T* (header validated) Tj
-T* (against JOTFORM_) Tj
-T* (WEBHOOK_SECR) Tj
-T* (ET env var) Tj
-T* (\(routes.ts:664-672\).) Tj
-T* (Rejects 401 if set) Tj
-T* (and mismatched.) Tj
+T* (header validated vs. J) Tj
+T* (OTFORM_WEBHOOK) Tj
+T* (_SECRET env var) Tj
+T* (\(routes.ts:664-672\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-242. 334. Td
-(YES ó) Tj
-T* (patient service) Tj
+247. 334. Td
+(YES) Tj
+T* (patient) Tj
+T* (service) Tj
 T* (agreement) Tj
 T* (PDF) Tj
 ET
@@ -2034,19 +2198,18 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-377. 334. Td
+367. 334. Td
 (Public endpoint \(no session auth\). Secret validation) Tj
 T* (added in Task #137. If) Tj
-T* (JOTFORM_WEBHOOK_SECRET is not set,) Tj
-T* (webhook accepts all requests with a console) Tj
-T* (warning ó safe fallback for migration but should) Tj
-T* (not remain unset in production.) Tj
+T* (JOTFORM_WEBHOOK_SECRET is unset, all) Tj
+T* (requests are accepted with a console warning.) Tj
+T* (JotForm BAA: NOT VERIFIED.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 238. Td
+52. 271. Td
 (sFax) Tj
 T* (\(fax to McKesson\)) Tj
 ET
@@ -2054,18 +2217,18 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-162. 238. Td
-(API key via sFax) Tj
-T* (API \(faxService.ts) Tj
-T* (ó details not read) Tj
-T* (in this audit\)) Tj
+157. 271. Td
+(SFAX_USERNAME +) Tj
+T* (SFAX_API_KEY env) Tj
+T* (vars) Tj
+T* (\(faxService.ts\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-242. 238. Td
-(YES ó) Tj
+247. 271. Td
+(YES) Tj
 T* (patient PDF) Tj
 T* (document) Tj
 ET
@@ -2073,66 +2236,109 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-302. 238. Td
+302. 271. Td
 (Production) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-377. 238. Td
-(BAA status with sFax: [NOT VERIFIED]. PHI in fax) Tj
-T* (content.) Tj
+367. 271. Td
+(sFax BAA: NOT VERIFIED. PHI in faxed content.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 193. 516. -74. re
+48. 226. 516. -52. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 186. Td
+52. 219. Td
 (ADP Workforce Now) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-162. 186. Td
-(OAuth2 client) Tj
-T* (credentials ó) Tj
-T* (ADP_CLIENT_ID, A) Tj
-T* (DP_CLIENT_SECR) Tj
-T* (ET) Tj
+157. 219. Td
+(Client credentials:) Tj
+T* (ADP_CLIENT_ID + AD) Tj
+T* (P_CLIENT_SECRET) Tj
 T* (\(adpClient.ts:24-35\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-242. 186. Td
-(NO ó) Tj
+247. 219. Td
+(NO) Tj
 T* (employee) Tj
-T* (scheduling) Tj
 T* (data only) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-302. 186. Td
+302. 219. Td
 (Production) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-377. 186. Td
-(No patient PHI transmitted. Employee name, ID,) Tj
-T* (time-off data only. mTLS mentioned in replit.md but) Tj
-T* (adpClient.ts shows client_id + client_secret ó) Tj
-T* (certificate-based auth [NOT VERIFIED from code) Tj
-T* (read in this audit].) Tj
+367. 219. Td
+(No patient PHI transmitted. Employee name, ID, PTO) Tj
+T* (data only. replit.md mentions mTLS but code uses) Tj
+T* (client_id/client_secret -- mTLS status NOT VERIFIED) Tj
+T* (from this code audit.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+52. 167. Td
+(Microsoft Entra ID) Tj
+T* (\(Teams SSO\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+157. 167. Td
+(JWKS validation via) Tj
+T* (jose 6.2.3) Tj
+T* (\(teamsAuth.ts:45-50\)) Tj
+T* (Requires: AAD_APP_) Tj
+T* (CLIENT_ID,) Tj
+T* (AAD_TENANT_ID,) Tj
+T* (APP_DOMAIN) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+247. 167. Td
+(NO) Tj
+T* (staff email +) Tj
+T* (display name) Tj
+T* (only) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+302. 167. Td
+(Production) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+367. 167. Td
+(Token validated against Microsoft public JWKS) Tj
+T* (endpoint. No PHI in token. If env vars absent, SSO) Tj
+T* (silently disabled; Teams users fall back to standard) Tj
+T* (login.) Tj
 ET
 endstream
 endobj
@@ -2146,7 +2352,7 @@ endobj
 endobj
 20 0 obj
 <<
-/Length 3104
+/Length 2209
 >>
 stream
 0.5 w
@@ -2156,7 +2362,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -2170,38 +2376,33 @@ ET
 48. 32. m
 564. 32. l
 S
+0.97 0.98 0.99 rg
+48. 747. 516. -41. re
+f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
 52. 740. Td
-(Microsoft Entra ID) Tj
-T* (\(Teams SSO\)) Tj
+(Liverpool HIV DDI API) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-162. 740. Td
-(JWKS endpoint) Tj
-T* (validation via jose) Tj
-T* (library \(teamsAuth.t) Tj
-T* (s:45-50\). Requires ) Tj
-T* (AAD_APP_CLIENT) Tj
-T* (_ID,) Tj
-T* (AAD_TENANT_ID,) Tj
-T* (APP_DOMAIN env) Tj
-T* (vars.) Tj
+157. 740. Td
+(HTTPS REST) Tj
+T* (\(no API key visible in) Tj
+T* (code\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-242. 740. Td
-(NO ó staff) Tj
-T* (identity only) Tj
-T* (\(email, display) Tj
-T* (name\)) Tj
+247. 740. Td
+(NO) Tj
+T* (drug names) Tj
+T* (only) Tj
 ET
 BT
 /F1 8 Tf
@@ -2214,116 +2415,71 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-377. 740. Td
-(Token validated against Microsoft's public JWKS) Tj
-T* (endpoint. No PHI in token. If env vars absent, SSO) Tj
-T* (silently disabled and Teams users fall back to) Tj
-T* (standard login.) Tj
-ET
-0.97 0.98 0.99 rg
-48. 640. 516. -52. re
-f
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-52. 633. Td
-(Liverpool HIV DDI API) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-162. 633. Td
-(HTTPS REST, no) Tj
-T* (auth visible in code) Tj
-T* (\(liverpoolDDI.ts not) Tj
-T* (fully read\)) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-242. 633. Td
-(NO ó drug) Tj
-T* (names only) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-302. 633. Td
-(Production) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-377. 633. Td
+367. 740. Td
 (No patient identifiers sent. Drug names only for) Tj
-T* (interaction checking.) Tj
+T* (interaction lookup.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 581. Td
+52. 699. Td
 (NIH RxTerms API) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-162. 581. Td
-(Public HTTPS) Tj
-T* (REST \(no API key\)) Tj
+157. 699. Td
+(Public HTTPS REST) Tj
+T* (\(no API key\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-242. 581. Td
+247. 699. Td
 (NO) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-302. 581. Td
+302. 699. Td
 (Production) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-377. 581. Td
-(Drug name autocomplete. No PHI. Public endpoint.) Tj
+367. 699. Td
+(Drug name autocomplete. Public endpoint. No PHI.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 558. 516. -52. re
+48. 676. 516. -52. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 551. Td
+52. 669. Td
 (Neon PostgreSQL) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-162. 551. Td
-(Connection string in) Tj
-T* (DATABASE_URL) Tj
-T* (env var) Tj
+157. 669. Td
+(DATABASE_URL env) Tj
+T* (var) Tj
+T* (\(server/db.ts:16\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-242. 551. Td
-(YES ó) Tj
+247. 669. Td
+(YES) Tj
 T* (primary PHI) Tj
 T* (store) Tj
 ET
@@ -2331,19 +2487,19 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-302. 551. Td
-(Production + Dev) Tj
+302. 669. Td
+(Prod + Dev) Tj
 T* (\(shared\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-377. 551. Td
-(Single database shared across environments. TLS) Tj
-T* (on WebSocket connection. Infrastructure-level) Tj
-T* (AES-256 encryption at rest [NOT VERIFIED by) Tj
-T* (code ó standard Neon offering].) Tj
+367. 669. Td
+(Single database for all environments. TLS on) Tj
+T* (WebSocket connection. Infrastructure-level AES-256) Tj
+T* (encryption at rest [NOT VERIFIED by code -- standard) Tj
+T* (Neon offering]. No application-level encryption.) Tj
 ET
 endstream
 endobj
@@ -2357,7 +2513,7 @@ endobj
 endobj
 22 0 obj
 <<
-/Length 7157
+/Length 6852
 >>
 stream
 0.5 w
@@ -2367,7 +2523,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -2404,9 +2560,9 @@ BT
 0.059 0.09 0.165 rg
 48. 687. Td
 (All browser-to-server traffic flows over TLS, terminated at the Replit or Aptible reverse proxy. The Node.js process itself serves) Tj
-T* (plain HTTP. trust proxy is set \(server/index.ts:23\), which allows the Secure cookie flag to work correctly behind the proxy.) Tj
-T* (Server-to-Neon traffic is TLS over WebSocket \(Neon serverless driver\). Server-to-external-API traffic is HTTPS for all integrations) Tj
-T* (listed in Section 4. No non-TLS external calls were identified.) Tj
+T* (plain HTTP. trust proxy is set \(server/index.ts:23\) so the Secure cookie flag works correctly. Server-to-Neon traffic is TLS over) Tj
+T* (WebSocket. Server-to-external-API traffic is HTTPS for all integrations listed in Section 4. No non-TLS external calls were) Tj
+T* (identified.) Tj
 ET
 BT
 /F2 10 Tf
@@ -2421,10 +2577,10 @@ BT
 0.059 0.09 0.165 rg
 48. 607. Td
 (No application-level encryption is implemented. Neon PostgreSQL provides infrastructure-level AES-256 encryption at rest per) Tj
-T* (their documentation [NOT VERIFIED independently from this codebase]. Sensitive JSONB columns \(retention_patients.record,) Tj
-T* (client_store.value\) are not encrypted at the column level ó a direct database read \(e.g., via psql with the DATABASE_URL\)) Tj
-T* (exposes all PHI in plaintext. Evidence files uploaded to QA audit are stored as base64 text in qa_audit_evidence.data_b64 ó not) Tj
-T* (in object storage, not encrypted at the application level.) Tj
+T* (their documentation [NOT VERIFIED independently from this codebase -- based on Neon's published compliance documentation].) Tj
+T* (A direct database read using the DATABASE_URL connection string exposes all PHI in plaintext. Sensitive JSONB columns) Tj
+T* (\(retention_patients.record, client_store.value\) are not encrypted at the column level. Evidence files uploaded to QA audit are) Tj
+T* (stored as base64 text in qa_audit_evidence.data_b64 -- not in object storage and not encrypted at the application level.) Tj
 ET
 BT
 /F2 10 Tf
@@ -2439,265 +2595,264 @@ BT
 0.059 0.09 0.165 rg
 48. 515. Td
 (All secrets are stored as environment variables. No secrets manager \(AWS Secrets Manager, Azure Key Vault, HashiCorp Vault\)) Tj
-T* (is used. Confirmed secrets stored as env vars:) Tj
+T* (is in use. Confirmed secrets stored as plain env vars:) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 488. Td
-(ï) Tj
+56. 485. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 488. Td
-(SESSION_SECRET ó session signing key) Tj
+68. 485. Td
+(SESSION_SECRET -- session signing key) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 474. Td
-(ï) Tj
+56. 471. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 474. Td
-(DATABASE_URL ó full Neon connection string with credentials) Tj
+68. 471. Td
+(DATABASE_URL -- full Neon connection string with embedded credentials) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 460. Td
-(ï) Tj
+56. 457. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 460. Td
-(OPENAI_API_KEY1 / OPENAI_API_KEY ó OpenAI API key) Tj
+68. 457. Td
+(OPENAI_API_KEY1 / OPENAI_API_KEY -- OpenAI API key) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 446. Td
-(ï) Tj
+56. 443. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 446. Td
-(OUTLOOK_ACCESS_TOKEN ó static Outlook OAuth2 access token \(not a refresh token\)) Tj
+68. 443. Td
+(OUTLOOK_ACCESS_TOKEN -- static Outlook OAuth2 access token \(not a refresh token; expires silently\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 432. Td
-(ï) Tj
+56. 429. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 432. Td
-(SF_CLIENT_ID, SF_CLIENT_SECRET, SF_USERNAME, SF_PASSWORD, SF_SECURITY_TOKEN ó Salesforce \(5 vars\)) Tj
+68. 429. Td
+(SF_CLIENT_ID, SF_CLIENT_SECRET, SF_USERNAME, SF_PASSWORD, SF_SECURITY_TOKEN \(5 vars for Salesforce\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 418. Td
-(ï) Tj
+56. 415. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 418. Td
-(CLERKCHAT_API_KEY, CLERKCHAT_CHANNEL_ID ó Clerkchat SMS) Tj
+68. 415. Td
+(CLERKCHAT_API_KEY, CLERKCHAT_CHANNEL_ID -- Clerkchat SMS) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 404. Td
-(ï) Tj
+56. 401. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 404. Td
-(ADP_CLIENT_ID, ADP_CLIENT_SECRET ó ADP Workforce Now) Tj
+68. 401. Td
+(ADP_CLIENT_ID, ADP_CLIENT_SECRET -- ADP Workforce Now) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 390. Td
-(ï) Tj
+56. 387. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 390. Td
-(AAD_APP_CLIENT_ID, AAD_TENANT_ID, APP_DOMAIN ó Microsoft Entra SSO) Tj
+68. 387. Td
+(AAD_APP_CLIENT_ID, AAD_TENANT_ID, APP_DOMAIN -- Microsoft Entra SSO) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 376. Td
-(ï) Tj
+56. 373. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 376. Td
-(JOTFORM_API_KEY, JOTFORM_FORM_ID, JOTFORM_WEBHOOK_SECRET ó JotForm) Tj
+68. 373. Td
+(JOTFORM_API_KEY, JOTFORM_FORM_ID, JOTFORM_WEBHOOK_SECRET -- JotForm) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 362. Td
-(ï) Tj
+56. 359. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 362. Td
-(SFAX_USERNAME, SFAX_API_KEY, ICQ_FAX_NUMBER ó sFax) Tj
+68. 359. Td
+(SFAX_USERNAME, SFAX_API_KEY, ICQ_FAX_NUMBER -- sFax) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 344. Td
-(No rotation policy exists for any secret. The OUTLOOK_ACCESS_TOKEN is a static access token with a finite expiry and no) Tj
-T* (automated refresh mechanism ó when it expires, outreach emails stop silently. The Salesforce password grant stores the AHF) Tj
-T* (user password \(SF_PASSWORD\) as a plain env var.) Tj
+48. 341. Td
+(No rotation policy exists for any secret. The Salesforce integration stores the AHF user's Salesforce password \(SF_PASSWORD\)) Tj
+T* (as a plain env var.) Tj
 ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
-48. 291. Td
+48. 300. Td
 (5.4  CSRF / Injection / Session Protections) Tj
 ET
 0.97 0.98 0.99 rg
-48. 279. 516. -63. re
+48. 288. 516. -63. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 272. Td
+52. 281. Td
 (CSRF tokens) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 272. Td
+182. 281. Td
 (NOT IMPLEMENTED. No csrf-csrf or equivalent middleware installed \(not found) Tj
 T* (in package.json or server/index.ts\). SameSite=None cookies \(required for) Tj
-T* (Teams iframe\) make the absence of CSRF tokens a meaningful attack surface) Tj
-T* (ó a malicious page loaded in a Teams tab or alongside the app could make) Tj
-T* (state-changing requests using the authenticated session cookie.) Tj
+T* (Teams iframe embedding\) combined with no CSRF tokens means) Tj
+T* (state-changing requests can be forged by a malicious page sharing the) Tj
+T* (browser context.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 209. Td
+52. 218. Td
 (Rate limiting) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 209. Td
-(NOT IMPLEMENTED. express-rate-limit not installed. No throttle on /api/auth/login, /api/auth/signup, or any) Tj
-T* (other route.) Tj
+182. 218. Td
+(NOT IMPLEMENTED. express-rate-limit not in package.json. No throttle on /api/auth/login,) Tj
+T* (/api/auth/signup, or any other route.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 186. 516. -30. re
+48. 195. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 179. Td
+52. 188. Td
 (Helmet / security headers) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 179. Td
-(NOT INSTALLED. helmet package not in package.json. No Content-Security-Policy, X-Frame-Options) Tj
-T* (\(relevant given Teams embedding\), X-Content-Type-Options, or Referrer-Policy headers are set.) Tj
+182. 188. Td
+(NOT INSTALLED. helmet package not in package.json. No Content-Security-Policy, X-Frame-Options,) Tj
+T* (X-Content-Type-Options, or Referrer-Policy headers are set.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 149. Td
+52. 158. Td
 (SQL injection) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 149. Td
-(Mitigated by Drizzle ORM. All database queries use Drizzle's query builder \(parameterized\). No raw SQL) Tj
-T* (string interpolation found in storage.ts or routes.ts.) Tj
+182. 158. Td
+(Mitigated by Drizzle ORM parameterized queries. No raw SQL string interpolation found in storage.ts or) Tj
+T* (routes.ts.) Tj
 ET
 0.97 0.98 0.99 rg
-48. 126. 516. -30. re
+48. 135. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 119. Td
+52. 128. Td
 (Input validation) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 119. Td
-(Zod schemas applied to most POST/PUT request bodies. Some older handlers use direct req.body access) Tj
+182. 128. Td
+(Zod schemas applied to most POST/PUT request bodies. Some handlers use direct req.body access) Tj
 T* (without Zod \(not exhaustively audited\).) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 89. Td
+52. 98. Td
 (XSS) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 89. Td
-(React handles output escaping by default. No dangerouslySetInnerHTML usage verified. react-markdown) Tj
-T* (renders untrusted AI output ó markdown renderer config not audited for XSS mitigations.) Tj
+182. 98. Td
+(React handles output escaping by default. react-markdown renders AI output -- markdown renderer config) Tj
+T* (not audited for XSS mitigations.) Tj
 ET
 endstream
 endobj
@@ -2711,7 +2866,7 @@ endobj
 endobj
 24 0 obj
 <<
-/Length 7866
+/Length 7625
 >>
 stream
 0.5 w
@@ -2721,7 +2876,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -2750,8 +2905,8 @@ BT
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
 182. 740. Td
-(express-session does not regenerate session ID on login by default. No explicit req.session.regenerate\(\)) Tj
-T* (call found in login handler \(routes.ts:437-490\).) Tj
+(NOT mitigated. express-session does not regenerate session ID on login by default. No) Tj
+T* (req.session.regenerate\(\) call found in login handler \(routes.ts:437-490\).) Tj
 ET
 BT
 /F1 8 Tf
@@ -2775,419 +2930,422 @@ BT
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
 52. 691. Td
-(Secure cookies) Tj
+(Secure / HttpOnly cookies) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
 182. 691. Td
-(HttpOnly and Secure flags set correctly in production. SameSite=None is required for Teams embedding) Tj
-T* (but is a known CSRF-enabling configuration.) Tj
+(Correctly configured in production \(server/index.ts:70-78\). SameSite=None is a known CSRF-enabling) Tj
+T* (configuration when CSRF tokens are absent.) Tj
 ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
 48. 649. Td
-(5.5  Audit Logging ó Coverage vs. Gaps) Tj
+(5.5  Audit Logging -- Coverage and Gaps) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
 48. 634. Td
-(The HIPAA access audit log is append-only. Entries are written to both a JSON file \(.local/audit-log-state.json\) and the PostgreSQL) Tj
-T* (audit_logs table. The log records: at \(ISO timestamp\), actorEmail, actorName, role, action, resource, method, path. The following) Tj
-T* (events ARE logged:) Tj
+(The HIPAA access audit log is append-only. Entries are written to both a JSON file and the PostgreSQL audit_logs table. Each) Tj
+T* (entry records: at \(ISO timestamp\), actorEmail, actorName, role, action, resource, method, path.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 595. Td
-(ï) Tj
+48. 603. Td
+(Events that ARE logged \(15 types\):) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 595. Td
-(auth.login.success / auth.login.failure ó standard login \(routes.ts:462, 467\)) Tj
+56. 588. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 581. Td
-(ï) Tj
+68. 588. Td
+(auth.login.success / auth.login.failure \(routes.ts:462, 467\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 581. Td
-(auth.teams-sso-login ó Microsoft Teams silent SSO login \(routes.ts:526\)) Tj
+56. 574. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 567. Td
-(ï) Tj
+68. 574. Td
+(auth.teams-sso-login \(routes.ts:526\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 567. Td
-(assessment.generate ó HIV/PrEP assessment API call \(routes.ts:711\)) Tj
+56. 560. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 553. Td
-(ï) Tj
+68. 560. Td
+(assessment.generate \(routes.ts:711\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 553. Td
-(note.generate ó clinical note generation \(routes.ts:951\)) Tj
+56. 546. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 539. Td
-(ï) Tj
+68. 546. Td
+(note.generate \(routes.ts:951\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 539. Td
-(client-store.write.phi ó koheez_assessments key written via /api/client-store \(routes.ts:1324\)) Tj
+56. 532. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 525. Td
-(ï) Tj
+68. 532. Td
+(client-store.write.phi -- koheez_assessments key write \(routes.ts:1324\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 525. Td
-(cqi.meeting.list / .read / .save / .sign ó CQI meeting access and edits \(routes.ts:1434-1507\)) Tj
+56. 518. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 511. Td
-(ï) Tj
+68. 518. Td
+(cqi.meeting.list / .read / .save / .sign \(routes.ts:1434-1507\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 511. Td
-(cqi.email_signers ó email notification to CQI signers \(routes.ts:1402\)) Tj
+56. 504. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 497. Td
-(ï) Tj
+68. 504. Td
+(cqi.email_signers \(routes.ts:1402\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 497. Td
-(patient.read / .create / .update / .delete ó retention patient CRUD \(routes.ts:1514-1597\)) Tj
+56. 490. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 483. Td
-(ï) Tj
+68. 490. Td
+(patient.read / .create / .update / .delete \(routes.ts:1514-1597\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 483. Td
-(patient.import ó bulk CSV/SSRS import \(routes.ts:1782\)) Tj
+56. 476. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 465. Td
-(The following actions are NOT in the audit log \(gaps identified from routes.ts line review\):) Tj
+68. 476. Td
+(patient.import -- bulk CSV/SSRS import \(routes.ts:1782\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 450. Td
-(ï) Tj
+48. 458. Td
+(Actions NOT in the audit log \(gaps from routes.ts line review\):) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 450. Td
-(QA audit workbook reads, edits, and submissions \(routes.ts:2187-2227\) ó no recordAccess calls) Tj
+56. 443. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 436. Td
-(ï) Tj
+68. 443. Td
+(QA audit workbook reads, edits, and submissions \(routes.ts:2187-2227\) -- no recordAccess calls) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 436. Td
-(QA audit evidence uploads and downloads \(routes.ts:2259, 2305\) ó no recordAccess) Tj
+56. 429. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 422. Td
-(ï) Tj
+68. 429. Td
+(QA audit evidence uploads and downloads \(routes.ts:2259, 2305\) -- no recordAccess) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 422. Td
-(ACHC workbook read/write ó audit logging not verified) Tj
+56. 415. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 408. Td
-(ï) Tj
+68. 415. Td
+(Schedule submission, approval, and override workflow -- no recordAccess in scheduling routes) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 408. Td
-(Controlled inventory adds and adjustments ó stored via client_store sync, PHI write event logged only for) Tj
-T* (koheez_assessments key) Tj
+56. 401. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 382. Td
-(ï) Tj
+68. 401. Td
+(Retention patient DELETION -- handler at routes.ts:1593 exists but no audit entry is written on delete) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 382. Td
-(Schedule submission and approval workflow ó no recordAccess calls identified in scheduling routes) Tj
+56. 387. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 368. Td
-(ï) Tj
+68. 387. Td
+(GET /api/client-store reads -- not logged \(only writes are logged\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 368. Td
-(Retention patient deletion \(routes.ts:1593-1605\) ó handler exists but no audit entry on delete) Tj
+56. 373. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 354. Td
-(ï) Tj
+68. 373. Td
+(Fax log reads and retry attempts -- not logged) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 354. Td
-(Any read of client_store value \(GET /api/client-store\) ó not logged) Tj
+56. 359. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 340. Td
-(ï) Tj
-ET
-BT
-/F1 9 Tf
-10.3499999999999996 TL
-0.059 0.09 0.165 rg
-68. 340. Td
-(Fax log reads ó not logged) Tj
-ET
-BT
-/F1 9 Tf
-10.3499999999999996 TL
-0.059 0.09 0.165 rg
-56. 326. Td
-(ï) Tj
-ET
-BT
-/F1 9 Tf
-10.3499999999999996 TL
-0.059 0.09 0.165 rg
-68. 326. Td
-(Administrative actions \(none exist yet ó no admin UI\)) Tj
+68. 359. Td
+(Any administrative action \(no admin UI exists yet\)) Tj
 ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
-48. 296. Td
-(5.6  BAA Status by Vendor Touching PHI) Tj
+48. 329. Td
+(5.6  BAA Status by Vendor Receiving PHI) Tj
 ET
 0.06 0.14 0.29 rg
-48. 284. 516. -19. re
+48. 317. 516. -19. re
 f
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-52. 277. Td
+52. 310. Td
 (Vendor) Tj
 ET
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-182. 277. Td
+182. 310. Td
 (BAA Status) Tj
 ET
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-262. 277. Td
+272. 310. Td
 (PHI Transmitted) Tj
 ET
 0.97 0.98 0.99 rg
-48. 265. 516. -41. re
+48. 298. 516. -41. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 258. Td
+52. 291. Td
 (OpenAI \(api.openai.com\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 258. Td
-(MISSING ó) Tj
-T* (standard tier has) Tj
-T* (no HIPAA BAA) Tj
+182. 291. Td
+(MISSING -- standard) Tj
+T* (tier has no HIPAA) Tj
+T* (BAA) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-262. 258. Td
+272. 291. Td
 (Clinical notes, drug regimens, patient context in AI prompts) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 217. Td
+52. 250. Td
 (Clerkchat \(SMS\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 217. Td
-(NOT VERIFIED ó) Tj
+182. 250. Td
+(NOT VERIFIED --) Tj
 T* (presumed missing) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-262. 217. Td
+272. 250. Td
 (Patient phone number, outreach message body) Tj
 ET
 0.97 0.98 0.99 rg
-48. 194. 516. -19. re
+48. 227. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 187. Td
+52. 220. Td
 (sFax) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 187. Td
+182. 220. Td
 (NOT VERIFIED) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-262. 187. Td
+272. 220. Td
 (Patient PDF \(service agreement\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 168. Td
+52. 201. Td
 (Salesforce \(standard CRM\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 168. Td
-(NOT VERIFIED ó) Tj
-T* (Health Cloud has) Tj
-T* (BAA; standard) Tj
-T* (Sales/Service Cloud) Tj
+182. 201. Td
+(NOT VERIFIED --) Tj
+T* (Health Cloud has BAA;) Tj
+T* (standard Sales Cloud) Tj
 T* (may not) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-262. 168. Td
+272. 201. Td
 (Patient contact activity records) Tj
+ET
+0.97 0.98 0.99 rg
+48. 156. 516. -52. re
+f
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+52. 149. Td
+(Microsoft \(Graph / Outlook\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+182. 149. Td
+(HIPAA-eligible under) Tj
+T* (Microsoft BAA -- NOT) Tj
+T* (VERIFIED whether) Tj
+T* (AHF has executed it) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+272. 149. Td
+(Patient name, phone, outreach email body) Tj
 ET
 endstream
 endobj
@@ -3201,7 +3359,7 @@ endobj
 endobj
 26 0 obj
 <<
-/Length 2105
+/Length 1671
 >>
 stream
 0.5 w
@@ -3211,7 +3369,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -3225,129 +3383,100 @@ ET
 48. 32. m
 564. 32. l
 S
-0.97 0.98 0.99 rg
-48. 747. 516. -63. re
-f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
 52. 740. Td
-(Microsoft \(Graph / Outlook\)) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-182. 740. Td
-(HIPAA-eligible) Tj
-T* (under Microsoft) Tj
-T* (BAA ó NOT) Tj
-T* (VERIFIED whether) Tj
-T* (AHF has executed it) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-262. 740. Td
-(Patient name, phone, outreach email body) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-52. 677. Td
 (Neon \(PostgreSQL\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 677. Td
-(NOT VERIFIED ó) Tj
+182. 740. Td
+(NOT VERIFIED --) Tj
 T* (Neon offers HIPAA) Tj
 T* (compliance tier;) Tj
-T* (unclear if AHF is on) Tj
-T* (it) Tj
+T* (unclear if AHF account) Tj
+T* (is on it) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-262. 677. Td
-(All PHI ó primary data store) Tj
+272. 740. Td
+(All PHI -- primary data store) Tj
 ET
 0.97 0.98 0.99 rg
-48. 621. 516. -19. re
+48. 684. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 614. Td
+52. 677. Td
 (JotForm) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 614. Td
+182. 677. Td
 (NOT VERIFIED) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-262. 614. Td
+272. 677. Td
 (Patient service agreement PDF) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 595. Td
+52. 658. Td
 (ADP) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 595. Td
-(N/A ó employee) Tj
-T* (data only, not) Tj
-T* (patient PHI) Tj
+182. 658. Td
+(N/A -- employee data) Tj
+T* (only, not patient PHI) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-262. 595. Td
+272. 658. Td
 (Employee scheduling data) Tj
 ET
 0.97 0.98 0.99 rg
-48. 561. 516. -30. re
+48. 635. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 554. Td
-(NIH / Liverpool DDI) Tj
+52. 628. Td
+(NIH RxTerms / Liverpool DDI) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-182. 554. Td
-(N/A ó no PHI) Tj
+182. 628. Td
+(N/A -- no PHI) Tj
 T* (transmitted) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-262. 554. Td
+272. 628. Td
 (Drug names only) Tj
 ET
 endstream
@@ -3362,7 +3491,7 @@ endobj
 endobj
 28 0 obj
 <<
-/Length 8757
+/Length 9200
 >>
 stream
 0.5 w
@@ -3372,7 +3501,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -3401,7 +3530,7 @@ BT
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
 48. 708. Td
-(Each item below reflects actual code state as of July 22, 2026. 'Owner' is the party whose action is required to resolve.) Tj
+(Each item reflects actual code state as of July 22, 2026. 'Owner' is the party whose action is required to resolve.) Tj
 ET
 0.06 0.14 0.29 rg
 48. 690. 516. -19. re
@@ -3417,39 +3546,39 @@ BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-96. 683. Td
+86. 683. Td
 (Risk) Tj
 ET
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-256. 683. Td
+254. 683. Td
 (Severity) Tj
 ET
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-316. 683. Td
+309. 683. Td
 (Current Status) Tj
 ET
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-396. 683. Td
+385. 683. Td
 (Owner) Tj
 ET
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-486. 683. Td
+473. 683. Td
 (Target) Tj
 ET
 0.97 0.98 0.99 rg
-48. 671. 516. -96. re
+48. 671. 516. -118. re
 f
 BT
 /F1 8 Tf
@@ -3462,128 +3591,128 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 664. Td
-(All ~50+ users share password 'AHF1') Tj
-T* (ó compromise of one account equals) Tj
-T* (compromise of all at that role level) Tj
+86. 664. Td
+(~53 users share password 'AHF1' --) Tj
+T* (compromise of one account exposes all) Tj
+T* (accounts at that role level) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 664. Td
+254. 664. Td
 (CRITICAL) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 664. Td
-(PARTIAL ó) Tj
-T* (hashed at startup) Tj
-T* (\(Task #137\);) Tj
-T* (plaintext still) Tj
-T* ('AHF1' in source;) Tj
+309. 664. Td
+(PARTIAL --) Tj
+T* (hashed at) Tj
+T* (startup; plaintext) Tj
+T* ('AHF1' still in) Tj
+T* (source) Tj
+T* (\(routes.ts:76+\);) Tj
 T* (per-user) Tj
-T* (passwords in Task) Tj
+T* (passwords) Tj
+T* (planned in Task) Tj
 T* (#138) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 664. Td
+385. 664. Td
 (Engineering) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 664. Td
+473. 664. Td
 (30 days) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 568. Td
+52. 546. Td
 (R02) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 568. Td
-(OpenAI API receives PHI without a BAA ó) Tj
+86. 546. Td
+(OpenAI API receives PHI without a BAA --) Tj
 T* (HIPAA violation) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 568. Td
+254. 546. Td
 (CRITICAL) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 568. Td
-(OPEN ó) Tj
-T* (api.openai.com) Tj
-T* (used in production;) Tj
-T* (Task #75 \(Azure) Tj
-T* (migration\) is) Tj
-T* (planned but not) Tj
+309. 546. Td
+(OPEN --) Tj
+T* (api.openai.com in) Tj
+T* (production; Azure) Tj
+T* (migration planned) Tj
+T* (\(Task #75\) but not) Tj
 T* (started) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 568. Td
-(CPO + Legal +) Tj
-T* (Engineering) Tj
+385. 546. Td
+(CPO + Legal + Eng) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 568. Td
+473. 546. Td
 (30 days) Tj
 ET
 0.97 0.98 0.99 rg
-48. 490. 516. -74. re
+48. 479. 516. -74. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 483. Td
+52. 472. Td
 (R03) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 483. Td
-(No CSRF protection ó SameSite=None) Tj
-T* (cookies and no token make state-changing) Tj
-T* (requests forgeable) Tj
+86. 472. Td
+(No CSRF protection -- SameSite=None) Tj
+T* (cookies + no token = forgeable) Tj
+T* (state-changing requests) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 483. Td
+254. 472. Td
 (HIGH) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 483. Td
-(OPEN ó not) Tj
+309. 472. Td
+(OPEN -- not) Tj
 T* (implemented;) Tj
 T* (deferred from Task) Tj
 T* (#137 due to Teams) Tj
@@ -3594,117 +3723,117 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 483. Td
+385. 472. Td
 (Engineering) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 483. Td
+473. 472. Td
 (30 days) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 409. Td
+52. 398. Td
 (R04) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 409. Td
-(Clerkchat SMS API transmits patient PHI) Tj
-T* (with no confirmed BAA) Tj
+86. 398. Td
+(Clerkchat SMS transmits patient PHI; no) Tj
+T* (confirmed BAA) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 409. Td
+254. 398. Td
 (HIGH) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 409. Td
+309. 398. Td
 (OPEN) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 409. Td
+385. 398. Td
 (CPO + Legal) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 409. Td
+473. 398. Td
 (30 days) Tj
 ET
 0.97 0.98 0.99 rg
-48. 386. 516. -30. re
+48. 375. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 379. Td
+52. 368. Td
 (R05) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 379. Td
-(Dev and prod share one DATABASE_URL) Tj
-T* (ó no environment separation) Tj
+86. 368. Td
+(Dev and prod share one DATABASE_URL --) Tj
+T* (no environment separation) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 379. Td
+254. 368. Td
 (HIGH) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 379. Td
+309. 368. Td
 (OPEN) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 379. Td
+385. 368. Td
 (DevOps / CPO) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 379. Td
+473. 368. Td
 (30 days) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 349. Td
+52. 338. Td
 (R06) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 349. Td
+86. 338. Td
 (No rate limiting on /api/auth/login or any) Tj
 T* (route) Tj
 ET
@@ -3712,15 +3841,15 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 349. Td
+254. 338. Td
 (HIGH) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 349. Td
-(OPEN ó) Tj
+309. 338. Td
+(OPEN --) Tj
 T* (express-rate-limit) Tj
 T* (not installed) Tj
 ET
@@ -3728,213 +3857,211 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 349. Td
+385. 338. Td
 (Engineering) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 349. Td
+473. 338. Td
 (30 days) Tj
 ET
 0.97 0.98 0.99 rg
-48. 315. 516. -30. re
+48. 304. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 308. Td
+52. 297. Td
 (R07) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 308. Td
-(Outlook access token is a static env var ó) Tj
-T* (no refresh, expires silently) Tj
+86. 297. Td
+(Outlook access token is a static env var -- no) Tj
+T* (refresh mechanism; expires silently) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 308. Td
+254. 297. Td
 (HIGH) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 308. Td
+309. 297. Td
 (OPEN) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 308. Td
-(Engineering / Microsoft) Tj
-T* (IT) Tj
+385. 297. Td
+(Engineering / IT) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 308. Td
+473. 297. Td
 (60 days) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 278. Td
+52. 267. Td
 (R08) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 278. Td
-(Patient deletion not audited ó no) Tj
-T* (recordAccess call in DELETE) Tj
-T* (/api/retention/patients/:id \(routes.ts:1593\)) Tj
+86. 267. Td
+(Patient deletion not audited -- DELETE) Tj
+T* (/api/retention/patients/:id writes no audit) Tj
+T* (entry \(routes.ts:1593\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 278. Td
+254. 267. Td
 (HIGH) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 278. Td
+309. 267. Td
 (OPEN) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 278. Td
+385. 267. Td
 (Engineering) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 278. Td
+473. 267. Td
 (30 days) Tj
 ET
 0.97 0.98 0.99 rg
-48. 244. 516. -41. re
+48. 233. 516. -41. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 237. Td
+52. 226. Td
 (R09) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 237. Td
-(Salesforce uses OAuth2 password grant) Tj
-T* (\(deprecated\); credentials) Tj
-T* (\(username+password\) in env vars) Tj
+86. 226. Td
+(Salesforce uses deprecated OAuth2) Tj
+T* (password grant; user password stored as) Tj
+T* (env var) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 237. Td
+254. 226. Td
 (MEDIUM) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 237. Td
+309. 226. Td
 (OPEN) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 237. Td
-(Engineering /) Tj
-T* (Salesforce Admin) Tj
+385. 226. Td
+(Eng / SF Admin) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 237. Td
+473. 226. Td
 (60 days) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 196. Td
+52. 185. Td
 (R10) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 196. Td
-(sFax transmits PHI; BAA status) Tj
+86. 185. Td
+(sFax transmits patient PHI; BAA status) Tj
 T* (unconfirmed) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 196. Td
+254. 185. Td
 (MEDIUM) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 196. Td
+309. 185. Td
 (OPEN) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 196. Td
+385. 185. Td
 (CPO + Legal) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 196. Td
+473. 185. Td
 (30 days) Tj
 ET
 0.97 0.98 0.99 rg
-48. 173. 516. -30. re
+48. 162. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 166. Td
+52. 155. Td
 (R11) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 166. Td
+86. 155. Td
 (QA audit workbook reads and edits not in) Tj
 T* (audit log) Tj
 ET
@@ -3942,74 +4069,117 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 166. Td
+254. 155. Td
 (MEDIUM) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 166. Td
+309. 155. Td
 (OPEN) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 166. Td
+385. 155. Td
 (Engineering) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 166. Td
+473. 155. Td
 (60 days) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 136. Td
+52. 125. Td
 (R12) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 136. Td
-(No session ID regeneration on login) Tj
-T* (\(session fixation risk\)) Tj
+86. 125. Td
+(Session ID not regenerated on login --) Tj
+T* (session fixation risk) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 136. Td
+254. 125. Td
 (MEDIUM) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 136. Td
-(OPEN ó req.sessio) Tj
-T* (n.regenerate\(\) not) Tj
-T* (called in login) Tj
-T* (handler) Tj
+309. 125. Td
+(OPEN) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 136. Td
+385. 125. Td
 (Engineering) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 136. Td
+473. 125. Td
+(30 days) Tj
+ET
+0.97 0.98 0.99 rg
+48. 102. 516. -30. re
+f
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+52. 95. Td
+(R13) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+86. 95. Td
+(Helmet security headers not set -- no CSP,) Tj
+T* (no X-Frame-Options) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+254. 95. Td
+(MEDIUM) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+309. 95. Td
+(OPEN) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+385. 95. Td
+(Engineering) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+473. 95. Td
 (30 days) Tj
 ET
 endstream
@@ -4024,7 +4194,7 @@ endobj
 endobj
 30 0 obj
 <<
-/Length 5279
+/Length 4557
 >>
 stream
 0.5 w
@@ -4034,7 +4204,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -4048,373 +4218,323 @@ ET
 48. 32. m
 564. 32. l
 S
-0.97 0.98 0.99 rg
-48. 747. 516. -41. re
-f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
 52. 740. Td
-(R13) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-96. 740. Td
-(Helmet security headers not set \(no CSP,) Tj
-T* (no X-Frame-Options despite Teams) Tj
-T* (embedding\)) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-256. 740. Td
-(MEDIUM) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-316. 740. Td
-(OPEN) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-396. 740. Td
-(Engineering) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-486. 740. Td
-(30 days) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-52. 699. Td
 (R14) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 699. Td
-(No database-backed user management ó) Tj
-T* (adding/removing users requires code) Tj
-T* (deploy) Tj
+86. 740. Td
+(No database-backed user management --) Tj
+T* (add/remove user requires code deploy) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 699. Td
+254. 740. Td
 (MEDIUM) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 699. Td
-(OPEN ó planned in) Tj
+309. 740. Td
+(OPEN -- planned) Tj
 T* (Task #138) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 699. Td
+385. 740. Td
 (Engineering) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 699. Td
+473. 740. Td
 (30 days) Tj
 ET
 0.97 0.98 0.99 rg
-48. 665. 516. -41. re
+48. 717. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 658. Td
+52. 710. Td
 (R15) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 658. Td
-(Evidence files stored as base64 text in) Tj
-T* (PostgreSQL, not object storage ó impacts) Tj
-T* (backup, restore, and compliance) Tj
+86. 710. Td
+(Evidence files stored as base64 in) Tj
+T* (PostgreSQL, not object storage) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 658. Td
+254. 710. Td
 (MEDIUM) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 658. Td
+309. 710. Td
 (OPEN) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 658. Td
+385. 710. Td
 (Engineering) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 658. Td
+473. 710. Td
 (90 days) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 617. Td
+52. 680. Td
 (R16) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 617. Td
-(No automated regression/security test) Tj
+86. 680. Td
+(No automated regression or security test) Tj
 T* (suite) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 617. Td
+254. 680. Td
 (MEDIUM) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 617. Td
-(OPEN ó planned in) Tj
+309. 680. Td
+(OPEN -- planned) Tj
 T* (Task #139) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 617. Td
+385. 680. Td
 (Engineering) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 617. Td
+473. 680. Td
 (60 days) Tj
 ET
 0.97 0.98 0.99 rg
-48. 594. 516. -19. re
+48. 657. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 587. Td
+52. 650. Td
 (R17) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 587. Td
+86. 650. Td
 (Neon and JotForm BAA status unverified) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 587. Td
+254. 650. Td
 (MEDIUM) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 587. Td
+309. 650. Td
 (OPEN) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 587. Td
+385. 650. Td
 (CPO + Legal) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 587. Td
+473. 650. Td
 (30 days) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 568. Td
+52. 631. Td
 (R18) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 568. Td
-(ADP mTLS vs. client credential) Tj
-T* (discrepancy ó replit.md describes mTLS) Tj
-T* (but code uses client_id/secret) Tj
+86. 631. Td
+(ADP mTLS vs. client credential discrepancy) Tj
+T* (-- replit.md describes mTLS but code uses) Tj
+T* (client_id/secret) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 568. Td
+254. 631. Td
 (LOW) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 568. Td
+309. 631. Td
 (NEEDS) Tj
-T* (VERIFICATION ó) Tj
-T* (adpClient.ts:24-35) Tj
+T* (VERIFICATION) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 568. Td
+385. 631. Td
 (Engineering) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 568. Td
+473. 631. Td
 (60 days) Tj
 ET
 0.97 0.98 0.99 rg
-48. 534. 516. -52. re
+48. 597. 516. -52. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 527. Td
+52. 590. Td
 (R19) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 527. Td
-(JOTFORM_WEBHOOK_SECRET accepts) Tj
-T* (all requests if env var is unset) Tj
+86. 590. Td
+(JOTFORM_WEBHOOK_SECRET not set in) Tj
+T* (prod -- accepts all requests with warning) Tj
 T* (\(routes.ts:672\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 527. Td
+254. 590. Td
 (LOW) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 527. Td
-(PARTIAL ó) Tj
-T* (warning logged; env) Tj
-T* (var should be) Tj
-T* (provisioned in prod) Tj
+309. 590. Td
+(PARTIAL --) Tj
+T* (warning logged;) Tj
+T* (env var should be) Tj
+T* (provisioned) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 527. Td
+385. 590. Td
 (DevOps) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 527. Td
+473. 590. Td
 (15 days) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 475. Td
+52. 538. Td
 (R20) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-96. 475. Td
-(No formal security review or penetration) Tj
-T* (test has been conducted) Tj
+86. 538. Td
+(No formal security review or penetration test) Tj
+T* (has been conducted) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-256. 475. Td
+254. 538. Td
 (LOW) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-316. 475. Td
-(OPEN ó) Tj
-T* (documented in) Tj
+309. 538. Td
+(OPEN --) Tj
+T* (documented) Tj
 T* (Section 8) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-396. 475. Td
+385. 538. Td
 (CPO) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-486. 475. Td
+473. 538. Td
 (90 days) Tj
 ET
 endstream
@@ -4429,7 +4549,7 @@ endobj
 endobj
 32 0 obj
 <<
-/Length 8599
+/Length 8519
 >>
 stream
 0.5 w
@@ -4439,7 +4559,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -4468,14 +4588,14 @@ BT
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
 48. 708. Td
-(Ordered by risk severity and implementation dependency. Items in the same timeframe band can be parallelized unless noted.) Tj
+(Ordered by risk severity and implementation dependency. Items in the same band can be parallelized unless noted.) Tj
 ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
 48. 679. Td
-(Immediate / In-Flight \(before next review\)) Tj
+(Immediate \(before next review\)) Tj
 ET
 0.06 0.14 0.29 rg
 48. 667. 516. -19. re
@@ -4498,7 +4618,7 @@ BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-348. 660. Td
+352. 660. Td
 (Acceptance Criterion) Tj
 ET
 0.97 0.98 0.99 rg
@@ -4516,16 +4636,16 @@ BT
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
 88. 641. Td
-(Migrate OpenAI calls to Azure OpenAI HIPAA-eligible endpoint) Tj
-T* (\(Task #75\) OR cease sending PHI to OpenAI until BAA is in place) Tj
+(Migrate OpenAI calls to Azure OpenAI HIPAA-eligible endpoint OR) Tj
+T* (cease sending PHI until BAA is in place) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 641. Td
+352. 641. Td
 (No PHI sent to api.openai.com; Azure endpoint in use) Tj
-T* (with BAA executed) Tj
+T* (with executed BAA) Tj
 ET
 BT
 /F1 8 Tf
@@ -4545,8 +4665,8 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 611. Td
-(BAA in place or PHI removed from outreach SMS payload) Tj
+352. 611. Td
+(BAA on file OR PHI removed from outreach SMS payload) Tj
 ET
 0.97 0.98 0.99 rg
 48. 599. 516. -19. re
@@ -4569,7 +4689,7 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 592. Td
+352. 592. Td
 (Written BAA with both vendors on file) Tj
 ET
 BT
@@ -4590,91 +4710,114 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 573. Td
-(Env var present; webhook rejects unmatched requests in) Tj
-T* (prod) Tj
+352. 573. Td
+(Env var present; webhook rejects unmatched requests) Tj
 ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
-48. 531. Td
+48. 542. Td
 (30 Days) Tj
 ET
+0.06 0.14 0.29 rg
+48. 530. 516. -19. re
+f
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+1. g
+52. 523. Td
+(Ref) Tj
+ET
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+1. g
+88. 523. Td
+(Action) Tj
+ET
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+1. g
+352. 523. Td
+(Acceptance Criterion) Tj
+ET
 0.97 0.98 0.99 rg
-48. 519. 516. -52. re
+48. 511. 516. -41. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 512. Td
+52. 504. Td
 (R01) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 512. Td
-(Per-user unique passwords: generate random initial) Tj
-T* (passwords per user; add mustChangePassword flag;) Tj
-T* (POST /api/auth/change-password endpoint; redirect) Tj
-T* (first-login users to change password \(Task #138\)) Tj
+88. 504. Td
+(Per-user unique passwords: generate random initial creds per) Tj
+T* (user; mustChangePassword flag; POST /api/auth/change-password) Tj
+T* (endpoint; first-login redirect \(Task #138\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 512. Td
-(No two users share a plaintext password;) Tj
-T* (shared 'AHF1' no longer valid) Tj
+352. 504. Td
+(No two users share plaintext password; 'AHF1' no) Tj
+T* (longer valid for any account) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 460. Td
+52. 463. Td
 (R03) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 460. Td
+88. 463. Td
 (Implement csrf-csrf middleware on all state-mutating routes; add CSRF) Tj
-T* (token to frontend apiRequest \(Task #138\)) Tj
+T* (token to frontend apiRequest \(Task #138\). Exempt JotForm webhook) Tj
+T* (and Teams SSO.) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 460. Td
+352. 463. Td
 (All POST/PUT/PATCH/DELETE routes require valid CSRF) Tj
-T* (token; Teams SSO and JotForm webhook excluded) Tj
+T* (token) Tj
 ET
 0.97 0.98 0.99 rg
-48. 437. 516. -30. re
+48. 429. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 430. Td
+52. 422. Td
 (R05) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 430. Td
-(Provision separate Neon project for production; update) Tj
-T* (DATABASE_URL in prod secrets only) Tj
+88. 422. Td
+(Provision separate Neon project for production; update DATABASE_URL) Tj
+T* (in prod secrets only) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 430. Td
+352. 422. Td
 (Production DB contains only production data; dev DB is) Tj
 T* (separate) Tj
 ET
@@ -4682,38 +4825,39 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 400. Td
+52. 392. Td
 (R06) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 400. Td
-(Install express-rate-limit; apply 10 attempts/15 min to /api/auth/login) Tj
+88. 392. Td
+(Install express-rate-limit; apply 10 attempts/15 min window to) Tj
+T* (/api/auth/login) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 400. Td
+352. 392. Td
 (Brute-force login returns 429 after threshold) Tj
 ET
 0.97 0.98 0.99 rg
-48. 388. 516. -30. re
+48. 369. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 381. Td
+52. 362. Td
 (R08) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 381. Td
+88. 362. Td
 (Add recordAccess\('patient.delete'\) call in DELETE) Tj
 T* (/api/retention/patients/:id handler \(routes.ts:1593\)) Tj
 ET
@@ -4721,174 +4865,196 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 381. Td
+352. 362. Td
 (Deletion events appear in audit log) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 351. Td
-(R12) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-88. 351. Td
-(Call req.session.regenerate\(\) after successful login \(routes.ts:467\)) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-348. 351. Td
-(Session ID changes on login; old session ID invalid) Tj
-ET
-0.97 0.98 0.99 rg
-48. 339. 516. -30. re
-f
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
 52. 332. Td
-(R13) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-88. 332. Td
-(Install helmet; configure CSP allowing Teams iframe origins; set) Tj
-T* (X-Frame-Options: ALLOW-FROM) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-348. 332. Td
-(Security headers present in all responses) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-52. 302. Td
-(R14) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-88. 302. Td
-(POST/DELETE /api/admin/users endpoints; /app/admin/users CPO UI;) Tj
-T* (database-backed user table \(Task #138\)) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-348. 302. Td
-(Users can be added/removed without code deploy) Tj
-ET
-0.97 0.98 0.99 rg
-48. 279. 516. -30. re
-f
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-52. 272. Td
 (R10) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 272. Td
+88. 332. Td
 (Confirm or execute BAA with sFax) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 272. Td
+352. 332. Td
 (Written BAA on file or sFax replaced with HIPAA-covered) Tj
 T* (alternative) Tj
 ET
-BT
-/F2 10 Tf
-11.5 TL
-0.114 0.306 0.847 rg
-48. 230. Td
-(60 Days) Tj
-ET
 0.97 0.98 0.99 rg
-48. 218. 516. -41. re
+48. 309. 516. -19. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 211. Td
+52. 302. Td
+(R12) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+88. 302. Td
+(Call req.session.regenerate\(\) after successful login \(routes.ts:467\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+352. 302. Td
+(Session ID changes on login; prior session ID invalid) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+52. 283. Td
+(R13) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+88. 283. Td
+(Install helmet; configure CSP allowing Teams iframe origins) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+352. 283. Td
+(Security headers present in all responses) Tj
+ET
+0.97 0.98 0.99 rg
+48. 271. 516. -30. re
+f
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+52. 264. Td
+(R14) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+88. 264. Td
+(POST/DELETE /api/admin/users; /app/admin/users CPO UI;) Tj
+T* (database-backed user table \(Task #138\)) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+352. 264. Td
+(Users can be added/removed without code deploy) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.114 0.306 0.847 rg
+48. 222. Td
+(60 Days) Tj
+ET
+0.06 0.14 0.29 rg
+48. 210. 516. -19. re
+f
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+1. g
+52. 203. Td
+(Ref) Tj
+ET
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+1. g
+88. 203. Td
+(Action) Tj
+ET
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+1. g
+352. 203. Td
+(Acceptance Criterion) Tj
+ET
+0.97 0.98 0.99 rg
+48. 191. 516. -30. re
+f
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+52. 184. Td
 (R07) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 211. Td
-(Replace static OUTLOOK_ACCESS_TOKEN with) Tj
-T* (automated OAuth2 refresh token flow via Microsoft) Tj
-T* (Graph app registration) Tj
+88. 184. Td
+(Replace static OUTLOOK_ACCESS_TOKEN with automated) Tj
+T* (OAuth2 refresh token flow via Microsoft Graph app registration) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 211. Td
-(Outlook integration renews tokens) Tj
-T* (automatically; no static token in env vars) Tj
+352. 184. Td
+(Outlook integration renews tokens automatically; no) Tj
+T* (static token in env vars) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 170. Td
+52. 154. Td
 (R09) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 170. Td
-(Migrate Salesforce integration from password grant to JWT Bearer or) Tj
-T* (Connected App certificate flow) Tj
+88. 154. Td
+(Migrate Salesforce from password grant to JWT Bearer or Connected) Tj
+T* (App certificate flow) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 170. Td
-(No user password stored in env vars; token obtained via) Tj
+352. 154. Td
+(No user password in env vars; token obtained via) Tj
 T* (non-deprecated grant type) Tj
 ET
 0.97 0.98 0.99 rg
-48. 147. 516. -30. re
+48. 131. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 140. Td
+52. 124. Td
 (R11) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 140. Td
+88. 124. Td
 (Add recordAccess calls to QA audit workbook read, edit, submit, and) Tj
 T* (evidence upload/download handlers) Tj
 ET
@@ -4896,55 +5062,30 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 140. Td
+352. 124. Td
 (QA audit interactions appear in HIPAA audit log) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 110. Td
+52. 94. Td
 (R16) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 110. Td
-(Regression test suite covering auth paths, RBAC enforcement, audit) Tj
-T* (log writes, PHI lifecycle \(Task #139\)) Tj
+88. 94. Td
+(Regression test suite covering auth paths, RBAC enforcement, audit log) Tj
+T* (writes, PHI lifecycle \(Task #139\)) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 110. Td
+352. 94. Td
 (CI pipeline blocks deploys on test failure) Tj
-ET
-0.97 0.98 0.99 rg
-48. 87. 516. -30. re
-f
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-52. 80. Td
-(R18) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-88. 80. Td
-(Verify ADP integration auth method in production; document whether) Tj
-T* (mTLS certs or client credentials are in use) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.059 0.09 0.165 rg
-348. 80. Td
-(Auth method documented and consistent with code) Tj
 ET
 endstream
 endobj
@@ -4958,7 +5099,7 @@ endobj
 endobj
 34 0 obj
 <<
-/Length 1715
+/Length 2364
 >>
 stream
 0.5 w
@@ -4968,7 +5109,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -4982,86 +5123,135 @@ ET
 48. 32. m
 564. 32. l
 S
-BT
-/F2 10 Tf
-11.5 TL
-0.114 0.306 0.847 rg
-48. 738. Td
-(90 Days) Tj
-ET
 0.97 0.98 0.99 rg
-48. 726. 516. -41. re
+48. 747. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 719. Td
+52. 740. Td
+(R18) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+88. 740. Td
+(Verify ADP auth method in production; document whether mTLS certs or) Tj
+T* (client credentials are in use) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+352. 740. Td
+(Auth method documented and consistent with code) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.114 0.306 0.847 rg
+48. 698. Td
+(90 Days) Tj
+ET
+0.06 0.14 0.29 rg
+48. 686. 516. -19. re
+f
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+1. g
+52. 679. Td
+(Ref) Tj
+ET
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+1. g
+88. 679. Td
+(Action) Tj
+ET
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+1. g
+352. 679. Td
+(Acceptance Criterion) Tj
+ET
+0.97 0.98 0.99 rg
+48. 667. 516. -30. re
+f
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.059 0.09 0.165 rg
+52. 660. Td
 (R15) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 719. Td
-(Move evidence file uploads from base64 PostgreSQL) Tj
-T* (column to object storage \(S3/Azure Blob\) with) Tj
-T* (server-side encryption) Tj
+88. 660. Td
+(Move evidence file uploads from base64 PostgreSQL column to) Tj
+T* (object storage \(S3/Azure Blob\) with server-side encryption) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 719. Td
-(PHI files not stored in database; object store) Tj
-T* (is HIPAA-eligible) Tj
+352. 660. Td
+(PHI files not stored in database; object store is) Tj
+T* (HIPAA-eligible) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 678. Td
+52. 630. Td
 (R20) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 678. Td
+88. 630. Td
 (Commission external penetration test against production environment) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 678. Td
+352. 630. Td
 (Test report on file; critical/high findings remediated before) Tj
 T* (next governance review) Tj
 ET
 0.97 0.98 0.99 rg
-48. 655. 516. -30. re
+48. 607. 516. -30. re
 f
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-52. 648. Td
-(ó) Tj
+52. 600. Td
+(--) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-88. 648. Td
-(Evaluate secrets manager \(AWS Secrets Manager, Azure Key Vault\)) Tj
-T* (for all env var secrets; implement rotation policy for API keys) Tj
+88. 600. Td
+(Evaluate secrets manager for all env var secrets; implement rotation) Tj
+T* (policy for API keys) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-348. 648. Td
-(Secrets have defined rotation schedule; no static tokens) Tj
+352. 600. Td
+(Secrets have defined rotation schedule; no static tokens in) Tj
+T* (env vars) Tj
 ET
 endstream
 endobj
@@ -5075,7 +5265,7 @@ endobj
 endobj
 36 0 obj
 <<
-/Length 7931
+/Length 8098
 >>
 stream
 0.5 w
@@ -5085,7 +5275,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -5107,15 +5297,15 @@ BT
 12.0749999999999993 TL
 1. g
 56. 722.5 Td
-(8.  Governance Fit ó HIPAA Security Rule Technical Safeguards) Tj
+(8.  Governance Fit -- HIPAA Security Rule Technical Safeguards  \(45 CFR ss164.312\)) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
 48. 708. Td
-(The following maps the platform's current state to the HIPAA Security Rule Technical Safeguard requirements \(45 CFR ß164.312\).) Tj
-T* (Each line states what is required, what is implemented, and what is not.) Tj
+(The following maps the platform's current state to HIPAA Security Rule Technical Safeguard requirements. Each row states what) Tj
+T* (is required, what is implemented, and what is not.) Tj
 ET
 0.06 0.14 0.29 rg
 48. 678. 516. -19. re
@@ -5125,13 +5315,13 @@ BT
 9.1999999999999993 TL
 1. g
 52. 671. Td
-(Safeguard \(45 CFR ß164.312\)) Tj
+(Safeguard) Tj
 ET
 BT
 /F2 8 Tf
 9.1999999999999993 TL
 1. g
-212. 671. Td
+207. 671. Td
 (Current Implementation State) Tj
 ET
 0.97 0.98 0.99 rg
@@ -5143,15 +5333,15 @@ BT
 0.059 0.09 0.165 rg
 52. 652. Td
 (\(a\)\(1\) Access Control) Tj
-T* (ó Unique user ID required) Tj
+T* (-- Unique user ID required) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 652. Td
-(NOT MET: ~50+ users share one password \('AHF1'\). Unique user IDs exist \(email) Tj
-T* (addresses\) but unique credentials do not. Remediation in Task #138.) Tj
+207. 652. Td
+(NOT MET: ~53 users share password 'AHF1'. Unique user IDs \(email addresses\) exist but) Tj
+T* (unique credentials do not. Remediation in Task #138.) Tj
 ET
 BT
 /F1 8 Tf
@@ -5159,15 +5349,15 @@ BT
 0.059 0.09 0.165 rg
 52. 622. Td
 (\(a\)\(1\) Access Control) Tj
-T* (ó Automatic logoff) Tj
+T* (-- Automatic logoff) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 622. Td
-(PARTIAL: 7-day session maxAge \(server/index.ts:78\). No idle-timeout or inactivity-based session) Tj
-T* (expiry. A session cookie left in a browser remains valid for 7 days regardless of activity.) Tj
+207. 622. Td
+(PARTIAL: 7-day session maxAge \(server/index.ts:78\). No idle-timeout or inactivity-based expiry. A) Tj
+T* (session left in a browser is valid for 7 days regardless of activity.) Tj
 ET
 0.97 0.98 0.99 rg
 48. 599. 516. -30. re
@@ -5178,15 +5368,15 @@ BT
 0.059 0.09 0.165 rg
 52. 592. Td
 (\(a\)\(1\) Access Control) Tj
-T* (ó Encryption and decryption) Tj
+T* (-- Encryption/decryption) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 592. Td
-(PARTIAL: TLS in transit. Neon infrastructure encryption at rest [not verified]. No application-level) Tj
-T* (column encryption. Evidence files in plaintext base64 in DB.) Tj
+207. 592. Td
+(PARTIAL: TLS in transit confirmed. Neon infrastructure encryption at rest [not independently) Tj
+T* (verified]. No application-level column encryption. Evidence files stored as base64 plaintext in DB.) Tj
 ET
 BT
 /F1 8 Tf
@@ -5199,7 +5389,7 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 562. Td
+207. 562. Td
 (NOT VERIFIED: No documented emergency access procedure found in codebase. No break-glass) Tj
 T* (account mechanism.) Tj
 ET
@@ -5212,17 +5402,15 @@ BT
 0.059 0.09 0.165 rg
 52. 532. Td
 (\(b\) Audit Controls) Tj
-T* (ó Hardware, software, and procedural) Tj
-T* (mechanisms) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 532. Td
-(PARTIAL: HIPAA audit log implemented \(15 event types\). Gaps: patient deletion, QA workbook) Tj
-T* (access, scheduling actions not logged. No log integrity mechanism \(log is mutable by anyone with) Tj
-T* (DB access\).) Tj
+207. 532. Td
+(PARTIAL: HIPAA audit log with 15 event types, PostgreSQL persistence, CPO-only CSV export.) Tj
+T* (Gaps: patient deletion, QA workbook access, scheduling actions not logged. No log integrity) Tj
+T* (mechanism -- the audit_logs table is mutable by anyone with DATABASE_URL access.) Tj
 ET
 BT
 /F1 8 Tf
@@ -5230,15 +5418,15 @@ BT
 0.059 0.09 0.165 rg
 52. 491. Td
 (\(c\) Integrity) Tj
-T* (ó PHI not improperly altered or destroyed) Tj
+T* (-- PHI not improperly altered/destroyed) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 491. Td
-(PARTIAL: Drizzle ORM prevents SQL injection. Patient records can be hard-deleted via API \(no) Tj
-T* (soft-delete or tombstone\). No data integrity checksums.) Tj
+207. 491. Td
+(PARTIAL: Drizzle ORM prevents SQL injection. Patients can be hard-deleted with no tombstone or) Tj
+T* (recovery path. No data integrity checksums on PHI records.) Tj
 ET
 0.97 0.98 0.99 rg
 48. 468. 516. -30. re
@@ -5248,15 +5436,15 @@ BT
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
 52. 461. Td
-(\(d\) Person or Entity Authentication) Tj
+(\(d\) Person/Entity Authentication) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 461. Td
-(PARTIAL: Session-based auth with bcrypt. No MFA. No certificate-based auth for users. Shared) Tj
-T* (credential issue undermines authentication assurance.) Tj
+207. 461. Td
+(PARTIAL: Session-based auth with bcrypt hashing \(cost 10\). No MFA. No certificate-based auth.) Tj
+T* (Shared credential issue undermines authentication assurance level.) Tj
 ET
 BT
 /F1 8 Tf
@@ -5269,36 +5457,35 @@ BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.059 0.09 0.165 rg
-212. 431. Td
-(MET: TLS on all external communication paths verified. Trust proxy correctly configured for) Tj
-T* (production.) Tj
+207. 431. Td
+(MET: TLS on all external communication paths. trust proxy correctly configured for production.) Tj
 ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
-48. 387. Td
+48. 398. Td
 (8.1  Formal Reviews This Platform Has NOT Undergone) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 372. Td
+48. 383. Td
 (The following is stated directly, without softening:) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 357. Td
-(ï) Tj
+56. 364. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 357. Td
+68. 364. Td
 (No formal security review or risk analysis by a qualified information security professional has been conducted on this) Tj
 T* (codebase.) Tj
 ET
@@ -5306,175 +5493,188 @@ BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 331. Td
-(ï) Tj
+56. 338. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 331. Td
+68. 338. Td
 (No penetration test has been performed against the production deployment.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 317. Td
-(ï) Tj
+56. 324. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 317. Td
-(No formal BAA inventory has been compiled or signed off by legal counsel. BAA status for 5 of 7 PHI-receiving vendors is) Tj
-T* (unverified.) Tj
+68. 324. Td
+(No formal BAA inventory has been compiled or reviewed by legal counsel. BAA status for 5 of 7 PHI-receiving vendors is) Tj
+T* (unverified as of this writing.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 291. Td
-(ï) Tj
+56. 298. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 291. Td
+68. 298. Td
 (No data flow diagram has been formally reviewed or signed off by a HIPAA Security Officer.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 277. Td
-(ï) Tj
+56. 284. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 277. Td
-(No Business Associate Agreement with AHF's covered entity has been established for the Koheez.ai platform itself, if it) Tj
-T* (operates as a Business Associate.) Tj
+68. 284. Td
+(No Business Associate Agreement has been established between AHF \(as covered entity\) and the Koheez.ai platform itself,) Tj
+T* (if the platform operates as a Business Associate.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 251. Td
-(ï) Tj
+56. 258. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 251. Td
-(No Minimum Necessary standard review has been performed ó the platform transmits full patient records \(phone, email,) Tj
-T* (insurance IDs\) to outreach services; it has not been evaluated for whether a subset would suffice.) Tj
+68. 258. Td
+(No Minimum Necessary standard review has been performed. The platform transmits full patient records \(phone, email,) Tj
+T* (insurance IDs, address\) to outreach services; it has not been evaluated whether a data subset would suffice.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 225. Td
-(ï) Tj
+56. 232. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 225. Td
+68. 232. Td
 (No formal incident response plan references this system.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 211. Td
-(ï) Tj
+56. 218. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 211. Td
-(No audit log integrity mechanism exists ó a database administrator with access to the Neon connection string could alter or) Tj
-T* (delete audit records without detection.) Tj
+68. 218. Td
+(No audit log integrity mechanism exists -- a database administrator with the DATABASE_URL connection string can alter or) Tj
+T* (delete audit_logs records without detection.) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 185. Td
-(ï) Tj
+56. 192. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 185. Td
-(The platform has not undergone change management review for any of the integrations added in the past 12 months) Tj
-T* (\(Clerkchat, sFax, ADP, Teams SSO\).) Tj
+68. 192. Td
+(The platform has not undergone change management review for any integration added in the past 12 months \(Clerkchat,) Tj
+T* (sFax, ADP, Teams SSO\).) Tj
 ET
 BT
 /F2 10 Tf
 11.5 TL
 0.114 0.306 0.847 rg
-48. 143. Td
+48. 150. Td
 (8.2  What Has Been Implemented) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-48. 128. Td
-(For completeness: these controls are in place as of this review date and represent genuine progress toward HIPAA technical) Tj
-T* (safeguard compliance:) Tj
+48. 135. Td
+(For completeness, the following controls are in place as of this review:) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 101. Td
-(ï) Tj
+56. 116. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 101. Td
-(Session-based authentication with bcrypt password hashing \(cost 10\) ó Task #137) Tj
+68. 116. Td
+(Session-based authentication with bcrypt password hashing \(cost 10\) -- Task #137) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 87. Td
-(ï) Tj
+56. 102. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 87. Td
-(SESSION_SECRET enforcement ó production startup fails without it ó Task #137) Tj
+68. 102. Td
+(SESSION_SECRET enforcement -- production startup fails without it -- Task #137) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 73. Td
-(ï) Tj
+56. 88. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 73. Td
-(Append-only HIPAA audit log with 15 event types, PostgreSQL persistence, CPO-only CSV export ó Task #137) Tj
+68. 88. Td
+(Append-only HIPAA audit log: 15 event types, PostgreSQL persistence, CPO-only CSV export -- Task #137) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.059 0.09 0.165 rg
+56. 74. Td
+(-) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.059 0.09 0.165 rg
+68. 74. Td
+(PHI \(koheez_assessments\) cleared from browser localStorage on logout -- Task #137) Tj
 ET
 endstream
 endobj
@@ -5488,7 +5688,7 @@ endobj
 endobj
 38 0 obj
 <<
-/Length 2366
+/Length 2324
 >>
 stream
 0.5 w
@@ -5498,7 +5698,7 @@ BT
 8.625 TL
 0.392 0.455 0.545 rg
 48. 22. Td
-(Koheez.ai Technical Architecture & Risk Assessment  |  Internal ó Prepared for Informatics Review  |  July 22, 2026) Tj
+(Koheez.ai Technical Architecture & Risk Assessment  |  Internal -- Prepared for Informatics Review  |  July 22, 2026) Tj
 ET
 BT
 /F1 7.5 Tf
@@ -5515,86 +5715,86 @@ S
 BT
 /F1 7.5 Tf
 8.625 TL
-0.059 0.09 0.165 rg
+0.392 0.455 0.545 rg
 56. 744. Td
-(ï) Tj
+(-) Tj
 ET
 BT
 /F1 7.5 Tf
 8.625 TL
-0.059 0.09 0.165 rg
+0.392 0.455 0.545 rg
 68. 744. Td
-(PHI \(koheez_assessments\) cleared from browser localStorage on logout ó Task #137) Tj
+(JotForm webhook X-Webhook-Secret header validation -- Task #137) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
 56. 730. Td
-(ï) Tj
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
 68. 730. Td
-(JotForm webhook requires X-Webhook-Secret header validation ó Task #137) Tj
+(Role-based access control: 5 tiers; site-scoped data access enforced on patient, scheduling, and CQI routes) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
 56. 716. Td
-(ï) Tj
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
 68. 716. Td
-(Role-based access control with 5 tiers; site-scoped data access enforced on scheduling, patient, and CQI routes) Tj
-ET
-BT
-/F1 9 Tf
-10.3499999999999996 TL
-0.059 0.09 0.165 rg
-56. 702. Td
-(ï) Tj
-ET
-BT
-/F1 9 Tf
-10.3499999999999996 TL
-0.059 0.09 0.165 rg
-68. 702. Td
 (TLS on all external communication paths; Secure + HttpOnly cookie flags in production) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-56. 688. Td
-(ï) Tj
+56. 702. Td
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
-68. 688. Td
+68. 702. Td
 (Input validation via Zod schemas on most API endpoints; Drizzle ORM prevents SQL injection) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
+56. 688. Td
+(-) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.059 0.09 0.165 rg
+68. 688. Td
+(Microsoft Entra ID JWKS token validation for Teams SSO -- eliminates Teams-based auth spoofing) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+0.059 0.09 0.165 rg
 56. 674. Td
-(ï) Tj
+(-) Tj
 ET
 BT
 /F1 9 Tf
 10.3499999999999996 TL
 0.059 0.09 0.165 rg
 68. 674. Td
-(Microsoft Entra ID JWKS token validation for Teams SSO ó eliminates Teams-based auth spoofing) Tj
+(Patient import audit logging \(routes.ts:1782\)) Tj
 ET
 0.8 0.84 0.88 RG
 0.5 w
@@ -5607,9 +5807,9 @@ BT
 0.392 0.455 0.545 rg
 48. 636. Td
 (This document was prepared by the Koheez.ai engineering team for internal informatics governance review. Every factual claim references a specific file) Tj
-T* (and line number in the codebase as it existed on July 22, 2026 \(git commit afb1a4ab\). Claims marked [NOT VERIFIED] reflect limitations of this code-only) Tj
+T* (and line number in the codebase as it existed on July 22, 2026 \(git commit 54acee1a\). Claims marked [NOT VERIFIED] reflect limitations of this code-only) Tj
 T* (audit and require independent confirmation. This document does not constitute legal advice and does not substitute for a formal HIPAA risk analysis under) Tj
-T* (45 CFR ß164.308\(a\)\(1\).) Tj
+T* (45 CFR ss164.308\(a\)\(1\).) Tj
 ET
 endstream
 endobj
@@ -5783,7 +5983,7 @@ endobj
 53 0 obj
 <<
 /Producer (jsPDF 4.2.1)
-/CreationDate (D:20260722163525-00'00')
+/CreationDate (D:20260722164206-00'00')
 >>
 endobj
 54 0 obj
@@ -5797,67 +5997,67 @@ endobj
 xref
 0 55
 0000000000 65535 f 
-0000097003 00000 n 
-0000098942 00000 n 
+0000096171 00000 n 
+0000098110 00000 n 
 0000000015 00000 n 
 0000000120 00000 n 
-0000005256 00000 n 
-0000005361 00000 n 
-0000012444 00000 n 
-0000012549 00000 n 
-0000013407 00000 n 
-0000013513 00000 n 
-0000021936 00000 n 
-0000022043 00000 n 
-0000023750 00000 n 
-0000023857 00000 n 
-0000030823 00000 n 
-0000030930 00000 n 
-0000033314 00000 n 
-0000033421 00000 n 
-0000040524 00000 n 
-0000040631 00000 n 
-0000043788 00000 n 
-0000043895 00000 n 
-0000051105 00000 n 
-0000051212 00000 n 
-0000059131 00000 n 
-0000059238 00000 n 
-0000061396 00000 n 
-0000061503 00000 n 
-0000070313 00000 n 
-0000070420 00000 n 
-0000075752 00000 n 
-0000075859 00000 n 
-0000084511 00000 n 
-0000084618 00000 n 
-0000086386 00000 n 
-0000086493 00000 n 
-0000094477 00000 n 
-0000094584 00000 n 
-0000097177 00000 n 
-0000097303 00000 n 
-0000097434 00000 n 
-0000097568 00000 n 
-0000097706 00000 n 
-0000097830 00000 n 
-0000097959 00000 n 
-0000098091 00000 n 
-0000098227 00000 n 
-0000098355 00000 n 
-0000098482 00000 n 
-0000098611 00000 n 
-0000098744 00000 n 
-0000098846 00000 n 
-0000099195 00000 n 
-0000099281 00000 n 
+0000005261 00000 n 
+0000005366 00000 n 
+0000009461 00000 n 
+0000009566 00000 n 
+0000014119 00000 n 
+0000014225 00000 n 
+0000022359 00000 n 
+0000022466 00000 n 
+0000023554 00000 n 
+0000023661 00000 n 
+0000030898 00000 n 
+0000031005 00000 n 
+0000033477 00000 n 
+0000033584 00000 n 
+0000041152 00000 n 
+0000041259 00000 n 
+0000043521 00000 n 
+0000043628 00000 n 
+0000050533 00000 n 
+0000050640 00000 n 
+0000058318 00000 n 
+0000058425 00000 n 
+0000060149 00000 n 
+0000060256 00000 n 
+0000069509 00000 n 
+0000069616 00000 n 
+0000074226 00000 n 
+0000074333 00000 n 
+0000082905 00000 n 
+0000083012 00000 n 
+0000085429 00000 n 
+0000085536 00000 n 
+0000093687 00000 n 
+0000093794 00000 n 
+0000096345 00000 n 
+0000096471 00000 n 
+0000096602 00000 n 
+0000096736 00000 n 
+0000096874 00000 n 
+0000096998 00000 n 
+0000097127 00000 n 
+0000097259 00000 n 
+0000097395 00000 n 
+0000097523 00000 n 
+0000097650 00000 n 
+0000097779 00000 n 
+0000097912 00000 n 
+0000098014 00000 n 
+0000098363 00000 n 
+0000098449 00000 n 
 trailer
 <<
 /Size 55
 /Root 54 0 R
 /Info 53 0 R
-/ID [ <82EA77FF1CC5380CD7B75F7F2EC61F32> <82EA77FF1CC5380CD7B75F7F2EC61F32> ]
+/ID [ <8B16A232BBA07229E429B00BD5849D29> <8B16A232BBA07229E429B00BD5849D29> ]
 >>
 startxref
-99385
+98553
 %%EOF
