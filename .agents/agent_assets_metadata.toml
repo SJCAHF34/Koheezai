@@ -18,3 +18,9 @@ id = "iv7WsMU289OBpW5JSSS0B"
 uri = "file://ADP_API_Access_Request.md"
 type = "text"
 title = "ADP API Access Request — Koheez Scheduling Calendar"
+
+[[outputs]]
+id = "wekdpvqrkSf8vY-azA73v"
+uri = "file://koheez-architecture-audit.pdf"
+type = "pdf"
+title = "Koheez.ai — Architecture & Compliance Audit (July 2026)"
