@@ -67,34 +67,11 @@ export default function ConcomitantMedications({
     }
   }, [pasteText, medications]);
 
-  // NIH RxTerms autocomplete
+  // Autocomplete suggestions (external lookup removed; type-and-add via paste or Enter)
   useEffect(() => {
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-
-    if (inputValue.length < 2 || inputValue.includes(",")) {
-      setSuggestions([]);
-      setOpen(false);
-      return;
-    }
-
-    debounceTimerRef.current = setTimeout(async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch(
-          `https://clinicaltables.nlm.nih.gov/api/rxterms/v3/search?terms=${encodeURIComponent(inputValue)}&maxList=10`
-        );
-        const data = (await res.json()) as [number, string[], string[], string[], unknown[]];
-        const names: string[] = data[3] || [];
-        const unique = Array.from(new Set(names)).filter((m) => !medications.includes(m));
-        setSuggestions(unique);
-        setOpen(unique.length > 0);
-      } catch {
-        setSuggestions([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 300);
-
+    setSuggestions([]);
+    setOpen(false);
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };

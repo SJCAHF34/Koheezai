@@ -9,7 +9,7 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Frontend
-The frontend uses React with TypeScript and Vite. UI components are built with Shadcn/ui (Radix UI-based, "New York" style), managed with Wouter for routing and React hooks/TanStack Query for state. Forms use Zod for validation. Autocomplete for medications is provided by the NIH RxTerms API. The design is responsive using Tailwind CSS, adapting to various screen sizes.
+The frontend uses React with TypeScript and Vite. UI components are built with Shadcn/ui (Radix UI-based, "New York" style), managed with Wouter for routing and React hooks/TanStack Query for state. Forms use Zod for validation. The design is responsive using Tailwind CSS, adapting to various screen sizes.
 
 ### Backend
 The backend is an Express.js (Node.js, TypeScript) RESTful API. The primary `/api/assessment` endpoint processes patient data to deliver drug interaction alerts, clinical recommendations, and AI-generated summaries. All incoming data is validated with Zod schemas.
@@ -62,7 +62,6 @@ The Store Performance Dashboard (`/app/store/:siteId`) stats are restricted to *
 ## External Dependencies
 
 -   **OpenAI API**: For AI-powered clinical summaries and consultation questions.
--   **NIH RxTerms API (Clinical Tables Search Service)**: For medication autocomplete suggestions.
 -   **PostgreSQL Database**: For data persistence, session storage, and user management. Integrates with Neon serverless PostgreSQL.
 -   **Third-Party UI Libraries**: Radix UI, Lucide React, date-fns, Embla Carousel, Cmdk for UI components, iconography, date manipulation, carousels, and command palettes.
 -   **Clerkchat API**: For sending SMS messages in the automated outreach sequence.
