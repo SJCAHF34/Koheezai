@@ -2521,14 +2521,14 @@ function MonthGrid({
             const closed =
               hours?.weekdays?.[d.getDay()] === null ||
               (hours?.holidayClosures ?? []).includes(dk);
-            if (!closed) {
-              const cell = computeEffective(d, staff.id, defaults, entries);
-              if (cell.status === "scheduled") {
-                if (!spanStart) spanStart = dk;
-                spanEnd = dk;
-                if (di === 6) flush();
-                continue;
-              }
+            const cell = computeEffective(d, staff.id, defaults, entries);
+            // Show working bar when: explicitly scheduled via override (even on a closed day),
+            // OR scheduled from defaults on a non-closed day.
+            if (cell.status === "scheduled" && (!closed || !cell.fromDefault)) {
+              if (!spanStart) spanStart = dk;
+              spanEnd = dk;
+              if (di === 6) flush();
+              continue;
             }
             flush();
           }
@@ -2627,7 +2627,7 @@ function MonthGrid({
                       width: `calc(${widthPct}% - 2px)`,
                       top: topPx,
                       height: EVENT_H - 4,
-                      background: bar.isOff ? "#ef4444" : bar.color + "55",
+                      background: bar.isOff ? "#ef4444" : bar.color + "cc",
                       borderLeft: "none",
                       borderRadius: `${bar.isStart ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isEnd ? 4 : 0}px ${bar.isStart ? 4 : 0}px`,
                       paddingLeft: bar.isStart ? 6 : 2,
